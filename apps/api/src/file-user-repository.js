@@ -40,6 +40,12 @@ export class FileUserRepository {
     return users.find((user) => user.email === email) ?? null;
   }
 
+  async findById(id) {
+    const users = await this.#readUsers();
+
+    return users.find((user) => user.id === id) ?? null;
+  }
+
   async create({ email, passwordHash, passwordSalt }) {
     const users = await this.#readUsers();
     const user = {
