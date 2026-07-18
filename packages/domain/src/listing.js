@@ -20,6 +20,15 @@ function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0;
 }
 
+function isImageUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
 export function validateListing(listing) {
   const errors = [];
 
@@ -45,6 +54,10 @@ export function validateListing(listing) {
 
   if (!isPositiveInteger(listing.units)) {
     errors.push("units must be a positive integer");
+  }
+
+  if (listing.photoUrl !== undefined && (!isNonEmptyString(listing.photoUrl) || !isImageUrl(listing.photoUrl))) {
+    errors.push("photoUrl must be a valid http or https URL");
   }
 
   if (!listing.location || typeof listing.location !== "object") {
@@ -79,6 +92,7 @@ export function createListing(input) {
 
   return {
     ...input,
+    ...(input.photoUrl ? { photoUrl: input.photoUrl.trim() } : {}),
     brand: input.brand.trim(),
     diaperSize: input.diaperSize.trim(),
     location: {
