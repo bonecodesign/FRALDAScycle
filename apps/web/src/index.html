@@ -15,6 +15,33 @@
         <p>Encontre, venda, compre ou doe fraldas perto de você.</p>
       </header>
 
+      <section class="panel" aria-labelledby="account-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="account-title">Sua conta</h2>
+            <p id="session-info">Entre para publicar seus anúncios.</p>
+          </div>
+          <button id="logout" type="button" class="secondary" hidden>Sair</button>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <select name="action">
+            <option value="login">Entrar</option>
+            <option value="register">Criar conta</option>
+          </select>
+          <input name="email" type="email" placeholder="E-mail" autocomplete="email" required />
+          <input
+            name="password"
+            type="password"
+            placeholder="Senha (mínimo de 8 caracteres)"
+            autocomplete="current-password"
+            minlength="8"
+            required
+          />
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="auth-message" role="status"></p>
+      </section>
+
       <section class="panel" aria-labelledby="publish-title">
         <h2 id="publish-title">Publicar anúncio</h2>
         <form id="listing-form">
