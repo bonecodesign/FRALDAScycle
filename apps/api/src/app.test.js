@@ -26,6 +26,29 @@ async function startServer(options) {
   };
 }
 
+async function createAuthenticatedApi() {
+  const directory = await mkdtemp(join(tmpdir(), "fraldacycle-"));
+  const userRepository = new FileUserRepository(join(directory, "users.json"));
+  const repository = new FileListingRepository(join(directory, "listings.json"));
+  const authService = new AuthService({
+    secret: "a-secret-that-is-longer-than-thirty-two-characters",
+    userRepository,
+  });
+  const credentials = await authService.register({
+    email: "family@example.com",
+    password: "safe-password",
+  });
+  const api = await startServer({ authService, repository });
+
+  return {
+    api,
+    directory,
+    repository,
+    token: credentials.token,
+    user: credentials.user,
+  };
+}
+
 const validListing = {
   type: "sell",
   sealed: true,
@@ -52,40 +75,56 @@ test("reports that the API is healthy", async () => {
   }
 });
 
-test("creates and filters listings", async () => {
-  const api = await startServer();
+test("requires authentication to create listings", async () => {
+  const context = await createAuthenticatedApi();
 
   try {
-    const created = await fetch(`${api.baseUrl}/listings`, {
+    const anonymous = await fetch(`${context.api.baseUrl}/listings`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(validListing),
     });
 
-    assert.equal(created.status, 201);
+    assert.equal(anonymous.status, 401);
 
-    const listing = (await created.json()).listing;
-    assert.ok(listing.id);
-    assert.ok(listing.createdAt);
+    const created = await fetch(`${context.api.baseUrl}/listings`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${context.token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(validListing),
+    });
+
+    assert.equal(created.status, 201);
+    const publicListing = (await created.json()).listing;
+    assert.equal(publicListing.ownerId, undefined);
+
+    const storedListings = await context.repository.list();
+    assert.equal(storedListings[0].ownerId, context.user.id);
 
     const results = await fetch(
-      `${api.baseUrl}/listings?city=são%20paulo&type=sell`,
+      `${context.api.baseUrl}/listings?city=são%20paulo&type=sell`,
     );
 
     assert.equal(results.status, 200);
     assert.equal((await results.json()).listings.length, 1);
   } finally {
-    await api.close();
+    await context.api.close();
+    await rm(context.directory, { recursive: true, force: true });
   }
 });
 
-test("rejects invalid listing payloads", async () => {
-  const api = await startServer();
+test("rejects invalid authenticated listing payloads", async () => {
+  const context = await createAuthenticatedApi();
 
   try {
-    const response = await fetch(`${api.baseUrl}/listings`, {
+    const response = await fetch(`${context.api.baseUrl}/listings`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${context.token}`,
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ ...validListing, sealed: false }),
     });
 
@@ -94,7 +133,8 @@ test("rejects invalid listing payloads", async () => {
       "listing must describe a sealed package",
     ]);
   } finally {
-    await api.close();
+    await context.api.close();
+    await rm(context.directory, { recursive: true, force: true });
   }
 });
 
