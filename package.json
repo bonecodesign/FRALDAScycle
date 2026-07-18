@@ -1,0 +1,17 @@
+{
+  "name": "fraldacycle",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.3.0"
+  }
+}
