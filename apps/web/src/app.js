@@ -7,6 +7,8 @@ const authMessage = document.querySelector("#auth-message");
 const sessionInfo = document.querySelector("#session-info");
 const logoutButton = document.querySelector("#logout");
 const form = document.querySelector("#listing-form");
+const myListingsPanel = document.querySelector("#my-listings-panel");
+const myListingResults = document.querySelector("#my-listing-results");
 const searchForm = document.querySelector("#search-form");
 const priceField = document.querySelector("#price-field");
 const message = document.querySelector("#form-message");
@@ -52,12 +54,16 @@ function updateSession() {
 
   authForm.hidden = signedIn;
   logoutButton.hidden = !signedIn;
+  myListingsPanel.hidden = !signedIn;
   sessionInfo.textContent = signedIn
     ? `Conectado como ${user.email}.`
     : "Entre para publicar seus anúncios.";
 
   if (signedIn) {
     setAuthMessage("");
+    loadMyListings();
+  } else {
+    myListingResults.replaceChildren();
   }
 }
 
@@ -79,7 +85,7 @@ function updatePriceField() {
   }
 }
 
-function createListingCard(listing) {
+function createListingCard(listing, { canDelete = false } = {}) {
   const card = document.createElement("article");
   card.className = "listing";
 
@@ -104,7 +110,30 @@ function createListingCard(listing) {
     card.append(price);
   }
 
+  if (canDelete) {
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "danger";
+    removeButton.dataset.listingId = listing.id;
+    removeButton.textContent = "Remover anúncio";
+    card.append(removeButton);
+  }
+
   return card;
+}
+
+async function readResponse(response) {
+  const body = await response.json();
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearSession();
+    }
+
+    throw new Error(body.errors?.join(" ") ?? body.error);
+  }
+
+  return body;
 }
 
 async function loadListings() {
@@ -118,12 +147,9 @@ async function loadListings() {
   results.textContent = "Carregando anúncios...";
 
   try {
-    const response = await fetch(`${API_URL}/listings?${query}`);
-    const { listings } = await response.json();
-
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar os anúncios.");
-    }
+    const { listings } = await readResponse(
+      await fetch(`${API_URL}/listings?${query}`),
+    );
 
     results.replaceChildren();
 
@@ -138,6 +164,59 @@ async function loadListings() {
   } catch (error) {
     results.textContent = error.message;
     results.className = "results error";
+  }
+}
+
+async function loadMyListings() {
+  if (!token) {
+    return;
+  }
+
+  myListingResults.replaceChildren();
+  myListingResults.textContent = "Carregando seus anúncios...";
+
+  try {
+    const { listings } = await readResponse(
+      await fetch(`${API_URL}/my/listings`, {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+
+    myListingResults.replaceChildren();
+
+    if (listings.length === 0) {
+      myListingResults.textContent = "Você ainda não publicou anúncios.";
+      myListingResults.className = "results empty";
+      return;
+    }
+
+    myListingResults.className = "results";
+    listings.forEach((listing) =>
+      myListingResults.append(createListingCard(listing, { canDelete: true })),
+    );
+  } catch (error) {
+    myListingResults.textContent = error.message;
+    myListingResults.className = "results error";
+  }
+}
+
+async function deleteListing(id) {
+  if (!window.confirm("Remover este anúncio?")) {
+    return;
+  }
+
+  try {
+    await readResponse(
+      await fetch(`${API_URL}/listings/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+
+    await Promise.all([loadListings(), loadMyListings()]);
+  } catch (error) {
+    myListingResults.textContent = error.message;
+    myListingResults.className = "results error";
   }
 }
 
@@ -162,11 +241,7 @@ authForm.addEventListener("submit", async (event) => {
         password: values.password,
       }),
     });
-    const body = await response.json();
-
-    if (!response.ok) {
-      throw new Error(body.error);
-    }
+    const body = await readResponse(response);
 
     token = body.token;
     user = body.user;
@@ -218,30 +293,31 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/listings`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(listing),
-    });
-    const body = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        clearSession();
-      }
-
-      throw new Error(body.errors?.join(" ") ?? body.error);
-    }
+    await readResponse(
+      await fetch(`${API_URL}/listings`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(listing),
+      }),
+    );
 
     form.reset();
     updatePriceField();
     setMessage("Anúncio publicado com sucesso.");
-    await loadListings();
+    await Promise.all([loadListings(), loadMyListings()]);
   } catch (error) {
     setMessage(error.message, true);
+  }
+});
+
+myListingResults.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-listing-id]");
+
+  if (button) {
+    deleteListing(button.dataset.listingId);
   }
 });
 
@@ -251,6 +327,7 @@ searchForm.addEventListener("submit", (event) => {
 });
 
 document.querySelector("#refresh").addEventListener("click", loadListings);
+document.querySelector("#refresh-mine").addEventListener("click", loadMyListings);
 
 updateAuthAction();
 updatePriceField();
