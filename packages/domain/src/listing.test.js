@@ -22,9 +22,13 @@ const validSellListing = {
 };
 
 test("accepts and normalizes a sealed sell listing", () => {
-  const listing = createListing(validSellListing);
+  const listing = createListing({
+    ...validSellListing,
+    photoUrl: " https://placehold.co/600x400 ",
+  });
 
   assert.equal(listing.brand, "FraldaCycle");
+  assert.equal(listing.photoUrl, "https://placehold.co/600x400");
   assert.equal(listing.location.city, "São Paulo");
   assert.equal(listing.location.state, "SP");
 });
@@ -48,6 +52,12 @@ test("rejects a price on donate listings", () => {
   });
 
   assert.deepEqual(errors, ["donate listings cannot include priceCents"]);
+});
+
+test("rejects invalid product photo URLs", () => {
+  const errors = validateListing({ ...validSellListing, photoUrl: "invalid" });
+
+  assert.deepEqual(errors, ["photoUrl must be a valid http or https URL"]);
 });
 
 test("exposes validation errors when creating an invalid listing", () => {
