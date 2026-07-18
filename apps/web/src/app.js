@@ -187,12 +187,17 @@ function createListingCard(listing, { canDelete = false } = {}) {
     removeButton.dataset.listingId = listing.id;
     removeButton.textContent = "Remover anúncio";
     content.append(removeButton);
-  } else {
+  } else if (Number.isInteger(listing.mapIndex)) {
     const action = document.createElement("a");
     action.className = "listing-action";
-    action.href = "/map.html";
+    action.href = `/map.html?offer=${encodeURIComponent(listing.id)}`;
     action.textContent = "Ver no mapa →";
     content.append(action);
+  } else {
+    const localStatus = document.createElement("span");
+    localStatus.className = "listing-local-status";
+    localStatus.textContent = "Salvo localmente · sem ponto no mapa";
+    content.append(localStatus);
   }
 
   card.append(image, content);
