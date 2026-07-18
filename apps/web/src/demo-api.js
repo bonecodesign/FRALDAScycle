@@ -27,6 +27,14 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isHttpUrl(value) {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
 function validateDemoListing(listing) {
   const errors = [];
   if (!["buy", "sell", "donate"].includes(listing?.type)) {
@@ -48,7 +56,7 @@ function validateDemoListing(listing) {
   if (
     listing?.photoUrl !== undefined &&
     (!isNonEmptyString(listing.photoUrl) ||
-      !/^https?:\/\//i.test(listing.photoUrl))
+      !isHttpUrl(listing.photoUrl))
   ) {
     errors.push("photoUrl must be a valid http or https URL");
   }
