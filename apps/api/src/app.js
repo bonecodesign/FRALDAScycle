@@ -97,8 +97,13 @@ async function authenticateRequest(request, authService) {
   return authService.authenticate(match[1]);
 }
 
-function sendAuthenticationError(response, error) {
-  sendJson(response, error.statusCode, { error: error.message });
+function sendRequestError(response, error) {
+  if (error instanceof AuthenticationError) {
+    sendJson(response, error.statusCode, { error: error.message });
+    return;
+  }
+
+  sendJson(response, 500, { error: "Unable to complete request" });
 }
 
 export function createApi({
@@ -143,7 +148,7 @@ export function createApi({
 
         sendJson(response, 200, { listings: listings.map(publicListing) });
       } catch (error) {
-        sendAuthenticationError(response, error);
+        sendRequestError(response, error);
       }
 
       return;
@@ -172,7 +177,7 @@ export function createApi({
         sendJson(response, 201, { listing: publicListing(storedListing) });
       } catch (error) {
         if (error instanceof AuthenticationError) {
-          sendAuthenticationError(response, error);
+          sendRequestError(response, error);
           return;
         }
 
@@ -200,10 +205,9 @@ export function createApi({
           return;
         }
 
-        response.writeHead(204, JSON_HEADERS);
-        response.end();
+        sendJson(response, 200, { deleted: true });
       } catch (error) {
-        sendAuthenticationError(response, error);
+        sendRequestError(response, error);
       }
 
       return;
