@@ -65,3 +65,15 @@ testers.forEach((tester, index) => {
   item.append(button);
   list.append(item);
 });
+
+const requestedOffer = new URLSearchParams(window.location.search).get("offer");
+const requestedIndex = testers.findIndex(
+  (_, index) => `demo-${index + 1}` === requestedOffer,
+);
+
+if (requestedIndex >= 0) {
+  selectTester(requestedIndex);
+  document.querySelectorAll("#tester-list button")[requestedIndex]?.scrollIntoView({
+    block: "nearest",
+  });
+}
