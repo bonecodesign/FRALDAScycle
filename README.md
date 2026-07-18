@@ -1,6 +1,6 @@
 # FRALDAScycle
 
-FraldaCycle é uma plataforma para compra, venda, doação e reutilização responsável de produtos infantis.
+FraldaCycle é uma plataforma para compra, venda e doação de pacotes fechados de fraldas.
 
 ## Status
 
@@ -8,4 +8,4 @@ FraldaCycle é uma plataforma para compra, venda, doação e reutilização resp
 
 ## Visão
 
-Construir um ecossistema seguro e sustentável para famílias, promovendo economia circular e impacto social.
+Construir um ecossistema seguro para famílias, facilitando a circulação de pacotes fechados de fraldas.
