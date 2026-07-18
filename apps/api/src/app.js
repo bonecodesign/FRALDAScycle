@@ -5,10 +5,11 @@ import {
   ListingValidationError,
 } from "@fraldacycle/domain";
 
+import { AuthenticationError } from "./auth-service.js";
 import { InMemoryListingRepository } from "./listing-repository.js";
 
 const JSON_HEADERS = {
-  "access-control-allow-headers": "content-type",
+  "access-control-allow-headers": "authorization, content-type",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-origin": "*",
   "content-type": "application/json; charset=utf-8",
@@ -50,13 +51,45 @@ function readJson(request) {
   });
 }
 
-export function createApi({ repository = new InMemoryListingRepository() } = {}) {
+async function handleAuthentication(response, authService, action, request) {
+  if (!authService) {
+    sendJson(response, 503, { error: "Authentication is not configured" });
+    return;
+  }
+
+  try {
+    const result = await authService[action](await readJson(request));
+    sendJson(response, 201, result);
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      sendJson(response, error.statusCode, { error: error.message });
+      return;
+    }
+
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+export function createApi({
+  repository = new InMemoryListingRepository(),
+  authService,
+} = {}) {
   return createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
 
     if (request.method === "OPTIONS") {
       response.writeHead(204, JSON_HEADERS);
       response.end();
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/auth/register") {
+      await handleAuthentication(response, authService, "register", request);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/auth/login") {
+      await handleAuthentication(response, authService, "login", request);
       return;
     }
 
