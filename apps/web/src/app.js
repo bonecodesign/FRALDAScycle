@@ -114,7 +114,7 @@ async function apiFetch(url, options = {}) {
   if (path.startsWith("/listings/") && method === "DELETE") {
     const id = decodeURIComponent(path.slice("/listings/".length));
     localStorage.setItem(DEMO_LISTINGS_KEY, JSON.stringify(getDemoListings().filter((listing) => listing.id !== id)));
-    return demoResponse({}, 204);
+    return demoResponse({ removed: true });
   }
 
   return demoResponse({ error: "Recurso demonstrativo indisponível." }, 404);
