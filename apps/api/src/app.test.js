@@ -197,3 +197,69 @@ test("registers and logs in a user", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("supports browser preflight requests for the optional API", async () => {
+  const api = await startServer();
+
+  try {
+    const response = await fetch(`${api.baseUrl}/listings`, {
+      method: "OPTIONS",
+      headers: {
+        origin: "http://localhost:3001",
+        "access-control-request-method": "POST",
+      },
+    });
+
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), "*");
+    assert.match(
+      response.headers.get("access-control-allow-methods"),
+      /GET.*POST/,
+    );
+    assert.match(
+      response.headers.get("access-control-allow-headers"),
+      /authorization.*content-type/,
+    );
+  } finally {
+    await api.close();
+  }
+});
+
+test("returns a client error for malformed JSON without stopping the API", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "fraldacycle-"));
+  const userRepository = new FileUserRepository(join(directory, "users.json"));
+  const authService = new AuthService({
+    secret: "a-secret-that-is-longer-than-thirty-two-characters",
+    userRepository,
+  });
+  const api = await startServer({ authService });
+
+  try {
+    const malformed = await fetch(`${api.baseUrl}/auth/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{broken",
+    });
+    assert.equal(malformed.status, 400);
+
+    const health = await fetch(`${api.baseUrl}/health`);
+    assert.equal(health.status, 200);
+    assert.deepEqual(await health.json(), { status: "ok" });
+  } finally {
+    await api.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("returns a consistent JSON response for unknown API routes", async () => {
+  const api = await startServer();
+
+  try {
+    const response = await fetch(`${api.baseUrl}/unknown`);
+    assert.equal(response.status, 404);
+    assert.match(response.headers.get("content-type"), /application\/json/);
+    assert.deepEqual(await response.json(), { error: "Not found" });
+  } finally {
+    await api.close();
+  }
+});
