@@ -78,7 +78,35 @@ function updatePriceField() {
 }
 
 function fallbackPhoto(listing) {
-  return `https://placehold.co/640x480/eaf2ec/26734d?text=${encodeURIComponent(listing.brand)}`;
+  const palettes = [
+    ["#dff7e7", "#087f3f", "#f8d14b"],
+    ["#dbeafe", "#2563eb", "#f59e0b"],
+    ["#f3e8ff", "#7c3aed", "#fb7185"],
+    ["#ffedd5", "#ea580c", "#22c55e"],
+  ];
+  const seed = Array.from(listing.brand).reduce((total, character) => total + character.charCodeAt(0), 0);
+  const [surface, primary, accent] = palettes[seed % palettes.length];
+  const name = String(listing.brand).slice(0, 18).replace(/[&<>]/g, "");
+  const size = String(listing.diaperSize).slice(0, 4).replace(/[&<>]/g, "");
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Pacote demonstrativo">',
+    '<rect width="640" height="480" rx="40" fill="' + surface + '"/>',
+    '<circle cx="535" cy="74" r="66" fill="' + accent + '" opacity=".23"/>',
+    '<circle cx="100" cy="420" r="110" fill="' + primary + '" opacity=".12"/>',
+    '<path d="M0 360C140 305 226 424 382 369c88-31 176-42 258-3v114H0z" fill="' + primary + '" opacity=".13"/>',
+    '<g transform="translate(150 74)">',
+    '<rect x="0" y="15" width="338" height="278" rx="26" fill="#fff" stroke="' + primary + '" stroke-width="9"/>',
+    '<rect x="0" y="15" width="338" height="64" rx="26" fill="' + primary + '"/>',
+    '<text x="169" y="57" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="24" fill="#fff">FraldaCycle</text>',
+    '<circle cx="169" cy="160" r="57" fill="' + accent + '" opacity=".28"/>',
+    '<path d="M137 164c9-38 43-55 73-30 28 24 14 70-28 70-36 0-57-19-45-40z" fill="' + primary + '"/>',
+    '<text x="169" y="249" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="31" fill="#0f172a">' + name + '</text>',
+    '<text x="169" y="278" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#475569">Tamanho ' + size + ' · pacote fechado</text>',
+    '</g>',
+    '<text x="320" y="424" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="' + primary + '">♻ economia circular para famílias</text>',
+    '</svg>',
+  ].join("");
+  return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
 }
 
 function createListingCard(listing, { canDelete = false } = {}) {
