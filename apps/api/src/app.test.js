@@ -99,8 +99,9 @@ test("requires authentication to create listings", async () => {
     assert.equal(created.status, 201);
     const publicListing = (await created.json()).listing;
     assert.equal(publicListing.ownerId, undefined);
+    assert.equal(publicListing.status, "pending");
 
-    const storedListings = await context.repository.list();
+    const storedListings = await context.repository.list({ status: "pending" });
     assert.equal(storedListings[0].ownerId, context.user.id);
 
     const results = await fetch(
@@ -108,7 +109,7 @@ test("requires authentication to create listings", async () => {
     );
 
     assert.equal(results.status, 200);
-    assert.equal((await results.json()).listings.length, 1);
+    assert.equal((await results.json()).listings.length, 0);
   } finally {
     await context.api.close();
     await rm(context.directory, { recursive: true, force: true });
@@ -138,7 +139,7 @@ test("rejects invalid authenticated listing payloads", async () => {
   }
 });
 
-test("keeps listings after creating a new repository instance", async () => {
+test("keeps pending listings after creating a new repository instance", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fraldacycle-"));
   const dataFile = join(directory, "listings.json");
 
@@ -147,7 +148,7 @@ test("keeps listings after creating a new repository instance", async () => {
     await firstRepository.create(validListing);
 
     const secondRepository = new FileListingRepository(dataFile);
-    const listings = await secondRepository.list();
+    const listings = await secondRepository.list({ status: "pending" });
 
     assert.equal(listings.length, 1);
     assert.equal(listings[0].brand, "FraldaCycle");
