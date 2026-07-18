@@ -9,7 +9,7 @@ const testers = [
   { name: "Henrique Souza", neighborhood: "Cidade Nova", brand: "Babysec UltraSec", size: "G", units: 36, price: "R$ 42,90", coords: [-19.9008, -43.9234] },
   { name: "Isabela Ramos", neighborhood: "Castelo", brand: "Pampers Premium Care", size: "P", units: 28, price: "R$ 46,90", coords: [-19.8843, -43.9743] },
   { name: "João Martins", neighborhood: "Pampulha", brand: "Huggies Natural Care", size: "M", units: 44, price: "R$ 53,90", coords: [-19.8552, -43.9688] },
-];
+].map((tester, index) => ({ ...tester, id: `demo-${index + 1}` }));
 
 const mapElement = document.querySelector("#map");
 const list = document.querySelector("#tester-list");
@@ -67,9 +67,7 @@ testers.forEach((tester, index) => {
 });
 
 const requestedOffer = new URLSearchParams(window.location.search).get("offer");
-const requestedIndex = testers.findIndex(
-  (_, index) => `demo-${index + 1}` === requestedOffer,
-);
+const requestedIndex = testers.findIndex((tester) => tester.id === requestedOffer);
 
 if (requestedIndex >= 0) {
   selectTester(requestedIndex);
