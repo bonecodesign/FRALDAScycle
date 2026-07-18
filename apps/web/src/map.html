@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FraldaCycle — Mapa de teste</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQd4nXW1T2YyjUHjOe6ZLz3R9V+WwM=" crossorigin="" />
+    <link rel="stylesheet" href="/map.css" />
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script defer src="/map.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">◌ FraldaCycle</a>
+      <nav><a href="/">Marketplace</a><a href="/dashboard.html">Dashboard</a><a class="active" href="/map.html">Mapa de teste</a></nav>
+      <span class="demo-pill">Modo demonstração</span>
+    </header>
+    <main class="page">
+      <section class="intro">
+        <div>
+          <p class="eyebrow">Acesso livre · sem login</p>
+          <h1>Testadores em Belo Horizonte</h1>
+          <p>Explore os pontos fictícios do marketplace por bairro. Cada marcador representa uma oferta criada para demonstração.</p>
+        </div>
+        <a class="button" href="/#offers">Ver ofertas</a>
+      </section>
+      <section class="map-layout">
+        <div id="map" aria-label="Mapa interativo com pontos de teste em Belo Horizonte"></div>
+        <aside class="side-panel">
+          <div class="side-heading"><div><p class="eyebrow">Comunidade de teste</p><h2>10 ofertas no mapa</h2></div><span>BH · MG</span></div>
+          <p class="disclaimer">Todos os nomes, bairros aproximados e ofertas nesta tela são fictícios e servem somente para validação visual.</p>
+          <ul id="tester-list" aria-label="Lista de testadores"></ul>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
