@@ -22,14 +22,14 @@ jobs:
         with:
           node-version: 20
 
+      - name: Validate installable web demo
+        run: npm run verify:demo
+
       - name: Enable pnpm
         run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Validate web scripts
-        run: pnpm --filter @fraldacycle/web test
 
       - name: Run API and domain tests
         run: pnpm --filter @fraldacycle/api --filter @fraldacycle/domain test
