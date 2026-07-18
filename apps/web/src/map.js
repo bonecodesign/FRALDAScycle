@@ -11,36 +11,51 @@ const testers = [
   { name: "João Martins", neighborhood: "Pampulha", brand: "Huggies Natural Care", size: "M", units: 44, price: "R$ 53,90", coords: [-19.8552, -43.9688] },
 ];
 
-const map = L.map("map", { scrollWheelZoom: false }).setView([-19.927, -43.94], 12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: "© OpenStreetMap",
-}).addTo(map);
-
+const mapElement = document.querySelector("#map");
 const list = document.querySelector("#tester-list");
 const markers = [];
+const leafletAvailable = typeof window.L !== "undefined";
+const map = leafletAvailable
+  ? L.map("map", { scrollWheelZoom: false }).setView([-19.927, -43.94], 12)
+  : null;
+
+if (map) {
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap",
+  }).addTo(map);
+} else {
+  mapElement.classList.add("map-unavailable");
+  mapElement.textContent = "Mapa indisponível offline. As ofertas demonstrativas continuam disponíveis na lista.";
+}
 
 function selectTester(index) {
   const tester = testers[index];
-  map.flyTo(tester.coords, 14, { duration: 0.65 });
-  markers[index].openPopup();
+  if (map && markers[index]) {
+    map.flyTo(tester.coords, 14, { duration: 0.65 });
+    markers[index].openPopup();
+  }
   document.querySelectorAll("#tester-list button").forEach((button, buttonIndex) => {
     button.classList.toggle("selected", buttonIndex === index);
   });
 }
 
 testers.forEach((tester, index) => {
-  const icon = L.divIcon({
-    className: "tester-marker",
-    html: `<span>${index + 1}</span>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
-  const marker = L.marker(tester.coords, { icon })
-    .addTo(map)
-    .bindPopup(`<strong>${tester.brand}</strong><br>${tester.neighborhood} · tamanho ${tester.size}<br><b>${tester.price}</b>`);
-  marker.on("click", () => selectTester(index));
-  markers.push(marker);
+  if (map) {
+    const icon = L.divIcon({
+      className: "tester-marker",
+      html: `<span>${index + 1}</span>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+    });
+    const marker = L.marker(tester.coords, { icon })
+      .addTo(map)
+      .bindPopup(`<strong>${tester.brand}</strong><br>${tester.neighborhood} · tamanho ${tester.size}<br><b>${tester.price}</b>`);
+    marker.on("click", () => selectTester(index));
+    markers.push(marker);
+  } else {
+    markers.push(null);
+  }
 
   const item = document.createElement("li");
   const button = document.createElement("button");
