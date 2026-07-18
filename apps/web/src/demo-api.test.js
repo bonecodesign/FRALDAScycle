@@ -30,6 +30,10 @@ test("loads and filters the initial demonstrative marketplace", async () => {
   const { apiFetch } = createContext();
   const all = await (await apiFetch("/demo-api/listings")).json();
   assert.equal(all.listings.length, initialDemoListings.length);
+  assert.deepEqual(
+    all.listings.map((listing) => listing.mapIndex),
+    initialDemoListings.map((_, index) => index),
+  );
 
   const donations = await (
     await apiFetch("/demo-api/listings?city=belo%20horizonte&state=mg&type=donate")
