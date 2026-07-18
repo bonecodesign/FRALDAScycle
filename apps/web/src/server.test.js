@@ -91,6 +91,20 @@ test("identifies simulated data on every primary screen", async () => {
   });
 });
 
+test("reports demonstrative readiness without implying production services", async () => {
+  await withServer(async (baseUrl) => {
+    const dashboard = await (await fetch(`${baseUrl}/dashboard.html`)).text();
+    const styles = await (await fetch(`${baseUrl}/dashboard.css`)).text();
+
+    assert.match(dashboard, /<strong>100%<\/strong>/);
+    assert.match(dashboard, /Demonstração web e PWA pronta para testes/);
+    assert.match(dashboard, /Negociação real <small>fora da demonstração<\/small>/);
+    assert.match(dashboard, /Pagamentos reais <small>fora da demonstração<\/small>/);
+    assert.match(dashboard, /Logística real <small>fora da demonstração<\/small>/);
+    assert.match(styles, /\.progress i \{[^}]*width: 100%/);
+  });
+});
+
 test("keeps every internal navigation link and asset reachable", async () => {
   await withServer(async (baseUrl) => {
     const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
