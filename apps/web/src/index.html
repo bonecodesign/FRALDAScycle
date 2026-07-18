@@ -16,7 +16,7 @@
     <header class="appbar">
       <a class="brand" href="/"><span class="brand-mark">↻</span>FraldaCycle</a>
       <nav class="appnav" aria-label="Navegação principal">
-        <a class="active" href="/">Início</a>
+        <a class="active" href="/" aria-current="page">Início</a>
         <a href="#offers">Marketplace</a>
         <a href="/map.html">Mapa</a>
         <a href="/dashboard.html">Administração</a>
@@ -53,7 +53,7 @@
 
       <section class="panel account-panel" aria-labelledby="account-title">
         <div class="section-heading"><div><p class="eyebrow">Acesse a comunidade</p><h2 id="account-title">Sua conta</h2><p id="session-info">Entre para publicar seus anúncios.</p></div><button id="logout" type="button" class="secondary" hidden>Sair</button></div>
-        <form id="auth-form" class="auth-form"><select name="action"><option value="login">Entrar</option><option value="register">Criar conta</option></select><input name="email" type="email" placeholder="E-mail" autocomplete="email" required /><label class="password-field"><span class="sr-only">Senha</span><input name="password" type="password" placeholder="Senha (mínimo de 8 caracteres)" autocomplete="current-password" minlength="8" required /><button id="toggle-password" type="button" class="password-toggle" aria-label="Mostrar senha">Mostrar</button></label><button type="submit">Entrar</button></form>
+        <form id="auth-form" class="auth-form"><select name="action" aria-label="Ação da conta"><option value="login">Entrar</option><option value="register">Criar conta</option></select><input name="email" type="email" aria-label="E-mail" placeholder="E-mail" autocomplete="email" required /><label class="password-field"><span class="sr-only">Senha</span><input name="password" type="password" placeholder="Senha (mínimo de 8 caracteres)" autocomplete="current-password" minlength="8" required /><button id="toggle-password" type="button" class="password-toggle" aria-label="Mostrar senha">Mostrar</button></label><button type="submit">Entrar</button></form>
         <p class="helper">Para demonstração, use uma conta <code>@tester.fraldacycle.local</code>.</p><p id="auth-message" role="status"></p>
       </section>
 
@@ -61,11 +61,11 @@
 
       <section id="my-listings-panel" class="panel" aria-labelledby="my-listings-title" hidden><div class="section-heading"><div><h2 id="my-listings-title">Meus anúncios</h2><p>Gerencie as ofertas publicadas pela sua conta.</p></div><button id="refresh-mine" type="button" class="secondary">Atualizar</button></div><div id="my-listing-results" class="results" aria-live="polite"></div></section>
 
-      <section id="offers" class="panel offers-panel" aria-labelledby="search-title"><div class="section-heading"><div><p class="eyebrow">Marketplace</p><h2 id="search-title">Ofertas próximas</h2><p>Encontre pacotes disponíveis na sua região.</p></div><button id="refresh" type="button" class="secondary">Atualizar</button></div><form id="search-form" class="search"><input name="city" placeholder="Cidade" /><input name="state" maxlength="2" placeholder="UF" /><select name="type"><option value="">Todas as modalidades</option><option value="sell">Venda</option><option value="buy">Compra</option><option value="donate">Doação</option></select><button type="submit">Buscar</button></form><div class="quick-filters" aria-label="Filtros rápidos"><button type="button" class="quick-filter active" data-filter-type="" aria-pressed="true">Todas</button><button type="button" class="quick-filter" data-filter-type="sell" aria-pressed="false">Venda</button><button type="button" class="quick-filter" data-filter-type="buy" aria-pressed="false">Compra</button><button type="button" class="quick-filter" data-filter-type="donate" aria-pressed="false">Doação</button><a class="quick-map-link" href="/map.html">⌖ Ver no mapa</a></div><div id="listing-results" class="results listing-grid" aria-live="polite"></div></section>
+      <section id="offers" class="panel offers-panel" aria-labelledby="search-title"><div class="section-heading"><div><p class="eyebrow">Marketplace</p><h2 id="search-title">Ofertas próximas</h2><p>Encontre pacotes disponíveis na sua região.</p></div><button id="refresh" type="button" class="secondary">Atualizar</button></div><form id="search-form" class="search"><input name="city" aria-label="Cidade" placeholder="Cidade" /><input name="state" aria-label="Estado" maxlength="2" placeholder="UF" /><select name="type" aria-label="Modalidade"><option value="">Todas as modalidades</option><option value="sell">Venda</option><option value="buy">Compra</option><option value="donate">Doação</option></select><button type="submit">Buscar</button></form><div class="quick-filters" aria-label="Filtros rápidos"><button type="button" class="quick-filter active" data-filter-type="" aria-pressed="true">Todas</button><button type="button" class="quick-filter" data-filter-type="sell" aria-pressed="false">Venda</button><button type="button" class="quick-filter" data-filter-type="buy" aria-pressed="false">Compra</button><button type="button" class="quick-filter" data-filter-type="donate" aria-pressed="false">Doação</button><a class="quick-map-link" href="/map.html">⌖ Ver no mapa</a></div><div id="listing-results" class="results listing-grid" aria-live="polite"></div></section>
     </main>
 
     <nav class="mobile-nav" aria-label="Navegação mobile">
-      <a class="active" href="/"><span aria-hidden="true">⌂</span>Início</a>
+      <a class="active" href="/" aria-current="page"><span aria-hidden="true">⌂</span>Início</a>
       <a href="#offers"><span aria-hidden="true">⌕</span>Ofertas</a>
       <a class="publish" href="#publish-title"><span aria-hidden="true">＋</span>Publicar</a>
       <a href="/map.html"><span aria-hidden="true">⌖</span>Mapa</a>
