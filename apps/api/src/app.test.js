@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { createApi } from "./app.js";
+import { FileListingRepository } from "./file-listing-repository.js";
 
 async function startServer() {
   const server = createApi();
@@ -13,7 +17,10 @@ async function startServer() {
 
   return {
     baseUrl,
-    close: () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
+    close: () =>
+      new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
   };
 }
 
@@ -59,7 +66,9 @@ test("creates and filters listings", async () => {
     assert.ok(listing.id);
     assert.ok(listing.createdAt);
 
-    const results = await fetch(`${api.baseUrl}/listings?city=são%20paulo&type=sell`);
+    const results = await fetch(
+      `${api.baseUrl}/listings?city=são%20paulo&type=sell`,
+    );
 
     assert.equal(results.status, 200);
     assert.equal((await results.json()).listings.length, 1);
@@ -84,5 +93,23 @@ test("rejects invalid listing payloads", async () => {
     ]);
   } finally {
     await api.close();
+  }
+});
+
+test("keeps listings after creating a new repository instance", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "fraldacycle-"));
+  const dataFile = join(directory, "listings.json");
+
+  try {
+    const firstRepository = new FileListingRepository(dataFile);
+    await firstRepository.create(validListing);
+
+    const secondRepository = new FileListingRepository(dataFile);
+    const listings = await secondRepository.list();
+
+    assert.equal(listings.length, 1);
+    assert.equal(listings[0].brand, "FraldaCycle");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
