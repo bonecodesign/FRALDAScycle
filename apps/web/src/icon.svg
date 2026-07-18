@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">FraldaCycle</title>
+  <rect width="512" height="512" rx="112" fill="#087f3f"/>
+  <circle cx="256" cy="256" r="150" fill="#dcfce7"/>
+  <path d="M350 202a112 112 0 0 0-183-36l-25-5 15 73 70-23-25-10a72 72 0 0 1 111 25z" fill="#087f3f"/>
+  <path d="M162 310a112 112 0 0 0 183 36l25 5-15-73-70 23 25 10a72 72 0 0 1-111-25z" fill="#16a34a"/>
+  <path d="M218 219c22-27 54-27 76 0 21 26 16 70-38 101-54-31-59-75-38-101z" fill="#fff"/>
+</svg>
