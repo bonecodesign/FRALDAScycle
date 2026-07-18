@@ -119,3 +119,23 @@ test("keeps every internal navigation link and asset reachable", async () => {
     }
   });
 });
+
+test("keeps essential accessibility landmarks on every screen", async () => {
+  await withServer(async (baseUrl) => {
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+
+    for (const page of pages) {
+      const html = await (await fetch(`${baseUrl}${page}`)).text();
+      assert.match(html, /<html lang="pt-BR">/, `${page} language`);
+      assert.match(html, /<meta name="viewport"/, `${page} viewport`);
+      assert.match(html, /<title>[^<]+<\/title>/, `${page} title`);
+      assert.match(html, /<main(?:\s|>)/, `${page} main landmark`);
+      assert.match(html, /<nav[^>]+aria-label=/, `${page} labeled navigation`);
+      assert.match(html, /aria-current="page"/, `${page} current navigation state`);
+
+      for (const image of html.matchAll(/<img\b[^>]*>/g)) {
+        assert.match(image[0], /\salt="[^"]*"/, `${page} image alternative`);
+      }
+    }
+  });
+});
