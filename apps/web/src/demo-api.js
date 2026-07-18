@@ -1,5 +1,9 @@
 const STORAGE_KEY = "fraldacycle.demo.listings";
 
+export function resetDemoListings(storage) {
+  storage.removeItem(STORAGE_KEY);
+}
+
 export const initialDemoListings = [
   ["demo-1", "sell", "Pampers Confort Sec", "M", 36, 5290, "Savassi"],
   ["demo-2", "sell", "Huggies Supreme Care", "G", 30, 4890, "Funcionários"],
