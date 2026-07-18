@@ -32,4 +32,22 @@ export class InMemoryListingRepository {
       return true;
     });
   }
+
+  listByOwner(ownerId) {
+    return this.#listings.filter((listing) => listing.ownerId === ownerId);
+  }
+
+  deleteByIdAndOwner(id, ownerId) {
+    const index = this.#listings.findIndex(
+      (listing) => listing.id === id && listing.ownerId === ownerId,
+    );
+
+    if (index === -1) {
+      return false;
+    }
+
+    this.#listings.splice(index, 1);
+
+    return true;
+  }
 }
