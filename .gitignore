@@ -1,0 +1,45 @@
+# Node
+node_modules/
+pnpm-lock.yaml
+
+# Turbo
+.turbo/
+
+# Build
+dist/
+build/
+coverage/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+
+# Android
+a**/app/debug/
+android/.gradle/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+
+# Prisma
+prisma/dev.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
