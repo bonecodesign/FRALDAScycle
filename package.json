@@ -2,7 +2,7 @@
   "name": "fraldacycle",
   "private": true,
   "version": "0.1.1",
-  "packageManager": "pnpm@10",
+  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=20"
   },
