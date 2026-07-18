@@ -70,7 +70,8 @@ test("exposes a complete demonstrative PWA contract", async () => {
 
     const app = await (await fetch(`${baseUrl}/app.js`)).text();
     assert.match(app, /serviceWorker\.register\("\/service-worker\.js"\)/);
-    assert.match(app, /const DEMO_MODE = !window\.FRALDACYCLE_API_URL/);
+    assert.match(app, /import \{ createDemoApi \} from "\.\/demo-api\.js"/);
+    assert.match(app, /apiUrl: window\.FRALDACYCLE_API_URL/);
   });
 });
 
