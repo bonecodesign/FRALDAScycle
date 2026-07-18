@@ -4,11 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { AuthService } from "./auth-service.js";
 import { createApi } from "./app.js";
 import { FileListingRepository } from "./file-listing-repository.js";
+import { FileUserRepository } from "./file-user-repository.js";
 
-async function startServer() {
-  const server = createApi();
+async function startServer(options) {
+  const server = createApi(options);
 
   await new Promise((resolve) => server.listen(0, resolve));
 
@@ -110,6 +112,47 @@ test("keeps listings after creating a new repository instance", async () => {
     assert.equal(listings.length, 1);
     assert.equal(listings[0].brand, "FraldaCycle");
   } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("registers and logs in a user", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "fraldacycle-"));
+  const userRepository = new FileUserRepository(join(directory, "users.json"));
+  const authService = new AuthService({
+    secret: "a-secret-that-is-longer-than-thirty-two-characters",
+    userRepository,
+  });
+  const api = await startServer({ authService });
+
+  try {
+    const registration = await fetch(`${api.baseUrl}/auth/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: "FAMILY@EXAMPLE.COM",
+        password: "safe-password",
+      }),
+    });
+
+    assert.equal(registration.status, 201);
+    const registered = await registration.json();
+    assert.equal(registered.user.email, "family@example.com");
+    assert.ok(registered.token);
+
+    const login = await fetch(`${api.baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: "family@example.com",
+        password: "safe-password",
+      }),
+    });
+
+    assert.equal(login.status, 200);
+    assert.ok((await login.json()).token);
+  } finally {
+    await api.close();
     await rm(directory, { recursive: true, force: true });
   }
 });
