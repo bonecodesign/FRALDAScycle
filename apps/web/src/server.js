@@ -27,26 +27,30 @@ const assets = {
 
 export function createWebServer() {
   return createServer(async (request, response) => {
-  const asset = assets[new URL(request.url, "http://localhost").pathname];
+    const asset = assets[new URL(request.url, "http://localhost").pathname];
 
-  if (request.method !== "GET" || !asset) {
-    response.writeHead(404);
-    response.end("Not found");
-    return;
-  }
+    if (request.method !== "GET" || !asset) {
+      response.writeHead(404);
+      response.end("Not found");
+      return;
+    }
 
-  const fileUrl = new URL(asset.file, import.meta.url);
+    const fileUrl = new URL(asset.file, import.meta.url);
 
-  try {
-    await access(fileUrl);
-    response.writeHead(200, { "content-type": asset.type });
-    createReadStream(fileUrl).pipe(response);
-  } catch {
-    response.writeHead(500);
-    response.end("Unable to load application");
-  }
-});
+    try {
+      await access(fileUrl);
+      response.writeHead(200, { "content-type": asset.type });
+      createReadStream(fileUrl).pipe(response);
+    } catch {
+      response.writeHead(500);
+      response.end("Unable to load application");
+    }
+  });
+}
 
-server.listen(port, () => {
-  console.log(`FraldaCycle web listening on port ${port}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const server = createWebServer();
+  server.listen(port, () => {
+    console.log(`FraldaCycle web listening on port ${server.address().port}`);
+  });
+}
