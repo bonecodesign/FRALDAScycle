@@ -23,6 +23,7 @@ test("serves every public web and installable app route", async () => {
       ["/", "text/html"],
       ["/index.html", "text/html"],
       ["/app.js", "text/javascript"],
+      ["/demo-api.js", "text/javascript"],
       ["/styles.css", "text/css"],
       ["/design.css", "text/css"],
       ["/map.html", "text/html"],
