@@ -52,3 +52,23 @@ test("returns not found for unknown routes and unsupported methods", async () =>
     assert.equal((await fetch(baseUrl, { method: "POST" })).status, 404);
   });
 });
+
+test("exposes a complete demonstrative PWA contract", async () => {
+  await withServer(async (baseUrl) => {
+    const manifest = await (await fetch(`${baseUrl}/manifest.webmanifest`)).json();
+    assert.equal(manifest.name, "FraldaCycle");
+    assert.equal(manifest.lang, "pt-BR");
+    assert.equal(manifest.start_url, "/");
+    assert.equal(manifest.display, "standalone");
+    assert.equal(manifest.theme_color, "#087f3f");
+    assert.ok(manifest.icons.some((icon) => icon.src === "/icon.svg"));
+
+    const index = await (await fetch(baseUrl)).text();
+    assert.match(index, /rel="manifest" href="\/manifest\.webmanifest"/);
+    assert.match(index, /Marketplace demonstrativo/);
+
+    const app = await (await fetch(`${baseUrl}/app.js`)).text();
+    assert.match(app, /serviceWorker\.register\("\/service-worker\.js"\)/);
+    assert.match(app, /const DEMO_MODE = !window\.FRALDACYCLE_API_URL/);
+  });
+});
