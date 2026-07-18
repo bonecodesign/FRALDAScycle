@@ -118,6 +118,54 @@ export class AuthService {
     };
   }
 
+  async authenticate(token) {
+    if (typeof token !== "string") {
+      throw new AuthenticationError("Authentication token is required");
+    }
+
+    const [payload, signature, ...remainingParts] = token.split(".");
+
+    if (!payload || !signature || remainingParts.length > 0) {
+      throw new AuthenticationError("Authentication token is invalid");
+    }
+
+    const expectedSignature = Buffer.from(sign(payload, this.secret));
+    const receivedSignature = Buffer.from(signature);
+
+    if (
+      expectedSignature.length !== receivedSignature.length ||
+      !timingSafeEqual(expectedSignature, receivedSignature)
+    ) {
+      throw new AuthenticationError("Authentication token is invalid");
+    }
+
+    try {
+      const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+
+      if (
+        typeof claims.sub !== "string" ||
+        typeof claims.exp !== "number" ||
+        claims.exp <= Date.now()
+      ) {
+        throw new AuthenticationError("Authentication token has expired");
+      }
+
+      const user = await this.userRepository.findById(claims.sub);
+
+      if (!user) {
+        throw new AuthenticationError("Authentication token is invalid");
+      }
+
+      return publicUser(user);
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        throw error;
+      }
+
+      throw new AuthenticationError("Authentication token is invalid");
+    }
+  }
+
   createToken(user) {
     const payload = Buffer.from(
       JSON.stringify({
