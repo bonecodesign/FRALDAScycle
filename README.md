@@ -48,11 +48,19 @@ Depois, disponibilize o endereço da API à página por `window.FRALDACYCLE_API_
 
 ## Verificações
 
+A demonstração web pode ser validada somente com Node.js 20, sem instalar dependências:
+
+```sh
+npm run verify:demo
+```
+
+Para executar também os testes da API e do domínio:
+
 ```sh
 pnpm test
 ```
 
-O CI valida a sintaxe dos scripts web e executa os testes automatizados da API e do domínio.
+O CI executa primeiro a verificação independente da demonstração e depois os testes automatizados da API e do domínio.
 
 ## Limites da demonstração
 
