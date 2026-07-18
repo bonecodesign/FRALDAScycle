@@ -12,6 +12,7 @@ const myListingResults = document.querySelector("#my-listing-results");
 const searchForm = document.querySelector("#search-form");
 const quickFilters = document.querySelectorAll(".quick-filter");
 const priceField = document.querySelector("#price-field");
+const publishGuidance = document.querySelector("#publish-guidance");
 const message = document.querySelector("#form-message");
 const results = document.querySelector("#listing-results");
 const passwordInput = authForm.elements.password;
@@ -81,9 +82,15 @@ function updateAuthAction() {
 function updatePriceField() {
   const type = new FormData(form).get("type");
   const priceInput = form.elements.price;
+  const guidance = {
+    sell: "Venda: informe um preço para seu pacote fechado.",
+    buy: "Compra: descreva o tamanho e a quantidade que sua família procura.",
+    donate: "Doação: publique um pacote fechado para apoiar outra família.",
+  };
   priceField.hidden = type === "donate";
   priceInput.required = type === "sell";
   if (type === "donate") priceInput.value = "";
+  publishGuidance.textContent = guidance[type];
 }
 
 function fallbackPhoto(listing) {
