@@ -201,3 +201,14 @@ test("keeps marketplace cards aligned with available map points", async () => {
     assert.match(map, /selectTester\(requestedIndex\)/);
   });
 });
+
+test("guards marketplace interactions against duplicate and stale updates", async () => {
+  await withServer(async (baseUrl) => {
+    const app = await (await fetch(`${baseUrl}/app.js`)).text();
+    assert.match(app, /submitButton\.disabled = true/);
+    assert.match(app, /submitButton\.disabled = false/);
+    assert.match(app, /requestId !== listingRequestId/);
+    assert.match(app, /requestId !== myListingsRequestId/);
+    assert.match(app, /button\.disabled = true/);
+  });
+});
