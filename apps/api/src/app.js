@@ -21,6 +21,12 @@ function sendJson(response, statusCode, body) {
   response.end(JSON.stringify(body));
 }
 
+function publicListing(listing) {
+  const { ownerId, ...publicData } = listing;
+
+  return publicData;
+}
+
 function readJson(request) {
   return new Promise((resolve, reject) => {
     let body = "";
@@ -76,6 +82,21 @@ async function handleAuthentication(
   }
 }
 
+async function authenticateRequest(request, authService) {
+  if (!authService) {
+    throw new AuthenticationError("Authentication is not configured", 503);
+  }
+
+  const authorization = request.headers.authorization;
+  const match = /^Bearer (.+)$/.exec(authorization ?? "");
+
+  if (!match) {
+    throw new AuthenticationError("Authentication token is required");
+  }
+
+  return authService.authenticate(match[1]);
+}
+
 export function createApi({
   repository = new InMemoryListingRepository(),
   authService,
@@ -117,17 +138,26 @@ export function createApi({
         type: url.searchParams.get("type") ?? undefined,
       });
 
-      sendJson(response, 200, { listings });
+      sendJson(response, 200, { listings: listings.map(publicListing) });
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/listings") {
       try {
-        const listing = createListing(await readJson(request));
+        const user = await authenticateRequest(request, authService);
+        const listing = createListing({
+          ...(await readJson(request)),
+          ownerId: user.id,
+        });
         const storedListing = await repository.create(listing);
 
-        sendJson(response, 201, { listing: storedListing });
+        sendJson(response, 201, { listing: publicListing(storedListing) });
       } catch (error) {
+        if (error instanceof AuthenticationError) {
+          sendJson(response, error.statusCode, { error: error.message });
+          return;
+        }
+
         if (error instanceof ListingValidationError) {
           sendJson(response, 400, { errors: error.errors });
           return;
