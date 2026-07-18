@@ -162,3 +162,17 @@ test("keeps every offline app shell resource available", async () => {
     }
   });
 });
+
+test("keeps installable app metadata on every primary screen", async () => {
+  await withServer(async (baseUrl) => {
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+
+    for (const page of pages) {
+      const html = await (await fetch(`${baseUrl}${page}`)).text();
+      assert.match(html, /<meta name="theme-color" content="#087f3f"/, page);
+      assert.match(html, /<meta name="description" content="[^"]+"/, page);
+      assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/, page);
+      assert.match(html, /<link rel="icon" href="\/icon\.svg"/, page);
+    }
+  });
+});
