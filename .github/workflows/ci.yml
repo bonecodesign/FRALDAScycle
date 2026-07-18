@@ -5,17 +5,21 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Enable pnpm
         run: corepack enable
@@ -23,5 +27,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Run tests
-        run: pnpm test
+      - name: Validate web scripts
+        run: pnpm --filter @fraldacycle/web test
+
+      - name: Run API and domain tests
+        run: pnpm --filter @fraldacycle/api --filter @fraldacycle/domain test
