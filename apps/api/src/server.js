@@ -6,13 +6,17 @@ import { FileUserRepository } from "./file-user-repository.js";
 const port = Number(process.env.PORT ?? 3000);
 const dataFile = process.env.LISTINGS_DATA_FILE ?? "data/listings.json";
 const usersDataFile = process.env.USERS_DATA_FILE ?? "data/users.json";
-const authSecret = process.env.AUTH_SECRET;
+const moderatorEmails = (process.env.MODERATOR_EMAILS ?? "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 const server = createApi({
   authService: new AuthService({
     userRepository: new FileUserRepository(usersDataFile),
-    secret: authSecret,
+    secret: process.env.AUTH_SECRET,
   }),
+  moderatorEmails,
   repository: new FileListingRepository(dataFile),
 });
 
