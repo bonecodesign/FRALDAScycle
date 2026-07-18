@@ -189,3 +189,15 @@ test("exposes a safe reset for repeatable demonstration sessions", async () => {
     assert.match(app, /window\.confirm/);
   });
 });
+
+test("keeps marketplace cards aligned with available map points", async () => {
+  await withServer(async (baseUrl) => {
+    const app = await (await fetch(`${baseUrl}/app.js`)).text();
+    assert.match(app, /\/map\.html\?offer=/);
+    assert.match(app, /Salvo localmente · sem ponto no mapa/);
+
+    const map = await (await fetch(`${baseUrl}/map.js`)).text();
+    assert.match(map, /new URLSearchParams\(window\.location\.search\)/);
+    assert.match(map, /selectTester\(requestedIndex\)/);
+  });
+});
