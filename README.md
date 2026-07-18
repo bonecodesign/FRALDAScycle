@@ -28,6 +28,8 @@ Abra `http://localhost:3001`. Sem configuração adicional, a interface usa dado
 
 Para testar conta e publicação, use qualquer e-mail terminado em `@tester.fraldacycle.local` e uma senha com pelo menos oito caracteres.
 
+Use **Restaurar dados de teste** no aviso superior para remover apenas os anúncios criados no navegador e recuperar o conjunto fictício inicial.
+
 ## Instalar como aplicativo
 
 Abra a demonstração em um navegador compatível e escolha **Instalar aplicativo** ou **Adicionar à tela inicial**. A versão instalada usa a mesma interface responsiva da web e mantém o modo demonstrativo local.
