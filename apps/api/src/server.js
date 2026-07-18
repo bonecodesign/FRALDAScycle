@@ -1,3 +1,10 @@
+import {
+  createDatabasePool,
+  PostgresListingRepository,
+  PostgresNotificationRepository,
+  PostgresUserRepository,
+} from "@fraldacycle/database";
+
 import { AuthService } from "./auth-service.js";
 import { createApi } from "./app.js";
 import { FileListingRepository } from "./file-listing-repository.js";
@@ -15,16 +22,31 @@ const moderatorEmails = (process.env.MODERATOR_EMAILS ?? "")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
 
+let userRepository;
+let listingRepository;
+let notificationRepository;
+
+if (process.env.DATABASE_URL) {
+  const pool = createDatabasePool(process.env.DATABASE_URL);
+  userRepository = new PostgresUserRepository(pool);
+  listingRepository = new PostgresListingRepository(pool);
+  notificationRepository = new PostgresNotificationRepository(pool);
+} else {
+  userRepository = new FileUserRepository(usersDataFile);
+  listingRepository = new FileListingRepository(dataFile);
+  notificationRepository = new FileNotificationRepository(notificationsDataFile);
+}
+
 const server = createApi({
   authService: new AuthService({
-    userRepository: new FileUserRepository(usersDataFile),
+    userRepository,
     secret: process.env.AUTH_SECRET,
   }),
   moderatorEmails,
   notificationService: new NotificationService({
-    repository: new FileNotificationRepository(notificationsDataFile),
+    repository: notificationRepository,
   }),
-  repository: new FileListingRepository(dataFile),
+  repository: listingRepository,
 });
 
 server.listen(port, () => {
