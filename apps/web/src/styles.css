@@ -60,7 +60,8 @@ h1 {
 }
 
 .fields,
-.search {
+.search,
+.auth-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
@@ -69,6 +70,10 @@ h1 {
 .search {
   grid-template-columns: 1fr 100px 1fr auto;
   margin-bottom: 24px;
+}
+
+.auth-form {
+  grid-template-columns: 150px 1fr 1fr auto;
 }
 
 label {
@@ -112,7 +117,8 @@ button.secondary {
 }
 
 .notice,
-#form-message {
+#form-message,
+#auth-message {
   margin: 16px 0;
   color: #59636e;
 }
@@ -171,7 +177,8 @@ button.secondary {
   }
 
   .fields,
-  .search {
+  .search,
+  .auth-form {
     grid-template-columns: 1fr;
   }
 }
