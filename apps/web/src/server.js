@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { access } from "node:fs/promises";
 import { createServer } from "node:http";
+import { pathToFileURL } from "node:url";
 
 const port = Number(process.env.WEB_PORT ?? 3001);
 
@@ -24,7 +25,8 @@ const assets = {
   "/styles.css": { file: "styles.css", type: "text/css; charset=utf-8" },
 };
 
-const server = createServer(async (request, response) => {
+export function createWebServer() {
+  return createServer(async (request, response) => {
   const asset = assets[new URL(request.url, "http://localhost").pathname];
 
   if (request.method !== "GET" || !asset) {
