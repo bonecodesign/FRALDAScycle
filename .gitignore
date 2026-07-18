@@ -10,6 +10,9 @@ dist/
 build/
 coverage/
 
+# Runtime data
+data/
+
 # Environment
 .env
 .env.*
