@@ -162,3 +162,17 @@ h2 { margin-bottom: 6px; font-size: 1.18rem; letter-spacing: -.035em; }
     min-height: 58px;
   }
 }
+
+.metric-delta {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 9px;
+  color: #15803d;
+  font-size: .7rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.metric-delta.stable {
+  color: #2563eb;
+}
