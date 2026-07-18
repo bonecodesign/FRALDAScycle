@@ -15,8 +15,9 @@ export const initialDemoListings = [
   ["demo-8", "sell", "Babysec UltraSec", "G", 36, 4290, "Cidade Nova"],
   ["demo-9", "buy", "Pampers Premium Care", "P", 28, null, "Castelo"],
   ["demo-10", "sell", "Huggies Natural Care", "M", 44, 5390, "Pampulha"],
-].map(([id, type, brand, diaperSize, units, priceCents, neighborhood]) => ({
+].map(([id, type, brand, diaperSize, units, priceCents, neighborhood], mapIndex) => ({
   id,
+  mapIndex,
   type,
   brand,
   diaperSize,
