@@ -3,20 +3,51 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#087f3f" />
     <title>Notificações · FraldaCycle</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/design.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/notifications.js"></script>
   </head>
   <body>
+    <header class="appbar">
+      <a class="brand" href="/"><span class="brand-mark">↻</span>FraldaCycle</a>
+      <nav class="appnav" aria-label="Navegação principal">
+        <a href="/">Início</a>
+        <a href="/#offers">Marketplace</a>
+        <a href="/map.html">Mapa</a>
+        <a class="active" href="/notifications.html" aria-current="page">Notificações</a>
+        <a href="/dashboard.html">Administração</a>
+      </nav>
+    </header>
+
     <main class="page">
       <header class="hero">
-        <p class="eyebrow">FraldaCycle</p>
-        <h1>Notificações</h1>
-        <p>Atualizações dos seus anúncios.</p>
+        <div class="hero-copy">
+          <p class="eyebrow">Central da comunidade</p>
+          <h1>Notificações</h1>
+          <p>Acompanhe atualizações demonstrativas dos seus anúncios.</p>
+        </div>
       </header>
-      <section class="panel">
+      <section class="panel" aria-labelledby="notifications-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="notifications-title">Atualizações recentes</h2>
+            <p>Os eventos abaixo são simulados nesta versão.</p>
+          </div>
+        </div>
         <div id="notifications" class="results" aria-live="polite"></div>
       </section>
     </main>
+
+    <nav class="mobile-nav" aria-label="Navegação mobile">
+      <a href="/"><span aria-hidden="true">⌂</span>Início</a>
+      <a href="/#offers"><span aria-hidden="true">⌕</span>Ofertas</a>
+      <a class="publish" href="/#publish-title"><span aria-hidden="true">＋</span>Publicar</a>
+      <a href="/map.html"><span aria-hidden="true">⌖</span>Mapa</a>
+      <a class="active" href="/notifications.html" aria-current="page"><span aria-hidden="true">◌</span>Alertas</a>
+    </nav>
   </body>
 </html>
