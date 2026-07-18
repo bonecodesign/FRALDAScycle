@@ -140,3 +140,25 @@ test("keeps essential accessibility landmarks on every screen", async () => {
     }
   });
 });
+
+test("keeps every offline app shell resource available", async () => {
+  await withServer(async (baseUrl) => {
+    const worker = await (await fetch(`${baseUrl}/service-worker.js`)).text();
+    const shellSource = /const APP_SHELL = \[([\s\S]*?)\];/.exec(worker)?.[1];
+    assert.ok(shellSource, "service worker must declare APP_SHELL");
+
+    const resources = [...shellSource.matchAll(/"([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    assert.ok(resources.length > 0, "APP_SHELL must not be empty");
+
+    for (const resource of resources) {
+      const response = await fetch(`${baseUrl}${resource}`);
+      assert.equal(
+        response.status,
+        200,
+        `offline resource unavailable: ${resource}`,
+      );
+    }
+  });
+});
