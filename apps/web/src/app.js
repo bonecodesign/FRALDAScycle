@@ -33,6 +33,8 @@ try {
 }
 
 const labels = { buy: "Compra", sell: "Venda", donate: "Doação" };
+let listingRequestId = 0;
+let myListingsRequestId = 0;
 
 const apiFetch = createDemoApi({
   apiUrl: window.FRALDACYCLE_API_URL,
@@ -214,6 +216,7 @@ async function readResponse(response) {
 }
 
 async function loadListings() {
+  const requestId = ++listingRequestId;
   syncQuickFilters(searchForm.elements.type.value);
   const query = new URLSearchParams(Object.fromEntries([...new FormData(searchForm)].filter(([, value]) => value.trim())));
   results.replaceChildren();
@@ -221,6 +224,7 @@ async function loadListings() {
 
   try {
     const { listings } = await readResponse(await apiFetch(`${API_URL}/listings?${query}`));
+    if (requestId !== listingRequestId) return;
     results.replaceChildren();
     if (listings.length === 0) {
       results.textContent = "Nenhuma oferta encontrada.";
@@ -230,6 +234,7 @@ async function loadListings() {
     results.className = "results listing-grid";
     listings.forEach((listing) => results.append(createListingCard(listing)));
   } catch (error) {
+    if (requestId !== listingRequestId) return;
     results.textContent = error.message;
     results.className = "results error";
   }
@@ -237,10 +242,12 @@ async function loadListings() {
 
 async function loadMyListings() {
   if (!token) return;
+  const requestId = ++myListingsRequestId;
   myListingResults.replaceChildren();
   myListingResults.textContent = "Carregando seus anúncios...";
   try {
     const { listings } = await readResponse(await apiFetch(`${API_URL}/my/listings`, { headers: { authorization: `Bearer ${token}` } }));
+    if (requestId !== myListingsRequestId) return;
     myListingResults.replaceChildren();
     if (listings.length === 0) {
       myListingResults.textContent = "Você ainda não publicou anúncios.";
@@ -250,6 +257,7 @@ async function loadMyListings() {
     myListingResults.className = "results listing-grid";
     listings.forEach((listing) => myListingResults.append(createListingCard(listing, { canDelete: true })));
   } catch (error) {
+    if (requestId !== myListingsRequestId) return;
     myListingResults.textContent = error.message;
     myListingResults.className = "results error";
   }
@@ -279,6 +287,8 @@ authForm.addEventListener("change", (event) => {
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const submitButton = authForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
   const values = Object.fromEntries(new FormData(authForm));
   setAuthMessage(values.action === "register" ? "Criando conta..." : "Entrando...");
   try {
@@ -292,9 +302,12 @@ authForm.addEventListener("submit", async (event) => {
     sessionStorage.setItem(AUTH_TOKEN_KEY, token);
     sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
     authForm.reset();
+    updateAuthAction();
     updateSession();
   } catch (error) {
     setAuthMessage(error.message, true);
+  } finally {
+    submitButton.disabled = false;
   }
 });
 
@@ -325,6 +338,8 @@ form.addEventListener("change", (event) => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!token) return setMessage("Entre ou crie uma conta antes de publicar.", true);
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
   setMessage("Publicando anúncio...");
   const values = Object.fromEntries(new FormData(form));
   const listing = {
@@ -350,12 +365,21 @@ form.addEventListener("submit", async (event) => {
     await Promise.all([loadListings(), loadMyListings()]);
   } catch (error) {
     setMessage(error.message, true);
+  } finally {
+    submitButton.disabled = false;
   }
 });
 
-myListingResults.addEventListener("click", (event) => {
+myListingResults.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-listing-id]");
-  if (button) deleteListing(button.dataset.listingId);
+  if (!button) return;
+
+  button.disabled = true;
+  try {
+    await deleteListing(button.dataset.listingId);
+  } finally {
+    if (button.isConnected) button.disabled = false;
+  }
 });
 
 searchForm.addEventListener("submit", (event) => {
