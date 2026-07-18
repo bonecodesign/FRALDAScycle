@@ -23,6 +23,61 @@ export const initialDemoListings = [
   location: { city: "Belo Horizonte", state: "MG", neighborhood },
 }));
 
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateDemoListing(listing) {
+  const errors = [];
+  if (!["buy", "sell", "donate"].includes(listing?.type)) {
+    errors.push("type must be buy, sell, or donate");
+  }
+  if (listing?.sealed !== true) errors.push("listing must describe a sealed package");
+  if (!isNonEmptyString(listing?.brand)) errors.push("brand is required");
+  if (!isNonEmptyString(listing?.diaperSize)) errors.push("diaperSize is required");
+  if (!Number.isInteger(listing?.units) || listing.units <= 0) {
+    errors.push("units must be a positive integer");
+  }
+  if (
+    !listing?.location ||
+    !isNonEmptyString(listing.location.city) ||
+    !isNonEmptyString(listing.location.state)
+  ) {
+    errors.push("location is required");
+  }
+  if (
+    listing?.photoUrl !== undefined &&
+    (!isNonEmptyString(listing.photoUrl) ||
+      !/^https?:\/\//i.test(listing.photoUrl))
+  ) {
+    errors.push("photoUrl must be a valid http or https URL");
+  }
+  if (
+    listing?.type === "sell" &&
+    (!Number.isInteger(listing.priceCents) || listing.priceCents <= 0)
+  ) {
+    errors.push("priceCents must be a positive integer for sell listings");
+  }
+  if (listing?.type === "donate" && listing.priceCents !== undefined) {
+    errors.push("donate listings cannot include priceCents");
+  }
+  return errors;
+}
+
+function normalizeDemoListing(listing) {
+  return {
+    ...listing,
+    brand: listing.brand.trim(),
+    diaperSize: listing.diaperSize.trim(),
+    ...(listing.photoUrl ? { photoUrl: listing.photoUrl.trim() } : {}),
+    location: {
+      ...listing.location,
+      city: listing.location.city.trim(),
+      state: listing.location.state.trim().toUpperCase(),
+    },
+  };
+}
+
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -65,6 +120,9 @@ export function createDemoApi({
           400,
         );
       }
+      if (typeof credentials.password !== "string" || credentials.password.length < 8) {
+        return jsonResponse({ error: "A senha deve ter pelo menos 8 caracteres." }, 400);
+      }
       return jsonResponse({
         token: "demo-session",
         user: { id: "demo-user", email: credentials.email.trim().toLowerCase() },
@@ -94,8 +152,12 @@ export function createDemoApi({
     if (path === "/listings" && method === "POST") {
       const owner = getUser();
       if (!owner) return jsonResponse({ error: "Entre antes de publicar." }, 401);
+      const input = JSON.parse(options.body);
+      const errors = validateDemoListing(input);
+      if (errors.length > 0) return jsonResponse({ errors }, 400);
+
       const listing = {
-        ...JSON.parse(options.body),
+        ...normalizeDemoListing(input),
         id: `demo-${now()}`,
         ownerEmail: owner.email,
       };
