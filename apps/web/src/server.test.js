@@ -88,3 +88,34 @@ test("identifies simulated data on every primary screen", async () => {
     }
   });
 });
+
+test("keeps every internal navigation link and asset reachable", async () => {
+  await withServer(async (baseUrl) => {
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+
+    for (const page of pages) {
+      const html = await (await fetch(`${baseUrl}${page}`)).text();
+      const references = [
+        ...html.matchAll(/(?:href|src)="([^"]+)"/g),
+      ].map((match) => match[1]);
+
+      for (const reference of new Set(references)) {
+        if (
+          reference.startsWith("http") ||
+          reference.startsWith("#") ||
+          reference.startsWith("mailto:")
+        ) {
+          continue;
+        }
+
+        const target = new URL(reference, `${baseUrl}${page}`);
+        const response = await fetch(target);
+        assert.equal(
+          response.status,
+          200,
+          `${page} references unavailable resource ${reference}`,
+        );
+      }
+    }
+  });
+});
