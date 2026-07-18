@@ -55,7 +55,7 @@ export function createApi({ repository = new InMemoryListingRepository() } = {})
     }
 
     if (request.method === "GET" && url.pathname === "/listings") {
-      const listings = repository.list({
+      const listings = await repository.list({
         city: url.searchParams.get("city") ?? undefined,
         state: url.searchParams.get("state") ?? undefined,
         type: url.searchParams.get("type") ?? undefined,
@@ -68,7 +68,7 @@ export function createApi({ repository = new InMemoryListingRepository() } = {})
     if (request.method === "POST" && url.pathname === "/listings") {
       try {
         const listing = createListing(await readJson(request));
-        const storedListing = repository.create(listing);
+        const storedListing = await repository.create(listing);
 
         sendJson(response, 201, { listing: storedListing });
       } catch (error) {
