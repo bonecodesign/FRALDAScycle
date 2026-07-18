@@ -73,3 +73,18 @@ test("exposes a complete demonstrative PWA contract", async () => {
     assert.match(app, /const DEMO_MODE = !window\.FRALDACYCLE_API_URL/);
   });
 });
+
+test("identifies simulated data on every primary screen", async () => {
+  await withServer(async (baseUrl) => {
+    const routes = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+
+    for (const route of routes) {
+      const content = await (await fetch(`${baseUrl}${route}`)).text();
+      assert.match(
+        content,
+        /demonstr|fictíci|simulad/i,
+        `${route} must identify its simulated content`,
+      );
+    }
+  });
+});
