@@ -7,19 +7,13 @@ const port = Number(process.env.WEB_PORT ?? 3001);
 const assets = {
   "/": { file: "index.html", type: "text/html; charset=utf-8" },
   "/app.js": { file: "app.js", type: "text/javascript; charset=utf-8" },
-  "/dashboard.html": {
-    file: "dashboard.html",
-    type: "text/html; charset=utf-8",
-  },
+  "/dashboard.html": { file: "dashboard.html", type: "text/html; charset=utf-8" },
   "/dashboard.css": { file: "dashboard.css", type: "text/css; charset=utf-8" },
-  "/notifications.html": {
-    file: "notifications.html",
-    type: "text/html; charset=utf-8",
-  },
-  "/notifications.js": {
-    file: "notifications.js",
-    type: "text/javascript; charset=utf-8",
-  },
+  "/map.html": { file: "map.html", type: "text/html; charset=utf-8" },
+  "/map.js": { file: "map.js", type: "text/javascript; charset=utf-8" },
+  "/map.css": { file: "map.css", type: "text/css; charset=utf-8" },
+  "/notifications.html": { file: "notifications.html", type: "text/html; charset=utf-8" },
+  "/notifications.js": { file: "notifications.js", type: "text/javascript; charset=utf-8" },
   "/styles.css": { file: "styles.css", type: "text/css; charset=utf-8" },
 };
 
