@@ -31,6 +31,7 @@ export class FileListingRepository {
     const storedListing = {
       ...listing,
       id: randomUUID(),
+      status: listing.status ?? "pending",
       createdAt: new Date().toISOString(),
     };
     listings.push(storedListing);
@@ -38,7 +39,7 @@ export class FileListingRepository {
     return storedListing;
   }
 
-  async list({ city, state, type, status } = {}) {
+  async list({ city, state, type, status = "active" } = {}) {
     const listings = await this.#readListings();
 
     return listings.filter((listing) => {
