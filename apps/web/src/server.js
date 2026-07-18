@@ -1,10 +1,8 @@
 import { createReadStream } from "node:fs";
 import { access } from "node:fs/promises";
 import { createServer } from "node:http";
-import { fileURLToPath } from "node:url";
 
 const port = Number(process.env.WEB_PORT ?? 3001);
-const rootDirectory = fileURLToPath(new URL(".", import.meta.url));
 
 const assets = {
   "/": { file: "index.html", type: "text/html; charset=utf-8" },
@@ -21,7 +19,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const fileUrl = new URL(asset.file, `file:///${rootDirectory.replaceAll("\\", "/")}`);
+  const fileUrl = new URL(asset.file, import.meta.url);
 
   try {
     await access(fileUrl);
