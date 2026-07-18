@@ -75,7 +75,7 @@ h2 { margin-bottom: 6px; font-size: 1.18rem; letter-spacing: -.035em; }
 .progress-card, .roadmap, .rail-message { margin-bottom: 16px; padding: 18px; border: 1px solid var(--fc-border); border-radius: var(--fc-radius); background: #fff; box-shadow: var(--fc-shadow-sm); }
 .progress-card strong { display: block; margin: 9px 0; font-family: Poppins, Inter, sans-serif; font-size: 2rem; color: var(--fc-primary-800); }
 .progress { height: 9px; overflow: hidden; border-radius: 99px; background: #e2e8f0; }
-.progress i { display: block; width: 62%; height: 100%; border-radius: inherit; background: var(--fc-primary-800); }
+.progress i { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--fc-primary-800); }
 .progress-card p:last-child { margin: 10px 0 0; color: var(--fc-muted); font-size: .76rem; }
 .roadmap ol { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; }
 .roadmap li { display: flex; gap: 9px; align-items: center; color: #64748b; font-size: .8rem; font-weight: 700; }
@@ -84,6 +84,9 @@ h2 { margin-bottom: 6px; font-size: 1.18rem; letter-spacing: -.035em; }
 .roadmap li.done span { border-color: var(--fc-primary-800); background: var(--fc-primary-800); color: #fff; }
 .roadmap li.current { color: #1d4ed8; }
 .roadmap li.current span { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; }
+.roadmap li.future { display: grid; grid-template-columns: 20px 1fr; }
+.roadmap li.future span { grid-row: span 2; color: #94a3b8; }
+.roadmap li.future small { color: #94a3b8; font-size: .66rem; font-weight: 600; }
 .rail-message { border-color: #bbdfc5; background: linear-gradient(145deg, #087f3f, #075c32); color: #fff; }
 .rail-message span { font-size: 1.35rem; }
 .rail-message strong { display: block; margin: 8px 0; font-size: .9rem; }
