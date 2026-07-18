@@ -14,6 +14,7 @@ const testers = [
 const mapElement = document.querySelector("#map");
 const list = document.querySelector("#tester-list");
 const markers = [];
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const leafletAvailable = typeof window.L !== "undefined";
 const map = leafletAvailable
   ? L.map("map", { scrollWheelZoom: false }).setView([-19.927, -43.94], 12)
@@ -32,7 +33,7 @@ if (map) {
 function selectTester(index) {
   const tester = testers[index];
   if (map && markers[index]) {
-    map.flyTo(tester.coords, 14, { duration: 0.65 });
+    map.flyTo(tester.coords, 14, { duration: reduceMotion ? 0 : 0.65 });
     markers[index].openPopup();
   }
   document.querySelectorAll("#tester-list button").forEach((button, buttonIndex) => {
