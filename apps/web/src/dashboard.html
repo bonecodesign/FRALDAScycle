@@ -3,69 +3,102 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FraldaCycle — Dashboard</title>
+    <title>FraldaCycle — Administração</title>
+    <link rel="stylesheet" href="/design.css" />
     <link rel="stylesheet" href="/dashboard.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/">◌ FraldaCycle</a>
-      <nav aria-label="Navegação principal">
-        <a href="/">Início</a>
-        <a href="/#offers">Ofertas</a>
-        <a class="active" href="/dashboard.html">Dashboard</a>
-        <a href="/notifications.html">Notificações</a>
-      </nav>
-      <span class="admin-pill">Administrador</span>
-    </header>
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/"><span>↻</span>FraldaCycle</a>
+        <p class="tagline">Economia circular para famílias e para o planeta.</p>
+        <p class="side-label">Gestão da plataforma</p>
+        <nav aria-label="Navegação administrativa">
+          <a class="current" href="/dashboard.html">◌ Dashboard</a>
+          <a href="/#offers">▣ Ofertas</a>
+          <a href="/map.html">⌖ Mapa de anúncios</a>
+          <a href="/notifications.html">◌ Notificações</a>
+          <a href="/">⌂ Marketplace</a>
+        </nav>
+        <section class="side-impact">
+          <span>♻</span>
+          <strong>Impacto que acolhe</strong>
+          <p>Dados demonstrativos para acompanhar a comunidade.</p>
+        </section>
+      </aside>
 
-    <main class="dashboard">
-      <section class="welcome">
-        <div>
-          <p class="eyebrow">Visão administrativa</p>
-          <h1>Olá! Vamos cuidar da comunidade.</h1>
-          <p>Acompanhe as ofertas, a moderação e o impacto positivo do FraldaCycle.</p>
-          <a class="primary" href="/#offers">Explorar marketplace</a>
-        </div>
-        <div class="welcome-art" aria-label="Pacotes fechados e sustentáveis">
-          <span class="leaf leaf-one">●</span><span class="leaf leaf-two">●</span>
-          <div class="package package-small">M<small>36 un.</small></div>
-          <div class="package package-large">G<small>pacote fechado</small></div>
-          <span class="safe">✓ ambiente seguro</span>
-        </div>
-      </section>
+      <main class="admin-main">
+        <header class="admin-header">
+          <div><p class="eyebrow">Painel administrativo</p><h1>Visão geral da plataforma</h1><p>Um retrato claro da comunidade FraldaCycle em ambiente de demonstração.</p></div>
+          <div class="header-actions"><span class="fc-status">● ambiente de teste</span><a href="/" class="back-link">Ver marketplace →</a></div>
+        </header>
 
-      <section class="metrics" aria-label="Indicadores do marketplace">
-        <article><span class="metric-icon">◌</span><strong>10</strong><p>ofertas ativas</p><small>prontas para explorar</small></article>
-        <article><span class="metric-icon">✓</span><strong>10</strong><p>contas de teste</p><small>com anúncios cadastrados</small></article>
-        <article><span class="metric-icon">♻</span><strong>100%</strong><p>pacotes fechados</p><small>regra de segurança aplicada</small></article>
-        <article><span class="metric-icon">⌁</span><strong>0</strong><p>pendências críticas</p><small>ambiente demonstrativo</small></article>
-      </section>
+        <section class="metrics" aria-label="Indicadores do marketplace">
+          <article><span class="metric-icon">◌</span><small>Usuários de teste</small><strong>10</strong><p>contas com anúncios</p></article>
+          <article><span class="metric-icon blue">▣</span><small>Ofertas ativas</small><strong>10</strong><p>pacotes para explorar</p></article>
+          <article><span class="metric-icon purple">♻</span><small>Regra de segurança</small><strong>100%</strong><p>pacotes fechados</p></article>
+          <article><span class="metric-icon orange">◌</span><small>Moderação</small><strong>0</strong><p>pendências críticas</p></article>
+        </section>
 
-      <section class="content-grid">
-        <article class="panel performance">
-          <div class="panel-heading"><div><p class="eyebrow">Movimentação</p><h2>Ofertas por modalidade</h2></div><span>últimos dados</span></div>
-          <div class="bar-row"><span>Venda</span><div class="bar-track"><i style="width:82%"></i></div><b>8</b></div>
-          <div class="bar-row"><span>Doação</span><div class="bar-track"><i style="width:42%"></i></div><b>4</b></div>
-          <div class="bar-row"><span>Compra</span><div class="bar-track"><i style="width:26%"></i></div><b>2</b></div>
-          <p class="panel-note">A maior parte das ofertas está disponível para venda. Use o marketplace para consultar os cards completos.</p>
-        </article>
+        <section class="dashboard-grid">
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Marketplace</p><h2>Ofertas por modalidade</h2></div><span class="fc-status">dados de demonstração</span></div>
+            <div class="bar-row"><span><i class="dot green"></i> Venda</span><div class="bar-track"><i style="width:82%"></i></div><b>8</b></div>
+            <div class="bar-row"><span><i class="dot blue"></i> Doação</span><div class="bar-track blue-track"><i style="width:42%"></i></div><b>4</b></div>
+            <div class="bar-row"><span><i class="dot purple"></i> Compra</span><div class="bar-track purple-track"><i style="width:26%"></i></div><b>2</b></div>
+            <div class="trend"><span>Mais ofertas locais disponíveis</span><strong>↗ +12%</strong></div>
+          </article>
 
-        <article class="panel moderation">
-          <div class="panel-heading"><div><p class="eyebrow">Segurança</p><h2>Checklist de moderação</h2></div><span class="status">em dia</span></div>
-          <ul>
-            <li><span>✓</span> Pacotes fechados validados <b>100%</b></li>
-            <li><span>✓</span> Ofertas demonstrativas ativas <b>10</b></li>
-            <li><span>✓</span> Usuário administrador conectado <b>1</b></li>
-          </ul>
-          <a class="outline" href="/#offers">Revisar ofertas</a>
-        </article>
-      </section>
+          <article class="panel moderation">
+            <div class="panel-heading"><div><p class="eyebrow">Segurança</p><h2>Checklist de moderação</h2></div><span class="fc-status">em dia</span></div>
+            <ul>
+              <li><span>✓</span> Pacotes fechados validados <b>100%</b></li>
+              <li><span>✓</span> Ofertas demonstrativas ativas <b>10</b></li>
+              <li><span>✓</span> Acesso administrativo disponível <b>1</b></li>
+            </ul>
+            <a class="outline" href="/#offers">Revisar ofertas</a>
+          </article>
 
-      <section class="impact">
-        <span class="impact-icon">♡</span>
-        <div><h2>Cada troca faz a diferença.</h2><p>Uma comunidade mais simples, segura e sustentável para as famílias.</p></div>
-        <a href="/">Voltar ao início →</a>
-      </section>
-    </main>
+          <article class="panel activity">
+            <div class="panel-heading"><div><p class="eyebrow">Atividade</p><h2>Últimas movimentações</h2></div><a href="/notifications.html">Ver todas →</a></div>
+            <ol>
+              <li><span class="avatar">AS</span><div><strong>Ana Silva</strong><p>Anúncio de pacote G atualizado</p></div><time>agora</time></li>
+              <li><span class="avatar avatar-blue">JM</span><div><strong>João Martins</strong><p>Interesse em oferta de Belo Horizonte</p></div><time>12 min</time></li>
+              <li><span class="avatar avatar-purple">MC</span><div><strong>Marina Costa</strong><p>Nova doação publicada</p></div><time>1 h</time></li>
+            </ol>
+          </article>
+
+          <article class="panel impact-card">
+            <span class="impact-icon">♡</span>
+            <p class="eyebrow">Impacto da comunidade</p>
+            <h2>Pequenas escolhas, grandes mudanças.</h2>
+            <p>O FraldaCycle aproxima famílias e cria um caminho mais consciente para pacotes fechados.</p>
+            <a href="/map.html">Explorar pontos no mapa →</a>
+          </article>
+        </section>
+      </main>
+
+      <aside class="right-rail">
+        <section class="progress-card">
+          <p class="rail-title">PROGRESSO DO PROJETO</p>
+          <strong>62%</strong>
+          <div class="progress"><i></i></div>
+          <p>Versão demonstrativa web</p>
+        </section>
+        <section class="roadmap">
+          <p class="rail-title">CAMADAS DO PRODUTO</p>
+          <ol>
+            <li class="done"><span>✓</span> Base visual</li>
+            <li class="done"><span>✓</span> Marketplace</li>
+            <li class="done"><span>✓</span> Mapa interativo</li>
+            <li class="current"><span>4</span> Painel administrativo</li>
+            <li><span>5</span> Negociação</li>
+            <li><span>6</span> Pagamentos</li>
+            <li><span>7</span> Logística</li>
+          </ol>
+        </section>
+        <section class="rail-message"><span>✦</span><strong>Interface viva e acolhedora.</strong><p>Diretrizes visuais aplicadas nesta versão.</p></section>
+      </aside>
+    </div>
   </body>
 </html>
