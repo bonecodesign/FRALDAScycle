@@ -1,4 +1,6 @@
-const API_URL = window.FRALDACYCLE_API_URL ?? "http://localhost:3000";
+const API_URL = window.FRALDACYCLE_API_URL ?? "/demo-api";
+const DEMO_MODE = !window.FRALDACYCLE_API_URL;
+const DEMO_LISTINGS_KEY = "fraldacycle.demo.listings";
 const AUTH_TOKEN_KEY = "fraldacycle.token";
 const AUTH_USER_KEY = "fraldacycle.user";
 
@@ -30,6 +32,97 @@ try {
 }
 
 const labels = { buy: "Compra", sell: "Venda", donate: "Doação" };
+
+const demoListings = [
+  ["demo-1", "sell", "Pampers Confort Sec", "M", 36, 5290, "Savassi"],
+  ["demo-2", "sell", "Huggies Supreme Care", "G", 30, 4890, "Funcionários"],
+  ["demo-3", "donate", "MamyPoko Dia & Noite", "M", 42, null, "Lourdes"],
+  ["demo-4", "sell", "Cremer Magic Care", "P", 34, 3990, "Santa Efigênia"],
+  ["demo-5", "buy", "Pampers Pants", "XG", 28, null, "Floresta"],
+  ["demo-6", "sell", "Huggies Tripla Proteção", "G", 40, 5190, "Buritis"],
+  ["demo-7", "donate", "Personal Baby", "M", 32, null, "Sion"],
+  ["demo-8", "sell", "Babysec UltraSec", "G", 36, 4290, "Cidade Nova"],
+  ["demo-9", "buy", "Pampers Premium Care", "P", 28, null, "Castelo"],
+  ["demo-10", "sell", "Huggies Natural Care", "M", 44, 5390, "Pampulha"],
+].map(([id, type, brand, diaperSize, units, priceCents, neighborhood]) => ({
+  id, type, brand, diaperSize, units, priceCents,
+  sealed: true,
+  ownerEmail: "comunidade@tester.fraldacycle.local",
+  location: { city: "Belo Horizonte", state: "MG", neighborhood },
+}));
+
+function getDemoListings() {
+  try {
+    return JSON.parse(localStorage.getItem(DEMO_LISTINGS_KEY)) ?? demoListings;
+  } catch {
+    return demoListings;
+  }
+}
+
+function demoResponse(body, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  }));
+}
+
+async function apiFetch(url, options = {}) {
+  if (!DEMO_MODE) return window.fetch(url, options);
+
+  const requestUrl = new URL(url, window.location.origin);
+  const path = requestUrl.pathname.replace(/^\/demo-api/, "");
+  const method = options.method ?? "GET";
+
+  if (path.startsWith("/auth/") && method === "POST") {
+    const credentials = JSON.parse(options.body);
+    if (!credentials.email.endsWith("@tester.fraldacycle.local")) {
+      return demoResponse({ error: "Use um e-mail @tester.fraldacycle.local nesta demonstração." }, 400);
+    }
+    return demoResponse({
+      token: "demo-session",
+      user: { id: "demo-user", email: credentials.email },
+    });
+  }
+
+  if (path === "/listings" && method === "GET") {
+    const city = requestUrl.searchParams.get("city")?.toLowerCase();
+    const state = requestUrl.searchParams.get("state")?.toLowerCase();
+    const type = requestUrl.searchParams.get("type");
+    const listings = getDemoListings().filter((listing) =>
+      (!city || listing.location.city.toLowerCase().includes(city)) &&
+      (!state || listing.location.state.toLowerCase() === state) &&
+      (!type || listing.type === type),
+    );
+    return demoResponse({ listings });
+  }
+
+  if (path === "/my/listings" && method === "GET") {
+    return demoResponse({ listings: getDemoListings().filter((listing) => listing.ownerEmail === user?.email) });
+  }
+
+  if (path === "/listings" && method === "POST") {
+    const listing = {
+      ...JSON.parse(options.body),
+      id: `demo-${Date.now()}`,
+      ownerEmail: user.email,
+    };
+    const listings = [listing, ...getDemoListings()];
+    localStorage.setItem(DEMO_LISTINGS_KEY, JSON.stringify(listings));
+    return demoResponse({ listing }, 201);
+  }
+
+  if (path.startsWith("/listings/") && method === "DELETE") {
+    const id = decodeURIComponent(path.slice("/listings/".length));
+    localStorage.setItem(DEMO_LISTINGS_KEY, JSON.stringify(getDemoListings().filter((listing) => listing.id !== id)));
+    return demoResponse({}, 204);
+  }
+
+  return demoResponse({ error: "Recurso demonstrativo indisponível." }, 404);
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js"));
+}
 
 function syncQuickFilters(type = "") {
   quickFilters.forEach((filter) => {
@@ -202,7 +295,7 @@ async function loadListings() {
   results.textContent = "Carregando anúncios...";
 
   try {
-    const { listings } = await readResponse(await fetch(`${API_URL}/listings?${query}`));
+    const { listings } = await readResponse(await apiFetch(`${API_URL}/listings?${query}`));
     results.replaceChildren();
     if (listings.length === 0) {
       results.textContent = "Nenhuma oferta encontrada.";
@@ -222,7 +315,7 @@ async function loadMyListings() {
   myListingResults.replaceChildren();
   myListingResults.textContent = "Carregando seus anúncios...";
   try {
-    const { listings } = await readResponse(await fetch(`${API_URL}/my/listings`, { headers: { authorization: `Bearer ${token}` } }));
+    const { listings } = await readResponse(await apiFetch(`${API_URL}/my/listings`, { headers: { authorization: `Bearer ${token}` } }));
     myListingResults.replaceChildren();
     if (listings.length === 0) {
       myListingResults.textContent = "Você ainda não publicou anúncios.";
@@ -240,7 +333,7 @@ async function loadMyListings() {
 async function deleteListing(id) {
   if (!window.confirm("Remover este anúncio?")) return;
   try {
-    await readResponse(await fetch(`${API_URL}/listings/${encodeURIComponent(id)}`, { method: "DELETE", headers: { authorization: `Bearer ${token}` } }));
+    await readResponse(await apiFetch(`${API_URL}/listings/${encodeURIComponent(id)}`, { method: "DELETE", headers: { authorization: `Bearer ${token}` } }));
     await Promise.all([loadListings(), loadMyListings()]);
   } catch (error) {
     myListingResults.textContent = error.message;
@@ -264,7 +357,7 @@ authForm.addEventListener("submit", async (event) => {
   const values = Object.fromEntries(new FormData(authForm));
   setAuthMessage(values.action === "register" ? "Criando conta..." : "Entrando...");
   try {
-    const body = await readResponse(await fetch(`${API_URL}/auth/${values.action}`, {
+    const body = await readResponse(await apiFetch(`${API_URL}/auth/${values.action}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: values.email, password: values.password }),
@@ -306,7 +399,7 @@ form.addEventListener("submit", async (event) => {
   if (values.type === "sell") listing.priceCents = Math.round(Number(values.price) * 100);
 
   try {
-    await readResponse(await fetch(`${API_URL}/listings`, {
+    await readResponse(await apiFetch(`${API_URL}/listings`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify(listing),
