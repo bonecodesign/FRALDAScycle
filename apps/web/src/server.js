@@ -6,6 +6,7 @@ const port = Number(process.env.WEB_PORT ?? 3001);
 
 const assets = {
   "/": { file: "index.html", type: "text/html; charset=utf-8" },
+  "/index.html": { file: "index.html", type: "text/html; charset=utf-8" },
   "/app.js": { file: "app.js", type: "text/javascript; charset=utf-8" },
   "/manifest.webmanifest": { file: "manifest.webmanifest", type: "application/manifest+json; charset=utf-8" },
   "/service-worker.js": { file: "service-worker.js", type: "text/javascript; charset=utf-8" },
