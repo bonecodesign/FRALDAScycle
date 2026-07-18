@@ -8,6 +8,7 @@ function mapListing(row) {
     diaperSize: row.diaperSize,
     units: row.units,
     priceCents: row.priceCents,
+    photoUrl: row.photoUrl,
     location: { city: row.city, state: row.state },
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -23,6 +24,7 @@ const returning = `
   diaper_size AS "diaperSize",
   units,
   price_cents AS "priceCents",
+  photo_url AS "photoUrl",
   city,
   state,
   created_at AS "createdAt",
@@ -36,16 +38,18 @@ export class PostgresListingRepository {
   async create(listing) {
     const { rows } = await this.pool.query(
       `INSERT INTO listings (
-        owner_id, type, brand, diaper_size, units, price_cents, city, state
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        owner_id, type, status, brand, diaper_size, units, price_cents, photo_url, city, state
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING ${returning}`,
       [
         listing.ownerId,
         listing.type,
+        listing.status ?? "pending",
         listing.brand,
         listing.diaperSize,
         listing.units,
         listing.priceCents ?? null,
+        listing.photoUrl ?? null,
         listing.location.city,
         listing.location.state,
       ],
