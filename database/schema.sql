@@ -20,6 +20,7 @@ CREATE TABLE listings (
   diaper_size TEXT NOT NULL,
   units INTEGER NOT NULL CHECK (units > 0),
   price_cents INTEGER CHECK (price_cents > 0),
+  photo_url TEXT,
   city TEXT NOT NULL,
   state CHAR(2) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
