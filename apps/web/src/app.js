@@ -133,14 +133,25 @@ function createListingCard(listing, { canDelete = false } = {}) {
 
   const content = document.createElement("div");
   content.className = "listing-content";
+  const meta = document.createElement("div");
+  meta.className = "listing-meta";
   const badge = document.createElement("span");
   badge.className = "badge";
   badge.textContent = labels[listing.type];
+  const sealed = document.createElement("span");
+  sealed.className = "sealed-status";
+  sealed.textContent = "✓ Fechado";
+  meta.append(badge, sealed);
+
   const title = document.createElement("h3");
   title.textContent = `${listing.brand} · tamanho ${listing.diaperSize}`;
   const details = document.createElement("p");
-  details.textContent = `${listing.units} unidades · ${listing.location.city}/${listing.location.state}`;
-  content.append(badge, title, details);
+  details.className = "listing-details";
+  details.textContent = `${listing.units} unidades`;
+  const location = document.createElement("p");
+  location.className = "listing-location";
+  location.textContent = `⌖ ${listing.location.city}/${listing.location.state}`;
+  content.append(meta, title, details, location);
 
   if (listing.priceCents) {
     const price = document.createElement("p");
@@ -156,6 +167,12 @@ function createListingCard(listing, { canDelete = false } = {}) {
     removeButton.dataset.listingId = listing.id;
     removeButton.textContent = "Remover anúncio";
     content.append(removeButton);
+  } else {
+    const action = document.createElement("a");
+    action.className = "listing-action";
+    action.href = "/map.html";
+    action.textContent = "Ver no mapa →";
+    content.append(action);
   }
 
   card.append(image, content);
