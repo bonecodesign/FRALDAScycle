@@ -70,7 +70,8 @@ test("exposes a complete demonstrative PWA contract", async () => {
 
     const app = await (await fetch(`${baseUrl}/app.js`)).text();
     assert.match(app, /serviceWorker\.register\("\/service-worker\.js"\)/);
-    assert.match(app, /import \{ createDemoApi \} from "\.\/demo-api\.js"/);
+    assert.match(app, /from "\.\/demo-api\.js"/);
+    assert.match(app, /createDemoApi\(\{/);
     assert.match(app, /apiUrl: window\.FRALDACYCLE_API_URL/);
   });
 });
@@ -174,5 +175,17 @@ test("keeps installable app metadata on every primary screen", async () => {
       assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/, page);
       assert.match(html, /<link rel="icon" href="\/icon\.svg"/, page);
     }
+  });
+});
+
+test("exposes a safe reset for repeatable demonstration sessions", async () => {
+  await withServer(async (baseUrl) => {
+    const index = await (await fetch(baseUrl)).text();
+    assert.match(index, /id="reset-demo"/);
+    assert.match(index, />Restaurar dados de teste<\/button>/);
+
+    const app = await (await fetch(`${baseUrl}/app.js`)).text();
+    assert.match(app, /resetDemoListings\(localStorage\)/);
+    assert.match(app, /window\.confirm/);
   });
 });
