@@ -1,10 +1,11 @@
-const CACHE_NAME = "fraldacycle-demo-v1";
+const CACHE_NAME = "fraldacycle-demo-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/design.css",
   "/styles.css",
   "/app.js",
+  "/demo-api.js",
   "/map.html",
   "/map.css",
   "/map.js",
