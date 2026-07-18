@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f7a3a">
+  <meta name="description" content="Jornada demonstrativa de negociação, pedido, entrega e suporte da FraldaCycle.">
+  <title>Minha jornada | FraldaCycle</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/design.css">
+  <link rel="stylesheet" href="/journey.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topbar">
+    <a class="brand" href="/index.html" aria-label="FraldaCycle — início">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span><strong>FraldaCycle</strong><small>Economia circular para famílias</small></span>
+    </a>
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a href="/index.html">Marketplace</a>
+      <a href="/map.html">Mapa</a>
+      <a href="/notifications.html">Avisos</a>
+      <a href="/journey.html" aria-current="page">Minha jornada</a>
+      <a href="/dashboard.html">Painel demo</a>
+    </nav>
+    <span class="demo-badge">Demonstração</span>
+  </header>
+
+  <main id="conteudo">
+    <section class="journey-hero">
+      <div>
+        <p class="eyebrow">Pedido demonstrativo #FC-2841</p>
+        <h1>Do primeiro “oi” até a entrega</h1>
+        <p>Acompanhe uma jornada completa com dados fictícios. Nenhuma cobrança, mensagem ou entrega real será realizada.</p>
+      </div>
+      <button class="btn btn-secondary" id="reset-demo" type="button">Reiniciar demonstração</button>
+    </section>
+
+    <section class="trust-strip" aria-label="Compromissos da experiência">
+      <span>🛡️ Ambiente de teste</span>
+      <span>💬 Conversa simulada</span>
+      <span>🔒 Pagamento não processado</span>
+      <span>🌱 Impacto demonstrativo</span>
+    </section>
+
+    <nav class="journey-tabs" aria-label="Etapas da jornada">
+      <button data-view="pedido" type="button"><span>1</span> Pedido</button>
+      <button data-view="chat" type="button"><span>2</span> Chat</button>
+      <button data-view="pagamento" type="button"><span>3</span> Pagamento</button>
+      <button data-view="entrega" type="button"><span>4</span> Entrega</button>
+      <button data-view="suporte" type="button"><span>5</span> Suporte</button>
+      <button data-view="avaliacao" type="button"><span>6</span> Avaliação</button>
+    </nav>
+
+    <section class="screen" data-screen="pedido">
+      <div class="screen-heading">
+        <div><p class="eyebrow">Visão geral</p><h2>Status do pedido</h2></div>
+        <span class="status-pill" id="order-status">Negociação aberta</span>
+      </div>
+      <div class="summary-grid">
+        <article class="product-summary">
+          <div class="product-art" aria-hidden="true">📦</div>
+          <div><small>Pacote fechado</small><h3>Pampers Confort Sec M</h3><p>50 unidades · validade 10/2026</p><strong>R$ 42,00</strong></div>
+        </article>
+        <article><small>Vendedora</small><h3>Juliana Silva</h3><p>Perfil demonstrativo · avaliação 4,9</p><span class="verified">✓ Perfil verificado</span></article>
+        <article><small>Entrega escolhida</small><h3>Retirada combinada</h3><p>Bairro Castelo · Belo Horizonte</p><a href="#" data-go="entrega">Ver acompanhamento</a></article>
+      </div>
+      <ol class="order-stepper" id="order-stepper">
+        <li data-stage="1"><span>1</span><strong>Conversa</strong><small>Alinhar detalhes</small></li>
+        <li data-stage="2"><span>2</span><strong>Acordo</strong><small>Confirmar proposta</small></li>
+        <li data-stage="3"><span>3</span><strong>Pagamento</strong><small>Simulação protegida</small></li>
+        <li data-stage="4"><span>4</span><strong>Entrega</strong><small>Acompanhar pedido</small></li>
+        <li data-stage="5"><span>5</span><strong>Concluído</strong><small>Avaliar experiência</small></li>
+      </ol>
+      <div class="notice"><strong>Como funciona:</strong> o produto é reservado depois do acordo. Nesta versão, valores, prazos e movimentações existem apenas no seu navegador.</div>
+      <button class="btn btn-primary" data-go="chat" type="button">Continuar para a conversa</button>
+    </section>
+
+    <section class="screen" data-screen="chat" hidden>
+      <div class="screen-heading"><div><p class="eyebrow">Negociação segura</p><h2>Conversa com Juliana</h2></div><span class="online">● Online na demonstração</span></div>
+      <div class="chat-layout">
+        <article class="chat-panel">
+          <div class="chat-product"><span>📦</span><div><strong>Pampers Confort Sec M</strong><small>50 unidades · R$ 42,00</small></div></div>
+          <div class="messages" id="messages" aria-live="polite"></div>
+          <form id="message-form" class="message-form">
+            <label class="sr-only" for="message-input">Digite sua mensagem</label>
+            <input id="message-input" maxlength="180" placeholder="Digite uma mensagem..." autocomplete="off">
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </form>
+        </article>
+        <aside class="proposal-card">
+          <p class="eyebrow">Proposta demonstrativa</p>
+          <h3>Escolha como negociar</h3>
+          <div class="segmented" role="group" aria-label="Tipo de negociação">
+            <button type="button" data-deal="Compra">Compra</button>
+            <button type="button" data-deal="Troca">Troca</button>
+            <button type="button" data-deal="Doação">Doação</button>
+          </div>
+          <label for="proposal-value">Valor combinado</label>
+          <input id="proposal-value" value="42,00" inputmode="decimal">
+          <label for="delivery-choice">Entrega ou retirada</label>
+          <select id="delivery-choice"><option>Retirada combinada</option><option>Entrega por parceiro</option><option>Envio pelos Correios</option></select>
+          <button class="btn btn-primary" id="send-proposal" type="button">Enviar proposta</button>
+          <button class="btn btn-secondary" id="accept-proposal" type="button">Simular aceite</button>
+          <small>Nada será enviado para outra pessoa.</small>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="pagamento" hidden>
+      <div class="screen-heading"><div><p class="eyebrow">Etapa protegida</p><h2>Pagamento demonstrativo</h2></div><span class="status-pill warning">Nenhuma cobrança real</span></div>
+      <div class="payment-layout">
+        <article>
+          <h3>Resumo do pedido</h3>
+          <dl class="price-list"><div><dt>Produto</dt><dd>R$ 42,00</dd></div><div><dt>Taxa demonstrativa</dt><dd>R$ 1,26</dd></div><div><dt>Total simulado</dt><dd><strong>R$ 43,26</strong></dd></div></dl>
+          <div class="protection-box">🛡️ Na experiência descrita pelo acervo, o valor permanece protegido até a confirmação do recebimento.</div>
+        </article>
+        <article>
+          <h3>Escolha um método fictício</h3>
+          <div class="payment-methods" role="radiogroup" aria-label="Método demonstrativo">
+            <label><input type="radio" name="payment" value="PIX" checked><span>◆</span><strong>PIX</strong><small>Aprovação simulada imediata</small></label>
+            <label><input type="radio" name="payment" value="Cartão"><span>▣</span><strong>Cartão</strong><small>Nenhum dado será solicitado</small></label>
+            <label><input type="radio" name="payment" value="Saldo FraldaCycle"><span>▰</span><strong>Saldo FraldaCycle</strong><small>Carteira demonstrativa</small></label>
+          </div>
+          <button class="btn btn-primary" id="simulate-payment" type="button">Simular aprovação</button>
+        </article>
+      </div>
+      <div class="success-panel" id="payment-success" hidden aria-live="polite"><span>✓</span><div><h3>Pagamento aprovado na demonstração</h3><p>O pacote foi reservado e a etapa de entrega está disponível.</p></div><button class="btn btn-primary" data-go="entrega" type="button">Acompanhar entrega</button></div>
+    </section>
+
+    <section class="screen" data-screen="entrega" hidden>
+      <div class="screen-heading"><div><p class="eyebrow">Rastreamento demonstrativo</p><h2>Acompanhe a entrega</h2></div><span class="status-pill" id="delivery-badge">Aguardando acordo</span></div>
+      <div class="delivery-layout">
+        <article class="map-simulation" aria-label="Mapa ilustrativo da entrega"><div class="route-line"></div><span class="map-pin origin">📦</span><span class="map-pin courier">🛵</span><span class="map-pin destination">📍</span><small>Mapa meramente ilustrativo · Belo Horizonte</small></article>
+        <article>
+          <h3>Linha do tempo</h3>
+          <ol class="delivery-timeline" id="delivery-timeline">
+            <li data-delivery="0"><strong>Pedido confirmado</strong><small>Acordo registrado na demonstração</small></li>
+            <li data-delivery="1"><strong>Coleta realizada</strong><small>Pacote retirado no local combinado</small></li>
+            <li data-delivery="2"><strong>Em trânsito</strong><small>Rumo ao destino demonstrativo</small></li>
+            <li data-delivery="3"><strong>Próximo ao destino</strong><small>Previsão: hoje, 15h30–16h</small></li>
+            <li data-delivery="4"><strong>Entrega concluída</strong><small>Confirmação e avaliação liberadas</small></li>
+          </ol>
+          <button class="btn btn-primary" id="advance-delivery" type="button">Avançar status demonstrativo</button>
+          <button class="btn btn-secondary" data-go="suporte" type="button">Tenho um problema</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="suporte" hidden>
+      <div class="screen-heading"><div><p class="eyebrow">Ajuda e segurança</p><h2>Central de suporte</h2></div><span class="status-pill">Atendimento simulado</span></div>
+      <div class="support-grid">
+        <article><span class="support-icon">?</span><h3>Perguntas frequentes</h3><details><summary>Como funciona a reserva?</summary><p>Após o aceite, o item fica reservado durante a demonstração. O contador e o estoque são fictícios.</p></details><details><summary>O pagamento é real?</summary><p>Não. A página nunca solicita dados financeiros e não processa valores.</p></details><details><summary>Como reportar um problema?</summary><p>Use o formulário ao lado. O protocolo fica salvo apenas neste dispositivo.</p></details></article>
+        <article>
+          <h3>Abrir solicitação local</h3>
+          <form id="support-form">
+            <label for="support-topic">Assunto</label><select id="support-topic"><option>Problema com a entrega</option><option>Dúvida sobre pagamento</option><option>Segurança e confiança</option><option>Outro assunto</option></select>
+            <label for="support-message">Conte o que aconteceu</label><textarea id="support-message" maxlength="400" required placeholder="Descreva sua dúvida..."></textarea>
+            <button class="btn btn-primary" type="submit">Criar protocolo demonstrativo</button>
+          </form>
+          <div id="ticket-result" class="ticket-result" hidden aria-live="polite"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="avaliacao" hidden>
+      <div class="screen-heading"><div><p class="eyebrow">Fechamento da jornada</p><h2>Avalie a experiência</h2></div><span class="status-pill" id="review-status">Disponível após a entrega</span></div>
+      <article class="review-card">
+        <div class="celebration" aria-hidden="true">🙌</div>
+        <h3>Como foi a sua experiência demonstrativa?</h3>
+        <div class="stars" role="radiogroup" aria-label="Nota da experiência"><button data-rating="1" aria-label="1 estrela">★</button><button data-rating="2" aria-label="2 estrelas">★</button><button data-rating="3" aria-label="3 estrelas">★</button><button data-rating="4" aria-label="4 estrelas">★</button><button data-rating="5" aria-label="5 estrelas">★</button></div>
+        <label for="review-text">Comentário opcional</label><textarea id="review-text" maxlength="280" placeholder="Conte o que funcionou bem..."></textarea>
+        <button class="btn btn-primary" id="save-review" type="button">Salvar avaliação no dispositivo</button>
+        <div class="impact-summary"><span>🌱 1 pacote reaproveitado</span><span>♻️ Resíduo evitado</span><span>👪 2 famílias conectadas</span></div>
+      </article>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="Navegação móvel">
+    <a href="/index.html"><span>⌂</span>Início</a>
+    <a href="/map.html"><span>⌖</span>Mapa</a>
+    <a href="/index.html#publicar"><span>＋</span>Publicar</a>
+    <a href="/journey.html" aria-current="page"><span>□</span>Pedido</a>
+    <a href="/journey.html?view=chat"><span>☵</span>Chat</a>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/journey.js" defer></script>
+</body>
+</html>
