@@ -51,7 +51,13 @@ function readJson(request) {
   });
 }
 
-async function handleAuthentication(response, authService, action, request) {
+async function handleAuthentication(
+  response,
+  authService,
+  action,
+  statusCode,
+  request,
+) {
   if (!authService) {
     sendJson(response, 503, { error: "Authentication is not configured" });
     return;
@@ -59,7 +65,7 @@ async function handleAuthentication(response, authService, action, request) {
 
   try {
     const result = await authService[action](await readJson(request));
-    sendJson(response, 201, result);
+    sendJson(response, statusCode, result);
   } catch (error) {
     if (error instanceof AuthenticationError) {
       sendJson(response, error.statusCode, { error: error.message });
@@ -84,12 +90,18 @@ export function createApi({
     }
 
     if (request.method === "POST" && url.pathname === "/auth/register") {
-      await handleAuthentication(response, authService, "register", request);
+      await handleAuthentication(
+        response,
+        authService,
+        "register",
+        201,
+        request,
+      );
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/auth/login") {
-      await handleAuthentication(response, authService, "login", request);
+      await handleAuthentication(response, authService, "login", 200, request);
       return;
     }
 
