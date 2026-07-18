@@ -212,3 +212,14 @@ test("guards marketplace interactions against duplicate and stale updates", asyn
     assert.match(app, /button\.disabled = true/);
   });
 });
+
+test("respects reduced motion across the interface and map", async () => {
+  await withServer(async (baseUrl) => {
+    const design = await (await fetch(`${baseUrl}/design.css`)).text();
+    assert.match(design, /prefers-reduced-motion: reduce/);
+
+    const map = await (await fetch(`${baseUrl}/map.js`)).text();
+    assert.match(map, /matchMedia\("\(prefers-reduced-motion: reduce\)"\)/);
+    assert.match(map, /duration: reduceMotion \? 0 : 0\.65/);
+  });
+});
