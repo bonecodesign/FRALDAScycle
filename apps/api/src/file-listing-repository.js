@@ -67,4 +67,26 @@ export class FileListingRepository {
       return true;
     });
   }
+
+  async listByOwner(ownerId) {
+    const listings = await this.#readListings();
+
+    return listings.filter((listing) => listing.ownerId === ownerId);
+  }
+
+  async deleteByIdAndOwner(id, ownerId) {
+    const listings = await this.#readListings();
+    const index = listings.findIndex(
+      (listing) => listing.id === id && listing.ownerId === ownerId,
+    );
+
+    if (index === -1) {
+      return false;
+    }
+
+    listings.splice(index, 1);
+    await this.#writeListings(listings);
+
+    return true;
+  }
 }
