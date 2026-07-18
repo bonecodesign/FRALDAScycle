@@ -1,5 +1,9 @@
 import pg from "pg";
 
+export { PostgresListingRepository } from "./listing-repository.js";
+export { PostgresNotificationRepository } from "./notification-repository.js";
+export { PostgresUserRepository } from "./user-repository.js";
+
 const { Pool } = pg;
 
 export function createDatabasePool(connectionString) {
