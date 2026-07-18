@@ -10,7 +10,7 @@ import { InMemoryListingRepository } from "./listing-repository.js";
 
 const JSON_HEADERS = {
   "access-control-allow-headers": "authorization, content-type",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-methods": "DELETE, GET, POST, OPTIONS",
   "access-control-allow-origin": "*",
   "content-type": "application/json; charset=utf-8",
 };
@@ -97,12 +97,17 @@ async function authenticateRequest(request, authService) {
   return authService.authenticate(match[1]);
 }
 
+function sendAuthenticationError(response, error) {
+  sendJson(response, error.statusCode, { error: error.message });
+}
+
 export function createApi({
   repository = new InMemoryListingRepository(),
   authService,
 } = {}) {
   return createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
+    const listingIdMatch = /^\/listings\/([^/]+)$/.exec(url.pathname);
 
     if (request.method === "OPTIONS") {
       response.writeHead(204, JSON_HEADERS);
@@ -131,6 +136,19 @@ export function createApi({
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/my/listings") {
+      try {
+        const user = await authenticateRequest(request, authService);
+        const listings = await repository.listByOwner(user.id);
+
+        sendJson(response, 200, { listings: listings.map(publicListing) });
+      } catch (error) {
+        sendAuthenticationError(response, error);
+      }
+
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/listings") {
       const listings = await repository.list({
         city: url.searchParams.get("city") ?? undefined,
@@ -154,7 +172,7 @@ export function createApi({
         sendJson(response, 201, { listing: publicListing(storedListing) });
       } catch (error) {
         if (error instanceof AuthenticationError) {
-          sendJson(response, error.statusCode, { error: error.message });
+          sendAuthenticationError(response, error);
           return;
         }
 
@@ -164,6 +182,28 @@ export function createApi({
         }
 
         sendJson(response, 400, { error: error.message });
+      }
+
+      return;
+    }
+
+    if (request.method === "DELETE" && listingIdMatch) {
+      try {
+        const user = await authenticateRequest(request, authService);
+        const wasDeleted = await repository.deleteByIdAndOwner(
+          decodeURIComponent(listingIdMatch[1]),
+          user.id,
+        );
+
+        if (!wasDeleted) {
+          sendJson(response, 404, { error: "Listing not found" });
+          return;
+        }
+
+        response.writeHead(204, JSON_HEADERS);
+        response.end();
+      } catch (error) {
+        sendAuthenticationError(response, error);
       }
 
       return;
