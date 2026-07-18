@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createDemoApi, initialDemoListings } from "./demo-api.js";
+import {
+  createDemoApi,
+  initialDemoListings,
+  resetDemoListings,
+} from "./demo-api.js";
 
 function createMemoryStorage() {
   const values = new Map();
@@ -157,4 +161,28 @@ test("normalizes local listing text before persistence", async () => {
   assert.equal(listing.diaperSize, "G");
   assert.equal(listing.photoUrl, "https://example.com/pacote.png");
   assert.deepEqual(listing.location, { city: "Belo Horizonte", state: "MG" });
+});
+
+test("restores the initial dataset without affecting other browser data", async () => {
+  const { apiFetch, storage } = createContext({
+    email: "familia@tester.fraldacycle.local",
+  });
+  storage.setItem("unrelated.preference", "preserved");
+
+  await apiFetch("/demo-api/listings", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "donate",
+      sealed: true,
+      brand: "Temporária",
+      diaperSize: "P",
+      units: 10,
+      location: { city: "Belo Horizonte", state: "MG" },
+    }),
+  });
+
+  resetDemoListings(storage);
+  const restored = await (await apiFetch("/demo-api/listings")).json();
+  assert.equal(restored.listings.length, initialDemoListings.length);
+  assert.equal(storage.getItem("unrelated.preference"), "preserved");
 });
