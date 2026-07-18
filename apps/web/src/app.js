@@ -1,10 +1,27 @@
 const API_URL = window.FRALDACYCLE_API_URL ?? "http://localhost:3000";
+const AUTH_TOKEN_KEY = "fraldacycle.token";
+const AUTH_USER_KEY = "fraldacycle.user";
 
+const authForm = document.querySelector("#auth-form");
+const authMessage = document.querySelector("#auth-message");
+const sessionInfo = document.querySelector("#session-info");
+const logoutButton = document.querySelector("#logout");
 const form = document.querySelector("#listing-form");
 const searchForm = document.querySelector("#search-form");
 const priceField = document.querySelector("#price-field");
 const message = document.querySelector("#form-message");
 const results = document.querySelector("#listing-results");
+
+let token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+let user;
+
+try {
+  user = JSON.parse(sessionStorage.getItem(AUTH_USER_KEY));
+} catch {
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  sessionStorage.removeItem(AUTH_USER_KEY);
+  token = null;
+}
 
 const labels = {
   buy: "Compra",
@@ -15,6 +32,39 @@ const labels = {
 function setMessage(text, isError = false) {
   message.textContent = text;
   message.className = isError ? "error" : "";
+}
+
+function setAuthMessage(text, isError = false) {
+  authMessage.textContent = text;
+  authMessage.className = isError ? "error" : "";
+}
+
+function clearSession() {
+  token = null;
+  user = null;
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  sessionStorage.removeItem(AUTH_USER_KEY);
+  updateSession();
+}
+
+function updateSession() {
+  const signedIn = Boolean(token && user);
+
+  authForm.hidden = signedIn;
+  logoutButton.hidden = !signedIn;
+  sessionInfo.textContent = signedIn
+    ? `Conectado como ${user.email}.`
+    : "Entre para publicar seus anúncios.";
+
+  if (signedIn) {
+    setAuthMessage("");
+  }
+}
+
+function updateAuthAction() {
+  const action = new FormData(authForm).get("action");
+  authForm.querySelector('button[type="submit"]').textContent =
+    action === "register" ? "Criar conta" : "Entrar";
 }
 
 function updatePriceField() {
@@ -91,6 +141,49 @@ async function loadListings() {
   }
 }
 
+authForm.addEventListener("change", (event) => {
+  if (event.target.name === "action") {
+    updateAuthAction();
+  }
+});
+
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const values = Object.fromEntries(new FormData(authForm));
+  setAuthMessage(values.action === "register" ? "Criando conta..." : "Entrando...");
+
+  try {
+    const response = await fetch(`${API_URL}/auth/${values.action}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: values.email,
+        password: values.password,
+      }),
+    });
+    const body = await response.json();
+
+    if (!response.ok) {
+      throw new Error(body.error);
+    }
+
+    token = body.token;
+    user = body.user;
+    sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+    sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    authForm.reset();
+    updateSession();
+  } catch (error) {
+    setAuthMessage(error.message, true);
+  }
+});
+
+logoutButton.addEventListener("click", () => {
+  clearSession();
+  setAuthMessage("Sessão encerrada.");
+});
+
 form.addEventListener("change", (event) => {
   if (event.target.name === "type") {
     updatePriceField();
@@ -99,6 +192,12 @@ form.addEventListener("change", (event) => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (!token) {
+    setMessage("Entre ou crie uma conta antes de publicar.", true);
+    return;
+  }
+
   setMessage("Publicando anúncio...");
 
   const values = Object.fromEntries(new FormData(form));
@@ -121,12 +220,19 @@ form.addEventListener("submit", async (event) => {
   try {
     const response = await fetch(`${API_URL}/listings`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
       body: JSON.stringify(listing),
     });
     const body = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401) {
+        clearSession();
+      }
+
       throw new Error(body.errors?.join(" ") ?? body.error);
     }
 
@@ -146,5 +252,7 @@ searchForm.addEventListener("submit", (event) => {
 
 document.querySelector("#refresh").addEventListener("click", loadListings);
 
+updateAuthAction();
 updatePriceField();
+updateSession();
 loadListings();
