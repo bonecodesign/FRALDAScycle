@@ -91,3 +91,15 @@ h2 { margin-bottom: 6px; font-size: 1.18rem; letter-spacing: -.035em; }
 @media (max-width: 1180px) { .admin-shell { grid-template-columns: 220px minmax(0, 1fr); } .right-rail { display: none; } }
 @media (max-width: 780px) { .admin-shell { display: block; } .sidebar { position: static; height: auto; padding: 18px; border-right: 0; border-bottom: 1px solid var(--fc-border); } .tagline, .side-label, .side-impact { display: none; } .sidebar nav { display: flex; overflow: auto; margin-top: 14px; } .sidebar nav a { white-space: nowrap; } .admin-main { padding: 26px 18px 44px; } .admin-header { display: grid; } .header-actions { justify-items: start; } .metrics { grid-template-columns: repeat(2, 1fr); } .dashboard-grid { grid-template-columns: 1fr; } }
 @media (max-width: 500px) { .metrics { grid-template-columns: 1fr; } .panel { padding: 18px; } .bar-row { grid-template-columns: 92px 1fr 18px; } .admin-header h1 { font-size: 2rem; } }
+
+.admin-mobile-nav { display:none; }
+@media (max-width:780px) {
+  body { padding-bottom:82px; }
+  .admin-mobile-nav { position:fixed; z-index:30; right:0; bottom:0; left:0; display:grid; grid-template-columns:repeat(5,1fr); align-items:end; min-height:68px; padding:7px 8px calc(7px + env(safe-area-inset-bottom)); border-top:1px solid #d8efde; background:rgb(255 255 255 / 96%); box-shadow:0 -8px 24px rgb(15 23 42 / 10%); backdrop-filter:blur(14px); }
+  .admin-mobile-nav a { display:grid; place-items:center; gap:3px; min-width:0; color:#64748b; font-size:.64rem; font-weight:800; text-align:center; text-decoration:none; }
+  .admin-mobile-nav a span { display:grid; place-items:center; width:27px; height:27px; color:var(--fc-primary-800); font-size:1.2rem; line-height:1; }
+  .admin-mobile-nav a.active { color:var(--fc-primary-800); }
+  .admin-mobile-nav a.active span { border-radius:9px; background:#dcfce7; }
+  .admin-mobile-nav .publish { transform:translateY(-17px); color:var(--fc-primary-800); }
+  .admin-mobile-nav .publish span { width:46px; height:46px; border:4px solid #fff; border-radius:50%; background:var(--fc-primary-800); color:#fff; box-shadow:0 7px 16px rgb(8 127 63 / 25%); font-size:1.45rem; }
+}
