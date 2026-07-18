@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const source = new URL("../apps/web/src/", import.meta.url);
-const output = new URL("../dist/pages/", import.meta.url);
+const source = fileURLToPath(new URL("../apps/web/src/", import.meta.url));
+const output = fileURLToPath(new URL("../dist/pages/", import.meta.url));
 const basePath = "/FRALDAScycle";
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".svg", ".webmanifest"]);
 
@@ -33,14 +34,14 @@ async function rewrite(directory) {
 
 await rewrite(output);
 
-const manifest = JSON.parse(await readFile(new URL("manifest.webmanifest", output), "utf8"));
+const manifest = JSON.parse(await readFile(join(output, "manifest.webmanifest"), "utf8"));
 assert.equal(manifest.start_url, `${basePath}/`);
 assert.equal(manifest.scope, `${basePath}/`);
 
-const index = await readFile(new URL("index.html", output), "utf8");
+const index = await readFile(join(output, "index.html"), "utf8");
 assert.match(index, new RegExp(`href="${basePath}/manifest\\.webmanifest"`));
 
-const worker = await readFile(new URL("service-worker.js", output), "utf8");
+const worker = await readFile(join(output, "service-worker.js"), "utf8");
 assert.match(worker, new RegExp(`"${basePath}/dashboard\\.html"`));
 
-console.log(`GitHub Pages bundle prepared at ${output.pathname}`);
+console.log(`GitHub Pages bundle prepared at ${output}`);
