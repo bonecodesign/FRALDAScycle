@@ -7,7 +7,12 @@ import {
 
 import { InMemoryListingRepository } from "./listing-repository.js";
 
-const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
+const JSON_HEADERS = {
+  "access-control-allow-headers": "content-type",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-origin": "*",
+  "content-type": "application/json; charset=utf-8",
+};
 const MAX_BODY_SIZE = 100_000;
 
 function sendJson(response, statusCode, body) {
@@ -48,6 +53,12 @@ function readJson(request) {
 export function createApi({ repository = new InMemoryListingRepository() } = {}) {
   return createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
+
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, JSON_HEADERS);
+      response.end();
+      return;
+    }
 
     if (request.method === "GET" && url.pathname === "/health") {
       sendJson(response, 200, { status: "ok" });
