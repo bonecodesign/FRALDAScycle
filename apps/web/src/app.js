@@ -10,6 +10,7 @@ const form = document.querySelector("#listing-form");
 const myListingsPanel = document.querySelector("#my-listings-panel");
 const myListingResults = document.querySelector("#my-listing-results");
 const searchForm = document.querySelector("#search-form");
+const quickFilters = document.querySelectorAll(".quick-filter");
 const priceField = document.querySelector("#price-field");
 const message = document.querySelector("#form-message");
 const results = document.querySelector("#listing-results");
@@ -28,6 +29,14 @@ try {
 }
 
 const labels = { buy: "Compra", sell: "Venda", donate: "Doação" };
+
+function syncQuickFilters(type = "") {
+  quickFilters.forEach((filter) => {
+    const isActive = filter.dataset.filterType === type;
+    filter.classList.toggle("active", isActive);
+    filter.setAttribute("aria-pressed", String(isActive));
+  });
+}
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -163,6 +172,7 @@ async function readResponse(response) {
 }
 
 async function loadListings() {
+  syncQuickFilters(searchForm.elements.type.value);
   const query = new URLSearchParams(Object.fromEntries([...new FormData(searchForm)].filter(([, value]) => value.trim())));
   results.replaceChildren();
   results.textContent = "Carregando anúncios...";
@@ -294,6 +304,13 @@ myListingResults.addEventListener("click", (event) => {
 searchForm.addEventListener("submit", (event) => {
   event.preventDefault();
   loadListings();
+});
+
+quickFilters.forEach((filter) => {
+  filter.addEventListener("click", () => {
+    searchForm.elements.type.value = filter.dataset.filterType;
+    loadListings();
+  });
 });
 
 document.querySelector("#refresh").addEventListener("click", loadListings);
