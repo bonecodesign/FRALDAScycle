@@ -42,6 +42,15 @@ test("accepts only clearly identified tester accounts", async () => {
   });
   assert.equal(invalid.status, 400);
 
+  const shortPassword = await apiFetch("/demo-api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: "familia@tester.fraldacycle.local",
+      password: "curta",
+    }),
+  });
+  assert.equal(shortPassword.status, 400);
+
   const valid = await apiFetch("/demo-api/auth/register", {
     method: "POST",
     body: JSON.stringify({
@@ -95,4 +104,57 @@ test("recovers safely when stored demonstration data is corrupted", async () => 
   storage.setItem("fraldacycle.demo.listings", "{broken");
   const response = await (await apiFetch("/demo-api/listings")).json();
   assert.equal(response.listings.length, initialDemoListings.length);
+});
+
+test("rejects invalid local listings with the domain safety rules", async () => {
+  const user = { email: "familia@tester.fraldacycle.local" };
+  const { apiFetch } = createContext(user);
+
+  const response = await apiFetch("/demo-api/listings", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "donate",
+      sealed: false,
+      brand: "",
+      diaperSize: "",
+      units: 0,
+      priceCents: 100,
+      photoUrl: "javascript:alert(1)",
+      location: {},
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  const { errors } = await response.json();
+  assert.ok(errors.includes("listing must describe a sealed package"));
+  assert.ok(errors.includes("brand is required"));
+  assert.ok(errors.includes("units must be a positive integer"));
+  assert.ok(errors.includes("photoUrl must be a valid http or https URL"));
+  assert.ok(errors.includes("donate listings cannot include priceCents"));
+});
+
+test("normalizes local listing text before persistence", async () => {
+  const user = { email: "familia@tester.fraldacycle.local" };
+  const { apiFetch } = createContext(user);
+
+  const response = await apiFetch("/demo-api/listings", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "sell",
+      sealed: true,
+      brand: "  Marca teste  ",
+      diaperSize: " G ",
+      units: 20,
+      priceCents: 4590,
+      photoUrl: " https://example.com/pacote.png ",
+      location: { city: " Belo Horizonte ", state: " mg " },
+    }),
+  });
+
+  assert.equal(response.status, 201);
+  const { listing } = await response.json();
+  assert.equal(listing.brand, "Marca teste");
+  assert.equal(listing.diaperSize, "G");
+  assert.equal(listing.photoUrl, "https://example.com/pacote.png");
+  assert.deepEqual(listing.location, { city: "Belo Horizonte", state: "MG" });
 });
