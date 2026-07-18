@@ -56,3 +56,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .fc-status--blue { background: #dbeafe; color: #1d4ed8; }
 .fc-status--purple { background: #ede9fe; color: #6d28d9; }
 .fc-status--orange { background: #ffedd5; color: #c2410c; }
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
