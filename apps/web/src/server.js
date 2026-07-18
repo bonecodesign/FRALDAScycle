@@ -15,6 +15,8 @@ const assets = {
   "/map.css": { file: "map.css", type: "text/css; charset=utf-8" },
   "/notifications.html": { file: "notifications.html", type: "text/html; charset=utf-8" },
   "/notifications.js": { file: "notifications.js", type: "text/javascript; charset=utf-8" },
+  "/preview.html": { file: "preview.html", type: "text/html; charset=utf-8" },
+  "/preview.css": { file: "preview.css", type: "text/css; charset=utf-8" },
   "/styles.css": { file: "styles.css", type: "text/css; charset=utf-8" },
 };
 
