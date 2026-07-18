@@ -1,4 +1,4 @@
-import { createDemoApi } from "./demo-api.js";
+import { createDemoApi, resetDemoListings } from "./demo-api.js";
 
 const API_URL = window.FRALDACYCLE_API_URL ?? "/demo-api";
 const AUTH_TOKEN_KEY = "fraldacycle.token";
@@ -19,6 +19,7 @@ const message = document.querySelector("#form-message");
 const results = document.querySelector("#listing-results");
 const passwordInput = authForm.elements.password;
 const passwordToggle = document.querySelector("#toggle-password");
+const resetDemoButton = document.querySelector("#reset-demo");
 
 let token = sessionStorage.getItem(AUTH_TOKEN_KEY);
 let user;
@@ -296,6 +297,21 @@ logoutButton.addEventListener("click", () => {
   clearSession();
   setAuthMessage("Sessão encerrada.");
 });
+
+if (window.FRALDACYCLE_API_URL) {
+  resetDemoButton.hidden = true;
+} else {
+  resetDemoButton.addEventListener("click", async () => {
+    const confirmed = window.confirm(
+      "Restaurar as ofertas fictícias? Anúncios criados neste navegador serão removidos.",
+    );
+    if (!confirmed) return;
+
+    resetDemoListings(localStorage);
+    await Promise.all([loadListings(), loadMyListings()]);
+    setAuthMessage("Dados demonstrativos restaurados.");
+  });
+}
 
 form.addEventListener("change", (event) => {
   if (event.target.name === "type") updatePriceField();
