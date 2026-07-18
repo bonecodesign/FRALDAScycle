@@ -6,37 +6,30 @@ import { AuthenticationError } from "./auth-service.js";
 import { isListingStatus, LISTING_STATUS } from "./listing-status.js";
 import { InMemoryListingRepository } from "./listing-repository.js";
 
-const JSON_HEADERS = {
+const headers = {
   "access-control-allow-headers": "authorization, content-type",
   "access-control-allow-methods": "DELETE, GET, PATCH, POST, OPTIONS",
   "access-control-allow-origin": "*",
   "content-type": "application/json; charset=utf-8",
 };
-const MAX_BODY_SIZE = 100_000;
 
-function sendJson(response, statusCode, body) {
-  response.writeHead(statusCode, JSON_HEADERS);
+function send(response, status, body) {
+  response.writeHead(status, headers);
   response.end(JSON.stringify(body));
 }
 
 function publicListing(listing) {
-  const { ownerId, ...publicData } = listing;
-  return publicData;
+  const { ownerId, ...value } = listing;
+  return value;
 }
 
-function readJson(request) {
+function read(request) {
   return new Promise((resolve, reject) => {
-    let body = "";
-    request.on("data", (chunk) => {
-      body += chunk;
-      if (body.length > MAX_BODY_SIZE) {
-        reject(new Error("Request body is too large"));
-        request.destroy();
-      }
-    });
+    let value = "";
+    request.on("data", (chunk) => (value += chunk));
     request.on("end", () => {
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(value ? JSON.parse(value) : {});
       } catch {
         reject(new Error("Request body must be valid JSON"));
       }
@@ -45,32 +38,22 @@ function readJson(request) {
   });
 }
 
-async function authenticateRequest(request, authService) {
-  if (!authService) throw new AuthenticationError("Authentication is not configured", 503);
-
-  const match = /^Bearer (.+)$/.exec(request.headers.authorization ?? "");
-  if (!match) throw new AuthenticationError("Authentication token is required");
-
-  return authService.authenticate(match[1]);
+async function userFor(request, authService) {
+  const token = /^Bearer (.+)$/.exec(request.headers.authorization ?? "")?.[1];
+  if (!token) throw new AuthenticationError("Authentication token is required");
+  return authService.authenticate(token);
 }
 
-function sendError(response, error) {
-  if (error instanceof AuthenticationError) {
-    sendJson(response, error.statusCode, { error: error.message });
-    return;
-  }
-
-  sendJson(response, 500, { error: "Unable to complete request" });
-}
-
-function isModerator(user, moderatorEmails) {
-  return moderatorEmails.includes(user.email);
+function fail(response, error) {
+  if (error instanceof AuthenticationError) send(response, error.statusCode, { error: error.message });
+  else send(response, 500, { error: "Unable to complete request" });
 }
 
 export function createApi({
   repository = new InMemoryListingRepository(),
   authService,
   moderatorEmails = [],
+  notificationService,
 } = {}) {
   return createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
@@ -78,100 +61,105 @@ export function createApi({
     const moderationId = /^\/moderation\/listings\/([^/]+)$/.exec(url.pathname)?.[1];
 
     if (request.method === "OPTIONS") {
-      response.writeHead(204, JSON_HEADERS);
+      response.writeHead(204, headers);
       response.end();
       return;
     }
 
     if (request.method === "POST" && ["/auth/register", "/auth/login"].includes(url.pathname)) {
       try {
-        if (!authService) throw new AuthenticationError("Authentication is not configured", 503);
         const action = url.pathname.endsWith("register") ? "register" : "login";
-        const result = await authService[action](await readJson(request));
-        sendJson(response, action === "register" ? 201 : 200, result);
+        send(response, action === "register" ? 201 : 200, await authService[action](await read(request)));
       } catch (error) {
-        if (error instanceof AuthenticationError) sendJson(response, error.statusCode, { error: error.message });
-        else sendJson(response, 400, { error: error.message });
+        if (error instanceof AuthenticationError) send(response, error.statusCode, { error: error.message });
+        else send(response, 400, { error: error.message });
       }
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/health") {
-      sendJson(response, 200, { status: "ok" });
+      send(response, 200, { status: "ok" });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/my/notifications") {
+      try {
+        const user = await userFor(request, authService);
+        send(response, 200, { notifications: await notificationService.repository.listByUser(user.id) });
+      } catch (error) {
+        fail(response, error);
+      }
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/my/listings") {
       try {
-        const user = await authenticateRequest(request, authService);
-        sendJson(response, 200, { listings: (await repository.listByOwner(user.id)).map(publicListing) });
+        const user = await userFor(request, authService);
+        send(response, 200, { listings: (await repository.listByOwner(user.id)).map(publicListing) });
       } catch (error) {
-        sendError(response, error);
+        fail(response, error);
       }
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/listings") {
-      const listings = await repository.list({
+      send(response, 200, { listings: (await repository.list({
         city: url.searchParams.get("city") ?? undefined,
         state: url.searchParams.get("state") ?? undefined,
         type: url.searchParams.get("type") ?? undefined,
-      });
-      sendJson(response, 200, { listings: listings.map(publicListing) });
+      })).map(publicListing) });
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/listings") {
       try {
-        const user = await authenticateRequest(request, authService);
-        const listing = createListing({ ...(await readJson(request)), ownerId: user.id });
-        sendJson(response, 201, { listing: publicListing(await repository.create(listing)) });
+        const user = await userFor(request, authService);
+        const listing = createListing({ ...(await read(request)), ownerId: user.id });
+        send(response, 201, { listing: publicListing(await repository.create(listing)) });
       } catch (error) {
-        if (error instanceof AuthenticationError) sendError(response, error);
-        else if (error instanceof ListingValidationError) sendJson(response, 400, { errors: error.errors });
-        else sendJson(response, 400, { error: error.message });
+        if (error instanceof AuthenticationError) fail(response, error);
+        else if (error instanceof ListingValidationError) send(response, 400, { errors: error.errors });
+        else send(response, 400, { error: error.message });
       }
       return;
     }
 
     if (request.method === "PATCH" && moderationId) {
       try {
-        const user = await authenticateRequest(request, authService);
-        if (!isModerator(user, moderatorEmails)) throw new AuthenticationError("Moderator access is required", 403);
-
-        const { status } = await readJson(request);
+        const user = await userFor(request, authService);
+        if (!moderatorEmails.includes(user.email)) throw new AuthenticationError("Moderator access is required", 403);
+        const { status } = await read(request);
         if (!isListingStatus(status) || status === LISTING_STATUS.PENDING) {
-          sendJson(response, 400, { error: "A review must set active, closed, or blocked" });
+          send(response, 400, { error: "A review must set active, closed, or blocked" });
           return;
         }
-
         const listing = await repository.updateStatusById(decodeURIComponent(moderationId), status);
         if (!listing) {
-          sendJson(response, 404, { error: "Listing not found" });
+          send(response, 404, { error: "Listing not found" });
           return;
         }
-
-        sendJson(response, 200, { listing: publicListing(listing) });
+        await notificationService?.notifyListingStatus(listing);
+        send(response, 200, { listing: publicListing(listing) });
       } catch (error) {
-        sendError(response, error);
+        fail(response, error);
       }
       return;
     }
 
     if (request.method === "DELETE" && listingId) {
       try {
-        const user = await authenticateRequest(request, authService);
+        const user = await userFor(request, authService);
         if (!(await repository.deleteByIdAndOwner(decodeURIComponent(listingId), user.id))) {
-          sendJson(response, 404, { error: "Listing not found" });
+          send(response, 404, { error: "Listing not found" });
           return;
         }
-        sendJson(response, 200, { deleted: true });
+        send(response, 200, { deleted: true });
       } catch (error) {
-        sendError(response, error);
+        fail(response, error);
       }
       return;
     }
 
-    sendJson(response, 404, { error: "Not found" });
+    send(response, 404, { error: "Not found" });
   });
 }
