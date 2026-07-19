@@ -27,7 +27,8 @@
 
   let state = readState();
   const $ = (selector, root = document) => root.querySelector(selector);
-  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const $ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   const timeNow = () => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date());
@@ -58,7 +59,7 @@
       history.replaceState({}, "", url);
     }
     save();
-    window.scrollTo({ top: Math.max(0, $(".journey-tabs").offsetTop - 82), behavior: "smooth" });
+    window.scrollTo({ top: Math.max(0, $(".journey-tabs").offsetTop - 82), behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const orderStage = () => {
@@ -98,12 +99,9 @@
 
   const renderProposal = () => {
     $$("[data-deal]").forEach((button) => button.classList.toggle("active", button.dataset.deal === state.deal));
-    $("#accept-proposal").disabled = state.proposal === "draft";
-    if (state.proposal === "sent") $("#send-proposal").textContent = "Proposta enviada";
-    if (state.proposal === "accepted") {
-      $("#send-proposal").textContent = "Proposta registrada";
-      $("#accept-proposal").textContent = "✓ Proposta aceita";
-    }
+    $("#accept-proposal").disabled = state.proposal !== "sent";
+    $("#send-proposal").textContent = state.proposal === "draft" ? "Enviar proposta" : state.proposal === "sent" ? "Proposta enviada" : "Proposta registrada";
+    $("#accept-proposal").textContent = state.proposal === "accepted" ? "✓ Proposta aceita" : "Aceitar proposta simulada";
   };
 
   const renderPayment = () => {
@@ -116,8 +114,8 @@
   };
 
   const renderDelivery = () => {
-    const labels = ["Aguardando acordo", "Coleta realizada", "Em trânsito", "Próximo ao destino", "Entrega concluída"];
-    $("#delivery-badge").textContent = labels[state.delivery];
+    const labels = ["Pedido confirmado", "Coleta realizada", "Em trânsito", "Próximo ao destino", "Entrega concluída"];
+    $("#delivery-badge").textContent = state.payment === "approved" ? labels[state.delivery] : "Aguardando acordo";
     $$("#delivery-timeline li").forEach((item) => {
       const step = Number(item.dataset.delivery);
       item.classList.toggle("complete", step < state.delivery);
@@ -137,6 +135,7 @@
       const selected = Number(button.dataset.rating) <= state.rating;
       button.classList.toggle("selected", selected);
       button.disabled = !unlocked;
+      button.setAttribute("role", "radio");
       button.setAttribute("aria-checked", Number(button.dataset.rating) === state.rating ? "true" : "false");
     });
   };
@@ -197,7 +196,7 @@
   });
 
   $("#accept-proposal").addEventListener("click", () => {
-    if (state.proposal === "draft") return;
+    if (state.proposal !== "sent") return;
     state.proposal = "accepted";
     state.messages.push({ from: "seller", text: "Combinado! A proposta foi aceita e o pacote está reservado.", time: timeNow() });
     save();
@@ -273,6 +272,7 @@
     state = { ...defaultState, messages: defaultState.messages.map((item) => ({ ...item })) };
     save();
     render();
+    view("pedido");
     toast("Jornada reiniciada.");
   });
 
