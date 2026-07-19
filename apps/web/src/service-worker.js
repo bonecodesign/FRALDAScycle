@@ -1,4 +1,4 @@
-const CACHE_NAME = "fraldacycle-demo-v3";
+const CACHE_NAME = "fraldacycle-demo-v4";
 const APP_SHELL = [
   "/",
   "/index.html",
