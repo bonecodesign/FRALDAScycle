@@ -31,6 +31,9 @@ test("serves every public web and installable app route", async () => {
       ["/map.css", "text/css"],
       ["/dashboard.html", "text/html"],
       ["/dashboard.css", "text/css"],
+      ["/journey.html", "text/html"],
+      ["/journey.css", "text/css"],
+      ["/journey.js", "text/javascript"],
       ["/notifications.html", "text/html"],
       ["/notifications.js", "text/javascript"],
       ["/manifest.webmanifest", "application/manifest+json"],
@@ -78,7 +81,7 @@ test("exposes a complete demonstrative PWA contract", async () => {
 
 test("identifies simulated data on every primary screen", async () => {
   await withServer(async (baseUrl) => {
-    const routes = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+    const routes = ["/", "/map.html", "/dashboard.html", "/notifications.html", "/journey.html"];
 
     for (const route of routes) {
       const content = await (await fetch(`${baseUrl}${route}`)).text();
@@ -88,6 +91,23 @@ test("identifies simulated data on every primary screen", async () => {
         `${route} must identify its simulated content`,
       );
     }
+  });
+});
+
+test("supports a complete local journey without real service calls", async () => {
+  await withServer(async (baseUrl) => {
+    const html = await (await fetch(`${baseUrl}/journey.html`)).text();
+    const script = await (await fetch(`${baseUrl}/journey.js`)).text();
+
+    assert.match(html, /Pedido demonstrativo/);
+    assert.match(html, /Nenhuma cobrança real/);
+    assert.match(html, /Conversa com Juliana/);
+    assert.match(html, /Acompanhe a entrega/);
+    assert.match(html, /Central de suporte/);
+    assert.match(script, /fraldacycle\.demo\.journey\.v1/);
+    assert.match(script, /localStorage/);
+    assert.match(script, /serviceWorker\.register\("\/service-worker\.js"\)/);
+    assert.doesNotMatch(script, /\bfetch\s*\(/);
   });
 });
 
@@ -107,7 +127,7 @@ test("reports demonstrative readiness without implying production services", asy
 
 test("keeps every internal navigation link and asset reachable", async () => {
   await withServer(async (baseUrl) => {
-    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html", "/journey.html"];
 
     for (const page of pages) {
       const html = await (await fetch(`${baseUrl}${page}`)).text();
@@ -138,7 +158,7 @@ test("keeps every internal navigation link and asset reachable", async () => {
 
 test("keeps essential accessibility landmarks on every screen", async () => {
   await withServer(async (baseUrl) => {
-    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html", "/journey.html"];
 
     for (const page of pages) {
       const html = await (await fetch(`${baseUrl}${page}`)).text();
@@ -180,7 +200,7 @@ test("keeps every offline app shell resource available", async () => {
 
 test("keeps installable app metadata on every primary screen", async () => {
   await withServer(async (baseUrl) => {
-    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html"];
+    const pages = ["/", "/map.html", "/dashboard.html", "/notifications.html", "/journey.html"];
 
     for (const page of pages) {
       const html = await (await fetch(`${baseUrl}${page}`)).text();
