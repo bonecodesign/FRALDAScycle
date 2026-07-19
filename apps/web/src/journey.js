@@ -27,7 +27,7 @@
 
   let state = readState();
   const $ = (selector, root = document) => root.querySelector(selector);
-  const $ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
