@@ -90,6 +90,7 @@
             <input id="message-input" maxlength="180" placeholder="Digite uma mensagem..." autocomplete="off">
             <button class="btn btn-primary" type="submit">Enviar</button>
           </form>
+          <p class="chat-safety-note" id="chat-safety-note">Por segurança, não envie telefone, e-mail, links, QR codes ou perfis de Instagram e Facebook. A negociação deve permanecer na FraldaCycle.</p>
         </article>
         <aside class="proposal-card">
           <p class="eyebrow">Proposta demonstrativa</p>
@@ -115,7 +116,8 @@
       <div class="payment-layout">
         <article>
           <h3>Resumo do pedido</h3>
-          <dl class="price-list"><div><dt>Produto</dt><dd>R$ 42,00</dd></div><div><dt>Taxa demonstrativa</dt><dd>R$ 1,26</dd></div><div><dt>Total simulado</dt><dd><strong>R$ 43,26</strong></dd></div></dl>
+          <dl class="price-list"><div><dt>Produto</dt><dd>R$ 42,00</dd></div><div><dt>Taxa de serviço — venda (8%)</dt><dd>R$ 3,36</dd></div><div><dt>Total simulado</dt><dd><strong>R$ 45,36</strong></dd></div></dl>
+          <p class="fee-rules">Troca: 5% no total (2,5% por parte) · Entrega: 5% sobre o frete · Doação: 0%</p>
           <div class="protection-box">🛡️ Na experiência descrita pelo acervo, o valor permanece protegido até a confirmação do recebimento.</div>
         </article>
         <article>
@@ -187,6 +189,6 @@
     <a href="/journey.html?view=chat"><span>☵</span>Chat</a>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <script src="/journey.js" defer></script>
+  <script type="module" src="/journey.js"></script>
 </body>
 </html>
