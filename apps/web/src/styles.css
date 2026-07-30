@@ -271,7 +271,7 @@ input:hover,select:hover { border-color:#94a3b8; } input:focus,select:focus { ou
 .search-map-panel {
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--fc-border);
 }
 
 .search-map-heading {
@@ -283,23 +283,23 @@ input:hover,select:hover { border-color:#94a3b8; } input:focus,select:focus { ou
   display: block;
   width: 100%;
   min-height: 480px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-lg);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
 }
 
 .chat-safety-note,
 .fee-rules {
   margin: 10px 0 0;
-  color: var(--text-muted);
+  color: var(--fc-muted);
   font-size: 0.82rem;
   line-height: 1.5;
 }
 
 #message-input[aria-invalid="true"] {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 16%, transparent);
+  border-color: var(--fc-red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fc-red) 16%, transparent);
 }
 
 @media (max-width: 760px) {
