@@ -65,3 +65,23 @@ O CI executa primeiro a verificação independente da demonstração e depois os
 ## Limites da demonstração
 
 Os usuários, ofertas, notificações, métricas e estimativas ambientais exibidos são fictícios. Pagamentos, logística, negociação real, identidade e moderação persistente ainda não são serviços de produção.
+
+
+## Sincronização com o protótipo aprovado
+
+Esta branch incorpora, de forma incremental, decisões confirmadas no protótipo e no acervo visual do cliente:
+
+- cada prancha do acervo é uma referência única e cumulativa;
+- status e percentuais de sprint não definem o escopo do produto;
+- a busca exibe um mapa imediatamente após os resultados;
+- o chat impede telefone numérico ou por extenso, links, QR codes, e-mail e perfis de Instagram/Facebook;
+- exemplos financeiros usam os splits aprovados: venda 8%, troca 5% no total (2,5% por parte), entrega 5% sobre o frete e doação sem taxa;
+- a linguagem visual, os componentes responsivos e os requisitos de acessibilidade seguem a referência aprovada.
+
+A especificação consolidada está em [docs/PROTOCOLO_PRODUTO_APROVADO.md](docs/PROTOCOLO_PRODUTO_APROVADO.md).
+
+Para validar as novas regras juntamente com a demonstração existente:
+
+```bash
+pnpm verify:demo
+```

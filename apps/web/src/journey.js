@@ -1,3 +1,5 @@
+import { blockedContactReason } from "./chat-safety.js";
+
 (() => {
   const STORAGE_KEY = "fraldacycle.demo.journey.v1";
   const defaultState = {
@@ -172,11 +174,28 @@
     const input = $("#message-input");
     const text = input.value.trim();
     if (!text) return;
+
+    const blockedReason = blockedContactReason(text);
+    if (blockedReason) {
+      input.setAttribute("aria-invalid", "true");
+      input.setCustomValidity(blockedReason);
+      input.reportValidity();
+      toast(`Mensagem não enviada. ${blockedReason} Negocie com segurança dentro da FraldaCycle.`);
+      return;
+    }
+
+    input.removeAttribute("aria-invalid");
+    input.setCustomValidity("");
     state.messages.push({ from: "me", text, time: timeNow() });
     input.value = "";
     save();
     renderMessages();
     toast("Mensagem salva apenas nesta demonstração.");
+  });
+
+  $("#message-input").addEventListener("input", (event) => {
+    event.currentTarget.removeAttribute("aria-invalid");
+    event.currentTarget.setCustomValidity("");
   });
 
   $$("[data-deal]").forEach((button) => button.addEventListener("click", () => {
