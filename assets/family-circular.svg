@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" role="img" aria-labelledby="title desc">
+  <title id="title">Família e economia circular</title>
+  <desc id="desc">Ilustração de um bebê, fraldas fechadas, árvores e o planeta.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#eef9f4"/><stop offset="1" stop-color="#cae8b9"/></linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#98d083"/><stop offset="1" stop-color="#4ea961"/></linearGradient>
+    <linearGradient id="earth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#62bed7"/><stop offset="1" stop-color="#3097bf"/></linearGradient>
+  </defs>
+  <rect width="720" height="520" rx="36" fill="url(#sky)"/>
+  <path d="M0 394c88-55 160-33 234 7 85 46 170 20 252-19 89-42 160-28 234 12v126H0z" fill="url(#grass)"/>
+  <circle cx="312" cy="294" r="118" fill="url(#earth)"/>
+  <path d="M244 231c32-37 62-28 80-12 13 12 17 31 38 37 23 7 46 7 52 35-30 10-45 31-54 60-34-8-48-36-80-42-24-5-41-35-36-78z" fill="#64b95c"/>
+  <path d="M279 375c31-8 47 2 57 28-23 9-47 7-68-6z" fill="#078a4d" opacity=".8"/>
+  <g fill="#178950"><path d="M94 390V232h12v158z"/><circle cx="100" cy="208" r="48"/><circle cx="68" cy="242" r="34"/><circle cx="133" cy="247" r="39"/></g>
+  <g fill="#2e9b58"><path d="M592 398V218h12v180z"/><circle cx="598" cy="194" r="50"/><circle cx="562" cy="232" r="36"/><circle cx="638" cy="235" r="38"/></g>
+  <g transform="translate(120 330)"><rect width="128" height="28" rx="14" fill="#fff" stroke="#d9e8df"/><rect y="24" width="128" height="28" rx="14" fill="#fff" stroke="#d9e8df"/><rect y="48" width="128" height="28" rx="14" fill="#fff" stroke="#d9e8df"/><path d="M34 8c17 12 43 12 60 0" fill="none" stroke="#b9d8c5" stroke-width="4"/></g>
+  <g transform="translate(398 254)">
+    <ellipse cx="83" cy="180" rx="83" ry="24" fill="#178950" opacity=".18"/>
+    <circle cx="82" cy="54" r="42" fill="#f6b27f"/>
+    <path d="M42 52C47 7 113-4 124 44c-18-16-42-23-63-14-7 3-13 10-19 22z" fill="#d97840"/>
+    <circle cx="67" cy="55" r="4" fill="#24364b"/><circle cx="99" cy="55" r="4" fill="#24364b"/>
+    <path d="M70 72c8 7 18 7 26 0" fill="none" stroke="#b95c43" stroke-width="4" stroke-linecap="round"/>
+    <path d="M44 97c20-17 57-17 77 0l15 74H27z" fill="#f4c2a0"/>
+    <path d="M46 131c22 18 51 18 73 0l8 40H37z" fill="#fff" stroke="#dceae2" stroke-width="4"/>
+    <path d="M42 112 7 148M122 112l35 36" stroke="#f6b27f" stroke-width="18" stroke-linecap="round"/>
+  </g>
+  <g fill="#078a4d"><path d="M664 60c-28 5-48 23-54 51 28-5 48-23 54-51z"/><path d="M610 111c12-25 30-43 54-51" fill="none" stroke="#006d3d" stroke-width="5"/></g>
+</svg>

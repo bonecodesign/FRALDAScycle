@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Protótipo navegável FraldaCycle">
+  <title>FraldaCycle — Protótipo navegável</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="map-safety.css">
+  <link rel="stylesheet" href="fidelity.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <div id="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#/site/home" aria-label="FraldaCycle, início">
+        <img class="brand-logo-approved" src="assets/approved/logo-approved.png" alt="FraldaCycle">
+      </a>
+      <nav class="surface-switcher" aria-label="Visualizar experiência">
+        <a href="#/site/home" data-surface-link="site">Site</a>
+        <a href="#/app/splash" data-surface-link="app">App</a>
+        <a href="#/admin/dashboard" data-surface-link="admin">Admin</a>
+      </nav>
+      <div class="top-actions">
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+        <a class="button secondary desktop-only" href="#/site/login">Entrar</a>
+        <a class="button ghost desktop-only" href="#/site/favorites">♡ Favoritos</a>
+        <a class="button primary desktop-only" href="#/site/publish">Publicar anúncio</a>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1"></main>
+
+    <footer class="site-footer" id="global-footer">
+      <div>
+        <a class="brand footer-brand" href="#/site/home"><img class="brand-logo-approved" src="assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+        <p>Economia circular para famílias e para o planeta.</p>
+      </div>
+      <div><strong>Plataforma</strong><a href="#/site/search">Marketplace</a><a href="#/site/favorites">Favoritos</a><a href="#/site/publish">Publicar</a><a href="#/site/impact">Impacto</a></div>
+      <div><strong>Suporte</strong><a href="#/site/help">Central de ajuda</a><a href="#/site/help">Segurança</a><a href="#/site/help">Termos e privacidade</a></div>
+      <small>Dados apresentados neste protótipo: simulados.</small>
+    </footer>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+<script src="design-tokens.js"></script>
+<script src="responsive-lab.js"></script>
+<script src="accessibility-lab.js"></script>
+<script src="motion-lab.js"></script>
+<script src="advanced-components.js"></script>
+<link rel="stylesheet" href="launch-fidelity.css">
+<script src="app.js"></script>
+<script src="launch-fidelity.js"></script>
+</body>
+</html>
