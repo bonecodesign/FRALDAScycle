@@ -330,3 +330,122 @@ input:hover,select:hover { border-color:#94a3b8; } input:focus,select:focus { ou
 .hero-art:has(.hero-approved-art) .art-badge {
   z-index: 2;
 }
+
+
+/* Primeiro corte vertical da Home aprovada. */
+.approved-home-hero h1 span {
+  color: var(--color-primary);
+}
+.approved-secondary-action {
+  border-color: var(--color-primary-dark);
+  background: var(--color-background);
+  color: var(--color-primary-dark);
+  box-shadow: none;
+}
+.approved-secondary-action:hover {
+  background: #e8f5ed;
+  color: var(--color-primary-dark);
+}
+.approved-floating-card {
+  position: absolute;
+  z-index: 3;
+  padding: 14px 18px;
+  border: 1px solid var(--fc-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-background) 94%, transparent);
+  color: var(--color-neutral);
+  box-shadow: var(--fc-shadow);
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+}
+.approved-floating-card strong {
+  display: block;
+  color: var(--color-primary-dark);
+  font-size: 20px;
+}
+.approved-floating-card-one {
+  top: 24px;
+  left: 24px;
+}
+.approved-floating-card-two {
+  top: 106px;
+  right: 24px;
+}
+.approved-how-it-works {
+  padding: 56px 0;
+}
+.approved-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.approved-section-head h2 {
+  margin: 8px 0 0;
+  font-size: 32px;
+  line-height: 1.2;
+}
+.approved-section-head > p,
+.approved-feature-grid p {
+  color: var(--color-neutral);
+}
+.approved-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.approved-feature-grid article {
+  padding: 22px;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-background);
+}
+.approved-feature-grid article > span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #e8f5ed;
+  color: var(--color-primary-dark);
+  font-size: 22px;
+}
+.approved-feature-grid h3 {
+  margin: 18px 0 8px;
+}
+.approved-feature-grid p {
+  margin: 0;
+}
+@media (max-width: 991px) {
+  .approved-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 575px) {
+  .approved-how-it-works {
+    padding: 40px 0;
+  }
+  .approved-section-head {
+    align-items: start;
+    flex-direction: column;
+  }
+  .approved-feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .approved-floating-card {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+  .approved-floating-card strong {
+    font-size: 16px;
+  }
+  .approved-floating-card-one {
+    top: 14px;
+    left: 14px;
+  }
+  .approved-floating-card-two {
+    top: 76px;
+    right: 14px;
+  }
+}
