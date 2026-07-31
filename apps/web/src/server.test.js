@@ -257,3 +257,33 @@ test("respects reduced motion across the interface and map", async () => {
     assert.match(map, /duration: reduceMotion \? 0 : 0\.65/);
   });
 });
+
+
+test("serves the approved visual foundation through the integrated architecture", async () => {
+  await withServer(async (baseUrl) => {
+    const tokensResponse = await fetch(`${baseUrl}/tokens.css`);
+    assert.equal(tokensResponse.status, 200);
+    assert.match(tokensResponse.headers.get("content-type"), /text\/css/);
+    const tokens = await tokensResponse.text();
+    assert.match(tokens, /--color-primary: #16a34a/);
+    assert.match(tokens, /--motion-standard: 250ms/);
+
+    const illustrationResponse = await fetch(
+      `${baseUrl}/assets/approved/family-circular.svg`,
+    );
+    assert.equal(illustrationResponse.status, 200);
+    assert.match(illustrationResponse.headers.get("content-type"), /image\/svg\+xml/);
+
+    const index = await (await fetch(baseUrl)).text();
+    assert.match(index, /class="hero-approved-art"/);
+    assert.match(index, /\/assets\/approved\/family-circular\.svg/);
+
+    const design = await (await fetch(`${baseUrl}/design.css`)).text();
+    assert.match(design, /@import url\("\/tokens\.css"\)/);
+    assert.match(design, /--fc-primary: var\(--color-primary\)/);
+
+    const worker = await (await fetch(`${baseUrl}/service-worker.js`)).text();
+    assert.match(worker, /"\/tokens\.css"/);
+    assert.match(worker, /"\/assets\/approved\/family-circular\.svg"/);
+  });
+});
