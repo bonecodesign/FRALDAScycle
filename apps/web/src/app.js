@@ -32,7 +32,7 @@ try {
   token = null;
 }
 
-const labels = { buy: "Compra", sell: "Venda", donate: "Doação" };
+const labels = { buy: "Compra", sell: "Venda", swap: "Troca", donate: "Doação" };
 let listingRequestId = 0;
 let myListingsRequestId = 0;
 
@@ -100,11 +100,12 @@ function updatePriceField() {
   const guidance = {
     sell: "Venda: informe um preço para seu pacote fechado.",
     buy: "Compra: descreva o tamanho e a quantidade que sua família procura.",
+    swap: "Troca: ofereça um pacote fechado e negocie outro tamanho pelo chat protegido.",
     donate: "Doação: publique um pacote fechado para apoiar outra família.",
   };
-  priceField.hidden = type === "donate";
+  priceField.hidden = type !== "sell";
   priceInput.required = type === "sell";
-  if (type === "donate") priceInput.value = "";
+  if (type !== "sell") priceInput.value = "";
   publishGuidance.textContent = guidance[type];
 }
 
