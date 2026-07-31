@@ -8,7 +8,7 @@ export const initialDemoListings = [
   ["demo-1", "sell", "Pampers Confort Sec", "M", 36, 5290, "Savassi"],
   ["demo-2", "sell", "Huggies Supreme Care", "G", 30, 4890, "Funcionários"],
   ["demo-3", "donate", "MamyPoko Dia & Noite", "M", 42, null, "Lourdes"],
-  ["demo-4", "sell", "Cremer Magic Care", "P", 34, 3990, "Santa Efigênia"],
+  ["demo-4", "swap", "Cremer Magic Care", "P", 34, null, "Santa Efigênia"],
   ["demo-5", "buy", "Pampers Pants", "XG", 28, null, "Floresta"],
   ["demo-6", "sell", "Huggies Tripla Proteção", "G", 40, 5190, "Buritis"],
   ["demo-7", "donate", "Personal Baby", "M", 32, null, "Sion"],
@@ -42,8 +42,8 @@ function isHttpUrl(value) {
 
 function validateDemoListing(listing) {
   const errors = [];
-  if (!["buy", "sell", "donate"].includes(listing?.type)) {
-    errors.push("type must be buy, sell, or donate");
+  if (!["buy", "sell", "swap", "donate"].includes(listing?.type)) {
+    errors.push("type must be buy, sell, swap, or donate");
   }
   if (listing?.sealed !== true) errors.push("listing must describe a sealed package");
   if (!isNonEmptyString(listing?.brand)) errors.push("brand is required");
