@@ -1,11 +1,13 @@
-const CACHE_NAME = "fraldacycle-demo-v4";
+const CACHE_NAME = "fraldacycle-demo-v5";
 const APP_SHELL = [
   "/",
   "/index.html",
+  "/tokens.css",
   "/design.css",
   "/styles.css",
   "/app.js",
   "/demo-api.js",
+  "/assets/approved/family-circular.svg",
   "/map.html",
   "/map.css",
   "/map.js",
