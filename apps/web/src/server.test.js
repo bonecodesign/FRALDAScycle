@@ -302,3 +302,18 @@ test("preserves the approved Home hierarchy and product language", async () => {
     assert.match(index, /Acompanhe a entrega ou combine a retirada\./);
   });
 });
+
+
+test("exposes swap consistently across the approved marketplace journey", async () => {
+  await withServer(async (baseUrl) => {
+    const index = await (await fetch(baseUrl)).text();
+    assert.match(index, /<option value="swap">Trocar<\/option>/);
+    assert.match(index, /<option value="swap">Troca<\/option>/);
+    assert.match(index, /data-filter-type="swap"/);
+
+    const app = await (await fetch(`${baseUrl}/app.js`)).text();
+    assert.match(app, /swap: "Troca"/);
+    assert.match(app, /Troca: ofereça um pacote fechado/);
+    assert.match(app, /priceField\.hidden = type !== "sell"/);
+  });
+});
