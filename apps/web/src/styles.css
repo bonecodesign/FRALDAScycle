@@ -311,3 +311,22 @@ input:hover,select:hover { border-color:#94a3b8; } input:focus,select:focus { ou
     min-height: 420px;
   }
 }
+
+
+/* Ativo aprovado migrado do protótipo-fonte. */
+.hero-approved-art {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-art:has(.hero-approved-art) .diaper-pack,
+.hero-art:has(.hero-approved-art) .art-spark {
+  display: none;
+}
+.hero-art:has(.hero-approved-art) .art-badge {
+  z-index: 2;
+}
