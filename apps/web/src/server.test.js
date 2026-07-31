@@ -287,3 +287,18 @@ test("serves the approved visual foundation through the integrated architecture"
     assert.match(worker, /"\/assets\/approved\/family-circular\.svg"/);
   });
 });
+
+
+test("preserves the approved Home hierarchy and product language", async () => {
+  await withServer(async (baseUrl) => {
+    const index = await (await fetch(baseUrl)).text();
+    assert.match(index, /Pequenas escolhas,/);
+    assert.match(index, /grandes mudanças\./);
+    assert.match(index, /Compre, troque ou doe fraldas fechadas/);
+    assert.match(index, /Uma jornada simples e segura/);
+    assert.match(index, /Busque por marca, tamanho, preço e distância\./);
+    assert.match(index, /Compre, troque ou doe pelo chat protegido\./);
+    assert.match(index, /Use Pix, cartão, boleto ou saldo FraldaCycle\./);
+    assert.match(index, /Acompanhe a entrega ou combine a retirada\./);
+  });
+});
