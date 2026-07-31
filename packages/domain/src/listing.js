@@ -1,6 +1,7 @@
 export const LISTING_TYPES = Object.freeze({
   BUY: "buy",
   SELL: "sell",
+  SWAP: "swap",
   DONATE: "donate",
 });
 
@@ -37,7 +38,7 @@ export function validateListing(listing) {
   }
 
   if (!Object.values(LISTING_TYPES).includes(listing.type)) {
-    errors.push("type must be buy, sell, or donate");
+    errors.push("type must be buy, sell, swap, or donate");
   }
 
   if (listing.sealed !== true) {
