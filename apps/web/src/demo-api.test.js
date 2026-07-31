@@ -190,3 +190,30 @@ test("restores the initial dataset without affecting other browser data", async 
   assert.equal(restored.listings.length, initialDemoListings.length);
   assert.equal(storage.getItem("unrelated.preference"), "preserved");
 });
+
+
+test("filters and publishes swap listings from the approved marketplace", async () => {
+  const user = { email: "familia@tester.fraldacycle.local" };
+  const { apiFetch } = createContext(user);
+
+  const initialSwaps = await (
+    await apiFetch("/demo-api/listings?type=swap")
+  ).json();
+  assert.equal(initialSwaps.listings.length, 1);
+  assert.ok(initialSwaps.listings.every((listing) => listing.type === "swap"));
+
+  const response = await apiFetch("/demo-api/listings", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "swap",
+      sealed: true,
+      brand: "Pacote para troca",
+      diaperSize: "G",
+      units: 30,
+      location: { city: "Belo Horizonte", state: "MG" },
+    }),
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).listing.type, "swap");
+});
