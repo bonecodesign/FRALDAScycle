@@ -68,3 +68,15 @@ test("exposes validation errors when creating an invalid listing", () => {
       error.errors.includes("units must be a positive integer"),
   );
 });
+
+
+test("accepts swap listings required by the approved marketplace", () => {
+  const listing = createListing({
+    ...validSellListing,
+    type: LISTING_TYPES.SWAP,
+    priceCents: undefined,
+  });
+
+  assert.equal(listing.type, "swap");
+  assert.equal(listing.priceCents, undefined);
+});
