@@ -26,7 +26,23 @@
       "publishStep",
       "publishBody",
       "appPublish",
-      "setupPublishValidation"
+      "setupPublishValidation",
+      "appChat",
+      "appSafety",
+      "appProposal",
+      "appProposalReceived",
+      "appNegotiationEvidence",
+      "appReservation",
+      "appReservationRules",
+      "appReservationCancel",
+      "appReservationCancelled",
+      "appReservationExpired",
+      "normalizeText",
+      "blockedChatContent",
+      "escapeHtml",
+      "setupProtectedChat",
+      "setupNegotiation",
+      "setupSafetyActions"
     ],
     "routes": [
       "#/app/splash",
@@ -45,7 +61,17 @@
       "#/app/publish-5",
       "#/app/publish-6",
       "#/app/publish-7",
-      "#/app/publish-8"
+      "#/app/publish-8",
+      "#/app/chat",
+      "#/app/safety",
+      "#/app/proposal",
+      "#/app/proposal-received",
+      "#/app/negotiation-evidence",
+      "#/app/reservation",
+      "#/app/reservation-rules",
+      "#/app/reservation-cancel",
+      "#/app/reservation-cancelled",
+      "#/app/reservation-expired"
     ]
   },
   "destination": {
@@ -68,12 +94,23 @@
       "/app/publish-5",
       "/app/publish-6",
       "/app/publish-7",
-      "/app/publish-8"
+      "/app/publish-8",
+      "/app/chat",
+      "/app/safety",
+      "/app/proposal",
+      "/app/proposal-received",
+      "/app/negotiation-evidence",
+      "/app/reservation",
+      "/app/reservation-rules",
+      "/app/reservation-cancel",
+      "/app/reservation-cancelled",
+      "/app/reservation-expired"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
       "platform/apps/app/favorites.js",
-      "platform/apps/app/publish.js"
+      "platform/apps/app/publish.js",
+      "platform/apps/app/negotiation.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
