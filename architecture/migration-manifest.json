@@ -95,13 +95,16 @@
         "chat",
         "proposal",
         "reservation",
-        "moderation"
-      ],
-      "next": [
+        "moderation",
         "payment",
         "wallet",
-        "refund",
-        "logistics"
+        "refund"
+      ],
+      "next": [
+        "logistics",
+        "profile",
+        "notifications",
+        "courier"
       ],
       "audit": {
         "approvedIdentityRoutes": 7,
@@ -112,7 +115,10 @@
         "missingMarketplaceRoutes": 0,
         "approvedNegotiationRoutes": 10,
         "migratedNegotiationRoutes": 10,
-        "missingNegotiationRoutes": 0
+        "missingNegotiationRoutes": 0,
+        "approvedFinanceRoutes": 6,
+        "migratedFinanceRoutes": 6,
+        "missingFinanceRoutes": 0
       }
     },
     {
