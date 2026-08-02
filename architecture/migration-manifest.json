@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "source": {
+    "branch": "main",
+    "immutable": true,
+    "entrypoint": "index.html",
+    "router": "app.js",
+    "regression": "qa-regression.mjs",
+    "checks": 56
+  },
+  "destination": {
+    "root": "platform",
+    "branch": "agent/integrated-architecture-foundation"
+  },
+  "surfaces": [
+    {
+      "id": "site",
+      "status": "pending",
+      "target": "platform/apps/site",
+      "areas": [
+        "home",
+        "search",
+        "map",
+        "detail",
+        "seller",
+        "favorites",
+        "publish",
+        "impact",
+        "help",
+        "auth"
+      ]
+    },
+    {
+      "id": "app",
+      "status": "pending",
+      "target": "platform/apps/app",
+      "areas": [
+        "auth",
+        "otp",
+        "marketplace",
+        "publish",
+        "chat",
+        "proposal",
+        "reservation",
+        "payment",
+        "wallet",
+        "refund",
+        "logistics",
+        "profile",
+        "notifications",
+        "moderation",
+        "courier",
+        "global-states"
+      ]
+    },
+    {
+      "id": "admin",
+      "status": "pending",
+      "target": "platform/apps/admin",
+      "areas": [
+        "dashboard",
+        "users",
+        "rbac",
+        "listings",
+        "operations",
+        "finance",
+        "logistics",
+        "security",
+        "audit",
+        "webhooks",
+        "reports",
+        "impact",
+        "infrastructure",
+        "partnerships",
+        "innovation",
+        "launch"
+      ]
+    }
+  ],
+  "qualityGates": [
+    "source-regression-56-of-56",
+    "visual-fidelity",
+    "responsive-mobile-tablet-desktop-wide",
+    "wcag-2.1-aa",
+    "domain-tests",
+    "api-contract-tests"
+  ]
+}
