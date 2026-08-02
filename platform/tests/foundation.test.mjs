@@ -65,3 +65,24 @@ test("uses approved source assets through an explicit read-only adapter", async 
   assert.deepEqual(provenance.modifiedSourceFiles, []);
   assert.equal(provenance.source.function, "siteHome");
 });
+
+
+test("transfers approved Site Search and Map as a dedicated route", async () => {
+  const html = await readFile(resolve(root, "apps/site/search.html"), "utf8");
+  const behavior = await readFile(resolve(root, "apps/site/search.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
+
+  assert.match(html, /data-source-route="#\/site\/search"/);
+  assert.match(html, /Encontre o que sua família precisa/);
+  assert.match(html, /128 resultados/);
+  assert.match(html, /Itens encontrados próximos a você/);
+  assert.match(html, /4 de 128 resultados visíveis · Simulado/);
+  assert.equal((html.match(/data-map-product=/g) ?? []).length, 4);
+  assert.equal((html.match(/class="product-card"/g) ?? []).length, 4);
+  assert.match(behavior, /querySelectorAll\("\[data-map-product\]"\)/);
+  assert.match(behavior, /toLocaleLowerCase\("pt-BR"\)/);
+  assert.match(server, /pathname === "\/site\/search"/);
+  assert.deepEqual(provenance.source.functions, ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"]);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
