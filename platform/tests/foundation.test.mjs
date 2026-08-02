@@ -152,12 +152,12 @@ test("transfers the approved publish impact and help experiences", async () => {
 test("closes the complete approved Site route inventory without changing source files", async () => {
   const routes = [
     ["login", /Acesse sua conta para continuar/],
-    ["component-states", /Estados dos componentes/],
+    ["component-states", /Estados completos dos componentes/],
     ["advanced-components", /Componentes avançados/],
-    ["design-tokens", /Design tokens/],
-    ["responsive-lab", /Responsividade/],
-    ["accessibility-lab", /Acessibilidade/],
-    ["motion-lab", /Motion/],
+    ["design-tokens", /Tokens e padrões visuais/],
+    ["responsive-lab", /Laboratório de breakpoints/],
+    ["accessibility-lab", /Auditoria WCAG 2\.1 AA/],
+    ["motion-lab", /Animações e microinterações/],
   ];
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
   const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
