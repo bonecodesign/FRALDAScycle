@@ -3,14 +3,19 @@
     "branch": "main",
     "commit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
     "file": "app.js",
-    "function": "siteHome",
-    "route": "#/site/home"
+    "functions": ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"],
+    "routes": ["#/site/home", "#/site/search"]
   },
   "destination": {
     "branch": "agent/integrated-architecture-foundation",
-    "file": "platform/apps/site/index.html",
-    "route": "/site/home"
+    "files": [
+      "platform/apps/site/index.html",
+      "platform/apps/site/home.js",
+      "platform/apps/site/search.html",
+      "platform/apps/site/search.js"
+    ],
+    "routes": ["/site/home", "/site/search"]
   },
-  "strategy": "markup rendered from source function; styles and assets served read-only through source adapter",
+  "strategy": "markup rendered from approved source functions; styles and assets served read-only through source adapter",
   "modifiedSourceFiles": []
 }
