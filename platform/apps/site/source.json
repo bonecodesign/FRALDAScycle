@@ -17,7 +17,20 @@
       "setupSitePublish",
       "siteImpact",
       "setupSiteImpact",
-      "siteHelp"
+      "siteHelp",
+      "siteLogin",
+      "siteComponentStates",
+      "setupComponentStates",
+      "siteAdvancedComponents",
+      "setupAdvancedComponents",
+      "siteDesignTokens",
+      "setupDesignTokens",
+      "siteResponsiveLab",
+      "setupResponsiveLab",
+      "siteAccessibilityLab",
+      "setupAccessibilityLab",
+      "siteMotionLab",
+      "setupMotionLab"
     ],
     "routes": [
       "#/site/home",
@@ -27,7 +40,22 @@
       "#/site/favorites",
       "#/site/publish",
       "#/site/impact",
-      "#/site/help"
+      "#/site/help",
+      "#/site/login",
+      "#/site/component-states",
+      "#/site/advanced-components",
+      "#/site/design-tokens",
+      "#/site/responsive-lab",
+      "#/site/accessibility-lab",
+      "#/site/motion-lab"
+    ],
+    "files": [
+      "app.js",
+      "advanced-components.js",
+      "design-tokens.js",
+      "responsive-lab.js",
+      "accessibility-lab.js",
+      "motion-lab.js"
     ]
   },
   "destination": {
@@ -48,7 +76,21 @@
       "platform/apps/site/impact.html",
       "platform/apps/site/impact.js",
       "platform/apps/site/help.html",
-      "platform/apps/site/help.js"
+      "platform/apps/site/help.js",
+      "platform/apps/site/login.html",
+      "platform/apps/site/login.js",
+      "platform/apps/site/component-states.html",
+      "platform/apps/site/component-states.js",
+      "platform/apps/site/advanced-components.html",
+      "platform/apps/site/advanced-components.js",
+      "platform/apps/site/design-tokens.html",
+      "platform/apps/site/design-tokens.js",
+      "platform/apps/site/responsive-lab.html",
+      "platform/apps/site/responsive-lab.js",
+      "platform/apps/site/accessibility-lab.html",
+      "platform/apps/site/accessibility-lab.js",
+      "platform/apps/site/motion-lab.html",
+      "platform/apps/site/motion-lab.js"
     ],
     "routes": [
       "/site/home",
@@ -58,7 +100,14 @@
       "/site/favorites",
       "/site/publish",
       "/site/impact",
-      "/site/help"
+      "/site/help",
+      "/site/login",
+      "/site/component-states",
+      "/site/advanced-components",
+      "/site/design-tokens",
+      "/site/responsive-lab",
+      "/site/accessibility-lab",
+      "/site/motion-lab"
     ]
   },
   "strategy": "markup rendered from approved source functions; styles and assets served read-only through source adapter",
