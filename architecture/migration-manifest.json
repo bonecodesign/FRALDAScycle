@@ -32,13 +32,16 @@
       "migrated": [
         "home",
         "search",
-        "map"
-      ],
-      "sourceCommit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
-      "next": [
+        "map",
         "detail",
         "seller",
         "favorites"
+      ],
+      "sourceCommit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
+      "next": [
+        "publish",
+        "impact",
+        "help"
       ]
     },
     {
