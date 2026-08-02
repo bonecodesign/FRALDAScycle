@@ -63,9 +63,10 @@
     },
     {
       "id": "app",
-      "status": "pending",
+      "status": "in_progress",
       "target": "platform/apps/app",
       "areas": [
+        "home",
         "auth",
         "otp",
         "marketplace",
@@ -82,7 +83,23 @@
         "moderation",
         "courier",
         "global-states"
-      ]
+      ],
+      "migrated": [
+        "auth",
+        "otp",
+        "home"
+      ],
+      "next": [
+        "marketplace",
+        "publish",
+        "chat",
+        "proposal"
+      ],
+      "audit": {
+        "approvedIdentityRoutes": 7,
+        "migratedIdentityRoutes": 7,
+        "missingIdentityRoutes": 0
+      }
     },
     {
       "id": "admin",
