@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/detail">
+<section class="section"><a class="button ghost" href="/site/search">← Voltar aos resultados</a><div class="auth-layout"><div class="product-image approved-product-stage product-detail-stage"><img class="approved-product product-detail-approved" src="/source/assets/approved/pampers-approved.png" alt="Embalagem Pampers Confort aprovada no acervo"></div><div class="auth-form"><span class="badge">Venda</span><h1>Pampers Confort<br>M · 50 unidades</h1><div class="price">R$ 45,00</div><p class="muted">Belo Horizonte, MG · 0,8 km</p><hr style="border:0;border-top:1px solid var(--border);margin:24px 0"><a class="activity-item seller-link" href="/site/seller" aria-label="Ver perfil público de Juliana Silva"><div class="avatar">JS</div><div><strong>Juliana Silva</strong><div class="muted">★ 4,9 · 36 avaliações · Perfil verificado</div></div><span>Ver perfil →</span></a><h3>Descrição</h3><p>Pacote fechado, validade 10/2026. Compra e entrega rápida ou retirada combinada.</p><div class="notice">Pagamento protegido até a confirmação do recebimento.</div><div class="hero-actions"><button class="button secondary" data-action="favorite">♡ Favoritar</button><a class="button primary" href="/app/chat">Iniciar conversa</a></div></div></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/detail.js"></script>
+</body>
+</html>
