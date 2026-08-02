@@ -16,7 +16,7 @@ test("keeps independent contracts for Site, App and Admin", () => {
 test("creates accessible shells without replacing the approved prototype", async () => {
   for (const surface of Object.keys(SURFACES)) {
     const html = await readFile(resolve(root, "apps", surface, "index.html"), "utf8");
-    assert.match(html, /<html lang="pt-BR"(?:\\s[^>]*)?>/);
+    assert.match(html, /<html lang="pt-BR"(?:\s[^>]*)?>/);
     assert.match(html, /<meta name="viewport"/);
     if (surface === "site") {
       assert.match(html, /data-source-route="#\/site\/home"/);
