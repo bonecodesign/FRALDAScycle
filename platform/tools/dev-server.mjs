@@ -28,7 +28,7 @@ const types = {
 function resolveRequest(pathname) {
   if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
   if (surface === "app" && (pathname === "/app/splash" || pathname === "/app")) return resolve(appRoot, "index.html");
-  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/home", "/app/search", "/app/favorites", "/app/chat", "/app/safety", "/app/proposal", "/app/proposal-received", "/app/negotiation-evidence", "/app/reservation", "/app/reservation-rules", "/app/reservation-cancel", "/app/reservation-cancelled", "/app/reservation-expired", "/app/payment", "/app/payment-success", "/app/wallet", "/app/wallet-cards", "/app/refund", "/app/dispute"].includes(pathname)) {
+  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/home", "/app/search", "/app/favorites", "/app/chat", "/app/safety", "/app/proposal", "/app/proposal-received", "/app/negotiation-evidence", "/app/reservation", "/app/reservation-rules", "/app/reservation-cancel", "/app/reservation-cancelled", "/app/reservation-expired", "/app/payment", "/app/payment-success", "/app/wallet", "/app/wallet-cards", "/app/refund", "/app/dispute", "/app/delivery-options", "/app/delivery", "/app/delivery-reschedule", "/app/delivery-proof", "/app/delivery-confirm", "/app/delivery-rate"].includes(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
   }
   if (surface === "app" && /^\/app\/publish-[1-8]$/.test(pathname)) {
