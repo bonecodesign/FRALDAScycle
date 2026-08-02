@@ -63,7 +63,7 @@ test("uses approved source assets through an explicit read-only adapter", async 
   assert.match(server, /approvedSourceFiles/);
   assert.match(server, /sourceAssetsRoot/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
-  assert.equal(provenance.source.function, "siteHome");
+  assert.ok(provenance.source.functions.includes("siteHome"));
 });
 
 
