@@ -216,6 +216,7 @@ test("transfers the complete approved App identity journey", async () => {
   assert.match(behavior, /Digite os seis números do código/);
   assert.match(behavior, /Novo código enviado com sucesso/);
   assert.match(behavior, /location\.pathname/);
-  assert.equal((await readFile(resolve(root, "apps/app/verify.html"), "utf8").match(/maxlength="1"/g) ?? []).length, 6);
+  const verifyHtml = await readFile(resolve(root, "apps/app/verify.html"), "utf8");
+  assert.equal((verifyHtml.match(/maxlength="1"/g) ?? []).length, 6);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
