@@ -28,6 +28,9 @@ const types = {
 function resolveRequest(pathname) {
   if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
   if (surface === "site" && pathname === "/site/search") return resolve(appRoot, "search.html");
+  if (surface === "site" && ["/site/detail", "/site/seller", "/site/favorites"].includes(pathname)) {
+    return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
+  }
 
   if (pathname.startsWith("/source/")) {
     const candidate = resolve(sourceRoot, pathname.slice("/source/".length));
