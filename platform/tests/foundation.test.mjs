@@ -220,3 +220,41 @@ test("transfers the complete approved App identity journey", async () => {
   assert.equal((verifyHtml.match(/maxlength="1"/g) ?? []).length, 6);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers App marketplace filters favorites and all eight publish steps", async () => {
+  const [search, searchBehavior, favorites, favoritesBehavior, publishBehavior, server] = await Promise.all([
+    readFile(resolve(root, "apps/app/search.html"), "utf8"),
+    readFile(resolve(root, "apps/app/search.js"), "utf8"),
+    readFile(resolve(root, "apps/app/favorites.html"), "utf8"),
+    readFile(resolve(root, "apps/app/favorites.js"), "utf8"),
+    readFile(resolve(root, "apps/app/publish.js"), "utf8"),
+    readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+  ]);
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  assert.match(search, /Buscar produtos/);
+  assert.match(search, /Tipo de negociação/);
+  assert.match(search, /Preço mínimo/);
+  assert.match(searchBehavior, /Buscando itens próximos/);
+  assert.match(searchBehavior, /toLocaleLowerCase\('pt-BR'\)/);
+  assert.match(favorites, /Itens salvos/);
+  assert.match(favorites, /Anúncios \(3\)/);
+  assert.match(favoritesBehavior, /Nenhum favorito salvo/);
+
+  for (let step = 1; step <= 8; step += 1) {
+    const route = `publish-${step}`;
+    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, new RegExp(`Etapa ${step} de 8`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  assert.match(publishBehavior, /Adicione pelo menos uma foto do produto/);
+  assert.match(publishBehavior, /Anúncio publicado com sucesso/);
+  assert.match(server, /\/app\\\/publish-\[1-8\]/);
+  for (const name of ["appSearch", "setupSearchStates", "appFavorites", "appPublish", "setupPublishValidation"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
