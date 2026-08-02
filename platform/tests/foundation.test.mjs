@@ -147,3 +147,41 @@ test("transfers the approved publish impact and help experiences", async () => {
   }
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("closes the complete approved Site route inventory without changing source files", async () => {
+  const routes = [
+    ["login", /Acesse sua conta para continuar/],
+    ["component-states", /Estados dos componentes/],
+    ["advanced-components", /Componentes avançados/],
+    ["design-tokens", /Design tokens/],
+    ["responsive-lab", /Responsividade/],
+    ["accessibility-lab", /Acessibilidade/],
+    ["motion-lab", /Motion/],
+  ];
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const [html, behavior] = await Promise.all([
+      readFile(resolve(root, `apps/site/${route}.html`), "utf8"),
+      readFile(resolve(root, `apps/site/${route}.js`), "utf8"),
+    ]);
+    assert.match(html, new RegExp(`data-source-route="#/site/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.match(behavior, /import "\/apps\/site\/home\.js"/);
+    assert.ok(server.includes(`"/site/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/site/${route}`));
+  }
+
+  assert.deepEqual(provenance.source.files, [
+    "app.js",
+    "advanced-components.js",
+    "design-tokens.js",
+    "responsive-lab.js",
+    "accessibility-lab.js",
+    "motion-lab.js",
+  ]);
+  assert.match(await readFile(resolve(root, "apps/site/login.js"), "utf8"), /Informações validadas com sucesso/);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
