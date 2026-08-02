@@ -79,6 +79,7 @@
         "refund",
         "logistics",
         "profile",
+        "favorites",
         "notifications",
         "moderation",
         "courier",
@@ -87,18 +88,24 @@
       "migrated": [
         "auth",
         "otp",
-        "home"
+        "home",
+        "marketplace",
+        "favorites",
+        "publish"
       ],
       "next": [
-        "marketplace",
-        "publish",
         "chat",
-        "proposal"
+        "proposal",
+        "reservation",
+        "payment"
       ],
       "audit": {
         "approvedIdentityRoutes": 7,
         "migratedIdentityRoutes": 7,
-        "missingIdentityRoutes": 0
+        "missingIdentityRoutes": 0,
+        "approvedMarketplaceRoutes": 10,
+        "migratedMarketplaceRoutes": 10,
+        "missingMarketplaceRoutes": 0
       }
     },
     {
