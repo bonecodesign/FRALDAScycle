@@ -28,7 +28,10 @@ const types = {
 function resolveRequest(pathname) {
   if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
   if (surface === "app" && (pathname === "/app/splash" || pathname === "/app")) return resolve(appRoot, "index.html");
-  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/home"].includes(pathname)) {
+  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/home", "/app/search", "/app/favorites"].includes(pathname)) {
+    return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
+  }
+  if (surface === "app" && /^\/app\/publish-[1-8]$/.test(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
   }
   if (surface === "site" && pathname === "/site/search") return resolve(appRoot, "search.html");
