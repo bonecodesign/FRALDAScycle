@@ -1,0 +1,45 @@
+{
+  "source": {
+    "branch": "main",
+    "commit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
+    "files": ["app.js"],
+    "functions": [
+      "authPhone",
+      "appSplash",
+      "appOnboarding",
+      "appLogin",
+      "appRegister",
+      "appRecovery",
+      "appVerify",
+      "appShell",
+      "phoneNav",
+      "phoneProducts",
+      "appHome",
+      "setupAuthValidation"
+    ],
+    "routes": [
+      "#/app/splash",
+      "#/app/onboarding",
+      "#/app/login",
+      "#/app/register",
+      "#/app/recovery",
+      "#/app/verify",
+      "#/app/home"
+    ]
+  },
+  "destination": {
+    "branch": "agent/integrated-architecture-foundation",
+    "root": "platform/apps/app",
+    "routes": [
+      "/app/splash",
+      "/app/onboarding",
+      "/app/login",
+      "/app/register",
+      "/app/recovery",
+      "/app/verify",
+      "/app/home"
+    ]
+  },
+  "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
+  "modifiedSourceFiles": []
+}
