@@ -1,0 +1,21 @@
+@import url("./tokens.css");
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fc-color-surface);
+  color: var(--fc-color-text);
+  font-family: var(--fc-font-interface);
+}
+main {
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+  padding: var(--fc-space-8) 0;
+}
+h1 { font-family: var(--fc-font-display); }
+.surface-status {
+  padding: var(--fc-space-4);
+  border: 1px solid #dce5e0;
+  border-radius: var(--fc-radius-xl);
+  background: var(--fc-color-background);
+}
