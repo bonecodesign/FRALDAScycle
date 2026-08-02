@@ -29,7 +29,7 @@ jobs:
           node --check packages/contracts/routes.js
           node --check tools/dev-server.mjs
           node --check tests/foundation.test.mjs
-          for file in apps/site/*.js; do node --check "$file"; done
+          for file in apps/*/*.js; do node --check "$file"; done
       - name: Run platform tests
         run: npm test
       - name: Protect approved prototype
