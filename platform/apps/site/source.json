@@ -1,0 +1,16 @@
+{
+  "source": {
+    "branch": "main",
+    "commit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
+    "file": "app.js",
+    "function": "siteHome",
+    "route": "#/site/home"
+  },
+  "destination": {
+    "branch": "agent/integrated-architecture-foundation",
+    "file": "platform/apps/site/index.html",
+    "route": "/site/home"
+  },
+  "strategy": "markup rendered from source function; styles and assets served read-only through source adapter",
+  "modifiedSourceFiles": []
+}
