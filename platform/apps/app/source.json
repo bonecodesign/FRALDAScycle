@@ -2,7 +2,9 @@
   "source": {
     "branch": "main",
     "commit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
-    "files": ["app.js"],
+    "files": [
+      "app.js"
+    ],
     "functions": [
       "authPhone",
       "appSplash",
@@ -15,7 +17,16 @@
       "phoneNav",
       "phoneProducts",
       "appHome",
-      "setupAuthValidation"
+      "setupAuthValidation",
+      "appSearch",
+      "searchResultsMarkup",
+      "setupSearchStates",
+      "setupMap",
+      "appFavorites",
+      "publishStep",
+      "publishBody",
+      "appPublish",
+      "setupPublishValidation"
     ],
     "routes": [
       "#/app/splash",
@@ -24,7 +35,17 @@
       "#/app/register",
       "#/app/recovery",
       "#/app/verify",
-      "#/app/home"
+      "#/app/home",
+      "#/app/search",
+      "#/app/favorites",
+      "#/app/publish-1",
+      "#/app/publish-2",
+      "#/app/publish-3",
+      "#/app/publish-4",
+      "#/app/publish-5",
+      "#/app/publish-6",
+      "#/app/publish-7",
+      "#/app/publish-8"
     ]
   },
   "destination": {
@@ -37,7 +58,22 @@
       "/app/register",
       "/app/recovery",
       "/app/verify",
-      "/app/home"
+      "/app/home",
+      "/app/search",
+      "/app/favorites",
+      "/app/publish-1",
+      "/app/publish-2",
+      "/app/publish-3",
+      "/app/publish-4",
+      "/app/publish-5",
+      "/app/publish-6",
+      "/app/publish-7",
+      "/app/publish-8"
+    ],
+    "behaviorFiles": [
+      "platform/apps/app/search.js",
+      "platform/apps/app/favorites.js",
+      "platform/apps/app/publish.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
