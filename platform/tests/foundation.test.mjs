@@ -332,3 +332,37 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   }
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers the complete approved App logistics journey", async () => {
+  const routes = [
+    ["delivery-options", /Como deseja receber\?/],
+    ["delivery", /Acompanhar entrega/],
+    ["delivery-reschedule", /Reagendar entrega/],
+    ["delivery-proof", /Prova de entrega/],
+    ["delivery-confirm", /Você recebeu o produto\?/],
+    ["delivery-rate", /Avaliar experiência/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/logistics.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/app/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  assert.match(behavior, /delivery-refresh/);
+  assert.match(behavior, /reschedule-submit/);
+  assert.match(behavior, /delivery-problem-submit/);
+  assert.match(behavior, /Avaliação enviada com sucesso/);
+  const options = await readFile(resolve(root, "apps/app/delivery-options.html"), "utf8");
+  assert.equal((options.match(/name="delivery-option"/g) ?? []).length, 4);
+  for (const name of ["appDeliveryOptions", "appDelivery", "appDeliveryProof", "appDeliveryRate", "setupDeliveryTracking"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
