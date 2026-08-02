@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/publish">
+<section class="section site-publish-flow"><div class="section-head"><div><span class="eyebrow">Publicar anúncio</span><h1 id="site-publish-title">Novo anúncio</h1><p id="site-publish-subtitle">Etapa 1 de 8 · Tipo de negociação</p></div><span class="badge" id="site-publish-draft">Rascunho salvo</span></div><div class="publish-progress" aria-label="Progresso da publicação"><button type="button" class="active" data-site-publish-step="1"><span>1</span><small>Tipo</small></button><button type="button" class="" data-site-publish-step="2"><span>2</span><small>Produto</small></button><button type="button" class="" data-site-publish-step="3"><span>3</span><small>Fotos</small></button><button type="button" class="" data-site-publish-step="4"><span>4</span><small>Condição</small></button><button type="button" class="" data-site-publish-step="5"><span>5</span><small>Preço</small></button><button type="button" class="" data-site-publish-step="6"><span>6</span><small>Entrega</small></button><button type="button" class="" data-site-publish-step="7"><span>7</span><small>Localização</small></button><button type="button" class="" data-site-publish-step="8"><span>8</span><small>Revisão</small></button></div><div class="site-publish-layout"><aside class="panel publish-guidance"><span class="eyebrow">Publicação segura</span><h2>Publique de forma clara e confiável</h2><p>Preencha cada etapa. Seu rascunho fica salvo durante toda a jornada.</p><div class="notice">Fotos nítidas, informações verdadeiras e localização aproximada aumentam a confiança.</div><ol><li>Tipo</li><li>Produto</li><li>Fotos</li><li>Condição</li><li>Preço</li><li>Entrega</li><li>Localização</li><li>Revisão</li></ol></aside><section class="panel" id="site-publish-content" data-step="1" aria-live="polite"></section></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/publish.js"></script>
+</body>
+</html>
