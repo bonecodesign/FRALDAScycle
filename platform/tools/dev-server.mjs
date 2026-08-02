@@ -28,7 +28,7 @@ const types = {
 function resolveRequest(pathname) {
   if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
   if (surface === "site" && pathname === "/site/search") return resolve(appRoot, "search.html");
-  if (surface === "site" && ["/site/detail", "/site/seller", "/site/favorites"].includes(pathname)) {
+  if (surface === "site" && ["/site/detail", "/site/seller", "/site/favorites", "/site/publish", "/site/impact", "/site/help"].includes(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
   }
 
