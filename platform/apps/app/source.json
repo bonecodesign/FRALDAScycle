@@ -42,7 +42,17 @@
       "escapeHtml",
       "setupProtectedChat",
       "setupNegotiation",
-      "setupSafetyActions"
+      "setupSafetyActions",
+      "appPayment",
+      "appPaymentSuccess",
+      "appWallet",
+      "appWalletCards",
+      "appRefund",
+      "appDispute",
+      "setupPaymentFlow",
+      "setupWallet",
+      "setupWalletLogisticsExtras",
+      "setupRefundState"
     ],
     "routes": [
       "#/app/splash",
@@ -71,7 +81,13 @@
       "#/app/reservation-rules",
       "#/app/reservation-cancel",
       "#/app/reservation-cancelled",
-      "#/app/reservation-expired"
+      "#/app/reservation-expired",
+      "#/app/payment",
+      "#/app/payment-success",
+      "#/app/wallet",
+      "#/app/wallet-cards",
+      "#/app/refund",
+      "#/app/dispute"
     ]
   },
   "destination": {
@@ -104,13 +120,20 @@
       "/app/reservation-rules",
       "/app/reservation-cancel",
       "/app/reservation-cancelled",
-      "/app/reservation-expired"
+      "/app/reservation-expired",
+      "/app/payment",
+      "/app/payment-success",
+      "/app/wallet",
+      "/app/wallet-cards",
+      "/app/refund",
+      "/app/dispute"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
       "platform/apps/app/favorites.js",
       "platform/apps/app/publish.js",
-      "platform/apps/app/negotiation.js"
+      "platform/apps/app/negotiation.js",
+      "platform/apps/app/finance.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
