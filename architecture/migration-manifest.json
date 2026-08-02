@@ -15,7 +15,7 @@
   "surfaces": [
     {
       "id": "site",
-      "status": "pending",
+      "status": "in_progress",
       "target": "platform/apps/site",
       "areas": [
         "home",
@@ -28,6 +28,14 @@
         "impact",
         "help",
         "auth"
+      ],
+      "migrated": [
+        "home"
+      ],
+      "sourceCommit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
+      "next": [
+        "search",
+        "map"
       ]
     },
     {
@@ -84,5 +92,6 @@
     "wcag-2.1-aa",
     "domain-tests",
     "api-contract-tests"
-  ]
+  ],
+  "lastUpdated": "2026-08-02"
 }
