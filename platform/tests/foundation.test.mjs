@@ -31,3 +31,32 @@ test("uses the exact approved foundation tokens", async () => {
   assert.match(css, /--fc-color-support: #7c3aed/);
   assert.match(css, /--fc-motion-standard: 250ms/);
 });
+
+
+test("transfers the approved Site Home without changing its product language", async () => {
+  const html = await readFile(resolve(root, "apps/site/index.html"), "utf8");
+  assert.match(html, /data-source-route="#\/site\/home"/);
+  assert.match(html, /Pequenas escolhas,/);
+  assert.match(html, /grandes mudanças\./);
+  assert.match(html, /Compre, troque ou doe fraldas fechadas/);
+  assert.match(html, /Uma jornada simples e segura/);
+  assert.match(html, /Anúncios em destaque/);
+  assert.match(html, /5\.080 kg/);
+  assert.match(html, /Dados apresentados nesta experiência: simulados/);
+});
+
+test("uses approved source assets through an explicit read-only adapter", async () => {
+  const html = await readFile(resolve(root, "apps/site/index.html"), "utf8");
+  const adapter = await readFile(resolve(root, "packages/ui/source-adapter.css"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
+
+  assert.match(html, /\/source\/assets\/approved\/logo-approved\.png/);
+  assert.match(html, /\/source\/assets\/approved\/pampers-approved\.png/);
+  assert.match(adapter, /@import url\("\/source\/styles\.css"\)/);
+  assert.match(adapter, /@import url\("\/source\/fidelity\.css"\)/);
+  assert.match(server, /approvedSourceFiles/);
+  assert.match(server, /sourceAssetsRoot/);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.equal(provenance.source.function, "siteHome");
+});
