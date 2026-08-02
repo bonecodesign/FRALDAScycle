@@ -18,8 +18,13 @@ test("creates accessible shells without replacing the approved prototype", async
     const html = await readFile(resolve(root, "apps", surface, "index.html"), "utf8");
     assert.match(html, /<html lang="pt-BR">/);
     assert.match(html, /<meta name="viewport"/);
-    assert.match(html, /<main data-surface="/);
-    assert.match(html, /protótipo preservado na raiz/i);
+    if (surface === "site") {
+      assert.match(html, /data-source-route="#\/site\/home"/);
+      assert.match(html, /Pequenas escolhas,/);
+    } else {
+      assert.match(html, /<main data-surface="/);
+      assert.match(html, /protótipo preservado na raiz/i);
+    }
   }
 });
 
