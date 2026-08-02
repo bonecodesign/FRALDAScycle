@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/responsive-lab">
+<section class="section responsive-lab-page"><span class="eyebrow">Fralda Design Language · Responsividade</span><div class="section-head"><div><h1>Laboratório de breakpoints</h1><p>Validação navegável dos quatro tamanhos oficiais do acervo.</p></div><a class="button secondary" href="/site/design-tokens">Ver tokens</a></div><section class="panel"><div class="responsive-controls"><button data-responsive-preset="mobile" aria-pressed="false"><span class="device mobile-device"></span><b>Mobile</b><small>390px · 4 col. · gutter 16</small></button><button data-responsive-preset="tablet" aria-pressed="false"><span class="device tablet-device"></span><b>Tablet</b><small>768px · 8 col. · gutter 24</small></button><button data-responsive-preset="desktop" aria-pressed="true"><span class="device desktop-device"></span><b>Desktop</b><small>1024px · 12 col. · gutter 24</small></button><button data-responsive-preset="wide" aria-pressed="false"><span class="device wide-device"></span><b>Wide</b><small>1440px · 12 col. · gutter 32</small></button></div><div class="responsive-status" role="status"><strong id="responsive-name">Desktop · 1024 px</strong><span id="responsive-spec">12 colunas · gutter 24 px</span></div><div class="responsive-stage"><div id="responsive-viewport" class="responsive-viewport is-desktop" style="--preview-width:1024px;--preview-columns:12;--preview-gutter:24px"><div class="responsive-demo"><header><b>FraldaCycle</b><nav><span>Início</span><span>Buscar</span><span>Publicar</span><span>Favoritos</span><span>Perfil</span></nav></header><div class="responsive-demo-body"><aside><strong>Filtros</strong><span>Tipo de anúncio</span><span>Distância</span><span>Marca</span><span>Tamanho</span></aside><main><div class="responsive-search">Buscar fraldas, marcas e tamanhos…</div><div class="responsive-results"><article><i></i><b>Pampers Confort</b><small>R$ 45,00 · 0,8 km</small></article><article><i></i><b>Huggies Supreme</b><small>R$ 40,00 · 1,2 km</small></article><article><i></i><b>Babysec Ultra</b><small>R$ 38,00 · 1,6 km</small></article></div><div class="responsive-map"><b>Mapa dos resultados</b><span>●</span><span>●</span><span>●</span></div></main></div><footer><span>Início</span><span>Buscar</span><b>＋</b><span>Chat</span><span>Perfil</span></footer></div></div></div></section><section class="panel responsive-rules"><h2>Comportamento validado</h2><div><article><b>Mobile</b><p>Navegação inferior fixa, filtros empilhados, uma coluna e ações com toque mínimo de 48 px.</p></article><article><b>Tablet</b><p>Oito colunas, cards em duas colunas e filtros em painel compacto.</p></article><article><b>Desktop</b><p>Doze colunas, filtros laterais, três cards e mapa após os resultados.</p></article><article><b>Wide</b><p>Container centralizado, doze colunas, respiro ampliado e densidade controlada.</p></article></div></section><div class="principles-strip"><span>Mobile-first</span><span>Conteúdo fluido</span><span>Toque 48×48</span><span>Sem perda de conteúdo</span><span>Mapa responsivo</span></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/responsive-lab.js"></script>
+</body>
+</html>
