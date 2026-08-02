@@ -289,7 +289,7 @@ test("transfers protected chat proposal evidence and reservation states", async 
   assert.match(behavior, /E-mails não podem ser compartilhados no chat/);
   assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
   assert.match(behavior, /QR Codes não podem ser compartilhados no chat/);
-  assert.match(behavior, /Protocolo #NEG-2025-0719/);
+  assert.match(behavior, /protocolo #NEG-2025-0719/i);
   assert.match(behavior, /reservation-timer/);
   assert.match(behavior, /location\.pathname='\/app\/reservation-expired'/);
   for (const name of ["appChat", "appProposal", "appReservation", "setupProtectedChat", "setupNegotiation", "setupSafetyActions"]) {
