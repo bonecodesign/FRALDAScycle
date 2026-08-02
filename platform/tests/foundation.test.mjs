@@ -116,3 +116,34 @@ test("transfers detail seller and favorites while documenting missing destinatio
   assert.equal(provenance.architectureAdditions[0].name, "productCard");
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers the approved publish impact and help experiences", async () => {
+  const [publish, publishBehavior, impact, impactBehavior, help, server] = await Promise.all([
+    readFile(resolve(root, "apps/site/publish.html"), "utf8"),
+    readFile(resolve(root, "apps/site/publish.js"), "utf8"),
+    readFile(resolve(root, "apps/site/impact.html"), "utf8"),
+    readFile(resolve(root, "apps/site/impact.js"), "utf8"),
+    readFile(resolve(root, "apps/site/help.html"), "utf8"),
+    readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+  ]);
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
+
+  assert.match(publish, /Etapa 1 de 8 · Tipo de negociação/);
+  assert.equal((publish.match(/data-site-publish-step=/g) ?? []).length, 8);
+  assert.match(publishBehavior, /Adicione pelo menos uma foto para continuar/);
+  assert.match(publishBehavior, /Anúncio publicado com sucesso/);
+  assert.match(publishBehavior, /\/source\/assets\/approved\/pampers-approved\.png/);
+  assert.match(impact, /Resultados que transformam territórios/);
+  assert.equal((impact.match(/data-impact-value=/g) ?? []).length, 6);
+  assert.equal((impact.match(/data-impact-place=/g) ?? []).length, 4);
+  assert.match(impactBehavior, /Metodologia, fontes e governança/);
+  assert.match(impactBehavior, /toLocaleString\('pt-BR'\)/);
+  assert.match(help, /Como podemos ajudar\?/);
+  assert.match(help, /Compra protegida/);
+  assert.match(server, /"\/site\/publish", "\/site\/impact", "\/site\/help"/);
+  for (const name of ["sitePublish", "setupSitePublish", "siteImpact", "setupSiteImpact", "siteHelp"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
