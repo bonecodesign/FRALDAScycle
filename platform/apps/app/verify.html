@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — aplicativo de economia circular">
+  <title>FraldaCycle — App · verify</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <main id="main" tabindex="-1" data-surface="app" data-source-route="#/app/verify">
+<section class="app-stage auth-stage"><nav class="app-menu" aria-label="Fluxo de autenticação"><a href="/app/splash">1 · Splash</a><a href="/app/onboarding">2 · Onboarding</a><a href="/app/login">3 · Login</a><a href="/app/register">4 · Cadastro</a><a href="/app/recovery">5 · Recuperação</a><a href="/app/verify">6 · Verificação</a><a href="/app/home">7 · Home</a></nav><div class="phone auth-phone"><div class="phone-top">9:41</div><form class="mobile-auth" id="verify-form"><a class="back-link" href="/app/login">←</a><span class="eyebrow">Proteção da conta</span><h1>Verificação</h1><p>Enviamos um código para<br><strong>(31) 99900-0000</strong></p><label>Digite o código de 6 dígitos</label><div class="otp"><input value="1" maxlength="1" inputmode="numeric" aria-label="Dígito 1"><input value="2" maxlength="1" inputmode="numeric" aria-label="Dígito 2"><input value="3" maxlength="1" inputmode="numeric" aria-label="Dígito 3"><input value="4" maxlength="1" inputmode="numeric" aria-label="Dígito 4"><input value="5" maxlength="1" inputmode="numeric" aria-label="Dígito 5"><input value="6" maxlength="1" inputmode="numeric" aria-label="Dígito 6"></div><small class="field-error" role="alert"></small><p class="muted otp-time">Reenviar código em 00:28</p><button class="button primary block" type="submit">Verificar</button><button class="button ghost block" type="button" id="resend-code">Não recebeu o código?</button></form></div><aside class="context-panel"><span class="eyebrow">Autenticação e identidade</span><h2>Verificação por código</h2><p class="muted">Fluxo aprovado: entrada clara, acolhedora e segura, com recuperação e validação de identidade.</p><div class="auth-progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></aside></section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/app/auth.js"></script>
+</body>
+</html>
