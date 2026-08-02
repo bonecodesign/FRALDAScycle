@@ -21,6 +21,9 @@ test("creates accessible shells without replacing the approved prototype", async
     if (surface === "site") {
       assert.match(html, /data-source-route="#\/site\/home"/);
       assert.match(html, /Pequenas escolhas,/);
+    } else if (surface === "app") {
+      assert.match(html, /data-source-route="#\/app\/splash"/);
+      assert.match(html, /Economia circular para famílias e para o planeta/);
     } else {
       assert.match(html, /<main data-surface="/);
       assert.match(html, /protótipo preservado na raiz/i);
@@ -183,5 +186,36 @@ test("closes the complete approved Site route inventory without changing source 
     "motion-lab.js",
   ]);
   assert.match(await readFile(resolve(root, "apps/site/login.js"), "utf8"), /Informações validadas com sucesso/);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
+
+
+test("transfers the complete approved App identity journey", async () => {
+  const routes = [
+    ["index", "splash", /Economia circular para famílias e para o planeta/],
+    ["onboarding", "onboarding", /Pequenas escolhas,<br>grandes mudanças/],
+    ["login", "login", /Bem-vindo\(a\)! 👋/],
+    ["register", "register", /Criar sua conta/],
+    ["recovery", "recovery", /Recuperar senha/],
+    ["verify", "verify", /Digite o código de 6 dígitos/],
+    ["home", "home", /Que bom ter você por aqui/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/auth.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const [file, route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/app/${file}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/app/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  assert.match(behavior, /contactValid/);
+  assert.match(behavior, /Digite os seis números do código/);
+  assert.match(behavior, /Novo código enviado com sucesso/);
+  assert.match(behavior, /location\.pathname/);
+  assert.equal((await readFile(resolve(root, "apps/app/verify.html"), "utf8").match(/maxlength="1"/g) ?? []).length, 6);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
