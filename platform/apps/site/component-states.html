@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/component-states">
+<section class="section component-states-page"><span class="eyebrow">Fralda Design Language · Estados</span><div class="section-head"><div><h1>Estados completos dos componentes</h1><p>Referência funcional para web e aplicativo, preservando os padrões aprovados no acervo.</p></div><a class="button secondary" href="/site/help">Voltar à ajuda</a></div><nav class="state-group-tabs" aria-label="Grupos de componentes"><button class="active" data-state-group="buttons">Botões</button><button data-state-group="inputs">Inputs</button><button data-state-group="cards">Cards</button><button data-state-group="feedback">Feedback</button></nav><div class="state-matrix" data-state-panel="buttons"><article><small>Padrão</small><button class="button primary">Comprar</button></article><article class="demo-hover"><small>Hover</small><button class="button primary">Comprar</button></article><article class="demo-pressed"><small>Pressionado</small><button class="button primary">Comprar</button></article><article><small>Foco</small><button class="button primary demo-focus">Comprar</button></article><article><small>Carregando</small><button class="button primary" disabled><i class="state-spinner"></i> Carregando</button></article><article><small>Desabilitado</small><button class="button primary" disabled>Indisponível</button></article></div><div class="state-matrix" data-state-panel="inputs" hidden><article><small>Padrão</small><input class="input" placeholder="Digite seu nome"></article><article><small>Preenchido</small><input class="input" value="Maria Silva"></article><article><small>Foco</small><input class="input demo-focus" value="Contato"></article><article><small>Sucesso</small><label class="state-field success"><input class="input" value="contato@exemplo.com"><span>✓ Campo válido</span></label></article><article><small>Erro</small><label class="state-field error"><input class="input" value="contato"><span>E-mail inválido</span></label></article><article><small>Desabilitado</small><input class="input" value="Não disponível" disabled></article></div><div class="state-matrix" data-state-panel="cards" hidden><article class="state-card"><small>Padrão</small><strong>Pampers Confort</strong><span>M · 50 unidades</span><b>R$ 45,00</b></article><article class="state-card demo-hover"><small>Hover</small><strong>Huggies Supreme</strong><span>G · 40 unidades</span><b>R$ 40,00</b></article><article class="state-card demo-pressed"><small>Selecionado</small><strong>Babysec Premium</strong><span>P · 60 unidades</span><b>R$ 50,00</b></article><article class="state-card loading-card"><small>Carregando</small><i></i><i></i><i></i></article><article class="state-card empty-card"><small>Vazio</small><strong>Nenhum item</strong><span>Altere os filtros da busca.</span></article><article class="state-card error-card"><small>Erro</small><strong>Falha ao carregar</strong><span>Tente novamente.</span></article></div><div class="state-matrix" data-state-panel="feedback" hidden><article class="feedback-sample success"><small>Sucesso</small><strong>✓ Anúncio publicado</strong><span>Sua ação foi concluída.</span></article><article class="feedback-sample info"><small>Informação</small><strong>ⓘ Processando</strong><span>Aguarde um momento.</span></article><article class="feedback-sample warning"><small>Atenção</small><strong>△ Revise os dados</strong><span>Há informações pendentes.</span></article><article class="feedback-sample error"><small>Erro</small><strong>× Não foi possível</strong><span>Tente novamente.</span></article></div><section class="panel state-live-panel"><div class="section-head"><div><h2>Demonstração navegável</h2><p>Alterne o retorno do sistema para validar hierarquia, texto e ação.</p></div></div><div class="state-preview-controls"><button class="button secondary active" data-preview-state="loading">Loading</button><button class="button secondary" data-preview-state="success">Sucesso</button><button class="button secondary" data-preview-state="error">Erro</button><button class="button secondary" data-preview-state="empty">Vazio</button></div><div class="ui-state loading-state" id="component-state-preview"><div class="state-spinner large"></div><h2>Carregando informações</h2><p>Aguarde enquanto preparamos o conteúdo.</p></div></section><div class="principles-strip"><span>Contraste AA</span><span>Foco visível</span><span>Toque mínimo 48×48</span><span>Leitor de tela</span><span>Textos escaláveis</span></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/component-states.js"></script>
+</body>
+</html>
