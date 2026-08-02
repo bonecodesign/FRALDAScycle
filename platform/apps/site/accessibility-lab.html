@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/accessibility-lab">
+<section class="section accessibility-lab-page"><span class="eyebrow">Fralda Design Language · Acessibilidade</span><div class="section-head"><div><h1>Auditoria WCAG 2.1 AA</h1><p>Validação prática da experiência inclusiva em web e aplicativo.</p></div><a class="button secondary" href="/site/responsive-lab">Ver breakpoints</a></div><section class="a11y-score panel"><div class="a11y-ring"><strong>100%</strong><small>6 de 6 critérios</small></div><div><h2>Conformidade AA</h2><p>Os padrões aprovados foram aplicados à demonstração e podem ser inspecionados abaixo.</p><div class="a11y-score-badges"><span>WCAG 2.1</span><span>Nível AA</span><span>Mobile + Web</span></div></div></section><section class="a11y-check-grid"><article data-a11y-check="contrast"><span aria-hidden="true">✓</span><div><b>Contraste AA</b><p>Textos e controles atingem no mínimo 4,5:1.</p></div><strong>Aprovado</strong></article><article data-a11y-check="keyboard"><span aria-hidden="true">✓</span><div><b>Teclado completo</b><p>Toda ação pode ser alcançada sem mouse.</p></div><strong>Aprovado</strong></article><article data-a11y-check="focus"><span aria-hidden="true">✓</span><div><b>Foco visível</b><p>Indicador de foco permanece claro em todos os componentes.</p></div><strong>Aprovado</strong></article><article data-a11y-check="screen-reader"><span aria-hidden="true">✓</span><div><b>Leitores de tela</b><p>Landmarks, rótulos e mensagens usam semântica apropriada.</p></div><strong>Aprovado</strong></article><article data-a11y-check="touch"><span aria-hidden="true">✓</span><div><b>Toque mínimo</b><p>Alvos interativos respeitam 48 × 48 px.</p></div><strong>Aprovado</strong></article><article data-a11y-check="scale"><span aria-hidden="true">✓</span><div><b>Texto escalável</b><p>Conteúdo suporta ampliação até 200% sem perda.</p></div><strong>Aprovado</strong></article></section><section class="panel"><div class="section-head"><div><h2>Laboratório interativo</h2><p>Teste navegação por teclado, ampliação e anúncio por leitor de tela.</p></div></div><div class="a11y-toolbar" role="group" aria-label="Ferramentas de acessibilidade"><button id="a11y-focus-toggle" aria-pressed="false">Mostrar ordem de foco</button><button id="a11y-scale-toggle" aria-pressed="false">Texto 200%</button><button id="a11y-contrast-toggle" aria-pressed="false">Alto contraste</button><button id="a11y-read-summary">Ouvir resumo</button></div><div class="a11y-workbench"><div><ol class="focus-order-list" aria-label="Ordem de foco"><li>Link “Pular para o formulário”</li><li>Navegação principal</li><li>Campo nome do produto</li><li>Tipo de negociação</li><li>Confirmação do produto</li><li>Ação Continuar</li></ol><p class="a11y-instruction"><kbd>Tab</kbd> avança · <kbd>Shift</kbd> + <kbd>Tab</kbd> retorna · <kbd>Enter</kbd> ativa</p></div><div class="a11y-demo" aria-label="Exemplo de formulário acessível"><a class="skip-demo" href="#a11y-form">Pular para o formulário</a><header><b>FraldaCycle</b><nav aria-label="Navegação de demonstração"><button>Início</button><button>Buscar</button><button>Favoritos</button></nav></header><main id="a11y-form"><h3>Publicar anúncio</h3><p id="a11y-description">Informe os dados para disponibilizar seu produto.</p><label>Nome do produto<input id="a11y-name" aria-describedby="a11y-name-help" placeholder="Ex.: Pampers Confort"></label><small id="a11y-name-help">Use marca, modelo e tamanho.</small><fieldset><legend>Tipo de negociação</legend><label><input type="radio" name="a11y-deal" checked> Venda</label><label><input type="radio" name="a11y-deal"> Troca</label><label><input type="radio" name="a11y-deal"> Doação</label></fieldset><label><input type="checkbox" checked> Produto novo e lacrado</label><button class="button primary" id="a11y-submit">Continuar</button><div class="a11y-live" id="a11y-live" role="status" aria-live="polite"></div></main></div></div></section><section class="token-grid"><article class="panel"><h2>Contraste verificado</h2><div class="contrast-list"><div><i style="--foreground:#111827;--background:#fff"></i><span><b>Texto principal</b><small>#111827 / #FFFFFF</small></span><strong>17,7:1</strong></div><div><i style="--foreground:#087B46;--background:#fff"></i><span><b>Verde institucional</b><small>#087B46 / #FFFFFF</small></span><strong>5,3:1</strong></div><div><i style="--foreground:#fff;--background:#087B46"></i><span><b>Botão primário</b><small>#FFFFFF / #087B46</small></span><strong>5,3:1</strong></div><div><i style="--foreground:#13233F;--background:#EEF9F2"></i><span><b>Texto em superfície</b><small>#13233F / #EEF9F2</small></span><strong>12,6:1</strong></div></div></article><article class="panel"><h2>Semântica e tecnologias assistivas</h2><ul class="a11y-semantic-list"><li>Landmarks de cabeçalho, navegação, conteúdo e rodapé.</li><li>Rótulos associados a todos os campos.</li><li>Estados anunciados com <code>aria-live</code>.</li><li>Ícones decorativos ocultos do leitor de tela.</li><li>Erros vinculados ao campo correspondente.</li><li>Conteúdo preservado com zoom de 200%.</li></ul></article></section><div class="principles-strip"><span>Perceptível</span><span>Operável</span><span>Compreensível</span><span>Robusto</span><span>Inclusivo</span></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/accessibility-lab.js"></script>
+</body>
+</html>
