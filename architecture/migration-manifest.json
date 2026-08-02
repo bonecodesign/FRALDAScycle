@@ -91,13 +91,17 @@
         "home",
         "marketplace",
         "favorites",
-        "publish"
-      ],
-      "next": [
+        "publish",
         "chat",
         "proposal",
         "reservation",
-        "payment"
+        "moderation"
+      ],
+      "next": [
+        "payment",
+        "wallet",
+        "refund",
+        "logistics"
       ],
       "audit": {
         "approvedIdentityRoutes": 7,
@@ -105,7 +109,10 @@
         "missingIdentityRoutes": 0,
         "approvedMarketplaceRoutes": 10,
         "migratedMarketplaceRoutes": 10,
-        "missingMarketplaceRoutes": 0
+        "missingMarketplaceRoutes": 0,
+        "approvedNegotiationRoutes": 10,
+        "migratedNegotiationRoutes": 10,
+        "missingNegotiationRoutes": 0
       }
     },
     {
