@@ -6,10 +6,9 @@ on:
       - "platform/**"
       - ".github/workflows/platform.yml"
   push:
-    branches:
-      - main
     paths:
       - "platform/**"
+      - ".github/workflows/platform.yml"
 
 permissions:
   contents: read
