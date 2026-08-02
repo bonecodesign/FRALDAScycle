@@ -52,7 +52,15 @@
       "setupPaymentFlow",
       "setupWallet",
       "setupWalletLogisticsExtras",
-      "setupRefundState"
+      "setupRefundState",
+      "appDeliveryOptions",
+      "appDelivery",
+      "appDeliveryReschedule",
+      "appDeliveryProof",
+      "appDeliveryConfirm",
+      "appDeliveryRate",
+      "setupDeliveryTracking",
+      "setupActionStates"
     ],
     "routes": [
       "#/app/splash",
@@ -87,7 +95,13 @@
       "#/app/wallet",
       "#/app/wallet-cards",
       "#/app/refund",
-      "#/app/dispute"
+      "#/app/dispute",
+      "#/app/delivery-options",
+      "#/app/delivery",
+      "#/app/delivery-reschedule",
+      "#/app/delivery-proof",
+      "#/app/delivery-confirm",
+      "#/app/delivery-rate"
     ]
   },
   "destination": {
@@ -126,14 +140,21 @@
       "/app/wallet",
       "/app/wallet-cards",
       "/app/refund",
-      "/app/dispute"
+      "/app/dispute",
+      "/app/delivery-options",
+      "/app/delivery",
+      "/app/delivery-reschedule",
+      "/app/delivery-proof",
+      "/app/delivery-confirm",
+      "/app/delivery-rate"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
       "platform/apps/app/favorites.js",
       "platform/apps/app/publish.js",
       "platform/apps/app/negotiation.js",
-      "platform/apps/app/finance.js"
+      "platform/apps/app/finance.js",
+      "platform/apps/app/logistics.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
