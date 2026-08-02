@@ -5,16 +5,53 @@ import { extname, resolve, sep } from "node:path";
 
 const [surface = "site", portValue = "4101"] = process.argv.slice(2);
 if (!["site", "app", "admin"].includes(surface)) throw new TypeError("surface must be site, app, or admin");
+
 const platformRoot = resolve(import.meta.dirname, "..");
+const sourceRoot = resolve(platformRoot, "..");
 const appRoot = resolve(platformRoot, "apps", surface);
-const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
+const packageRoot = resolve(platformRoot, "packages");
+const sourceAssetsRoot = resolve(sourceRoot, "assets");
+const approvedSourceFiles = new Set([
+  resolve(sourceRoot, "styles.css"),
+  resolve(sourceRoot, "map-safety.css"),
+  resolve(sourceRoot, "fidelity.css"),
+]);
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+};
+
+function resolveRequest(pathname) {
+  if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
+
+  if (pathname.startsWith("/source/")) {
+    const candidate = resolve(sourceRoot, pathname.slice("/source/".length));
+    const allowed =
+      approvedSourceFiles.has(candidate) ||
+      candidate.startsWith(sourceAssetsRoot + sep);
+    return allowed ? candidate : null;
+  }
+
+  const candidate = resolve(platformRoot, pathname.slice(1));
+  const allowed =
+    candidate.startsWith(appRoot + sep) ||
+    candidate.startsWith(packageRoot + sep);
+  return allowed ? candidate : null;
+}
 
 createServer(async (request, response) => {
-  const requestPath = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-  const candidate = requestPath === "/" ? resolve(appRoot, "index.html") : resolve(platformRoot, requestPath.slice(1));
-  if (!(candidate === appRoot || candidate.startsWith(appRoot + sep) || candidate.startsWith(resolve(platformRoot, "packages") + sep))) {
-    response.writeHead(404).end("Not found"); return;
+  const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+  const candidate = resolveRequest(pathname);
+
+  if (!candidate) {
+    response.writeHead(404).end("Not found");
+    return;
   }
+
   try {
     if (!(await stat(candidate)).isFile()) throw new Error("not a file");
     response.writeHead(200, { "content-type": types[extname(candidate)] ?? "application/octet-stream" });
@@ -22,4 +59,6 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404).end("Not found");
   }
-}).listen(Number(portValue), "127.0.0.1", () => console.log(`FraldaCycle ${surface}: http://127.0.0.1:${portValue}`));
+}).listen(Number(portValue), "127.0.0.1", () =>
+  console.log(`FraldaCycle ${surface}: http://127.0.0.1:${portValue}`),
+);
