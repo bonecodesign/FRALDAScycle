@@ -12,14 +12,22 @@
       "siteDetail",
       "siteSeller",
       "siteFavorites",
-      "setupSiteFavorites"
+      "setupSiteFavorites",
+      "sitePublish",
+      "setupSitePublish",
+      "siteImpact",
+      "setupSiteImpact",
+      "siteHelp"
     ],
     "routes": [
       "#/site/home",
       "#/site/search",
       "#/site/detail",
       "#/site/seller",
-      "#/site/favorites"
+      "#/site/favorites",
+      "#/site/publish",
+      "#/site/impact",
+      "#/site/help"
     ]
   },
   "destination": {
@@ -34,14 +42,23 @@
       "platform/apps/site/seller.html",
       "platform/apps/site/seller.js",
       "platform/apps/site/favorites.html",
-      "platform/apps/site/favorites.js"
+      "platform/apps/site/favorites.js",
+      "platform/apps/site/publish.html",
+      "platform/apps/site/publish.js",
+      "platform/apps/site/impact.html",
+      "platform/apps/site/impact.js",
+      "platform/apps/site/help.html",
+      "platform/apps/site/help.js"
     ],
     "routes": [
       "/site/home",
       "/site/search",
       "/site/detail",
       "/site/seller",
-      "/site/favorites"
+      "/site/favorites",
+      "/site/publish",
+      "/site/impact",
+      "/site/help"
     ]
   },
   "strategy": "markup rendered from approved source functions; styles and assets served read-only through source adapter",
