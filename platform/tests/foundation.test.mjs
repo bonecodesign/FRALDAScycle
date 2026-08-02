@@ -297,3 +297,37 @@ test("transfers protected chat proposal evidence and reservation states", async 
   }
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers protected payment wallet refund and dispute journeys", async () => {
+  const routes = [
+    ["payment", /Escolha o método/],
+    ["payment-success", /Pagamento aprovado!/],
+    ["wallet", /Saldo e extrato/],
+    ["wallet-cards", /Meus cartões/],
+    ["refund", /Solicitar reembolso/],
+    ["dispute", /Abrir disputa/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/finance.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/app/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  const payment = await readFile(resolve(root, "apps/app/payment.html"), "utf8");
+  assert.equal((payment.match(/name="pay"/g) ?? []).length, 5);
+  assert.match(payment, /Valor protegido em custódia até o recebimento/);
+  assert.match(behavior, /Cartão tokenizado com segurança/);
+  assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
+  assert.match(behavior, /valor permanece protegido em custódia/i);
+  for (const name of ["appPayment", "appWallet", "appRefund", "appDispute", "setupPaymentFlow", "setupWallet"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
