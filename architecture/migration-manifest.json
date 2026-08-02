@@ -98,13 +98,14 @@
         "moderation",
         "payment",
         "wallet",
-        "refund"
+        "refund",
+        "logistics"
       ],
       "next": [
-        "logistics",
         "profile",
         "notifications",
-        "courier"
+        "courier",
+        "global-states"
       ],
       "audit": {
         "approvedIdentityRoutes": 7,
@@ -118,7 +119,10 @@
         "missingNegotiationRoutes": 0,
         "approvedFinanceRoutes": 6,
         "migratedFinanceRoutes": 6,
-        "missingFinanceRoutes": 0
+        "missingFinanceRoutes": 0,
+        "approvedLogisticsRoutes": 6,
+        "migratedLogisticsRoutes": 6,
+        "missingLogisticsRoutes": 0
       }
     },
     {
