@@ -83,6 +83,36 @@ test("transfers approved Site Search and Map as a dedicated route", async () => 
   assert.match(behavior, /querySelectorAll\("\[data-map-product\]"\)/);
   assert.match(behavior, /toLocaleLowerCase\("pt-BR"\)/);
   assert.match(server, /pathname === "\/site\/search"/);
-  assert.deepEqual(provenance.source.functions, ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"]);
+  for (const name of ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"]) assert.ok(provenance.source.functions.includes(name));
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
+
+
+test("transfers detail seller and favorites while documenting missing destination architecture", async () => {
+  const [detail, seller, favorites, favoriteBehavior, server] = await Promise.all([
+    readFile(resolve(root, "apps/site/detail.html"), "utf8"),
+    readFile(resolve(root, "apps/site/seller.html"), "utf8"),
+    readFile(resolve(root, "apps/site/favorites.html"), "utf8"),
+    readFile(resolve(root, "apps/site/favorites.js"), "utf8"),
+    readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+  ]);
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
+
+  assert.match(detail, /Pampers Confort<br>M · 50 unidades/);
+  assert.match(detail, /Pagamento protegido até a confirmação do recebimento/);
+  assert.match(detail, /href="\/site\/seller"/);
+  assert.match(seller, /Uma família que acredita na economia circular/);
+  assert.match(seller, /Reputação na comunidade/);
+  assert.match(seller, /3 anúncios/);
+  assert.equal((seller.match(/class="product-card"/g) ?? []).length, 3);
+  assert.match(favorites, /Seus favoritos/);
+  assert.match(favorites, /Carregando seus favoritos/);
+  assert.match(favoriteBehavior, /let saved = \[0, 1, 3\]/);
+  assert.match(favoriteBehavior, /Lista de favoritos limpa/);
+  assert.match(server, /"\/site\/detail", "\/site\/seller", "\/site\/favorites"/);
+  for (const name of ["siteDetail", "siteSeller", "siteFavorites", "setupSiteFavorites"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.equal(provenance.architectureAdditions[0].name, "productCard");
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
