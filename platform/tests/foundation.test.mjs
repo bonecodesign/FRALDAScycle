@@ -325,7 +325,8 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.match(payment, /Valor protegido em custódia até o recebimento/);
   assert.match(behavior, /Cartão tokenizado com segurança/);
   assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
-  assert.match(behavior, /valor permanece protegido em custódia/i);
+  const dispute = await readFile(resolve(root, "apps/app/dispute.html"), "utf8");
+  assert.match(dispute, /valor permanece protegido em custódia/i);
   for (const name of ["appPayment", "appWallet", "appRefund", "appDispute", "setupPaymentFlow", "setupWallet"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
