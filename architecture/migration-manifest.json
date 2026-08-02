@@ -15,7 +15,7 @@
   "surfaces": [
     {
       "id": "site",
-      "status": "in_progress",
+      "status": "complete",
       "target": "platform/apps/site",
       "areas": [
         "home",
@@ -27,7 +27,13 @@
         "publish",
         "impact",
         "help",
-        "auth"
+        "auth",
+        "component-states",
+        "advanced-components",
+        "design-tokens",
+        "responsive-lab",
+        "accessibility-lab",
+        "motion-lab"
       ],
       "migrated": [
         "home",
@@ -38,12 +44,22 @@
         "favorites",
         "publish",
         "impact",
-        "help"
+        "help",
+        "auth",
+        "component-states",
+        "advanced-components",
+        "design-tokens",
+        "responsive-lab",
+        "accessibility-lab",
+        "motion-lab"
       ],
       "sourceCommit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
-      "next": [
-        "auth"
-      ]
+      "next": [],
+      "audit": {
+        "approvedRoutes": 16,
+        "migratedRoutes": 16,
+        "missingRoutes": 0
+      }
     },
     {
       "id": "app",
