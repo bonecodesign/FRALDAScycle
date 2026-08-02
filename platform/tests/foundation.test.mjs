@@ -258,3 +258,42 @@ test("transfers App marketplace filters favorites and all eight publish steps", 
   }
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers protected chat proposal evidence and reservation states", async () => {
+  const routes = [
+    ["chat", /Negociação protegida/],
+    ["safety", /Opções da conversa/],
+    ["proposal", /Nova proposta/],
+    ["proposal-received", /Contraproposta recebida/],
+    ["negotiation-evidence", /Evidências da negociação/],
+    ["reservation", /Produto reservado/],
+    ["reservation-rules", /Regras da reserva/],
+    ["reservation-cancel", /Cancelar reserva\?/],
+    ["reservation-cancelled", /Reserva cancelada/],
+    ["reservation-expired", /Reserva expirada/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/negotiation.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/app/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  assert.match(behavior, /Telefones não podem ser compartilhados no chat/);
+  assert.match(behavior, /E-mails não podem ser compartilhados no chat/);
+  assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
+  assert.match(behavior, /QR Codes não podem ser compartilhados no chat/);
+  assert.match(behavior, /Protocolo #NEG-2025-0719/);
+  assert.match(behavior, /reservation-timer/);
+  assert.match(behavior, /location\.pathname='\/app\/reservation-expired'/);
+  for (const name of ["appChat", "appProposal", "appReservation", "setupProtectedChat", "setupNegotiation", "setupSafetyActions"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
