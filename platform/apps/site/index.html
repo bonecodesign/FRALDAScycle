@@ -1,3 +1,44 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FraldaCycle — Site</title><link rel="stylesheet" href="../../packages/ui/shell.css"></head>
-<body><main data-surface="site"><p>FraldaCycle · Site</p><h1>Arquitetura de destino</h1><section class="surface-status"><strong>Fonte oficial:</strong> protótipo preservado na raiz. As telas serão transferidas sem alteração visual.</section></main></body></html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/home">
+<section class="hero"><div><span class="eyebrow">● Economia circular que transforma</span><h1>Pequenas escolhas,<br><span>grandes mudanças.</span></h1><p>Compre, troque ou doe fraldas fechadas com segurança, economia e impacto positivo.</p><div class="hero-actions"><a class="button primary" href="/site/search">Explorar anúncios →</a><a class="button secondary" href="/site/publish">Publicar anúncio</a></div><div class="trust-row"><span>Perfis verificados</span><span>Pagamento protegido</span><span>Impacto mensurável</span></div></div><div class="hero-visual" role="img" aria-label="Planeta, folhas e fraldas representando economia circular"><div class="floating-card one"><strong>7.420</strong> pacotes reaproveitados</div><div class="floating-card two"><strong>124</strong> famílias beneficiadas</div><div class="earth"></div><div class="diaper-stack"></div><div class="leaf"></div></div></section><section class="section"><div class="section-head"><div><span class="eyebrow">Como funciona</span><h2>Uma jornada simples e segura</h2></div><p>Do anúncio à entrega, cada etapa é acompanhada.</p></div><div class="feature-grid"><article class="feature-card"><div class="icon">⌕</div><h3>Encontre</h3><p>Busque por marca, tamanho, preço e distância.</p></article><article class="feature-card"><div class="icon">↔</div><h3>Negocie</h3><p>Compre, troque ou doe pelo chat protegido.</p></article><article class="feature-card"><div class="icon">▣</div><h3>Pague</h3><p>Use Pix, cartão, boleto ou saldo FraldaCycle.</p></article><article class="feature-card"><div class="icon">⌖</div><h3>Receba</h3><p>Acompanhe a entrega ou combine a retirada.</p></article></div></section><div class="marketplace"><section class="section"><div class="section-head"><div><span class="eyebrow">Perto de você</span><h2>Anúncios em destaque</h2></div><a class="button ghost" href="/site/search">Ver todos →</a></div><div class="filters"><button class="chip active">Todos</button><button class="chip">Venda</button><button class="chip">Troca</button><button class="chip">Doação</button></div><div class="product-grid"><article class="product-card"><button class="favorite" type="button" aria-label="Favoritar Pampers Confort">♡</button><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/pampers-approved.png" alt="Embalagem Pampers Confort aprovada no acervo"></div><div class="product-body"><span class="badge">Disponível</span><h3>Pampers Confort</h3><p>M · 50 unidades</p><div class="price">R$ 45,00</div><div class="meta"><span>★ 4,9</span><span>0,8 km</span></div><a class="button secondary block small" href="/site/detail">Ver detalhes</a></div></article><article class="product-card"><button class="favorite" type="button" aria-label="Favoritar Huggies Supreme">♡</button><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/huggies-approved.png" alt="Embalagem Huggies Supreme aprovada no acervo"></div><div class="product-body"><span class="badge">Disponível</span><h3>Huggies Supreme</h3><p>G · 40 unidades</p><div class="price">R$ 40,00</div><div class="meta"><span>★ 4,9</span><span>1,2 km</span></div><a class="button secondary block small" href="/site/detail">Ver detalhes</a></div></article><article class="product-card"><button class="favorite" type="button" aria-label="Favoritar Babysec Premium">♡</button><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/babysec-approved.png" alt="Embalagem Babysec Premium aprovada no acervo"></div><div class="product-body"><span class="badge">Doação</span><h3>Babysec Premium</h3><p>P · 60 unidades</p><div class="price">Grátis</div><div class="meta"><span>★ 4,9</span><span>1,4 km</span></div><a class="button secondary block small" href="/site/detail">Ver detalhes</a></div></article><article class="product-card"><button class="favorite" type="button" aria-label="Favoritar MamyPoko Fralda-Calça">♡</button><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/mamypoko-approved.png" alt="Embalagem MamyPoko Fralda-Calça aprovada no acervo"></div><div class="product-body"><span class="badge">Disponível</span><h3>MamyPoko Fralda-Calça</h3><p>XG · 32 unidades</p><div class="price">R$ 38,00</div><div class="meta"><span>★ 4,9</span><span>1,6 km</span></div><a class="button secondary block small" href="/site/detail">Ver detalhes</a></div></article></div></section></div><section class="section impact"><div class="impact-graphic"><div><span class="eyebrow" style="color:#fff">Impacto coletivo</span><div class="big">5.080 kg</div><p>de CO₂ evitados por escolhas mais conscientes.</p></div><strong>Juntos por um futuro mais leve.</strong></div><div><span class="eyebrow">Transparência</span><h2>Veja a diferença que a comunidade já está fazendo.</h2><p class="muted">Indicadores demonstrativos classificados como simulados, com período e atualização visíveis.</p><div class="stat-grid"><article class="stat-card"><small>Pacotes reaproveitados · Simulado</small><strong>7.420</strong><span>Atualizado hoje</span></article><article class="stat-card"><small>Economia gerada · Simulado</small><strong>R$ 18.650</strong><span>Período mensal</span></article><article class="stat-card"><small>Resíduos evitados · Simulado</small><strong>2.120 kg</strong><span>Período acumulado</span></article><article class="stat-card"><small>Famílias beneficiadas · Simulado</small><strong>124</strong><span>Período acumulado</span></article></div></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/home.js"></script>
+</body>
+</html>
