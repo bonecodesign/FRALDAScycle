@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — aplicativo de economia circular">
+  <title>FraldaCycle — App · login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <main id="main" tabindex="-1" data-surface="app" data-source-route="#/app/login">
+<section class="app-stage auth-stage"><nav class="app-menu" aria-label="Fluxo de autenticação"><a href="/app/splash">1 · Splash</a><a href="/app/onboarding">2 · Onboarding</a><a href="/app/login">3 · Login</a><a href="/app/register">4 · Cadastro</a><a href="/app/recovery">5 · Recuperação</a><a href="/app/verify">6 · Verificação</a><a href="/app/home">7 · Home</a></nav><div class="phone auth-phone"><div class="phone-top">9:41</div><form class="mobile-auth" id="login-form"><a class="back-link" href="/app/onboarding">←</a><span class="eyebrow">Acesso seguro</span><h1>Bem-vindo(a)! 👋</h1><p>Faça login para continuar</p><div class="form-group"><label>E-mail ou telefone</label><input class="input" required placeholder="Digite seu e-mail ou telefone"></div><div class="form-group"><label>Senha</label><input class="input" type="password" required minlength="6" placeholder="Digite sua senha"></div><small class="field-error" role="alert"></small><a class="auth-text-link" href="/app/recovery">Esqueci minha senha</a><button class="button primary block" type="submit">Entrar</button><div class="divider">ou continue com</div><div class="social-row"><button class="button secondary" type="button">Google</button><button class="button secondary" type="button">Apple</button></div><p class="auth-foot">Não tem conta? <a href="/app/register">Criar conta</a></p><details class="auth-state-preview"><summary>Visualizar estados de segurança</summary><div><a href="/app/auth-error">Credenciais recusadas</a><a href="/app/auth-locked">Conta bloqueada</a><a href="/app/auth-offline">Sem conexão</a></div></details></form></div><aside class="context-panel"><span class="eyebrow">Autenticação e identidade</span><h2>Login</h2><p class="muted">Fluxo aprovado: entrada clara, acolhedora e segura, com recuperação e validação de identidade.</p><div class="auth-progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></aside></section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/app/auth.js"></script>
+</body>
+</html>
