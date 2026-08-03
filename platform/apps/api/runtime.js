@@ -5,6 +5,7 @@ import { createAuthRepository } from "../../database/auth-repository.js";
 import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
 import { createAdminRepository } from "../../database/admin-repository.js";
+import { createPaymentRepository } from "../../database/payment-repository.js";
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
@@ -13,6 +14,8 @@ import { createMarketplaceProviders } from "./marketplace-providers.js";
 import { migrate } from "../../database/migrate.js";
 import { resolveRuntimeEnv } from "./secrets.js";
 import { createTelemetry } from "./telemetry.js";
+import { createPaymentProvider } from "./payment-provider.js";
+import { createPaymentService } from "./payment-service.js";
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -26,6 +29,8 @@ export async function startRuntime(config = null) {
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
   const adminService = createAdminService(createAdminRepository(database));
+  const paymentProvider = createPaymentProvider(config);
+  const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const telemetry = createTelemetry(config);
   const server = createApiServer({
     config,
@@ -33,6 +38,7 @@ export async function startRuntime(config = null) {
     authService,
     marketplaceService,
     marketplaceProviders,
+    paymentService,
     adminService,
     telemetry,
   });
