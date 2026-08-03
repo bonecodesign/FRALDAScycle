@@ -62,6 +62,11 @@ export function createAdminRepository(database) {
 
     async createInvitation({ actorUserId, email, displayName, role, tokenHash, token, expiresAt }) {
       return database.transaction(async (client) => {
+        const existing = await client.query(
+          "SELECT id FROM users WHERE email = $1 LIMIT 1",
+          [email],
+        );
+        if (existing.rows[0]) return null;
         await client.query(
           `UPDATE admin_invitations SET consumed_at = now()
            WHERE email = $1 AND consumed_at IS NULL`,
