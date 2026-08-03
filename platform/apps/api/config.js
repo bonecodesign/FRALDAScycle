@@ -7,6 +7,14 @@ function integer(value, fallback) {
 
 export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
+  const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
+  const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
+  if (Boolean(paymentProviderUrl) !== Boolean(paymentProviderSecret)) {
+    throw new Error("PAYMENT_PROVIDER_URL and PAYMENT_PROVIDER_SECRET must be configured together");
+  }
+  if (paymentProviderUrl && !paymentProviderUrl.startsWith("https://")) {
+    throw new Error("PAYMENT_PROVIDER_URL must use HTTPS");
+  }
   const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
   const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
   if (Boolean(telemetryProviderUrl) !== Boolean(telemetryProviderSecret)) {
@@ -49,6 +57,8 @@ export function loadConfig(env = process.env) {
     rateLimitProviderSecret,
     telemetryProviderUrl,
     telemetryProviderSecret,
+    paymentProviderUrl,
+    paymentProviderSecret,
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,

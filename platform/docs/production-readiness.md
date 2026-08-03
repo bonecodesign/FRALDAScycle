@@ -53,3 +53,14 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] conexão das telas de busca, detalhe, favoritos e publicação;
 - [x] telas preparadas para upload real de mídia e geocodificação externa;
 - [ ] credenciais e endpoints dos provedores de mídia e geocodificação;
+
+
+## Corte 3 — pagamentos
+
+- [x] intents de pagamento persistentes e idempotentes;
+- [x] split financeiro validado no banco;
+- [x] taxa de venda de 8%, troca de 5%, entrega de 5% e doação sem taxa;
+- [x] adaptador HTTPS provider-neutral para pagamentos;
+- [x] proibição de dados brutos de cartão na API;
+- [x] endpoint autenticado para criação de pagamento;
+- [ ] credenciais, tokenização e webhooks assinados do provedor financeiro;
