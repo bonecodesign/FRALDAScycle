@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
+import { handleAdmin } from "./admin-handler.js";
 import { createRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 
 function unavailable(response, headers) {
@@ -19,6 +20,7 @@ export function createApiServer({
   authService = null,
   marketplaceService = null,
   marketplaceProviders = null,
+  adminService = null,
 } = {}) {
   const rateLimiter = createRateLimiter({
     limit: config.rateLimitMax,
@@ -132,6 +134,10 @@ export function createApiServer({
         });
         return;
       }
+
+      if (await handleAdmin(request, response, {
+        url, headers, requestId: id, authService, adminService,
+      })) return;
 
       if (await handleMarketplace(request, response, {
         url, headers, requestId: id, marketplaceService, marketplaceProviders, authService,

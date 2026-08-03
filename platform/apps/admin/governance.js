@@ -1,3 +1,4 @@
+import { apiRequest } from "/packages/contracts/api-client.js";
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -41,3 +42,27 @@ setupAdmin();
 setupAdminModeration();
 setupAdminAudit();
 setupAdminSettings();
+
+async function loadLiveAudit(){
+  const first=document.querySelector('[data-audit-row]');
+  const body=first?.closest('tbody');
+  if(!body)return;
+  const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  try{
+    const {items}=await apiRequest('/v1/admin/audit-events?limit=50');
+    if(!items.length)return;
+    body.innerHTML=items.map(item=>{
+      const when=new Date(item.occurred_at).toLocaleString('pt-BR');
+      const actor=item.actor_name||'Sistema';
+      const action=item.action;
+      const module=item.entity_type;
+      const search=`${when} ${actor} ${action} ${module}`.toLocaleLowerCase('pt-BR');
+      return `<tr data-audit-row data-search="${escape(search)}"><td>${escape(when)}</td><td>${escape(actor)}</td><td>${escape(action)}</td><td>${escape(module)}</td><td>${escape(item.entity_id)}</td></tr>`;
+    }).join('');
+    document.documentElement.dataset.auditState='live';
+  }catch(error){
+    document.documentElement.dataset.auditState=error.status===401?'unauthenticated':error.status===403?'forbidden':'fallback';
+  }
+}
+document.getElementById('audit-refresh')?.addEventListener('click',loadLiveAudit);
+loadLiveAudit();

@@ -530,6 +530,8 @@ test("transfers Admin security moderation audit webhooks and settings governance
 
   assert.match(behavior, /setupAdminModeration\(\)/);
   assert.match(behavior, /setupAdminAudit\(\)/);
+  assert.match(behavior, /\/v1\/admin\/audit-events/);
+  assert.match(behavior, /loadLiveAudit/);
   assert.match(behavior, /setupAdminSettings\(\)/);
   assert.match(await readFile(resolve(root, "apps/admin/audit.html"), "utf8"), /webhook/i);
   assert.equal(provenance.architectureNotes.at(-1).area, "webhooks");
