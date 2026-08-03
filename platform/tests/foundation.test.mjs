@@ -453,3 +453,29 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
   assert.match(behavior, /admin-ad-search/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers Admin finance logistics and reports with impact kept in its approved location", async () => {
+  const routes = [
+    ["finance", /Financeiro, splits e disputas/],
+    ["logistics", /Logística e entregadores/],
+    ["reports", /Relatórios e inteligência/],
+  ];
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/admin/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/admin/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/admin/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
+  }
+
+  const reports = await readFile(resolve(root, "apps/admin/reports.html"), "utf8");
+  assert.match(reports, /impact/i);
+  assert.equal(provenance.architectureNotes[0].area, "impact");
+  assert.match(provenance.architectureNotes[0].detail, /No standalone admin impact route exists/);
+  for (const name of ["adminFinance", "adminLogistics", "adminReports"]) assert.ok(provenance.source.functions.includes(name));
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
