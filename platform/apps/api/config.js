@@ -7,6 +7,14 @@ function integer(value, fallback) {
 
 export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
+  const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
+  const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
+  if (Boolean(telemetryProviderUrl) !== Boolean(telemetryProviderSecret)) {
+    throw new Error("TELEMETRY_PROVIDER_URL and TELEMETRY_PROVIDER_SECRET must be configured together");
+  }
+  if (telemetryProviderUrl && !telemetryProviderUrl.startsWith("https://")) {
+    throw new Error("TELEMETRY_PROVIDER_URL must use HTTPS");
+  }
   const rateLimitProviderUrl = env.RATE_LIMIT_PROVIDER_URL ?? null;
   const rateLimitProviderSecret = env.RATE_LIMIT_PROVIDER_SECRET ?? null;
   if (Boolean(rateLimitProviderUrl) !== Boolean(rateLimitProviderSecret)) {
@@ -39,6 +47,8 @@ export function loadConfig(env = process.env) {
     rateLimitWindowSeconds: integer(env.RATE_LIMIT_WINDOW_SECONDS, 60),
     rateLimitProviderUrl,
     rateLimitProviderSecret,
+    telemetryProviderUrl,
+    telemetryProviderSecret,
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
