@@ -4,18 +4,33 @@ export function createMarketplaceRepository(database) {
     l.published_at, l.created_at, u.id AS seller_id, u.display_name AS seller_name`;
 
   return Object.freeze({
-    async search({ query = null, kind = null, size = null, limit = 24, offset = 0 }) {
+    async search({
+      query = null, kind = null, size = null,
+      latitude = null, longitude = null, radiusKm = null,
+      limit = 24, offset = 0,
+    }) {
       const result = await database.query(
-        `SELECT ${publicColumns},
-          (SELECT storage_key FROM listing_media WHERE listing_id = l.id ORDER BY position LIMIT 1) AS cover_key
-         FROM listings l JOIN users u ON u.id = l.seller_id
-         WHERE l.status = 'published'
-           AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
-           AND ($2::transaction_kind IS NULL OR l.kind = $2)
-           AND ($3::text IS NULL OR l.size = $3)
-         ORDER BY l.published_at DESC NULLS LAST, l.created_at DESC
-         LIMIT $4 OFFSET $5`,
-        [query, kind, size, limit, offset],
+        `WITH candidates AS (
+          SELECT ${publicColumns},
+            (SELECT storage_key FROM listing_media WHERE listing_id = l.id ORDER BY position LIMIT 1) AS cover_key,
+            CASE WHEN $4::double precision IS NULL THEN NULL ELSE
+              6371 * acos(LEAST(1.0, GREATEST(-1.0,
+                sin(radians($4::double precision)) * sin(radians(l.latitude)) +
+                cos(radians($4::double precision)) * cos(radians(l.latitude)) *
+                cos(radians(l.longitude) - radians($5::double precision))
+              )))
+            END AS distance_km
+          FROM listings l JOIN users u ON u.id = l.seller_id
+          WHERE l.status = 'published'
+            AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
+            AND ($2::transaction_kind IS NULL OR l.kind = $2)
+            AND ($3::text IS NULL OR l.size = $3)
+        )
+        SELECT * FROM candidates
+        WHERE ($4::double precision IS NULL OR distance_km <= $6::double precision)
+        ORDER BY distance_km ASC NULLS LAST, published_at DESC NULLS LAST, created_at DESC
+        LIMIT $7 OFFSET $8`,
+        [query, kind, size, latitude, longitude, radiusKm, limit, offset],
       );
       return result.rows;
     },

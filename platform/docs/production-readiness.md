@@ -20,7 +20,8 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] fila transacional, worker e contrato seguro de entrega;
 - [ ] credenciais e endpoint do provedor externo de e-mail/SMS;
 - [ ] autorização por papel e escopo;
-- [ ] rate limiting e proteção contra abuso;
+- [x] rate limiting geral em memória e proteção HTTP 429;
+- [ ] rate limiting distribuído para múltiplas instâncias;
 - [x] validação de segredos obrigatórios em produção;
 - [ ] armazenamento externo de segredos e observabilidade hospedada;
 
@@ -37,7 +38,7 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] referências de mídia independentes do storage;
 - [x] contrato de upload assinado para storage externo;
 - [x] contrato de geocodificação externa;
-- [ ] busca por distância no banco;
+- [x] busca por distância no banco e ordenação por proximidade;
 - [x] conexão das telas de busca, detalhe, favoritos e publicação;
 - [x] telas preparadas para upload real de mídia e geocodificação externa;
 - [ ] credenciais e endpoints dos provedores de mídia e geocodificação;

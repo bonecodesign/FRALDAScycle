@@ -14,10 +14,22 @@ export function createMarketplaceService(repository) {
       const limit = Math.min(50, Math.max(1, Number(params.limit) || 24));
       const offset = Math.max(0, Number(params.offset) || 0);
       const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
+      const hasLatitude = params.latitude != null && params.latitude !== "";
+      const hasLongitude = params.longitude != null && params.longitude !== "";
+      if (hasLatitude !== hasLongitude) {
+        throw new MarketplaceError("invalid_location", 422, "Informe latitude e longitude juntas.");
+      }
+      const latitude = hasLatitude ? Number(params.latitude) : null;
+      const longitude = hasLongitude ? Number(params.longitude) : null;
+      if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+          !Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+        throw new MarketplaceError("invalid_location", 422, "Informe coordenadas válidas.");
+      }
+      const radiusKm = latitude == null ? null : Math.min(200, Math.max(1, Number(params.radiusKm) || 25));
       return repository.search({
         query: String(params.query ?? "").trim() || null,
         size: String(params.size ?? "").trim() || null,
-        kind, limit, offset,
+        kind, latitude, longitude, radiusKm, limit, offset,
       });
     },
 
