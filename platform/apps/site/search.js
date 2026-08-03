@@ -1,3 +1,4 @@
+import { renderSiteSearch } from "/packages/contracts/marketplace-ui.js";
 import "/apps/site/home.js";
 
 const products = [
@@ -32,3 +33,5 @@ query?.addEventListener("input", () => {
     card.hidden = term.length > 0 && !card.textContent.toLocaleLowerCase("pt-BR").includes(term);
   });
 });
+
+renderSiteSearch();
