@@ -17,6 +17,13 @@ export async function handleAdmin(request, response, {
   if (!adminService) return false;
   const user = await authenticatedUser(request, authService);
 
+  if (request.method === "POST" && url.pathname === "/v1/admin/invitations") {
+    requireScope(user, "admin:users:write");
+    const result = await adminService.createInvitation(user, await readJson(request));
+    sendJson(response, 201, { ...result, requestId }, headers);
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/v1/admin/sessions") {
     requireScope(user, "admin:security:write");
     const items = await adminService.sessions(user);
