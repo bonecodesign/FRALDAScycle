@@ -363,6 +363,9 @@ test("transfers the complete approved App logistics journey", async () => {
   }
 
   assert.match(behavior, /delivery-refresh/);
+  assert.match(behavior, /\/v1\/shipments/);
+  assert.match(behavior, /activeShipmentId/);
+  assert.match(behavior, /createRealShipment/);
   assert.match(behavior, /reschedule-submit/);
   assert.match(behavior, /delivery-problem-submit/);
   assert.match(behavior, /Avaliação enviada com sucesso/);
@@ -425,6 +428,9 @@ test("closes the approved courier journey and the App surface", async () => {
   }
 
   assert.match(behavior, /Foto e localização registradas com segurança/);
+  assert.match(behavior, /\/v1\/shipments/);
+  assert.match(behavior, /uploadListingMedia/);
+  assert.match(behavior, /deliveryProofMediaKey/);
   assert.match(await readFile(resolve(root, "apps/app/courier-proof.html"), "utf8"), /repasse será liberado em até 24 horas/i);
   for (const name of ["courierHome", "courierJob", "courierRoute", "courierProof", "courierHistory"]) {
     assert.ok(provenance.source.functions.includes(name));
