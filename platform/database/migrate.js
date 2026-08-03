@@ -20,7 +20,8 @@ export async function discoverMigrations(root = migrationsRoot) {
   }));
 }
 
-export async function migrate(database, migrations = await discoverMigrations()) {
+export async function migrate(database, migrations = null) {
+  const migrationList = migrations ?? await discoverMigrations();
   await database.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       name text PRIMARY KEY,
@@ -31,7 +32,7 @@ export async function migrate(database, migrations = await discoverMigrations())
   const applied = await database.query("SELECT name, checksum FROM schema_migrations ORDER BY name");
   const known = new Map(applied.rows.map((row) => [row.name, row.checksum]));
 
-  for (const migration of migrations) {
+  for (const migration of migrationList) {
     if (known.has(migration.name)) {
       if (known.get(migration.name) !== migration.checksum) {
         throw new Error(`Applied migration changed: ${migration.name}`);
@@ -46,7 +47,7 @@ export async function migrate(database, migrations = await discoverMigrations())
       );
     });
   }
-  return migrations.map(({ name }) => name);
+  return migrationList.map(({ name }) => name);
 }
 
 async function main() {
