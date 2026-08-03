@@ -160,18 +160,26 @@
         "users",
         "rbac",
         "listings",
-        "operations"
-      ],
-      "next": [
+        "operations",
         "finance",
         "logistics",
         "reports",
         "impact"
       ],
+      "next": [
+        "data",
+        "infrastructure",
+        "security",
+        "audit"
+      ],
       "audit": {
         "approvedCoreRoutes": 5,
         "migratedCoreRoutes": 5,
-        "missingCoreRoutes": 0
+        "missingCoreRoutes": 0,
+        "approvedOperationsRoutes": 3,
+        "migratedOperationsRoutes": 3,
+        "missingOperationsRoutes": 0,
+        "impactPlacement": "embedded-in-reports"
       }
     }
   ],
