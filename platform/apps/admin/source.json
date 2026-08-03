@@ -24,7 +24,14 @@
       "adminInfrastructure",
       "setupAdminData",
       "setupAdminForecast",
-      "setupAdminInfrastructure"
+      "setupAdminInfrastructure",
+      "adminSecurity",
+      "adminModeration",
+      "adminAudit",
+      "adminSettings",
+      "setupAdminModeration",
+      "setupAdminAudit",
+      "setupAdminSettings"
     ],
     "routes": [
       "#/admin/dashboard",
@@ -38,7 +45,11 @@
       "#/admin/data",
       "#/admin/forecast",
       "#/admin/alerts",
-      "#/admin/infrastructure"
+      "#/admin/infrastructure",
+      "#/admin/security",
+      "#/admin/moderation",
+      "#/admin/audit",
+      "#/admin/settings"
     ]
   },
   "destination": {
@@ -56,11 +67,16 @@
       "/admin/data",
       "/admin/forecast",
       "/admin/alerts",
-      "/admin/infrastructure"
+      "/admin/infrastructure",
+      "/admin/security",
+      "/admin/moderation",
+      "/admin/audit",
+      "/admin/settings"
     ],
     "behaviorFiles": [
       "platform/apps/admin/core.js",
-      "platform/apps/admin/intelligence.js"
+      "platform/apps/admin/intelligence.js",
+      "platform/apps/admin/governance.js"
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
@@ -70,6 +86,11 @@
       "area": "impact",
       "decision": "preserve approved prototype organization",
       "detail": "No standalone admin impact route exists; administrative impact indicators remain embedded in reports and operational dashboards."
+    },
+    {
+      "area": "webhooks",
+      "decision": "preserve approved prototype organization",
+      "detail": "No standalone admin webhook route exists; webhook controls remain embedded in audit and settings."
     }
   ]
 }
