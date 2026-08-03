@@ -88,6 +88,33 @@ export function createApiServer({
         return;
       }
 
+      if (request.method === "POST" && url.pathname === "/v1/auth/verification/request") {
+        const result = await authService.requestVerification(await readJson(request));
+        sendJson(response, 202, { ...result, requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/verification/confirm") {
+        const result = await authService.verifyEmail(await readJson(request));
+        sendJson(response, 200, { ...result, requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/password/request") {
+        const result = await authService.requestPasswordRecovery(await readJson(request));
+        sendJson(response, 202, { ...result, requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/password/reset") {
+        const result = await authService.resetPassword(await readJson(request));
+        sendJson(response, 200, { ...result, requestId: id }, {
+          ...headers,
+          "set-cookie": clearSessionCookie({ secure: config.nodeEnv === "production" }),
+        });
+        return;
+      }
+
       sendJson(response, 404, {
         error: { code: "route_not_found", message: "Rota não encontrada." },
         requestId: id,
