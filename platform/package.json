@@ -11,7 +11,7 @@
     "dev:app": "node tools/dev-server.mjs app 4102",
     "dev:admin": "node tools/dev-server.mjs admin 4103",
     "dev:api": "node apps/api/runtime.js",
-    "check:production": "node --check apps/api/auth-service.js && node --check apps/api/body.js && node --check apps/api/config.js && node --check apps/api/cookies.js && node --check apps/api/http.js && node --check apps/api/notifications.js && node --check apps/api/security.js && node --check apps/api/server.js && node --check apps/api/runtime.js && node --check database/auth-repository.js && node --check database/client.js && node --check database/migrate.js && node --check database/notification-repository.js && node --check workers/notifications.js && node --check apps/api/marketplace-handler.js && node --check apps/api/marketplace-service.js && node --check database/marketplace-repository.js",
+    "check:production": "node --check apps/api/auth-service.js && node --check apps/api/body.js && node --check apps/api/config.js && node --check apps/api/cookies.js && node --check apps/api/http.js && node --check apps/api/notifications.js && node --check apps/api/security.js && node --check apps/api/server.js && node --check apps/api/runtime.js && node --check database/auth-repository.js && node --check database/client.js && node --check database/migrate.js && node --check database/notification-repository.js && node --check workers/notifications.js && node --check apps/api/marketplace-handler.js && node --check apps/api/marketplace-providers.js && node --check apps/api/marketplace-service.js && node --check database/marketplace-repository.js",
     "db:migrate": "node database/migrate.js",
     "worker:notifications": "node workers/notifications.js"
   },
