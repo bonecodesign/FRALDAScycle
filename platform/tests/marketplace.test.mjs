@@ -3,6 +3,7 @@ import test from "node:test";
 import { createMarketplaceService, MarketplaceError } from "../apps/api/marketplace-service.js";
 import { createApiServer } from "../apps/api/server.js";
 import { loadConfig } from "../apps/api/config.js";
+import { createMarketplaceRepository } from "../database/marketplace-repository.js";
 
 function repository() {
   const items = [];
@@ -88,4 +89,27 @@ test("HTTP marketplace keeps public reads open and protects writes", async (cont
   });
   assert.equal(created.status, 201);
   assert.equal((await created.json()).listing.sellerId, "user-1");
+});
+
+test("marketplace validates radius and orders PostgreSQL results by distance", async () => {
+  let filters;
+  const store = repository();
+  store.search = async (input) => { filters = input; return []; };
+  const service = createMarketplaceService(store);
+  await service.search({ latitude: "-19.9167", longitude: "-43.9345", radiusKm: "15" });
+  assert.equal(filters.latitude, -19.9167);
+  assert.equal(filters.longitude, -43.9345);
+  assert.equal(filters.radiusKm, 15);
+  await assert.rejects(
+    service.search({ latitude: "-19.9" }),
+    (error) => error.code === "invalid_location" && error.status === 422,
+  );
+
+  let query;
+  const database = { async query(text, values) { query = { text, values }; return { rows: [] }; } };
+  await createMarketplaceRepository(database).search(filters);
+  assert.match(query.text, /distance_km/);
+  assert.match(query.text, /6371 \* acos/);
+  assert.match(query.text, /ORDER BY distance_km ASC NULLS LAST/);
+  assert.deepEqual(query.values.slice(3, 6), [-19.9167, -43.9345, 15]);
 });
