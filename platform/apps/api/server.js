@@ -1,42 +1,105 @@
 import { createServer } from "node:http";
+import { readJson } from "./body.js";
+import { clearSessionCookie, readSessionCookie, sessionCookie } from "./cookies.js";
 import { loadConfig } from "./config.js";
+import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 
-export function createApiServer({ config = loadConfig(), readiness = async () => ({ database: "not-configured" }) } = {}) {
+function unavailable(response, headers) {
+  sendJson(response, 503, {
+    error: { code: "identity_unavailable", message: "Serviço de identidade indisponível." },
+  }, headers);
+}
+
+export function createApiServer({
+  config = loadConfig(),
+  readiness = async () => ({ database: "not-configured" }),
+  authService = null,
+} = {}) {
   return createServer(async (request, response) => {
     const id = requestId(request);
     const url = new URL(request.url, "http://localhost");
     const headers = { "x-request-id": id, ...corsHeaders(request.headers.origin, config.corsOrigins) };
 
-    if (request.method === "OPTIONS") {
-      response.writeHead(204, {
-        ...headers,
-        "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-        "access-control-allow-headers": "content-type,authorization,x-request-id",
-      });
-      response.end();
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/health") {
-      sendJson(response, 200, { status: "ok", service: "fraldacycle-api", requestId: id }, headers);
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/ready") {
-      try {
-        const dependencies = await readiness();
-        sendJson(response, 200, { status: "ready", dependencies, requestId: id }, headers);
-      } catch {
-        sendJson(response, 503, { status: "unavailable", requestId: id }, headers);
+    try {
+      if (request.method === "OPTIONS") {
+        response.writeHead(204, {
+          ...headers,
+          "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "access-control-allow-headers": "content-type,authorization,x-request-id",
+        });
+        response.end();
+        return;
       }
-      return;
-    }
 
-    sendJson(response, 404, {
-      error: { code: "route_not_found", message: "Rota não encontrada." },
-      requestId: id,
-    }, headers);
+      if (request.method === "GET" && url.pathname === "/health") {
+        sendJson(response, 200, { status: "ok", service: "fraldacycle-api", requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "GET" && url.pathname === "/ready") {
+        try {
+          const dependencies = await readiness();
+          sendJson(response, 200, { status: "ready", dependencies, requestId: id }, headers);
+        } catch {
+          sendJson(response, 503, { status: "unavailable", requestId: id }, headers);
+        }
+        return;
+      }
+
+      if (url.pathname.startsWith("/v1/auth/") && !authService) {
+        unavailable(response, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/register") {
+        const result = await authService.register(await readJson(request));
+        sendJson(response, 201, { ...result, requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/login") {
+        const result = await authService.login(await readJson(request), {
+          userAgent: request.headers["user-agent"],
+        });
+        sendJson(response, 200, { user: result.user, expiresAt: result.expiresAt, requestId: id }, {
+          ...headers,
+          "set-cookie": sessionCookie(result.token, {
+            secure: config.nodeEnv === "production",
+            maxAge: config.sessionTtlSeconds,
+          }),
+        });
+        return;
+      }
+
+      if (request.method === "GET" && url.pathname === "/v1/auth/session") {
+        const user = await authService.session(readSessionCookie(request.headers.cookie));
+        if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
+        sendJson(response, 200, { user, requestId: id }, headers);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/logout") {
+        await authService.logout(readSessionCookie(request.headers.cookie));
+        sendJson(response, 200, { success: true, requestId: id }, {
+          ...headers,
+          "set-cookie": clearSessionCookie({ secure: config.nodeEnv === "production" }),
+        });
+        return;
+      }
+
+      sendJson(response, 404, {
+        error: { code: "route_not_found", message: "Rota não encontrada." },
+        requestId: id,
+      }, headers);
+    } catch (error) {
+      const status = Number.isInteger(error?.status) ? error.status : 500;
+      const code = error?.code ?? "internal_error";
+      const message = status >= 500
+        ? "Não foi possível concluir a solicitação."
+        : error.message;
+      sendJson(response, status, { error: { code, message }, requestId: id }, headers);
+    }
   });
 }
 

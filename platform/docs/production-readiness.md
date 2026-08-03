@@ -14,7 +14,8 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] esquema PostgreSQL inicial;
 - [x] testes automatizados;
 - [x] adaptador PostgreSQL e execução de migrações;
-- [ ] cadastro, login, verificação e recuperação;
+- [x] cadastro, login, sessão e logout;
+- [ ] verificação de e-mail e recuperação;
 - [ ] autorização por papel e escopo;
 - [ ] rate limiting e proteção contra abuso;
 - [ ] observabilidade e gestão de segredos no ambiente hospedado.
