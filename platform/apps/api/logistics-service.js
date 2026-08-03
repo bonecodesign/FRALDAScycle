@@ -25,6 +25,11 @@ export function createLogisticsService(repository,provider){
       const attached=await repository.attachProvider({shipmentId:created.id,...remote});
       return {shipment:publicShipment(attached),reused:false};
     },
+    async assign(courierId,shipmentId){
+      const shipment=await repository.assignCourier({courierId,shipmentId});
+      if(!shipment)throw new LogisticsError("shipment_not_available",409,"Entrega não está disponível.");
+      return publicShipment(shipment);
+    },
     async detail(userId,shipmentId){
       const shipment=await repository.detail({userId,shipmentId});
       if(!shipment)throw new LogisticsError("shipment_not_found",404,"Entrega não encontrada.");
