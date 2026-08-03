@@ -32,7 +32,9 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] adaptador de rate limiting distribuído para múltiplas instâncias, com contrato HTTPS configurável;
 - [ ] credenciais e endpoint do provedor Redis/rate limiting distribuído;
 - [x] validação de segredos obrigatórios em produção;
-- [ ] armazenamento externo de segredos e observabilidade hospedada;
+- [x] resolvedor HTTPS para armazenamento externo de segredos com allowlist de chaves;
+- [x] logs estruturados e adaptador HTTPS para observabilidade hospedada;
+- [ ] credenciais e endpoints dos provedores externos de segredos e observabilidade;
 
 ## Regra imutável
 
