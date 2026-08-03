@@ -67,6 +67,8 @@ test("admin HTTP endpoints enforce moderator and administrator boundaries", asyn
   const adminService = {
     async auditEvents() { return [{ id: 1, action: "user.role.changed" }]; },
     async changeUserRole(actor, id, input) { return { id, role: input.role, actor: actor.id }; },
+    async createInvitation(actor, input) { return { invitation: { id: "invite-1", role: input.role, invitedBy: actor.id }, queued: true }; },
+    async acceptInvitation() { return { user: { id: "invited-1", role: "courier", emailVerified: true } }; },
   };
   const server = createApiServer({
     config: loadConfig({ NODE_ENV: "test" }), authService, adminService,
@@ -99,6 +101,29 @@ test("admin HTTP endpoints enforce moderator and administrator boundaries", asyn
   });
   assert.equal(adminChange.status, 200);
   assert.equal((await adminChange.json()).user.role, "courier");
+
+  const moderatorInvite = await fetch(origin + "/v1/admin/invitations", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: "fc_session=moderator" },
+    body: JSON.stringify({ displayName: "Nova Pessoa", email: "nova@example.com", role: "courier" }),
+  });
+  assert.equal(moderatorInvite.status, 403);
+
+  const adminInvite = await fetch(origin + "/v1/admin/invitations", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: "fc_session=admin" },
+    body: JSON.stringify({ displayName: "Nova Pessoa", email: "nova@example.com", role: "courier" }),
+  });
+  assert.equal(adminInvite.status, 201);
+  assert.equal((await adminInvite.json()).queued, true);
+
+  const accepted = await fetch(origin + "/v1/auth/invitations/accept", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: "a".repeat(43), password: "senha-muito-segura" }),
+  });
+  assert.equal(accepted.status, 201);
+  assert.equal((await accepted.json()).user.emailVerified, true);
 });
 
 test("user suspension revokes sessions and persists an audit reason atomically", async () => {
@@ -239,4 +264,78 @@ test("session management endpoints preserve current access and require admin sco
   });
   assert.equal(revoked.status, 200);
   assert.equal((await revoked.json()).revokedCount, 2);
+});
+
+
+test("administrative invitations persist only the token hash and queue delivery atomically", async () => {
+  const statements = [];
+  const invitationId = "33333333-3333-4333-8333-333333333333";
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/SELECT id FROM users/.test(text)) return { rows: [] };
+      if (/INSERT INTO admin_invitations/.test(text)) {
+        return { rows: [{ id: invitationId, email: "nova@example.com", role: "courier" }] };
+      }
+      return { rows: [] };
+    },
+  };
+  const repository = createAdminRepository({
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  });
+  const token = "raw-secret-token";
+  const invitation = await repository.createInvitation({
+    actorUserId: "22222222-2222-4222-8222-222222222222",
+    email: "nova@example.com",
+    displayName: "Nova Pessoa",
+    role: "courier",
+    tokenHash: Buffer.from("hash"),
+    token,
+    expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+  });
+
+  assert.equal(invitation.id, invitationId);
+  assert.equal(statements.length, 5);
+  assert.match(statements[2].text, /INSERT INTO admin_invitations/);
+  assert.equal(statements[2].values.includes(token), false);
+  assert.match(statements[3].text, /notification_outbox/);
+  assert.match(statements[3].values[1], /raw-secret-token/);
+  assert.match(statements[4].text, /admin\.invitation\.created/);
+});
+
+test("invitation acceptance is single-use, creates a verified account and records audit", async () => {
+  const statements = [];
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/UPDATE admin_invitations/.test(text)) {
+        return { rows: [{
+          id: "invite-1", email: "nova@example.com", display_name: "Nova Pessoa",
+          role: "courier", invited_by: "admin-1",
+        }] };
+      }
+      if (/INSERT INTO users/.test(text)) {
+        return { rows: [{
+          id: "user-1", email: "nova@example.com", display_name: "Nova Pessoa",
+          role: "courier", email_verified_at: new Date(),
+        }] };
+      }
+      return { rows: [] };
+    },
+  };
+  const repository = createAdminRepository({
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  });
+  const user = await repository.acceptInvitation({
+    tokenHash: Buffer.from("hash"),
+    passwordHash: "protected-password",
+  });
+
+  assert.equal(user.role, "courier");
+  assert.equal(statements.length, 3);
+  assert.match(statements[0].text, /consumed_at IS NULL AND expires_at > now\(\)/);
+  assert.match(statements[1].text, /email_verified_at/);
+  assert.match(statements[2].text, /admin\.invitation\.accepted/);
 });
