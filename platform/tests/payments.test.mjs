@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 import { createPaymentService } from "../apps/api/payment-service.js";
 import { createPaymentProvider } from "../apps/api/payment-provider.js";
@@ -158,4 +159,121 @@ test("payment configuration requires paired HTTPS credentials", () => {
   assert.throws(() => loadConfig({
     PAYMENT_PROVIDER_URL: "http://payments.example.test", PAYMENT_PROVIDER_SECRET: "secret",
   }), /must use HTTPS/);
+});
+
+
+test("payment webhook verifies HMAC signature and rejects tampering or stale replay", () => {
+  const secret = "webhook-secret";
+  const adapter = createPaymentProvider(loadConfig({
+    NODE_ENV: "test", PAYMENT_WEBHOOK_SECRET: secret,
+  }));
+  const event = {
+    id: "evt-1", type: "payment.paid", createdAt: "2026-08-03T12:00:00.000Z",
+    data: { reference: "provider-1", amountCents: 10_000 },
+  };
+  const raw = Buffer.from(JSON.stringify(event));
+  const timestamp = 1_786_276_800;
+  const signature = createHmac("sha256", secret).update(`${timestamp}.`).update(raw).digest("hex");
+  const verified = adapter.verifyWebhook({
+    raw, timestamp: String(timestamp), signature: `v1=${signature}`,
+    now: () => timestamp * 1000,
+  });
+  assert.equal(verified.id, "evt-1");
+  assert.equal(verified.type, "payment.paid");
+  assert.equal(verified.amountCents, 10_000);
+
+  assert.throws(() => adapter.verifyWebhook({
+    raw: Buffer.from(JSON.stringify({ ...event, data: { ...event.data, amountCents: 1 } })),
+    timestamp: String(timestamp), signature: `v1=${signature}`, now: () => timestamp * 1000,
+  }), (error) => error.code === "invalid_webhook_signature" && error.status === 401);
+  assert.throws(() => adapter.verifyWebhook({
+    raw, timestamp: String(timestamp), signature: `v1=${signature}`,
+    now: () => (timestamp + 301) * 1000,
+  }), (error) => error.code === "invalid_webhook_timestamp");
+});
+
+test("payment webhook ledger prevents replay and updates payment transaction and audit atomically", async () => {
+  const statements = [];
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/INSERT INTO payment_webhook_events/.test(text)) return { rows: [{ id: "evt-1" }] };
+      if (/SELECT p\.id/.test(text)) return { rows: [{
+        id: "intent-1", transaction_id: transactionId, amount_cents: 10_000, status: "pending",
+      }] };
+      return { rows: [] };
+    },
+  };
+  const repository = createPaymentRepository({
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  });
+  const result = await repository.processWebhook({
+    id: "evt-1", type: "payment.refunded", providerReference: "provider-1",
+    amountCents: 10_000, occurredAt: new Date(), payloadHash: Buffer.from("hash"),
+  });
+  assert.equal(result.status, "refunded");
+  assert.equal(statements.length, 5);
+  assert.match(statements[0].text, /ON CONFLICT \(id\) DO NOTHING/);
+  assert.match(statements[2].text, /UPDATE payment_intents/);
+  assert.deepEqual(statements[2].values, ["intent-1", "refunded"]);
+  assert.match(statements[3].text, /UPDATE transactions/);
+  assert.deepEqual(statements[3].values, [transactionId, "refunded"]);
+  assert.match(statements[4].text, /payment\.webhook\.processed/);
+});
+
+test("duplicate financial webhook is acknowledged without repeating side effects", async () => {
+  let calls = 0;
+  const repository = createPaymentRepository({
+    async transaction(operation) {
+      return operation({ async query() { calls += 1; return { rows: [] }; } });
+    },
+    async query() { return { rows: [] }; },
+  });
+  const result = await repository.processWebhook({
+    id: "evt-replayed", type: "payment.paid", providerReference: "provider-1",
+    amountCents: 10_000, occurredAt: new Date(), payloadHash: Buffer.from("hash"),
+  });
+  assert.deepEqual(result, { duplicate: true });
+  assert.equal(calls, 1);
+});
+
+test("signed payment webhook endpoint is public to the provider but never unsigned", async (context) => {
+  const paymentService = {
+    async processWebhook(event) { return { accepted: true, duplicate: false, status: event.type }; },
+  };
+  const paymentProvider = {
+    verifyWebhook({ timestamp, signature }) {
+      if (!timestamp || signature !== "valid") {
+        const error = new Error("invalid");
+        error.code = "invalid_webhook_signature";
+        error.status = 401;
+        throw error;
+      }
+      return { type: "payment.paid" };
+    },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }), paymentService, paymentProvider,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const body = JSON.stringify({ id: "evt-http" });
+
+  const denied = await fetch(origin + "/v1/payments/webhooks", {
+    method: "POST", headers: { "content-type": "application/json" }, body,
+  });
+  assert.equal(denied.status, 401);
+  const accepted = await fetch(origin + "/v1/payments/webhooks", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-payment-timestamp": "123",
+      "x-payment-signature": "valid",
+    },
+    body,
+  });
+  assert.equal(accepted.status, 200);
+  assert.equal((await accepted.json()).accepted, true);
 });
