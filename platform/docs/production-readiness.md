@@ -13,7 +13,7 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] tokens de sessão opacos;
 - [x] esquema PostgreSQL inicial;
 - [x] testes automatizados;
-- [ ] adaptador PostgreSQL e execução de migrações;
+- [x] adaptador PostgreSQL e execução de migrações;
 - [ ] cadastro, login, verificação e recuperação;
 - [ ] autorização por papel e escopo;
 - [ ] rate limiting e proteção contra abuso;
