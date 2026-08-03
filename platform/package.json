@@ -2,11 +2,15 @@
   "name": "@fraldacycle/platform",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "dev:site": "node tools/dev-server.mjs site 4101",
     "dev:app": "node tools/dev-server.mjs app 4102",
-    "dev:admin": "node tools/dev-server.mjs admin 4103"
+    "dev:admin": "node tools/dev-server.mjs admin 4103",
+    "dev:api": "node apps/api/server.js",
+    "check:production": "node --check apps/api/config.js && node --check apps/api/http.js && node --check apps/api/security.js && node --check apps/api/server.js"
   }
 }
