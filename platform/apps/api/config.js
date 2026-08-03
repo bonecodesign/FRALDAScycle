@@ -16,6 +16,9 @@ export function loadConfig(env = process.env) {
   if (paymentProviderUrl && !paymentProviderUrl.startsWith("https://")) {
     throw new Error("PAYMENT_PROVIDER_URL must use HTTPS");
   }
+  if (nodeEnv === "production" && paymentProviderUrl && !paymentWebhookSecret) {
+    throw new Error("PAYMENT_WEBHOOK_SECRET is required with a production payment provider");
+  }
   const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
   const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
   if (Boolean(telemetryProviderUrl) !== Boolean(telemetryProviderSecret)) {
