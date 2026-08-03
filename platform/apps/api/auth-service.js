@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { createSessionToken, hashPassword, verifyPassword } from "./security.js";
+import { createSessionToken, createVerificationCode, hashPassword, verifyPassword } from "./security.js";
 import { createNotificationService } from "./notifications.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -15,7 +15,21 @@ export class AuthError extends Error {
 }
 
 export function normalizeEmail(value) {
-  return String(value ?? "").trim().toLocaleLowerCase("pt-BR");
+  const normalized = String(value ?? "").trim().toLocaleLowerCase("pt-BR");
+  return normalized || null;
+}
+
+export function normalizePhone(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
+function contactFromInput(input) {
+  const email = normalizeEmail(input?.email);
+  const phone = normalizePhone(input?.phone);
+  if (email && !EMAIL_PATTERN.test(email)) throw new AuthError("invalid_email", 422, "Informe um e-mail válido.");
+  if (!email && !phone) throw new AuthError("invalid_contact", 422, "Informe um e-mail ou telefone válido.");
+  return { email, phone };
 }
 
 export function hashSessionToken(token) {
@@ -43,7 +57,7 @@ export function createAuthService(repository, {
   maxLoginAttempts = 5,
 } = {}) {
   async function issueToken(user, kind) {
-    const token = createSessionToken();
+    const token = createVerificationCode();
     await repository.createAuthToken({
       userId: user.id,
       kind,
@@ -51,25 +65,23 @@ export function createAuthService(repository, {
       expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
     });
     if (kind === "email_verification") {
-      await notificationService.verification({ email: user.email, token });
+      await notificationService.verification({ email: user.email, phone: user.phone, token });
     } else {
-      await notificationService.passwordRecovery({ email: user.email, token });
+      await notificationService.passwordRecovery({ email: user.email, phone: user.phone, token });
     }
   }
 
   return Object.freeze({
     async register(input) {
-      const email = normalizeEmail(input?.email);
+      const { email, phone } = contactFromInput(input);
       const displayName = String(input?.displayName ?? "").trim();
       const password = String(input?.password ?? "");
-      if (!EMAIL_PATTERN.test(email)) throw new AuthError("invalid_email", 422, "Informe um e-mail válido.");
       if (displayName.length < 2 || displayName.length > 100) throw new AuthError("invalid_display_name", 422, "Informe seu nome.");
       if (password.length < 12) throw new AuthError("weak_password", 422, "A senha deve ter pelo menos 12 caracteres.");
 
       try {
         const user = await repository.createUser({
-          email, displayName, passwordHash: await hashPassword(password),
-          phone: input?.phone ? String(input.phone).trim() : null,
+          email, phone, displayName, passwordHash: await hashPassword(password),
         });
         await issueToken(user, "email_verification");
         return { user: publicUser(user), verificationRequired: true };
@@ -80,15 +92,15 @@ export function createAuthService(repository, {
     },
 
     async login(input, context = {}) {
-      const email = normalizeEmail(input?.email);
-      const emailHash = hashIdentifier(email);
-      if (await repository.countRecentFailedAttempts(emailHash) >= maxLoginAttempts) {
+      const contact = contactFromInput(input);
+      const identityHash = hashIdentifier(contact.email ?? contact.phone);
+      if (await repository.countRecentFailedAttempts(identityHash) >= maxLoginAttempts) {
         throw new AuthError("too_many_attempts", 429, "Muitas tentativas. Aguarde alguns minutos.");
       }
-      const user = await repository.findUserByEmail(email);
+      const user = await repository.findUserByContact(contact);
       const candidateHash = user?.password_hash ?? await hashPassword("fraldacycle-dummy-password");
       const valid = await verifyPassword(String(input?.password ?? ""), candidateHash);
-      await repository.recordLoginAttempt({ emailHash, succeeded: Boolean(valid && user && !user.disabled_at) });
+      await repository.recordLoginAttempt({ emailHash: identityHash, succeeded: Boolean(valid && user && !user.disabled_at) });
       if (!valid || !user || user.disabled_at) throw new AuthError("invalid_credentials", 401, "E-mail ou senha inválidos.");
 
       const token = createSessionToken();
@@ -112,7 +124,7 @@ export function createAuthService(repository, {
     },
 
     async requestVerification(input) {
-      const user = await repository.findUserByEmail(normalizeEmail(input?.email));
+      const user = await repository.findUserByContact(contactFromInput(input));
       if (user && !user.email_verified_at && !user.disabled_at) await issueToken(user, "email_verification");
       return { accepted: true };
     },
@@ -127,7 +139,7 @@ export function createAuthService(repository, {
     },
 
     async requestPasswordRecovery(input) {
-      const user = await repository.findUserByEmail(normalizeEmail(input?.email));
+      const user = await repository.findUserByContact(contactFromInput(input));
       if (user && !user.disabled_at) await issueToken(user, "password_recovery");
       return { accepted: true };
     },
