@@ -9,6 +9,7 @@ import { handleAdmin } from "./admin-handler.js";
 import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 import { createTelemetry } from "./telemetry.js";
 import { handlePayments } from "./payment-handler.js";
+import { handleLogistics } from "./logistics-handler.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -24,6 +25,7 @@ export function createApiServer({
   marketplaceProviders = null,
   paymentService = null,
   paymentProvider = null,
+  logisticsService = null,
   adminService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
@@ -157,6 +159,10 @@ export function createApiServer({
         });
         return;
       }
+
+      if (await handleLogistics(request, response, {
+        url, headers, requestId: id, authService, logisticsService,
+      })) return;
 
       if (await handlePayments(request, response, {
         url, headers, requestId: id, authService, paymentService, paymentProvider,

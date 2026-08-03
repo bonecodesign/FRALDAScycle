@@ -7,6 +7,14 @@ function integer(value, fallback) {
 
 export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
+  const logisticsProviderUrl = env.LOGISTICS_PROVIDER_URL ?? null;
+  const logisticsProviderSecret = env.LOGISTICS_PROVIDER_SECRET ?? null;
+  if (Boolean(logisticsProviderUrl) !== Boolean(logisticsProviderSecret)) {
+    throw new Error("LOGISTICS_PROVIDER_URL and LOGISTICS_PROVIDER_SECRET must be configured together");
+  }
+  if (logisticsProviderUrl && !logisticsProviderUrl.startsWith("https://")) {
+    throw new Error("LOGISTICS_PROVIDER_URL must use HTTPS");
+  }
   const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
   const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
   const paymentWebhookSecret = env.PAYMENT_WEBHOOK_SECRET ?? null;
@@ -72,6 +80,8 @@ export function loadConfig(env = process.env) {
     rateLimitProviderSecret,
     telemetryProviderUrl,
     telemetryProviderSecret,
+    logisticsProviderUrl,
+    logisticsProviderSecret,
     paymentProviderUrl,
     paymentProviderSecret,
     paymentWebhookSecret,
