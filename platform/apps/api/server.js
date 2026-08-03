@@ -6,7 +6,7 @@ import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
 import { handleAdmin } from "./admin-handler.js";
-import { createRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
+import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -21,11 +21,8 @@ export function createApiServer({
   marketplaceService = null,
   marketplaceProviders = null,
   adminService = null,
+  rateLimiter = createConfiguredRateLimiter(config),
 } = {}) {
-  const rateLimiter = createRateLimiter({
-    limit: config.rateLimitMax,
-    windowMs: config.rateLimitWindowSeconds * 1000,
-  });
   return createServer(async (request, response) => {
     const id = requestId(request);
     const url = new URL(request.url, "http://localhost");
@@ -57,7 +54,7 @@ export function createApiServer({
         return;
       }
 
-      const rate = rateLimiter.consume(requestClientKey(request));
+      const rate = await rateLimiter.consume(requestClientKey(request));
       headers = { ...headers, ...rateLimitHeaders(rate) };
       if (!rate.allowed) {
         sendJson(response, 429, {

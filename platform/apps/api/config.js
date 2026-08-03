@@ -7,6 +7,14 @@ function integer(value, fallback) {
 
 export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
+  const rateLimitProviderUrl = env.RATE_LIMIT_PROVIDER_URL ?? null;
+  const rateLimitProviderSecret = env.RATE_LIMIT_PROVIDER_SECRET ?? null;
+  if (Boolean(rateLimitProviderUrl) !== Boolean(rateLimitProviderSecret)) {
+    throw new Error("RATE_LIMIT_PROVIDER_URL and RATE_LIMIT_PROVIDER_SECRET must be configured together");
+  }
+  if (rateLimitProviderUrl && !rateLimitProviderUrl.startsWith("https://")) {
+    throw new Error("RATE_LIMIT_PROVIDER_URL must use HTTPS");
+  }
   if (nodeEnv === "production") {
     for (const key of REQUIRED_IN_PRODUCTION) {
       if (!env[key]) throw new Error(`Missing required production configuration: ${key}`);
@@ -29,6 +37,8 @@ export function loadConfig(env = process.env) {
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
     rateLimitMax: integer(env.RATE_LIMIT_MAX, 120),
     rateLimitWindowSeconds: integer(env.RATE_LIMIT_WINDOW_SECONDS, 60),
+    rateLimitProviderUrl,
+    rateLimitProviderSecret,
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
