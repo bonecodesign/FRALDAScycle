@@ -35,6 +35,35 @@ function repository() {
       return { ...user, display_name: user.display_name };
     },
     async revokeSession(tokenHash) { return sessions.delete(tokenHash.toString("hex")); },
+    tokens: new Map(),
+    attempts: new Map(),
+    async createAuthToken(input) { this.tokens.set(input.tokenHash.toString("hex"), input); },
+    async consumeAuthToken({ tokenHash, kind }) {
+      const key = tokenHash.toString("hex");
+      const value = this.tokens.get(key);
+      if (!value || value.kind !== kind || value.expiresAt <= new Date()) return null;
+      this.tokens.delete(key);
+      return value.userId;
+    },
+    async markEmailVerified(userId) {
+      const user = [...users.values()].find(({ id }) => id === userId);
+      user.email_verified_at = new Date();
+      return user;
+    },
+    async replacePasswordAndRevokeSessions(userId, passwordHash) {
+      const user = [...users.values()].find(({ id }) => id === userId);
+      user.password_hash = passwordHash;
+      for (const [key, value] of sessions) if (value.userId === userId) sessions.delete(key);
+    },
+    async recordLoginAttempt({ emailHash, succeeded }) {
+      const key = emailHash.toString("hex");
+      const values = this.attempts.get(key) ?? [];
+      values.push(succeeded);
+      this.attempts.set(key, values);
+    },
+    async countRecentFailedAttempts(emailHash) {
+      return (this.attempts.get(emailHash.toString("hex")) ?? []).filter((value) => !value).length;
+    },
   };
 }
 
@@ -160,4 +189,52 @@ test("HTTP identity rejects malformed and oversized payloads safely", async (con
     method: "POST", headers: { "content-type": "text/plain" }, body: "{}",
   });
   assert.equal(wrongType.status, 415);
+});
+
+test("verification and recovery use one-time tokens and revoke sessions", async () => {
+  const sent = [];
+  const auth = createAuthService(repository(), {
+    notificationService: {
+      async verification(message) { sent.push(["verification", message]); },
+      async passwordRecovery(message) { sent.push(["recovery", message]); },
+    },
+  });
+  await auth.register({
+    email: "bia@example.com", displayName: "Bia Lima", password: "senha-segura-2026",
+  });
+  assert.equal(sent[0][0], "verification");
+  const verificationToken = sent[0][1].token;
+  assert.equal((await auth.verifyEmail({ token: verificationToken })).user.emailVerified, true);
+  await assert.rejects(auth.verifyEmail({ token: verificationToken }), /inválido ou expirado/i);
+
+  const login = await auth.login({ email: "bia@example.com", password: "senha-segura-2026" });
+  await auth.requestPasswordRecovery({ email: "bia@example.com" });
+  const recoveryToken = sent.at(-1)[1].token;
+  assert.deepEqual(await auth.resetPassword({ token: recoveryToken, password: "nova-senha-segura-2026" }), { success: true });
+  assert.equal(await auth.session(login.token), null);
+  await assert.rejects(
+    auth.login({ email: "bia@example.com", password: "senha-segura-2026" }),
+    (error) => error.code === "invalid_credentials",
+  );
+  assert.ok((await auth.login({ email: "bia@example.com", password: "nova-senha-segura-2026" })).token);
+});
+
+test("recovery requests do not reveal whether an account exists", async () => {
+  const auth = createAuthService(repository());
+  assert.deepEqual(await auth.requestPasswordRecovery({ email: "nobody@example.com" }), { accepted: true });
+  assert.deepEqual(await auth.requestVerification({ email: "nobody@example.com" }), { accepted: true });
+});
+
+test("login attempts are limited per normalized identity", async () => {
+  const auth = createAuthService(repository(), { maxLoginAttempts: 2 });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await assert.rejects(
+      auth.login({ email: "blocked@example.com", password: "senha-incorreta" }),
+      (error) => error.code === "invalid_credentials",
+    );
+  }
+  await assert.rejects(
+    auth.login({ email: "BLOCKED@example.com", password: "senha-incorreta" }),
+    (error) => error.code === "too_many_attempts" && error.status === 429,
+  );
 });

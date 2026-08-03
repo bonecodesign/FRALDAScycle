@@ -15,7 +15,9 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] testes automatizados;
 - [x] adaptador PostgreSQL e execução de migrações;
 - [x] cadastro, login, sessão e logout;
-- [ ] verificação de e-mail e recuperação;
+- [x] verificação de e-mail e recuperação;
+- [x] limitação de tentativas por identidade;
+- [ ] provedor externo de e-mail/SMS;
 - [ ] autorização por papel e escopo;
 - [ ] rate limiting e proteção contra abuso;
 - [ ] observabilidade e gestão de segredos no ambiente hospedado.
