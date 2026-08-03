@@ -22,11 +22,16 @@ function listingCard(item, surface) {
   return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
 }
 
-export async function loadLiveSearch({ surface, query = "", kind = "", size = "" }) {
+export async function loadLiveSearch({ surface, query = "", kind = "", size = "", latitude = null, longitude = null, radiusKm = null }) {
   const params = new URLSearchParams();
   if (query) params.set("query", query);
   if (kind) params.set("kind", { Venda: "sale", Troca: "exchange", Doação: "donation" }[kind] ?? kind);
   if (size) params.set("size", size);
+  if (latitude != null && longitude != null) {
+    params.set("latitude", latitude);
+    params.set("longitude", longitude);
+    params.set("radiusKm", radiusKm ?? 25);
+  }
   const { items } = await apiRequest(`/v1/listings?${params}`);
   return { items, markup: items.map((item) => listingCard(item, surface)).join("") };
 }
@@ -49,6 +54,18 @@ export async function renderSiteSearch() {
   await refresh();
 }
 
+function currentCoordinates() {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 2_500);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => { clearTimeout(timer); resolve({ latitude: coords.latitude, longitude: coords.longitude, radiusKm: 25 }); },
+      () => { clearTimeout(timer); resolve(null); },
+      { enableHighAccuracy: false, timeout: 2_000, maximumAge: 300_000 },
+    );
+  });
+}
+
 export async function renderAppSearch() {
   const results = document.querySelector("#app-search-results");
   const button = document.querySelector("#app-search-submit");
@@ -59,10 +76,12 @@ export async function renderAppSearch() {
     button.disabled = true;
     results.innerHTML = '<div class="ui-state loading-state" role="status"><div class="skeleton-stack"><i></i><i></i><i></i></div><p>Buscando itens próximos...</p></div>';
     try {
+      const coordinates = await currentCoordinates();
       const { items, markup } = await loadLiveSearch({
         surface: "app", query: input.value.trim(),
         kind: document.querySelector("#app-filter-type")?.value,
         size: document.querySelector("#app-filter-size")?.value,
+        ...coordinates,
       });
       results.innerHTML = items.length ? `<div class="section-head compact"><h2>${items.length} resultados</h2><span class="muted">Dados reais</span></div><div class="phone-list">${markup}</div>` : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum item encontrado</h2><p>Tente outro termo ou tamanho.</p></div>';
       bindFavoriteButtons(results);
