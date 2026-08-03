@@ -17,10 +17,12 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] cadastro, login, sessão e logout;
 - [x] verificação de e-mail e recuperação;
 - [x] limitação de tentativas por identidade;
-- [ ] provedor externo de e-mail/SMS;
+- [x] fila transacional, worker e contrato seguro de entrega;
+- [ ] credenciais e endpoint do provedor externo de e-mail/SMS;
 - [ ] autorização por papel e escopo;
 - [ ] rate limiting e proteção contra abuso;
-- [ ] observabilidade e gestão de segredos no ambiente hospedado.
+- [x] validação de segredos obrigatórios em produção;
+- [ ] armazenamento externo de segredos e observabilidade hospedada;
 
 ## Regra imutável
 

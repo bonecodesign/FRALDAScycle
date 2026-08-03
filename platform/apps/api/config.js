@@ -14,6 +14,9 @@ export function loadConfig(env = process.env) {
     if ((env.SESSION_SECRET ?? "").length < 32) {
       throw new Error("SESSION_SECRET must contain at least 32 characters");
     }
+    for (const key of ["NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"]) {
+      if (!env[key]) throw new Error(`Missing required production configuration: ${key}`);
+    }
   }
 
   return Object.freeze({
@@ -24,6 +27,8 @@ export function loadConfig(env = process.env) {
     databaseSsl: env.DATABASE_SSL === "true",
     sessionSecret: env.SESSION_SECRET ?? "development-only-session-secret",
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
+    notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
+    notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     corsOrigins: Object.freeze((env.CORS_ORIGINS ?? "")
       .split(",").map((value) => value.trim()).filter(Boolean)),
   });

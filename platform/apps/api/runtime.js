@@ -2,14 +2,18 @@ import { loadConfig } from "./config.js";
 import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
+import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createAuthService } from "./auth-service.js";
+import { createNotificationService } from "./notifications.js";
 import { migrate } from "../../database/migrate.js";
 
 export async function startRuntime(config = loadConfig()) {
   const database = createDatabase(config);
   await migrate(database);
+  const notificationService = createNotificationService(createNotificationRepository(database));
   const authService = createAuthService(createAuthRepository(database), {
     sessionTtlSeconds: config.sessionTtlSeconds,
+    notificationService,
   });
   const server = createApiServer({
     config,
