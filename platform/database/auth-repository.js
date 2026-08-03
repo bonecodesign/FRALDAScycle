@@ -10,12 +10,14 @@ export function createAuthRepository(database) {
       return result.rows[0];
     },
 
-    async findUserByEmail(email) {
+    async findUserByContact({ email = null, phone = null }) {
       const result = await database.query(
         `SELECT id, email, phone, password_hash, display_name, role,
                 email_verified_at, disabled_at, created_at
-         FROM users WHERE email = $1 LIMIT 1`,
-        [email],
+         FROM users WHERE ($1::text IS NOT NULL AND email = $1)
+            OR ($2::text IS NOT NULL AND phone = $2)
+         LIMIT 1`,
+        [email, phone],
       );
       return result.rows[0] ?? null;
     },
