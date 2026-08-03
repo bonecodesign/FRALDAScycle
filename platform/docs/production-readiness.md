@@ -67,4 +67,7 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] transições persistentes para autorização, pagamento, falha, estorno e disputa;
 - [x] sessões curtas de tokenização e carregamento de SDK com Subresource Integrity;
 - [x] ponte da tela aprovada para intents reais sem enviar cartão à API FraldaCycle;
+- [x] solicitações persistentes e idempotentes de reembolso e disputa;
+- [x] autorização do comprador, auditoria e adaptador externo para casos financeiros;
+- [x] telas aprovadas de reembolso e disputa conectadas ao backend;
 - [ ] credenciais, SDK e formato final de webhooks do provedor financeiro;

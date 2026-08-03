@@ -30,6 +30,41 @@ function publicIntent(intent) {
 
 export function createPaymentService(repository, provider) {
   return Object.freeze({
+    async createCase(requesterId, intentId, kind, input) {
+      if (!["refund", "dispute"].includes(kind)) throw new PaymentError("invalid_payment_case", 422, "Solicitação financeira inválida.");
+      const idempotencyKey = String(input?.idempotencyKey ?? "").trim();
+      const reason = String(input?.reason ?? "").trim();
+      const details = String(input?.details ?? "").trim();
+      if (idempotencyKey.length < 16 || idempotencyKey.length > 128) throw new PaymentError("invalid_idempotency_key", 422, "Chave de idempotência inválida.");
+      if (reason.length < 2 || reason.length > 80) throw new PaymentError("invalid_case_reason", 422, "Selecione um motivo válido.");
+      if (details.length < 10 || details.length > 2000) throw new PaymentError("invalid_case_details", 422, "Descreva a situação com pelo menos 10 caracteres.");
+      const context = await repository.caseContext({ requesterId, intentId, idempotencyKey });
+      if (context.existing) return { paymentCase: context.paymentCase, reused: true };
+      const intent = context.intent;
+      if (!intent) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
+      if (!intent.provider_reference) throw new PaymentError("payment_not_submitted", 409, "Pagamento ainda não foi enviado ao provedor.");
+      const allowed = kind === "refund"
+        ? ["paid", "authorized"].includes(intent.status)
+        : ["paid", "authorized", "disputed"].includes(intent.status);
+      if (!allowed) throw new PaymentError("payment_case_not_allowed", 409, "Esta solicitação não está disponível para o pagamento.");
+      const created = await repository.createCase({
+        requesterId, intentId, kind, idempotencyKey, reason, details,
+      });
+      try {
+        const remote = await provider.createCase({
+          caseId: created.id, kind, idempotencyKey, reason, details,
+          providerReference: intent.provider_reference, amountCents: intent.amount_cents,
+        });
+        const attached = await repository.attachCaseProvider({
+          caseId: created.id, providerReference: remote.providerReference, status: remote.status,
+        });
+        return { paymentCase: attached, reused: false };
+      } catch (error) {
+        await repository.markCaseFailure({ caseId: created.id, failureCode: error.code ?? "provider_error" });
+        throw error;
+      }
+    },
+
     async tokenizationSession(userId) {
       return provider.createTokenizationSession({ userId });
     },
