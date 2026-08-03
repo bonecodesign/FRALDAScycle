@@ -1,3 +1,4 @@
+import { renderFavorites } from "/packages/contracts/marketplace-ui.js";
 import "/apps/site/home.js";
 
 const products = [
@@ -39,3 +40,5 @@ document.querySelector("#site-favorites-clear")?.addEventListener("click", () =>
   draw();
   notify("Lista de favoritos limpa");
 });
+
+window.setTimeout(() => renderFavorites({ surface: "site" }), 520);

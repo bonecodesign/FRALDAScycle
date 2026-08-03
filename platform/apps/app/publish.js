@@ -1,3 +1,4 @@
+import { publishListing } from "/packages/contracts/marketplace-ui.js";
 function notify(message) {
   const toast = document.querySelector("#toast");
   if (!toast) return;
@@ -22,11 +23,23 @@ setupPublishValidation();
 
 const publish = document.querySelector("#publish-submit");
 const publishContent = document.querySelector("#publish-content");
-publish?.addEventListener("click", () => {
+publish?.addEventListener("click", async () => {
   publish.disabled = true;
   publish.innerHTML = '<span class="inline-spinner"></span> Publicando...';
-  window.setTimeout(() => {
+  try {
+    const result = await publishListing({
+      title: "Pampers Confort M · 50 unidades",
+      description: "Pacote novo, lacrado e pronto para uma negociação segura.",
+      brand: "Pampers", size: "M", quantity: 50, kind: "sale", priceCents: 4200,
+      mediaKeys: [],
+    });
+    sessionStorage.setItem("fc.lastListingId", result.listing.id);
     publishContent.innerHTML = '<div class="ui-state success-state"><div class="state-icon success">✓</div><span class="eyebrow">Anúncio publicado</span><h1>Seu anúncio está no ar!</h1><p>Pampers Confort já pode ser encontrado por famílias próximas.</p><a class="button primary block" href="/app/home">Ver anúncio na página inicial</a><a class="button secondary block" href="/app/profile">Gerenciar meus anúncios</a></div>';
     notify("Anúncio publicado com sucesso");
-  }, 700);
+  } catch (error) {
+    notify(error.status === 401 ? "Entre na sua conta para publicar." : error.message);
+    publish.disabled = false;
+    publish.textContent = "Publicar anúncio";
+    if (error.status === 401) location.pathname = "/app/login";
+  }
 });

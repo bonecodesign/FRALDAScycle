@@ -1,3 +1,4 @@
+import { publishListing } from "/packages/contracts/marketplace-ui.js";
 import "/apps/site/home.js";
 
 function notify(message) {
@@ -45,13 +46,35 @@ function setupSitePublish(){
     const photo=document.getElementById('site-add-photo');
     if(photo)photo.addEventListener('click',()=>{photoReady=true;draw();notify('Foto adicionada ao anúncio')});
     document.getElementById('site-publish-back').addEventListener('click',()=>{if(step>1){step--;draw()}});
-    document.getElementById('site-publish-next').addEventListener('click',()=>{
+    document.getElementById('site-publish-next').addEventListener('click',async()=>{
       if(step===3&&!photoReady){document.getElementById('site-photo-error').textContent='Adicione pelo menos uma foto para continuar.';return}
       if(step<8){step++;draw();document.getElementById('site-publish-content').scrollIntoView({behavior:'smooth',block:'start'});return}
-      content.innerHTML=`<div class="ui-state success-state"><div class="state-icon success">✓</div><span class="eyebrow">Anúncio publicado</span><h2>Seu produto já está disponível</h2><p>As famílias próximas poderão encontrar e negociar este anúncio.</p><article class="review-product compact"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><h3>${data.title}</h3><strong>R$ ${data.price}</strong></div></article><div class="publish-actions action-pair"><a class="button secondary" href="/site/home">Ir para o início</a><a class="button primary" href="/site/detail">Ver anúncio</a></div></div>`;
+      try {
+        const kind = { Venda: 'sale', Troca: 'exchange', Doação: 'donation' }[data.type];
+        const numericPrice = Math.round(Number(String(data.price).replace('.', '').replace(',', '.')) * 100);
+        const result = await publishListing({
+          title: data.title,
+          description: `${data.condition}. ${data.delivery}. ${data.location}.`,
+          brand: data.brand,
+          size: data.size,
+          quantity: Number(data.quantity),
+          kind,
+          priceCents: kind === 'sale' ? numericPrice : null,
+          city: data.location.split(',')[1]?.trim() ?? null,
+          state: data.location.match(/-\s*([A-Z]{2})$/)?.[1] ?? null,
+          mediaKeys: [],
+        });
+        sessionStorage.setItem('fc.lastListingId', result.listing.id);
+      } catch (error) {
+        notify(error.status === 401 ? 'Entre na sua conta para publicar.' : error.message);
+        if (error.status === 401) location.pathname = '/site/login';
+        return;
+      }
+      content.innerHTML=`<div class="ui-state success-state"><div class="state-icon success">✓</div><span class="eyebrow">Anúncio publicado</span><h2>Seu produto já está disponível</h2><p>As famílias próximas poderão encontrar e negociar este anúncio.</p><article class="review-product compact"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><h3>${data.title}</h3><strong>R$ ${data.price}</strong></div></article><div class="publish-actions action-pair"><a class="button secondary" href="/site/home">Ir para o início</a><a class="button primary" href="/site/detail" id="site-published-detail">Ver anúncio</a></div></div>`;
       document.getElementById('site-publish-title').textContent='Publicação concluída';
       document.getElementById('site-publish-subtitle').textContent='Anúncio ativo';
       document.querySelectorAll('[data-site-publish-step]').forEach(button=>button.classList.add('done'));
+      const publishedDetail=document.getElementById('site-published-detail');if(publishedDetail)publishedDetail.href=`/site/detail?id=${sessionStorage.getItem('fc.lastListingId')}`;
       notify('Anúncio publicado com sucesso');
     });
   };
