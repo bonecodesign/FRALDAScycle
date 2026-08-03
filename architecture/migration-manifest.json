@@ -63,7 +63,7 @@
     },
     {
       "id": "app",
-      "status": "in_progress",
+      "status": "complete",
       "target": "platform/apps/app",
       "areas": [
         "home",
@@ -86,27 +86,26 @@
         "global-states"
       ],
       "migrated": [
+        "home",
         "auth",
         "otp",
-        "home",
         "marketplace",
-        "favorites",
         "publish",
         "chat",
         "proposal",
         "reservation",
-        "moderation",
         "payment",
         "wallet",
         "refund",
         "logistics",
         "profile",
+        "favorites",
         "notifications",
+        "moderation",
+        "courier",
         "global-states"
       ],
-      "next": [
-        "courier"
-      ],
+      "next": [],
       "audit": {
         "approvedIdentityRoutes": 7,
         "migratedIdentityRoutes": 7,
@@ -125,7 +124,13 @@
         "missingLogisticsRoutes": 0,
         "approvedRemainingAppRoutes": 16,
         "migratedRemainingAppRoutes": 16,
-        "missingRemainingAppRoutes": 0
+        "missingRemainingAppRoutes": 0,
+        "approvedCourierRoutes": 5,
+        "migratedCourierRoutes": 5,
+        "missingCourierRoutes": 0,
+        "approvedRoutes": 60,
+        "migratedRoutes": 60,
+        "missingRoutes": 0
       }
     },
     {
