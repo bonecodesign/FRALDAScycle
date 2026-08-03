@@ -59,6 +59,61 @@ export function createPaymentRepository(database) {
       return result.rows[0];
     },
 
+    async caseContext({ requesterId, intentId, idempotencyKey }) {
+      return database.transaction(async (client) => {
+        const existing = await client.query(
+          `SELECT id, payment_intent_id, kind, reason, details, provider_reference, status
+           FROM payment_cases WHERE idempotency_key = $1`,
+          [idempotencyKey],
+        );
+        if (existing.rows[0]) return { existing: true, paymentCase: existing.rows[0] };
+        const intent = await client.query(
+          `SELECT p.id, p.provider_reference, p.status, p.amount_cents, t.buyer_id, t.status AS transaction_status
+           FROM payment_intents p JOIN transactions t ON t.id = p.transaction_id
+           WHERE p.id = $1 AND t.buyer_id = $2 FOR UPDATE OF p`,
+          [intentId, requesterId],
+        );
+        return { existing: false, intent: intent.rows[0] ?? null };
+      });
+    },
+
+    async createCase(input) {
+      return database.transaction(async (client) => {
+        const created = await client.query(
+          `INSERT INTO payment_cases
+             (payment_intent_id, requester_id, kind, idempotency_key, reason, details)
+           VALUES ($1,$2,$3::payment_case_kind,$4,$5,$6)
+           ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
+           RETURNING *`,
+          [input.intentId, input.requesterId, input.kind, input.idempotencyKey, input.reason, input.details],
+        );
+        await client.query(
+          `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
+           VALUES ($1, $2, 'payment_case', $3, $4::jsonb)`,
+          [input.requesterId, `payment.${input.kind}.requested`, created.rows[0].id,
+           JSON.stringify({ paymentIntentId: input.intentId, reason: input.reason })],
+        );
+        return created.rows[0];
+      });
+    },
+
+    async attachCaseProvider({ caseId, providerReference, status }) {
+      const result = await database.query(
+        `UPDATE payment_cases SET provider_reference = $2, status = $3::payment_case_status, updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [caseId, providerReference, status],
+      );
+      return result.rows[0];
+    },
+
+    async markCaseFailure({ caseId, failureCode }) {
+      await database.query(
+        `UPDATE payment_cases SET status = 'failed', failure_code = $2, updated_at = now()
+         WHERE id = $1 AND status = 'provider_pending'`,
+        [caseId, failureCode],
+      );
+    },
+
     async processWebhook(event) {
       return database.transaction(async (client) => {
         const inserted = await client.query(
