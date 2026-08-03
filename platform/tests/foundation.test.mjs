@@ -449,6 +449,8 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
   assert.match(behavior, /setupAdmin\(\)/);
   assert.match(behavior, /setupAdminAds\(\)/);
   assert.match(behavior, /admin-user-search/);
+  assert.match(behavior, /\/v1\/admin\/users/);
+  assert.match(behavior, /loadLiveAdminUsers/);
   assert.match(behavior, /rbac-save/);
   assert.match(behavior, /admin-ad-search/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
@@ -531,6 +533,7 @@ test("transfers Admin security moderation audit webhooks and settings governance
   assert.match(behavior, /setupAdminModeration\(\)/);
   assert.match(behavior, /setupAdminAudit\(\)/);
   assert.match(behavior, /\/v1\/admin\/audit-events/);
+  assert.match(behavior, /audit-events\.csv/);
   assert.match(behavior, /loadLiveAudit/);
   assert.match(behavior, /setupAdminSettings\(\)/);
   assert.match(await readFile(resolve(root, "apps/admin/audit.html"), "utf8"), /webhook/i);

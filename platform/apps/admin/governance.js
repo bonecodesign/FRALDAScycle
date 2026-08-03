@@ -1,4 +1,4 @@
-import { apiRequest } from "/packages/contracts/api-client.js";
+import { apiOrigin, apiRequest } from "/packages/contracts/api-client.js";
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -66,3 +66,15 @@ async function loadLiveAudit(){
 }
 document.getElementById('audit-refresh')?.addEventListener('click',loadLiveAudit);
 loadLiveAudit();
+
+document.getElementById('audit-export')?.addEventListener('click',async event=>{
+  event.preventDefault();event.stopImmediatePropagation();
+  const button=event.currentTarget;button.disabled=true;button.textContent='Preparando CSV…';
+  try{
+    const response=await fetch(`${apiOrigin()}/v1/admin/audit-events.csv`,{credentials:'include'});
+    if(!response.ok){const payload=await response.json().catch(()=>({}));throw new Error(payload.error?.message||'Não foi possível exportar a auditoria.')}
+    const blob=await response.blob();const url=URL.createObjectURL(blob);const link=document.createElement('a');
+    link.href=url;link.download='fraldacycle-auditoria.csv';link.click();URL.revokeObjectURL(url);
+    button.textContent='CSV exportado';notify('Auditoria real exportada com mascaramento e proteção');
+  }catch(error){button.disabled=false;button.textContent='Exportar CSV';notify(error.message)}
+},true);
