@@ -36,7 +36,9 @@ async function providerRequest(endpoint, secret, payload, fetchImpl) {
     throw new ProviderError("provider_unavailable", 503, "Integração externa temporariamente indisponível.");
   }
   if (!response.ok) throw new ProviderError("provider_rejected", 502, "O provedor externo recusou a solicitação.");
-  return response.json();
+  try { return await response.json(); } catch {
+    throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma resposta inválida.");
+  }
 }
 
 export function createMarketplaceProviders(config, fetchImpl = fetch) {
@@ -54,9 +56,13 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
       const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
         operation: "signed-upload", ownerId: userId, contentType, sizeBytes,
       }, fetchImpl);
+      const storageKey = String(result.storageKey ?? "");
+      if (!/^[a-zA-Z0-9._/-]{1,512}$/.test(storageKey) || storageKey.includes("..")) {
+        throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma chave de mídia inválida.");
+      }
       return {
         uploadUrl: httpsUrl(result.uploadUrl, "uploadUrl"),
-        storageKey: String(result.storageKey ?? "").slice(0, 512),
+        storageKey,
         expiresAt: String(result.expiresAt ?? ""),
         headers: result.headers && typeof result.headers === "object" ? result.headers : {},
       };
