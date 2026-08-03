@@ -135,7 +135,7 @@
     },
     {
       "id": "admin",
-      "status": "in_progress",
+      "status": "complete",
       "target": "platform/apps/admin",
       "areas": [
         "dashboard",
@@ -167,23 +167,21 @@
         "operations",
         "finance",
         "logistics",
+        "security",
+        "audit",
+        "webhooks",
         "reports",
         "impact",
+        "infrastructure",
+        "partnerships",
+        "innovation",
+        "launch",
         "data",
         "forecast",
         "alerts",
-        "infrastructure",
-        "security",
-        "moderation",
-        "audit",
-        "webhooks",
         "settings"
       ],
-      "next": [
-        "partnerships",
-        "innovation",
-        "launch"
-      ],
+      "next": [],
       "audit": {
         "approvedCoreRoutes": 5,
         "migratedCoreRoutes": 5,
@@ -198,7 +196,13 @@
         "approvedGovernanceRoutes": 4,
         "migratedGovernanceRoutes": 4,
         "missingGovernanceRoutes": 0,
-        "webhookPlacement": "embedded-in-audit-and-settings"
+        "webhookPlacement": "embedded-in-audit-and-settings",
+        "approvedGrowthRoutes": 3,
+        "migratedGrowthRoutes": 3,
+        "missingGrowthRoutes": 0,
+        "approvedRoutes": 19,
+        "migratedRoutes": 19,
+        "missingRoutes": 0
       }
     }
   ],
@@ -210,5 +214,12 @@
     "domain-tests",
     "api-contract-tests"
   ],
-  "lastUpdated": "2026-08-02"
+  "lastUpdated": "2026-08-02",
+  "status": "complete",
+  "summary": {
+    "site": "complete",
+    "app": "complete",
+    "admin": "complete",
+    "modifiedSourceFiles": 0
+  }
 }
