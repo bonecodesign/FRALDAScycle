@@ -507,3 +507,32 @@ test("transfers Admin data forecasts alerts and infrastructure", async () => {
   for (const name of ["adminData", "adminForecast", "adminAlerts", "adminInfrastructure"]) assert.ok(provenance.source.functions.includes(name));
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers Admin security moderation audit webhooks and settings governance", async () => {
+  const routes = [
+    ["security", /Segurança e autenticação administrativa/],
+    ["moderation", /Moderação, segurança e antifraude/],
+    ["audit", /Logs, auditoria e webhooks/],
+    ["settings", /Configurações e integrações/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/admin/governance.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/admin/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/admin/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/admin/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
+  }
+
+  assert.match(behavior, /setupAdminModeration\(\)/);
+  assert.match(behavior, /setupAdminAudit\(\)/);
+  assert.match(behavior, /setupAdminSettings\(\)/);
+  assert.match(await readFile(resolve(root, "apps/admin/audit.html"), "utf8"), /webhook/i);
+  assert.equal(provenance.architectureNotes.at(-1).area, "webhooks");
+  assert.match(provenance.architectureNotes.at(-1).detail, /No standalone admin webhook route exists/);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
