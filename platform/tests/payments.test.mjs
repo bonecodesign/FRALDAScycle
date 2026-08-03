@@ -343,3 +343,115 @@ test("payment SDK configuration requires paired HTTPS URL and SRI", () => {
     PAYMENT_PROVIDER_SDK_INTEGRITY: "not-sri",
   }), /must use SRI/);
 });
+
+
+test("refund and dispute service authorizes the buyer and reuses idempotent cases", async () => {
+  const calls = [];
+  const repository = {
+    async caseContext({ idempotencyKey }) {
+      if (idempotencyKey === "existing-case-key-0001") {
+        return { existing: true, paymentCase: { id: "case-existing", status: "submitted" } };
+      }
+      return { existing: false, intent: {
+        id: "intent-1", provider_reference: "provider-payment-1",
+        status: "paid", amount_cents: 10_000,
+      } };
+    },
+    async createCase(input) { calls.push(input); return { id: "case-1", ...input }; },
+    async attachCaseProvider(input) { return { id: input.caseId, status: input.status, provider_reference: input.providerReference }; },
+    async markCaseFailure() {},
+  };
+  const provider = {
+    async createCase(input) {
+      assert.equal(input.providerReference, "provider-payment-1");
+      return { providerReference: "provider-case-1", status: "submitted" };
+    },
+  };
+  const service = createPaymentService(repository, provider);
+  const created = await service.createCase("buyer-1", "intent-1", "refund", {
+    idempotencyKey: "new-refund-case-0001", reason: "customer_request",
+    details: "Produto não foi entregue no prazo combinado.",
+  });
+  assert.equal(created.paymentCase.status, "submitted");
+  assert.equal(calls[0].requesterId, "buyer-1");
+  const reused = await service.createCase("buyer-1", "intent-1", "refund", {
+    idempotencyKey: "existing-case-key-0001", reason: "customer_request",
+    details: "Produto não foi entregue no prazo combinado.",
+  });
+  assert.equal(reused.reused, true);
+  assert.equal(reused.paymentCase.id, "case-existing");
+});
+
+test("refund and dispute persistence creates case and audit in one transaction", async () => {
+  const statements = [];
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/INSERT INTO payment_cases/.test(text)) return { rows: [{ id: "case-1", status: "provider_pending" }] };
+      return { rows: [] };
+    },
+  };
+  const repository = createPaymentRepository({
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  });
+  await repository.createCase({
+    intentId: "intent-1", requesterId: "buyer-1", kind: "dispute",
+    idempotencyKey: "dispute-repository-0001", reason: "not_received",
+    details: "O produto não chegou e o rastreio não atualiza.",
+  });
+  assert.equal(statements.length, 2);
+  assert.match(statements[0].text, /INSERT INTO payment_cases/);
+  assert.match(statements[1].text, /INSERT INTO audit_events/);
+  assert.equal(statements[1].values[1], "payment.dispute.requested");
+  assert.equal(statements[1].values[3].includes("não chegou"), false);
+});
+
+test("payment provider submits cases with authentication and idempotency", async () => {
+  const calls = [];
+  const adapter = createPaymentProvider(loadConfig({
+    NODE_ENV: "test",
+    PAYMENT_PROVIDER_URL: "https://payments.example.test/api",
+    PAYMENT_PROVIDER_SECRET: "payment-secret",
+  }), {
+    async fetchImpl(url, options) {
+      calls.push({ url: String(url), options });
+      return new Response(JSON.stringify({
+        reference: "remote-case-1", status: "under_review",
+      }), { status: 201, headers: { "content-type": "application/json" } });
+    },
+  });
+  const result = await adapter.createCase({
+    caseId: "case-1", kind: "dispute", idempotencyKey: "provider-dispute-0001",
+    providerReference: "provider-payment-1", reason: "not_received",
+    details: "Produto não recebido.", amountCents: 10_000,
+  });
+  assert.equal(result.status, "under_review");
+  assert.match(calls[0].url, /provider-payment-1\/disputes$/);
+  assert.equal(calls[0].options.headers["idempotency-key"], "provider-dispute-0001");
+  assert.equal(calls[0].options.headers.authorization, "Bearer payment-secret");
+});
+
+test("refund and dispute HTTP routes require the payment owner session", async (context) => {
+  const authService = { async session(token) { return token === "buyer" ? { id: "buyer-1" } : null; } };
+  const paymentService = {
+    async createCase(userId, intentId, kind) {
+      return { paymentCase: { id: "case-1", userId, intentId, kind }, reused: false };
+    },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }), authService, paymentService,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const url = origin + "/v1/payments/" + transactionId + "/refunds";
+  assert.equal((await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status, 401);
+  const response = await fetch(url, {
+    method: "POST", headers: { "content-type": "application/json", cookie: "fc_session=buyer" }, body: "{}",
+  });
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.paymentCase.userId, "buyer-1");
+  assert.equal(body.paymentCase.kind, "refund");
+});
