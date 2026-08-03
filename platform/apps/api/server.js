@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
+import { createRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -19,10 +20,14 @@ export function createApiServer({
   marketplaceService = null,
   marketplaceProviders = null,
 } = {}) {
+  const rateLimiter = createRateLimiter({
+    limit: config.rateLimitMax,
+    windowMs: config.rateLimitWindowSeconds * 1000,
+  });
   return createServer(async (request, response) => {
     const id = requestId(request);
     const url = new URL(request.url, "http://localhost");
-    const headers = { "x-request-id": id, ...corsHeaders(request.headers.origin, config.corsOrigins) };
+    let headers = { "x-request-id": id, ...corsHeaders(request.headers.origin, config.corsOrigins) };
 
     try {
       if (request.method === "OPTIONS") {
@@ -47,6 +52,16 @@ export function createApiServer({
         } catch {
           sendJson(response, 503, { status: "unavailable", requestId: id }, headers);
         }
+        return;
+      }
+
+      const rate = rateLimiter.consume(requestClientKey(request));
+      headers = { ...headers, ...rateLimitHeaders(rate) };
+      if (!rate.allowed) {
+        sendJson(response, 429, {
+          error: { code: "rate_limited", message: "Muitas solicitações. Tente novamente em instantes." },
+          requestId: id,
+        }, { ...headers, "retry-after": String(rate.retryAfterSeconds) });
         return;
       }
 
