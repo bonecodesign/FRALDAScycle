@@ -48,6 +48,7 @@ export function createPaymentService(repository, provider) {
       const transaction = context.transaction;
       if (!transaction) throw new PaymentError("transaction_not_found", 404, "Transação não encontrada.");
       if (!PAYABLE_STATUSES.has(transaction.status)) throw new PaymentError("transaction_not_payable", 409, "Esta transação não pode ser paga.");
+      if (!(transaction.kind in PLATFORM_BPS)) throw new PaymentError("invalid_transaction_kind", 409, "Tipo de transação inválido.");
       const amountCents = Number(transaction.amount_cents ?? 0);
       if (!Number.isInteger(amountCents) || amountCents < 0) throw new PaymentError("invalid_amount", 409, "Valor da transação inválido.");
       const platformFeeCents = fee(amountCents, PLATFORM_BPS[transaction.kind]);
