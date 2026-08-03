@@ -1,4 +1,4 @@
-const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
+const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET", "NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"];
 
 function integer(value, fallback) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -24,6 +24,8 @@ export function loadConfig(env = process.env) {
     databaseSsl: env.DATABASE_SSL === "true",
     sessionSecret: env.SESSION_SECRET ?? "development-only-session-secret",
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
+    notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
+    notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     corsOrigins: Object.freeze((env.CORS_ORIGINS ?? "")
       .split(",").map((value) => value.trim()).filter(Boolean)),
   });
