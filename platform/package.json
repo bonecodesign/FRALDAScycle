@@ -10,7 +10,11 @@
     "dev:site": "node tools/dev-server.mjs site 4101",
     "dev:app": "node tools/dev-server.mjs app 4102",
     "dev:admin": "node tools/dev-server.mjs admin 4103",
-    "dev:api": "node apps/api/server.js",
-    "check:production": "node --check apps/api/config.js && node --check apps/api/http.js && node --check apps/api/security.js && node --check apps/api/server.js"
+    "dev:api": "node apps/api/runtime.js",
+    "check:production": "node --check apps/api/config.js && node --check apps/api/http.js && node --check apps/api/security.js && node --check apps/api/server.js && node --check apps/api/runtime.js && node --check database/client.js && node --check database/migrate.js",
+    "db:migrate": "node database/migrate.js"
+  },
+  "dependencies": {
+    "pg": "8.22.0"
   }
 }
