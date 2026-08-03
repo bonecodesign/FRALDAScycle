@@ -599,6 +599,8 @@ test("connects approved marketplace screens to persistent API contracts", async 
     assert.ok(joined.includes(binding));
   }
   assert.match(files[0], /apiRequest/);
+  assert.match(files[0], /navigator\.geolocation/);
+  assert.match(files[0], /radiusKm/);
   assert.match(files[4], /fc\.lastListingId/);
   assert.match(files[7], /fc\.lastListingId/);
 });
