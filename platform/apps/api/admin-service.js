@@ -36,6 +36,9 @@ export function createAdminService(repository) {
         actorUserId: actor.id, email, displayName, role,
         token, tokenHash: invitationHash(token), expiresAt,
       });
+      if (!invitation) {
+        throw new AdminError("account_exists", 409, "Já existe uma conta com este e-mail.");
+      }
       return { invitation, queued: true };
     },
 
