@@ -31,7 +31,13 @@
       "adminSettings",
       "setupAdminModeration",
       "setupAdminAudit",
-      "setupAdminSettings"
+      "setupAdminSettings",
+      "adminPartnerships",
+      "adminInnovation",
+      "adminLaunch",
+      "setupAdminPartnerships",
+      "setupAdminInnovation",
+      "setupAdminLaunch"
     ],
     "routes": [
       "#/admin/dashboard",
@@ -49,7 +55,10 @@
       "#/admin/security",
       "#/admin/moderation",
       "#/admin/audit",
-      "#/admin/settings"
+      "#/admin/settings",
+      "#/admin/partnerships",
+      "#/admin/innovation",
+      "#/admin/launch"
     ]
   },
   "destination": {
@@ -71,12 +80,16 @@
       "/admin/security",
       "/admin/moderation",
       "/admin/audit",
-      "/admin/settings"
+      "/admin/settings",
+      "/admin/partnerships",
+      "/admin/innovation",
+      "/admin/launch"
     ],
     "behaviorFiles": [
       "platform/apps/admin/core.js",
       "platform/apps/admin/intelligence.js",
-      "platform/apps/admin/governance.js"
+      "platform/apps/admin/governance.js",
+      "platform/apps/admin/growth.js"
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
