@@ -100,3 +100,85 @@ test("admin HTTP endpoints enforce moderator and administrator boundaries", asyn
   assert.equal(adminChange.status, 200);
   assert.equal((await adminChange.json()).user.role, "courier");
 });
+
+test("user suspension revokes sessions and persists an audit reason atomically", async () => {
+  const statements = [];
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/SELECT id, disabled_at/.test(text)) return { rows: [{ id: targetId, disabled_at: null }] };
+      if (/UPDATE users/.test(text)) return { rows: [{ id: targetId, disabled_at: new Date() }] };
+      return { rows: [] };
+    },
+  };
+  const database = {
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  };
+  await createAdminRepository(database).setUserStatus({
+    actorUserId: "22222222-2222-4222-8222-222222222222",
+    targetUserId: targetId,
+    status: "suspended",
+    reason: "Revisão preventiva solicitada pela moderação.",
+  });
+  assert.equal(statements.length, 4);
+  assert.match(statements[2].text, /UPDATE sessions SET revoked_at/);
+  assert.match(statements[3].text, /INSERT INTO audit_events/);
+  assert.match(statements[3].values[3], /Revisão preventiva/);
+});
+
+test("audit CSV neutralizes spreadsheet formulas", async () => {
+  const service = createAdminService({
+    async listAuditEvents() {
+      return [{
+        occurred_at: "2026-08-03T12:00:00Z", actor_name: "=HYPERLINK(\"bad\")",
+        action: "user.suspended", entity_type: "user", entity_id: targetId, metadata: {},
+      }];
+    },
+  });
+  const csv = await service.auditCsv();
+  assert.match(csv, /"'=HYPERLINK/);
+  assert.ok(csv.startsWith("\uFEFF"));
+});
+
+test("live user directory, status mutation and CSV export enforce scopes", async (context) => {
+  const users = {
+    moderator: { id: "moderator-1", role: "moderator" },
+    admin: { id: "admin-1", role: "admin" },
+  };
+  const authService = { async session(token) { return users[token] ?? null; } };
+  const adminService = {
+    async users() { return [{ id: targetId, display_name: "Ana Souza", role: "customer" }]; },
+    async setUserStatus(actor, id, input) { return { id, disabled_at: input.status === "suspended" ? new Date() : null, actor: actor.id }; },
+    async auditCsv() { return "\uFEFF\"Data\",\"Ação\"\r\n\"2026-08-03\",\"user.suspended\""; },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }), authService, adminService,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+
+  const directory = await fetch(`${origin}/v1/admin/users`, { headers: { cookie: "fc_session=moderator" } });
+  assert.equal(directory.status, 200);
+  assert.equal((await directory.json()).items.length, 1);
+
+  const denied = await fetch(`${origin}/v1/admin/users/${targetId}/status`, {
+    method: "PATCH", headers: { "content-type": "application/json", cookie: "fc_session=moderator" },
+    body: JSON.stringify({ status: "suspended", reason: "Revisão preventiva necessária." }),
+  });
+  assert.equal(denied.status, 403);
+
+  const suspended = await fetch(`${origin}/v1/admin/users/${targetId}/status`, {
+    method: "PATCH", headers: { "content-type": "application/json", cookie: "fc_session=admin" },
+    body: JSON.stringify({ status: "suspended", reason: "Revisão preventiva necessária." }),
+  });
+  assert.equal(suspended.status, 200);
+
+  const exported = await fetch(`${origin}/v1/admin/audit-events.csv`, {
+    headers: { cookie: "fc_session=moderator" },
+  });
+  assert.equal(exported.status, 200);
+  assert.match(exported.headers.get("content-type"), /text\/csv/);
+  assert.match(exported.headers.get("content-disposition"), /fraldacycle-auditoria\.csv/);
+});
