@@ -17,6 +17,20 @@ export async function handleAdmin(request, response, {
   if (!adminService) return false;
   const user = await authenticatedUser(request, authService);
 
+  if (request.method === "GET" && url.pathname === "/v1/admin/sessions") {
+    requireScope(user, "admin:security:write");
+    const items = await adminService.sessions(user);
+    sendJson(response, 200, { items, requestId }, headers);
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/v1/admin/sessions/revoke-others") {
+    requireScope(user, "admin:security:write");
+    const result = await adminService.revokeOtherSessions(user);
+    sendJson(response, 200, { ...result, requestId }, headers);
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/v1/admin/users") {
     requireScope(user, "admin:users:read");
     const items = await adminService.users(Object.fromEntries(url.searchParams));
