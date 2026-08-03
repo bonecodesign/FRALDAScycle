@@ -17,7 +17,14 @@
       "setupAdminAds",
       "adminFinance",
       "adminLogistics",
-      "adminReports"
+      "adminReports",
+      "adminData",
+      "adminForecast",
+      "adminAlerts",
+      "adminInfrastructure",
+      "setupAdminData",
+      "setupAdminForecast",
+      "setupAdminInfrastructure"
     ],
     "routes": [
       "#/admin/dashboard",
@@ -27,7 +34,11 @@
       "#/admin/operations",
       "#/admin/finance",
       "#/admin/logistics",
-      "#/admin/reports"
+      "#/admin/reports",
+      "#/admin/data",
+      "#/admin/forecast",
+      "#/admin/alerts",
+      "#/admin/infrastructure"
     ]
   },
   "destination": {
@@ -41,10 +52,15 @@
       "/admin/operations",
       "/admin/finance",
       "/admin/logistics",
-      "/admin/reports"
+      "/admin/reports",
+      "/admin/data",
+      "/admin/forecast",
+      "/admin/alerts",
+      "/admin/infrastructure"
     ],
     "behaviorFiles": [
-      "platform/apps/admin/core.js"
+      "platform/apps/admin/core.js",
+      "platform/apps/admin/intelligence.js"
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
