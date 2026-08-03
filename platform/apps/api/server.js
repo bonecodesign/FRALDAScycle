@@ -4,6 +4,7 @@ import { clearSessionCookie, readSessionCookie, sessionCookie } from "./cookies.
 import { loadConfig } from "./config.js";
 import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
+import { handleMarketplace } from "./marketplace-handler.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -15,6 +16,7 @@ export function createApiServer({
   config = loadConfig(),
   readiness = async () => ({ database: "not-configured" }),
   authService = null,
+  marketplaceService = null,
 } = {}) {
   return createServer(async (request, response) => {
     const id = requestId(request);
@@ -114,6 +116,10 @@ export function createApiServer({
         });
         return;
       }
+
+      if (await handleMarketplace(request, response, {
+        url, headers, requestId: id, marketplaceService, authService,
+      })) return;
 
       sendJson(response, 404, {
         error: { code: "route_not_found", message: "Rota não encontrada." },

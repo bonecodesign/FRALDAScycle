@@ -27,3 +27,14 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 ## Regra imutável
 
 A implementação de produção não pode alterar o protótipo para acomodar limitações técnicas. Quando um contrato estiver ausente, a arquitetura deve ser ampliada em `platform/`.
+
+## Corte 2 — marketplace
+
+- [x] anúncios persistidos;
+- [x] busca pública e detalhe;
+- [x] venda, troca e doação;
+- [x] favoritos por usuário;
+- [x] referências de mídia independentes do storage;
+- [ ] upload assinado para storage externo;
+- [ ] geocodificação e busca por distância;
+- [ ] conexão integral das telas de publicação e marketplace.

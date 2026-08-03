@@ -3,8 +3,10 @@ import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
 import { createNotificationRepository } from "../../database/notification-repository.js";
+import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
+import { createMarketplaceService } from "./marketplace-service.js";
 import { migrate } from "../../database/migrate.js";
 
 export async function startRuntime(config = loadConfig()) {
@@ -15,10 +17,12 @@ export async function startRuntime(config = loadConfig()) {
     sessionTtlSeconds: config.sessionTtlSeconds,
     notificationService,
   });
+  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
   const server = createApiServer({
     config,
     readiness: () => database.readiness(),
     authService,
+    marketplaceService,
   });
 
   server.listen(config.port, config.host, () => {
