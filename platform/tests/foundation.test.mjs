@@ -328,8 +328,8 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.match(behavior, /\/v1\/payments\/intents/);
   assert.match(behavior, /FraldaCyclePaymentProvider/);
   assert.match(behavior, /sdkIntegrity/);
-  assert.match(behavior, /\/refunds/);
-  assert.match(behavior, /\/disputes/);
+  assert.match(behavior, /'refunds'/);
+  assert.match(behavior, /'disputes'/);
   assert.match(behavior, /setupRealPaymentCases/);
   assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
   const dispute = await readFile(resolve(root, "apps/app/dispute.html"), "utf8");
