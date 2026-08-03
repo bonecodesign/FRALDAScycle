@@ -1,3 +1,4 @@
+import { apiRequest } from "/packages/contracts/api-client.js";
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -37,3 +38,53 @@ function setupAdmin(){
 function setupAdminAds(){const search=document.getElementById('admin-ad-search');const status=document.getElementById('admin-ad-status');if(!search||!status)return;const filter=()=>{let visible=0;document.querySelectorAll('[data-admin-ad]').forEach(row=>{const matchText=row.dataset.search.includes(search.value.trim().toLowerCase());const matchStatus=!status.value||row.dataset.search.includes(status.value.toLowerCase());row.hidden=!(matchText&&matchStatus);if(!row.hidden)visible++});document.getElementById('admin-ad-empty').hidden=visible>0};search.addEventListener('input',filter);status.addEventListener('change',filter);document.querySelectorAll('[data-ad-action]').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('[data-admin-ad]');const id=row.cells[0].textContent;const product=row.cells[1].textContent;if(button.dataset.adAction==='remove'){row.remove();notify(`${id} removido do catálogo`);filter();return}if(button.dataset.adAction==='pause'){row.cells[3].innerHTML='<span class="badge warn">Pausado</span>';notify(`${id} pausado`);return}document.getElementById('admin-ad-review').innerHTML=`<section class="panel"><div class="section-head"><div><span class="eyebrow">Revisão de anúncio</span><h2>${product}</h2><p>${id} · verificação de conteúdo, imagens e regras comerciais.</p></div><span class="badge">Em análise</span></div><div class="dashboard-grid"><div class="phone-list"><article class="phone-card"><span class="status-icon">✓</span><div><h3>Produto fechado</h3><p>Lacre e validade identificados nas imagens.</p></div></article><article class="phone-card"><span class="status-icon">✓</span><div><h3>Categoria e tamanho</h3><p>Marca, tamanho e quantidade coerentes.</p></div></article><article class="phone-card"><span class="status-icon">!</span><div><h3>Preço e descrição</h3><p>Requer confirmação manual antes da publicação.</p></div></article></div><div><label class="form-group">Observação ao anunciante<textarea class="input" rows="4" placeholder="Explique ajustes necessários"></textarea></label><div class="publish-actions action-pair"><button class="button secondary" id="admin-ad-request">Solicitar ajuste</button><button class="button primary" id="admin-ad-approve">Aprovar anúncio</button></div></div></div></section>`;document.getElementById('admin-ad-approve').addEventListener('click',()=>{row.cells[3].innerHTML='<span class="badge">Publicado</span>';document.getElementById('admin-ad-review').innerHTML='';notify(`${id} aprovado e publicado`)});document.getElementById('admin-ad-request').addEventListener('click',()=>notify(`Ajustes solicitados para ${id}`))}));document.getElementById('admin-ad-new')?.addEventListener('click',()=>notify('Cadastro administrativo de produto iniciado'))}
 setupAdmin();
 setupAdminAds();
+
+const adminEscape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const adminRoleLabels={customer:'Família',courier:'Entregador',moderator:'Moderação',admin:'Administrador'};
+
+async function loadLiveAdminUsers(){
+  const table=document.querySelector('#admin-user-table tbody');
+  if(!table)return;
+  const params=new URLSearchParams({limit:'100'});
+  const query=document.getElementById('admin-user-search')?.value.trim();
+  if(query)params.set('query',query);
+  try{
+    const {items}=await apiRequest(`/v1/admin/users?${params}`);
+    table.innerHTML=items.map(user=>{
+      const name=user.display_name;
+      const initials=name.split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+      const profile=adminRoleLabels[user.role]||user.role;
+      const status=user.disabled_at?'Suspenso':'Ativo';
+      const verification=user.email_verified_at?'Verificado':'Pendente';
+      return `<tr data-profile="${adminEscape(profile)}" data-live-admin-user="${user.id}"><td><div class="admin-user-cell"><span class="avatar">${adminEscape(initials)}</span><div><strong>${adminEscape(name)}</strong><small>${adminEscape(user.email)}</small></div></div></td><td>${adminEscape(profile)}</td><td><span class="status-badge ${user.email_verified_at?'success':'warning'}">${verification}</span></td><td>—</td><td>${status}</td><td><button class="button text" data-live-admin-user-view>Ver perfil</button></td></tr>`;
+    }).join('');
+    document.documentElement.dataset.adminUsersState='live';
+    document.getElementById('admin-user-empty').hidden=items.length>0;
+  }catch(error){
+    document.documentElement.dataset.adminUsersState=error.status===401?'unauthenticated':error.status===403?'forbidden':'fallback';
+  }
+}
+
+document.getElementById('admin-user-table')?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-live-admin-user-view]');
+  if(!button)return;
+  const row=button.closest('[data-live-admin-user]');
+  const suspended=row.children[4].textContent.trim()==='Suspenso';
+  const detail=document.getElementById('admin-user-detail');
+  detail.innerHTML=`<section class="panel"><div class="section-head"><div><span class="eyebrow">Conta real</span><h2>${adminEscape(row.querySelector('strong').textContent)}</h2><p>${adminEscape(row.children[1].textContent)} · ${adminEscape(row.children[4].textContent)}</p></div><button class="button ghost small" id="live-user-close">Fechar</button></div><label class="field full"><span>Justificativa da ação</span><textarea class="input" id="live-user-reason" rows="3" placeholder="Registre o motivo com pelo menos 10 caracteres"></textarea></label><small class="field-error" id="live-user-error"></small><button class="button ${suspended?'primary':'secondary'}" id="live-user-status">${suspended?'Reativar conta':'Suspender conta'}</button></section>`;
+  document.getElementById('live-user-close').addEventListener('click',()=>detail.innerHTML='');
+  document.getElementById('live-user-status').addEventListener('click',async event=>{
+    const reason=document.getElementById('live-user-reason').value.trim();
+    if(reason.length<10){document.getElementById('live-user-error').textContent='Informe uma justificativa com pelo menos 10 caracteres.';return}
+    event.currentTarget.disabled=true;
+    try{
+      await apiRequest(`/v1/admin/users/${row.dataset.liveAdminUser}/status`,{method:'PATCH',body:{status:suspended?'active':'suspended',reason}});
+      detail.innerHTML='';
+      await loadLiveAdminUsers();
+      notify(suspended?'Conta reativada e auditada':'Conta suspensa, sessões revogadas e ação auditada');
+    }catch(error){event.currentTarget.disabled=false;document.getElementById('live-user-error').textContent=error.message}
+  });
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+document.getElementById('admin-user-search')?.addEventListener('change',loadLiveAdminUsers);
+loadLiveAdminUsers();
