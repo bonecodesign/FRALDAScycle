@@ -19,7 +19,8 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] limitação de tentativas por identidade;
 - [x] fila transacional, worker e contrato seguro de entrega;
 - [ ] credenciais e endpoint do provedor externo de e-mail/SMS;
-- [ ] autorização por papel e escopo;
+- [x] autorização por papel e escopo nos contratos administrativos;
+- [x] trilha persistente para mudanças administrativas críticas;
 - [x] rate limiting geral em memória e proteção HTTP 429;
 - [ ] rate limiting distribuído para múltiplas instâncias;
 - [x] validação de segredos obrigatórios em produção;
