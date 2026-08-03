@@ -89,6 +89,37 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
       };
     },
 
+    async createCase(input) {
+      if (!endpoint || !secret) throw new PaymentProviderError("payment_provider_not_configured", "Provedor de pagamentos não configurado.");
+      const segment = input.kind === "refund" ? "refunds" : "disputes";
+      let response;
+      try {
+        response = await fetchImpl(new URL(`/intents/${encodeURIComponent(input.providerReference)}/${segment}`, endpoint), {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${secret}`,
+            "idempotency-key": input.idempotencyKey,
+          },
+          body: JSON.stringify({
+            reference: input.caseId,
+            reason: input.reason,
+            details: input.details,
+            amountCents: input.amountCents,
+          }),
+          signal: AbortSignal.timeout(5_000),
+        });
+      } catch {
+        throw new PaymentProviderError();
+      }
+      if (!response.ok) throw new PaymentProviderError();
+      const payload = await response.json();
+      if (typeof payload?.reference !== "string" || !["submitted", "under_review"].includes(payload?.status)) {
+        throw new PaymentProviderError("payment_provider_invalid_response", "Resposta inválida do provedor de pagamentos.");
+      }
+      return { providerReference: payload.reference, status: payload.status };
+    },
+
     async createIntent(intent) {
       if (!endpoint || !secret) throw new PaymentProviderError("payment_provider_not_configured", "Provedor de pagamentos não configurado.");
       let response;
