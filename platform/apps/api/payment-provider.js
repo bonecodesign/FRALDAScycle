@@ -12,6 +12,8 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
   const endpoint = config.paymentProviderUrl ? new URL(config.paymentProviderUrl) : null;
   const secret = config.paymentProviderSecret;
   const webhookSecret = config.paymentWebhookSecret;
+  const sdkUrl = config.paymentProviderSdkUrl;
+  const sdkIntegrity = config.paymentProviderSdkIntegrity;
   return Object.freeze({
     configured: Boolean(endpoint),
     verifyWebhook({ raw, timestamp, signature, now = Date.now }) {
@@ -58,6 +60,35 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
         payloadHash: createHash("sha256").update(raw).digest(),
       };
     },
+    async createTokenizationSession({ userId }) {
+      if (!endpoint || !secret || !sdkUrl || !sdkIntegrity) {
+        throw new PaymentProviderError("payment_tokenization_not_configured", "Tokenização de cartão não configurada.");
+      }
+      let response;
+      try {
+        response = await fetchImpl(new URL("/tokenization/sessions", endpoint), {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
+          body: JSON.stringify({ customerReference: userId }),
+          signal: AbortSignal.timeout(5_000),
+        });
+      } catch {
+        throw new PaymentProviderError();
+      }
+      if (!response.ok) throw new PaymentProviderError();
+      const payload = await response.json();
+      if (
+        typeof payload?.clientToken !== "string" || payload.clientToken.length < 16
+        || !Number.isFinite(Date.parse(payload?.expiresAt))
+      ) throw new PaymentProviderError("payment_provider_invalid_response", "Resposta inválida do provedor de pagamentos.");
+      return {
+        clientToken: payload.clientToken,
+        expiresAt: payload.expiresAt,
+        sdkUrl,
+        sdkIntegrity,
+      };
+    },
+
     async createIntent(intent) {
       if (!endpoint || !secret) throw new PaymentProviderError("payment_provider_not_configured", "Provedor de pagamentos não configurado.");
       let response;
