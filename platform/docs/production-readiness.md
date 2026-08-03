@@ -23,6 +23,8 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] trilha persistente para mudanças administrativas críticas;
 - [x] diretório real de usuários com suspensão, reativação e revogação de sessões;
 - [x] exportação CSV protegida da auditoria;
+- [x] gestão e revogação remota de sessões administrativas;
+- [x] paginação da trilha de auditoria;
 - [x] rate limiting geral em memória e proteção HTTP 429;
 - [ ] rate limiting distribuído para múltiplas instâncias;
 - [x] validação de segredos obrigatórios em produção;
