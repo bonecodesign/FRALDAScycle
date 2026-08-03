@@ -25,8 +25,8 @@ test("creates accessible shells without replacing the approved prototype", async
       assert.match(html, /data-source-route="#\/app\/splash"/);
       assert.match(html, /Economia circular para famílias e para o planeta/);
     } else {
-      assert.match(html, /<main data-surface="/);
-      assert.match(html, /protótipo preservado na raiz/i);
+      assert.match(html, /data-source-route="#\/admin\/dashboard"/);
+      assert.match(html, /Painel administrativo/);
     }
   }
 });
@@ -422,5 +422,34 @@ test("closes the approved courier journey and the App surface", async () => {
   for (const name of ["courierHome", "courierJob", "courierRoute", "courierProof", "courierHistory"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
+
+
+test("transfers the approved Admin dashboard users RBAC ads and operations core", async () => {
+  const routes = [
+    ["index", "dashboard", /Painel administrativo/],
+    ["users", "users", /Usuários/],
+    ["roles", "roles", /Matriz de permissões/],
+    ["ads", "ads", /Anúncios e produtos/],
+    ["operations", "operations", /Operações/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/admin/core.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
+
+  for (const [file, route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/admin/${file}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/admin/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/admin/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
+  }
+
+  assert.match(behavior, /setupAdmin\(\)/);
+  assert.match(behavior, /setupAdminAds\(\)/);
+  assert.match(behavior, /admin-user-search/);
+  assert.match(behavior, /rbac-save/);
+  assert.match(behavior, /admin-ad-search/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
