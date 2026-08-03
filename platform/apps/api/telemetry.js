@@ -13,8 +13,9 @@ function sanitize(event) {
 
 export function createTelemetry(config, {
   fetchImpl = fetch,
-  write = (line) => process.stdout.write(line + "\n"),
+  write = null,
 } = {}) {
+  const emit = write ?? (config.nodeEnv === "test" ? () => {} : (line) => process.stdout.write(line + "\n"));
   const endpoint = config.telemetryProviderUrl ? new URL(config.telemetryProviderUrl) : null;
   const secret = config.telemetryProviderSecret;
 
@@ -22,7 +23,7 @@ export function createTelemetry(config, {
     mode: endpoint ? "hosted" : "structured-log",
     async record(event) {
       const payload = sanitize(event);
-      write(JSON.stringify(payload));
+      emit(JSON.stringify(payload));
       if (!endpoint) return true;
       try {
         const response = await fetchImpl(endpoint, {
