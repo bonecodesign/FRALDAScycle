@@ -391,6 +391,7 @@ test("closes the remaining approved App route inventory", async () => {
   assert.match(await readFile(resolve(root, "apps/app/my-impact.html"), "utf8"), /Meu impacto/);
   assert.match(behavior, /setupNotifications\(\)/);
   assert.match(behavior, /setupNotificationSettings\(\)/);
-  assert.match(behavior, /Informações validadas com sucesso/);
+  assert.match(behavior, /Novo código enviado com sucesso/);
+  assert.match(behavior, /Conexão restabelecida/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
