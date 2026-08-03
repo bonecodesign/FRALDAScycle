@@ -1,15 +1,22 @@
-export function createNotificationService(deliver = null) {
+export function createNotificationService(repository) {
+  async function enqueue(kind, { email, phone, token }) {
+    const recipient = email ?? phone;
+    if (!recipient) throw new Error("Notification recipient is required");
+    const id = await repository.enqueue({
+      kind,
+      recipient,
+      payload: { token, channel: email ? "email" : "sms" },
+    });
+    return { queued: true, id };
+  }
+
   return Object.freeze({
-    configured: typeof deliver === "function",
-    async verification({ email, token }) {
-      if (!deliver) return { delivered: false };
-      await deliver({ kind: "email_verification", recipient: email, token });
-      return { delivered: true };
+    configured: true,
+    verification(message) {
+      return enqueue("email_verification", message);
     },
-    async passwordRecovery({ email, token }) {
-      if (!deliver) return { delivered: false };
-      await deliver({ kind: "password_recovery", recipient: email, token });
-      return { delivered: true };
+    passwordRecovery(message) {
+      return enqueue("password_recovery", message);
     },
   });
 }
