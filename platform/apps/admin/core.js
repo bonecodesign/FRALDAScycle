@@ -88,3 +88,22 @@ document.getElementById('admin-user-table')?.addEventListener('click',event=>{
 });
 document.getElementById('admin-user-search')?.addEventListener('change',loadLiveAdminUsers);
 loadLiveAdminUsers();
+
+async function loadLiveAdminSessions(){
+  const body=document.querySelector('#admin-session-table tbody');if(!body)return;
+  try{
+    const {items}=await apiRequest('/v1/admin/sessions');
+    body.innerHTML=items.map(session=>`<tr ${session.current?'data-current-session':''}><td>${adminEscape(session.user_agent||'Dispositivo não identificado')}</td><td>Localização protegida</td><td>${adminEscape(new Date(session.created_at).toLocaleString('pt-BR'))}</td><td><span class="status-badge ${session.current?'success':'neutral'}">${session.current?'Verificada':'Ativa'}</span></td><td>${session.current?'Sessão atual':'Ativa'}</td></tr>`).join('');
+    document.documentElement.dataset.adminSessionsState='live';
+  }catch(error){document.documentElement.dataset.adminSessionsState=error.status===401?'unauthenticated':error.status===403?'forbidden':'fallback'}
+}
+document.getElementById('admin-close-sessions')?.addEventListener('click',async event=>{
+  event.preventDefault();event.stopImmediatePropagation();const button=event.currentTarget;
+  button.disabled=true;button.textContent='Encerrando…';
+  try{
+    const {revokedCount}=await apiRequest('/v1/admin/sessions/revoke-others',{method:'POST'});
+    await loadLiveAdminSessions();button.textContent='Outras sessões encerradas';
+    notify(`${revokedCount} sessão${revokedCount===1?'':'ões'} encerrada${revokedCount===1?'':'s'} e auditada${revokedCount===1?'':'s'}`);
+  }catch(error){button.disabled=false;button.textContent='Encerrar outras sessões';notify(error.message)}
+},true);
+loadLiveAdminSessions();

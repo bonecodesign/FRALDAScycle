@@ -43,13 +43,16 @@ setupAdminModeration();
 setupAdminAudit();
 setupAdminSettings();
 
+let auditOffset=0;
+const auditPageSize=25;
 async function loadLiveAudit(){
   const first=document.querySelector('[data-audit-row]');
   const body=first?.closest('tbody');
   if(!body)return;
   const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   try{
-    const {items}=await apiRequest('/v1/admin/audit-events?limit=50');
+    const {items}=await apiRequest(`/v1/admin/audit-events?limit=${auditPageSize}&offset=${auditOffset}`);
+    if(!items.length&&auditOffset>0){auditOffset=Math.max(0,auditOffset-auditPageSize);return loadLiveAudit()}
     if(!items.length)return;
     body.innerHTML=items.map(item=>{
       const when=new Date(item.occurred_at).toLocaleString('pt-BR');
@@ -59,6 +62,11 @@ async function loadLiveAudit(){
       const search=`${when} ${actor} ${action} ${module}`.toLocaleLowerCase('pt-BR');
       return `<tr data-audit-row data-search="${escape(search)}"><td>${escape(when)}</td><td>${escape(actor)}</td><td>${escape(action)}</td><td>${escape(module)}</td><td>${escape(item.entity_id)}</td></tr>`;
     }).join('');
+    let pager=document.getElementById('audit-pagination');
+    if(!pager){pager=document.createElement('div');pager.id='audit-pagination';pager.className='publish-actions action-pair';body.closest('.admin-table-wrap').after(pager)}
+    pager.innerHTML=`<button class="button secondary" id="audit-previous" ${auditOffset===0?'disabled':''}>Anterior</button><small class="muted">Página ${Math.floor(auditOffset/auditPageSize)+1}</small><button class="button secondary" id="audit-next" ${items.length<auditPageSize?'disabled':''}>Próxima</button>`;
+    document.getElementById('audit-previous').addEventListener('click',()=>{auditOffset=Math.max(0,auditOffset-auditPageSize);loadLiveAudit()});
+    document.getElementById('audit-next').addEventListener('click',()=>{auditOffset+=auditPageSize;loadLiveAudit()});
     document.documentElement.dataset.auditState='live';
   }catch(error){
     document.documentElement.dataset.auditState=error.status===401?'unauthenticated':error.status===403?'forbidden':'fallback';

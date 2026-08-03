@@ -182,3 +182,61 @@ test("live user directory, status mutation and CSV export enforce scopes", async
   assert.match(exported.headers.get("content-type"), /text\/csv/);
   assert.match(exported.headers.get("content-disposition"), /fraldacycle-auditoria\.csv/);
 });
+
+test("revoking other sessions preserves the current session and audits the count", async () => {
+  const statements = [];
+  const client = {
+    async query(text, values) {
+      statements.push({ text, values });
+      if (/UPDATE sessions/.test(text)) return { rows: [{ id: "old-session" }], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    },
+  };
+  const database = {
+    async transaction(operation) { return operation(client); },
+    async query() { return { rows: [] }; },
+  };
+  const count = await createAdminRepository(database).revokeOtherSessions({
+    actorUserId: "22222222-2222-4222-8222-222222222222",
+    currentSessionId: "33333333-3333-4333-8333-333333333333",
+  });
+  assert.equal(count, 1);
+  assert.match(statements[0].text, /id <> \$2::uuid/);
+  assert.match(statements[1].text, /sessions\.others\.revoked/);
+  assert.match(statements[1].values[1], /revokedCount/);
+});
+
+test("session management endpoints preserve current access and require admin scope", async (context) => {
+  const identities = {
+    moderator: { id: "moderator-1", role: "moderator", sessionId: "33333333-3333-4333-8333-333333333333" },
+    admin: { id: "admin-1", role: "admin", sessionId: "33333333-3333-4333-8333-333333333333" },
+  };
+  const authService = { async session(token) { return identities[token] ?? null; } };
+  const adminService = {
+    async sessions(actor) { return [{ id: actor.sessionId, current: true }]; },
+    async revokeOtherSessions() { return { revokedCount: 2 }; },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }), authService, adminService,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+
+  const denied = await fetch(`${origin}/v1/admin/sessions`, {
+    headers: { cookie: "fc_session=moderator" },
+  });
+  assert.equal(denied.status, 403);
+
+  const listed = await fetch(`${origin}/v1/admin/sessions`, {
+    headers: { cookie: "fc_session=admin" },
+  });
+  assert.equal(listed.status, 200);
+  assert.equal((await listed.json()).items[0].current, true);
+
+  const revoked = await fetch(`${origin}/v1/admin/sessions/revoke-others`, {
+    method: "POST", headers: { cookie: "fc_session=admin" },
+  });
+  assert.equal(revoked.status, 200);
+  assert.equal((await revoked.json()).revokedCount, 2);
+});

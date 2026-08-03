@@ -48,6 +48,7 @@ function publicUser(user) {
     displayName: user.display_name,
     role: user.role,
     emailVerified: Boolean(user.email_verified_at),
+    ...(user.session_id ? { sessionId: user.session_id } : {}),
   };
 }
 

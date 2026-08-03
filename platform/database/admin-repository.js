@@ -60,6 +60,35 @@ export function createAdminRepository(database) {
       });
     },
 
+    async listUserSessions({ userId, currentSessionId }) {
+      const result = await database.query(
+        `SELECT id, user_agent, created_at, expires_at, revoked_at,
+                (id = $2::uuid) AS current
+         FROM sessions
+         WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+         ORDER BY current DESC, created_at DESC`,
+        [userId, currentSessionId],
+      );
+      return result.rows;
+    },
+
+    async revokeOtherSessions({ actorUserId, currentSessionId }) {
+      return database.transaction(async (client) => {
+        const revoked = await client.query(
+          `UPDATE sessions SET revoked_at = now()
+           WHERE user_id = $1 AND id <> $2::uuid AND revoked_at IS NULL AND expires_at > now()
+           RETURNING id`,
+          [actorUserId, currentSessionId],
+        );
+        await client.query(
+          `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
+           VALUES ($1, 'sessions.others.revoked', 'user', $1::text, $2::jsonb)`,
+          [actorUserId, JSON.stringify({ revokedCount: revoked.rowCount })],
+        );
+        return revoked.rowCount;
+      });
+    },
+
     async changeUserRole({ actorUserId, targetUserId, role }) {
       return database.transaction(async (client) => {
         const current = await client.query(
