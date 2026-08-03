@@ -27,3 +27,14 @@ export function corsHeaders(origin, allowedOrigins) {
     vary: "Origin",
   };
 }
+
+export function sendCsv(response, filename, content, extraHeaders = {}) {
+  const safeName = String(filename).replace(/[^a-zA-Z0-9._-]/g, "-");
+  response.writeHead(200, {
+    ...SECURITY_HEADERS,
+    "content-type": "text/csv; charset=utf-8",
+    "content-disposition": `attachment; filename="${safeName}"`,
+    ...extraHeaders,
+  });
+  response.end(content);
+}
