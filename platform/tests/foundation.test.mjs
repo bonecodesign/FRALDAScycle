@@ -366,3 +366,31 @@ test("transfers the complete approved App logistics journey", async () => {
   }
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("closes the remaining approved App route inventory", async () => {
+  const routes = [
+    "auth-error", "auth-locked", "auth-offline", "notifications", "notification-settings",
+    "profile", "profile-ads", "profile-history", "profile-reviews", "addresses", "settings",
+    "my-impact", "help", "state-offline", "state-permission", "state-removed",
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/profile.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const route of routes) {
+    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
+    assert.match(html, /<h1>/);
+    assert.ok(server.includes(`"/app/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
+  }
+
+  assert.match(await readFile(resolve(root, "apps/app/notifications.html"), "utf8"), /Notificações/);
+  assert.match(await readFile(resolve(root, "apps/app/profile.html"), "utf8"), /Perfil verificado/);
+  assert.match(await readFile(resolve(root, "apps/app/my-impact.html"), "utf8"), /Meu impacto/);
+  assert.match(behavior, /setupNotifications\(\)/);
+  assert.match(behavior, /setupNotificationSettings\(\)/);
+  assert.match(behavior, /Informações validadas com sucesso/);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
