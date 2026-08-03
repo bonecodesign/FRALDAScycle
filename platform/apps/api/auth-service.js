@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { createSessionToken, hashPassword, verifyPassword } from "./security.js";
+import { createSessionToken, createVerificationCode, hashPassword, verifyPassword } from "./security.js";
 import { createNotificationService } from "./notifications.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,7 +57,7 @@ export function createAuthService(repository, {
   maxLoginAttempts = 5,
 } = {}) {
   async function issueToken(user, kind) {
-    const token = createSessionToken();
+    const token = createVerificationCode();
     await repository.createAuthToken({
       userId: user.id,
       kind,
