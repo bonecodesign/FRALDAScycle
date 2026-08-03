@@ -64,4 +64,5 @@ async function loadLiveAudit(){
     document.documentElement.dataset.auditState=error.status===401?'unauthenticated':error.status===403?'forbidden':'fallback';
   }
 }
+document.getElementById('audit-refresh')?.addEventListener('click',loadLiveAudit);
 loadLiveAudit();
