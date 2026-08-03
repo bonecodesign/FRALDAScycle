@@ -10,6 +10,17 @@ export function loadConfig(env = process.env) {
   const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
   const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
   const paymentWebhookSecret = env.PAYMENT_WEBHOOK_SECRET ?? null;
+  const paymentProviderSdkUrl = env.PAYMENT_PROVIDER_SDK_URL ?? null;
+  const paymentProviderSdkIntegrity = env.PAYMENT_PROVIDER_SDK_INTEGRITY ?? null;
+  if (Boolean(paymentProviderSdkUrl) !== Boolean(paymentProviderSdkIntegrity)) {
+    throw new Error("PAYMENT_PROVIDER_SDK_URL and PAYMENT_PROVIDER_SDK_INTEGRITY must be configured together");
+  }
+  if (paymentProviderSdkUrl && !paymentProviderSdkUrl.startsWith("https://")) {
+    throw new Error("PAYMENT_PROVIDER_SDK_URL must use HTTPS");
+  }
+  if (paymentProviderSdkIntegrity && !/^sha(256|384|512)-/.test(paymentProviderSdkIntegrity)) {
+    throw new Error("PAYMENT_PROVIDER_SDK_INTEGRITY must use SRI");
+  }
   if (Boolean(paymentProviderUrl) !== Boolean(paymentProviderSecret)) {
     throw new Error("PAYMENT_PROVIDER_URL and PAYMENT_PROVIDER_SECRET must be configured together");
   }
@@ -64,6 +75,8 @@ export function loadConfig(env = process.env) {
     paymentProviderUrl,
     paymentProviderSecret,
     paymentWebhookSecret,
+    paymentProviderSdkUrl,
+    paymentProviderSdkIntegrity,
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
