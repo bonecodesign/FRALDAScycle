@@ -29,6 +29,10 @@ export function loadConfig(env = process.env) {
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
+    mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
+    mediaProviderSecret: env.MEDIA_PROVIDER_SECRET ?? null,
+    geocodingProviderUrl: env.GEOCODING_PROVIDER_URL ?? null,
+    geocodingProviderSecret: env.GEOCODING_PROVIDER_SECRET ?? null,
     corsOrigins: Object.freeze((env.CORS_ORIGINS ?? "")
       .split(",").map((value) => value.trim()).filter(Boolean)),
   });
