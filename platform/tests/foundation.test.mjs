@@ -479,3 +479,31 @@ test("transfers Admin finance logistics and reports with impact kept in its appr
   for (const name of ["adminFinance", "adminLogistics", "adminReports"]) assert.ok(provenance.source.functions.includes(name));
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("transfers Admin data forecasts alerts and infrastructure", async () => {
+  const routes = [
+    ["data", /Dados e inteligência/],
+    ["forecast", /Previsões e alertas/],
+    ["alerts", /Alertas e observabilidade/],
+    ["infrastructure", /Infraestrutura e observabilidade/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/admin/intelligence.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/admin/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/admin/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/admin/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
+  }
+
+  assert.match(behavior, /setupAdminData\(\)/);
+  assert.match(behavior, /setupAdminForecast\(\)/);
+  assert.match(behavior, /setupAdminInfrastructure\(\)/);
+  assert.match(behavior, /data-run-pipeline/);
+  for (const name of ["adminData", "adminForecast", "adminAlerts", "adminInfrastructure"]) assert.ok(provenance.source.functions.includes(name));
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
