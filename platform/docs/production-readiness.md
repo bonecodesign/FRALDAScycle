@@ -25,6 +25,9 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] exportação CSV protegida da auditoria;
 - [x] gestão e revogação remota de sessões administrativas;
 - [x] paginação da trilha de auditoria;
+- [x] convites administrativos de uso único, validade de 72 horas, papel predefinido e auditoria;
+- [x] aceite público de convite com senha protegida e e-mail verificado;
+- [x] entrega de convites integrada à fila transacional (provedor externo configurável);
 - [x] rate limiting geral em memória e proteção HTTP 429;
 - [ ] rate limiting distribuído para múltiplas instâncias;
 - [x] validação de segredos obrigatórios em produção;
