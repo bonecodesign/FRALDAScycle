@@ -153,7 +153,10 @@
         "infrastructure",
         "partnerships",
         "innovation",
-        "launch"
+        "launch",
+        "data",
+        "forecast",
+        "alerts"
       ],
       "migrated": [
         "dashboard",
@@ -164,13 +167,18 @@
         "finance",
         "logistics",
         "reports",
-        "impact"
+        "impact",
+        "data",
+        "forecast",
+        "alerts",
+        "infrastructure"
       ],
       "next": [
-        "data",
-        "infrastructure",
         "security",
-        "audit"
+        "audit",
+        "webhooks",
+        "moderation",
+        "settings"
       ],
       "audit": {
         "approvedCoreRoutes": 5,
@@ -179,7 +187,10 @@
         "approvedOperationsRoutes": 3,
         "migratedOperationsRoutes": 3,
         "missingOperationsRoutes": 0,
-        "impactPlacement": "embedded-in-reports"
+        "impactPlacement": "embedded-in-reports",
+        "approvedIntelligenceRoutes": 4,
+        "migratedIntelligenceRoutes": 4,
+        "missingIntelligenceRoutes": 0
       }
     }
   ],
