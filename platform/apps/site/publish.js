@@ -70,9 +70,11 @@ function setupSitePublish(){
           quantity: Number(data.quantity),
           kind,
           priceCents: kind === 'sale' ? numericPrice : null,
-          city: data.location.split(',')[1]?.trim() ?? null,
-          state: data.location.match(/-\s*([A-Z]{2})$/)?.[1] ?? null,
-          mediaKeys: [],
+          city: location?.city ?? data.location.split(',')[1]?.trim() ?? null,
+          state: location?.state ?? data.location.match(/-\s*([A-Z]{2})$/)?.[1] ?? null,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null,
+          mediaKeys,
         });
         sessionStorage.setItem('fc.lastListingId', result.listing.id);
       } catch (error) {
