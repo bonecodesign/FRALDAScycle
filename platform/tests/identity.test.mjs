@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAuthService, AuthError, hashSessionToken, normalizeEmail } from "../apps/api/auth-service.js";
 import { clearSessionCookie, readSessionCookie, sessionCookie } from "../apps/api/cookies.js";
+import { createApiServer } from "../apps/api/server.js";
+import { loadConfig } from "../apps/api/config.js";
 
 function repository() {
   const users = new Map();
@@ -75,4 +77,87 @@ test("session cookies are HttpOnly, scoped and revocable", () => {
   assert.equal(readSessionCookie(value), "token seguro");
   assert.match(clearSessionCookie(), /Max-Age=0/);
   assert.equal(hashSessionToken("same").equals(hashSessionToken("same")), true);
+});
+
+test("HTTP identity contract keeps the session token out of JSON", async (context) => {
+  const calls = [];
+  const authService = {
+    async register(input) {
+      calls.push(["register", input]);
+      return { user: { id: "user-1", email: input.email }, verificationRequired: true };
+    },
+    async login(input) {
+      calls.push(["login", input]);
+      return {
+        token: "opaque-session-token",
+        expiresAt: new Date("2026-09-01T00:00:00Z"),
+        user: { id: "user-1", email: input.email },
+      };
+    },
+    async session(token) {
+      calls.push(["session", token]);
+      return token === "opaque-session-token" ? { id: "user-1", email: "ana@example.com" } : null;
+    },
+    async logout(token) {
+      calls.push(["logout", token]);
+      return true;
+    },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test", SESSION_TTL_SECONDS: "3600" }),
+    authService,
+  });
+  await new Promise((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+
+  const registration = await fetch(`${origin}/v1/auth/register`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "ana@example.com", displayName: "Ana", password: "senha-segura-2026" }),
+  });
+  assert.equal(registration.status, 201);
+
+  const login = await fetch(`${origin}/v1/auth/login`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "ana@example.com", password: "senha-segura-2026" }),
+  });
+  assert.equal(login.status, 200);
+  const loginBody = await login.json();
+  assert.equal("token" in loginBody, false);
+  const cookie = login.headers.get("set-cookie");
+  assert.match(cookie, /fc_session=opaque-session-token/);
+  assert.match(cookie, /HttpOnly/);
+
+  const session = await fetch(`${origin}/v1/auth/session`, {
+    headers: { cookie: "fc_session=opaque-session-token" },
+  });
+  assert.equal(session.status, 200);
+
+  const logout = await fetch(`${origin}/v1/auth/logout`, {
+    method: "POST", headers: { cookie: "fc_session=opaque-session-token" },
+  });
+  assert.equal(logout.status, 200);
+  assert.match(logout.headers.get("set-cookie"), /Max-Age=0/);
+  assert.deepEqual(calls.map(([name]) => name), ["register", "login", "session", "logout"]);
+});
+
+test("HTTP identity rejects malformed and oversized payloads safely", async (context) => {
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }),
+    authService: { register() { throw new Error("must not be called"); } },
+  });
+  await new Promise((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+
+  const malformed = await fetch(`${origin}/v1/auth/register`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: "{",
+  });
+  assert.equal(malformed.status, 400);
+  assert.equal((await malformed.json()).error.code, "invalid_json");
+
+  const wrongType = await fetch(`${origin}/v1/auth/register`, {
+    method: "POST", headers: { "content-type": "text/plain" }, body: "{}",
+  });
+  assert.equal(wrongType.status, 415);
 });
