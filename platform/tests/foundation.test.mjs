@@ -581,3 +581,24 @@ test("connects approved identity screens to the production API client", async ()
   assert.match(reset, /data-architecture-route="\/app\/reset-password"/);
   assert.match(server, /"\/app\/reset-password"/);
 });
+
+test("connects approved marketplace screens to persistent API contracts", async () => {
+  const files = await Promise.all([
+    readFile(resolve(root, "packages/contracts/marketplace-ui.js"), "utf8"),
+    readFile(resolve(root, "apps/site/search.js"), "utf8"),
+    readFile(resolve(root, "apps/site/favorites.js"), "utf8"),
+    readFile(resolve(root, "apps/site/detail.js"), "utf8"),
+    readFile(resolve(root, "apps/site/publish.js"), "utf8"),
+    readFile(resolve(root, "apps/app/search.js"), "utf8"),
+    readFile(resolve(root, "apps/app/favorites.js"), "utf8"),
+    readFile(resolve(root, "apps/app/publish.js"), "utf8"),
+  ]);
+  const joined = files.join("\n");
+  for (const endpoint of ["/v1/listings", "/v1/favorites"]) assert.ok(joined.includes(endpoint));
+  for (const binding of ["renderSiteSearch", "renderAppSearch", "renderFavorites", "publishListing", "setFavorite"]) {
+    assert.ok(joined.includes(binding));
+  }
+  assert.match(files[0], /credentials/);
+  assert.match(files[4], /fc\.lastListingId/);
+  assert.match(files[7], /fc\.lastListingId/);
+});
