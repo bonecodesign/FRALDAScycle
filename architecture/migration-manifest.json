@@ -10,7 +10,7 @@
   },
   "destination": {
     "root": "platform",
-    "branch": "agent/integrated-architecture-foundation"
+    "branch": "main"
   },
   "surfaces": [
     {
