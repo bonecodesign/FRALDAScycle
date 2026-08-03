@@ -7,6 +7,7 @@ import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
 import { handleAdmin } from "./admin-handler.js";
 import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
+import { createTelemetry } from "./telemetry.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -22,10 +23,19 @@ export function createApiServer({
   marketplaceProviders = null,
   adminService = null,
   rateLimiter = createConfiguredRateLimiter(config),
+  telemetry = createTelemetry(config),
 } = {}) {
   return createServer(async (request, response) => {
     const id = requestId(request);
     const url = new URL(request.url, "http://localhost");
+    const startedAt = performance.now();
+    response.once("finish", () => {
+      void telemetry.record({
+        type: "http.request", requestId: id, method: request.method,
+        route: url.pathname, status: response.statusCode,
+        durationMs: Math.round((performance.now() - startedAt) * 100) / 100,
+      });
+    });
     let headers = { "x-request-id": id, ...corsHeaders(request.headers.origin, config.corsOrigins) };
 
     try {
