@@ -598,7 +598,7 @@ test("connects approved marketplace screens to persistent API contracts", async 
   for (const binding of ["renderSiteSearch", "renderAppSearch", "renderFavorites", "publishListing", "setFavorite"]) {
     assert.ok(joined.includes(binding));
   }
-  assert.match(files[0], /credentials/);
+  assert.match(files[0], /apiRequest/);
   assert.match(files[4], /fc\.lastListingId/);
   assert.match(files[7], /fc\.lastListingId/);
 });
