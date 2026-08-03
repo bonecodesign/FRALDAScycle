@@ -27,6 +27,8 @@ export function loadConfig(env = process.env) {
     databaseSsl: env.DATABASE_SSL === "true",
     sessionSecret: env.SESSION_SECRET ?? "development-only-session-secret",
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
+    rateLimitMax: integer(env.RATE_LIMIT_MAX, 120),
+    rateLimitWindowSeconds: integer(env.RATE_LIMIT_WINDOW_SECONDS, 60),
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
