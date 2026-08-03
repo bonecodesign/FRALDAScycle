@@ -324,6 +324,10 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.equal((payment.match(/name="pay"/g) ?? []).length, 5);
   assert.match(payment, /Valor protegido em custódia até o recebimento/);
   assert.match(behavior, /Cartão tokenizado com segurança/);
+  assert.match(behavior, /\/v1\/payments\/tokenization-sessions/);
+  assert.match(behavior, /\/v1\/payments\/intents/);
+  assert.match(behavior, /FraldaCyclePaymentProvider/);
+  assert.match(behavior, /sdkIntegrity/);
   assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
   const dispute = await readFile(resolve(root, "apps/app/dispute.html"), "utf8");
   assert.match(dispute, /valor permanece protegido em custódia/i);
