@@ -1,14 +1,20 @@
 import { loadConfig } from "./config.js";
 import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
+import { createAuthRepository } from "../../database/auth-repository.js";
+import { createAuthService } from "./auth-service.js";
 import { migrate } from "../../database/migrate.js";
 
 export async function startRuntime(config = loadConfig()) {
   const database = createDatabase(config);
   await migrate(database);
+  const authService = createAuthService(createAuthRepository(database), {
+    sessionTtlSeconds: config.sessionTtlSeconds,
+  });
   const server = createApiServer({
     config,
     readiness: () => database.readiness(),
+    authService,
   });
 
   server.listen(config.port, config.host, () => {
