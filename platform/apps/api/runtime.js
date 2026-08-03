@@ -4,9 +4,11 @@ import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
 import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
+import { createAdminRepository } from "../../database/admin-repository.js";
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
+import { createAdminService } from "./admin-service.js";
 import { createMarketplaceProviders } from "./marketplace-providers.js";
 import { migrate } from "../../database/migrate.js";
 
@@ -20,12 +22,14 @@ export async function startRuntime(config = loadConfig()) {
   });
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
+  const adminService = createAdminService(createAdminRepository(database));
   const server = createApiServer({
     config,
     readiness: () => database.readiness(),
     authService,
     marketplaceService,
     marketplaceProviders,
+    adminService,
   });
 
   server.listen(config.port, config.host, () => {
