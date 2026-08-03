@@ -7,6 +7,7 @@ import { createMarketplaceRepository } from "../../database/marketplace-reposito
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
+import { createMarketplaceProviders } from "./marketplace-providers.js";
 import { migrate } from "../../database/migrate.js";
 
 export async function startRuntime(config = loadConfig()) {
@@ -18,11 +19,13 @@ export async function startRuntime(config = loadConfig()) {
     notificationService,
   });
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
+  const marketplaceProviders = createMarketplaceProviders(config);
   const server = createApiServer({
     config,
     readiness: () => database.readiness(),
     authService,
     marketplaceService,
+    marketplaceProviders,
   });
 
   server.listen(config.port, config.host, () => {
