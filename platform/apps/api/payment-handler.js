@@ -18,9 +18,15 @@ export async function handlePayments(request, response, {
     sendJson(response, 200, { ...result, requestId }, headers);
     return true;
   }
-  if (!paymentService || request.method !== "POST" || url.pathname !== "/v1/payments/intents") return false;
+  if (!paymentService || request.method !== "POST") return false;
   const user = await authService.session(readSessionCookie(request.headers.cookie));
   if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
+  if (url.pathname === "/v1/payments/tokenization-sessions") {
+    const tokenization = await paymentService.tokenizationSession(user.id);
+    sendJson(response, 201, { tokenization, requestId }, headers);
+    return true;
+  }
+  if (url.pathname !== "/v1/payments/intents") return false;
   const result = await paymentService.createIntent(user.id, await readJson(request));
   sendJson(response, result.reused ? 200 : 201, { ...result, requestId }, headers);
   return true;
