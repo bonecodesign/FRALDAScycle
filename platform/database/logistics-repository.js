@@ -68,6 +68,29 @@ export function createLogisticsRepository(database) {
       return result.rows[0] ?? null;
     },
 
+    async assignCourier({ shipmentId, courierId }) {
+      return database.transaction(async (client) => {
+        const assigned = await client.query(
+          `UPDATE shipments SET courier_id=$2,status='assigned',updated_at=now()
+           WHERE id=$1 AND courier_id IS NULL AND status IN ('awaiting_pickup','assigned')
+           RETURNING *`,
+          [shipmentId,courierId],
+        );
+        if (!assigned.rows[0]) return null;
+        await client.query(
+          `INSERT INTO shipment_events (shipment_id,status,description)
+           VALUES ($1,'assigned','Entregador atribuído.')`,
+          [shipmentId],
+        );
+        await client.query(
+          `INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
+           VALUES ($1,'shipment.courier.assigned','shipment',$2,'{}'::jsonb)`,
+          [courierId,shipmentId],
+        );
+        return assigned.rows[0];
+      });
+    },
+
     async addProof(input) {
       return database.transaction(async (client) => {
         const shipment = await client.query(
