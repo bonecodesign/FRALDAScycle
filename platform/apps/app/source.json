@@ -60,7 +60,26 @@
       "appDeliveryConfirm",
       "appDeliveryRate",
       "setupDeliveryTracking",
-      "setupActionStates"
+      "setupActionStates",
+      "appAuthError",
+      "appAuthLocked",
+      "appAuthOffline",
+      "appNotifications",
+      "appNotificationSettings",
+      "appProfile",
+      "appProfileAds",
+      "appProfileHistory",
+      "appProfileReviews",
+      "appAddresses",
+      "appSettings",
+      "appMyImpact",
+      "appHelp",
+      "appStateOffline",
+      "appStatePermission",
+      "appStateRemoved",
+      "setupNotifications",
+      "setupNotificationSettings",
+      "actionMessage"
     ],
     "routes": [
       "#/app/splash",
@@ -101,7 +120,23 @@
       "#/app/delivery-reschedule",
       "#/app/delivery-proof",
       "#/app/delivery-confirm",
-      "#/app/delivery-rate"
+      "#/app/delivery-rate",
+      "#/app/auth-error",
+      "#/app/auth-locked",
+      "#/app/auth-offline",
+      "#/app/notifications",
+      "#/app/notification-settings",
+      "#/app/profile",
+      "#/app/profile-ads",
+      "#/app/profile-history",
+      "#/app/profile-reviews",
+      "#/app/addresses",
+      "#/app/settings",
+      "#/app/my-impact",
+      "#/app/help",
+      "#/app/state-offline",
+      "#/app/state-permission",
+      "#/app/state-removed"
     ]
   },
   "destination": {
@@ -146,7 +181,23 @@
       "/app/delivery-reschedule",
       "/app/delivery-proof",
       "/app/delivery-confirm",
-      "/app/delivery-rate"
+      "/app/delivery-rate",
+      "/app/auth-error",
+      "/app/auth-locked",
+      "/app/auth-offline",
+      "/app/notifications",
+      "/app/notification-settings",
+      "/app/profile",
+      "/app/profile-ads",
+      "/app/profile-history",
+      "/app/profile-reviews",
+      "/app/addresses",
+      "/app/settings",
+      "/app/my-impact",
+      "/app/help",
+      "/app/state-offline",
+      "/app/state-permission",
+      "/app/state-removed"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
@@ -154,7 +205,8 @@
       "platform/apps/app/publish.js",
       "platform/apps/app/negotiation.js",
       "platform/apps/app/finance.js",
-      "platform/apps/app/logistics.js"
+      "platform/apps/app/logistics.js",
+      "platform/apps/app/profile.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
