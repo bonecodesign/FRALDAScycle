@@ -3,7 +3,7 @@ import { AuthError } from "./auth-service.js";
 export const ROLE_SCOPES = Object.freeze({
   customer: Object.freeze(["marketplace:use"]),
   courier: Object.freeze(["marketplace:use", "delivery:operate"]),
-  moderator: Object.freeze(["marketplace:use", "admin:audit:read", "admin:moderate"]),
+  moderator: Object.freeze(["marketplace:use", "admin:audit:read", "admin:moderate", "admin:users:read"]),
   admin: Object.freeze(["*"]),
 });
 
