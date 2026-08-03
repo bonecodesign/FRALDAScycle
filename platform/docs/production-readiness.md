@@ -29,7 +29,8 @@ O produto visual e navegável permanece íntegro. A fundação de produção com
 - [x] aceite público de convite com senha protegida e e-mail verificado;
 - [x] entrega de convites integrada à fila transacional (provedor externo configurável);
 - [x] rate limiting geral em memória e proteção HTTP 429;
-- [ ] rate limiting distribuído para múltiplas instâncias;
+- [x] adaptador de rate limiting distribuído para múltiplas instâncias, com contrato HTTPS configurável;
+- [ ] credenciais e endpoint do provedor Redis/rate limiting distribuído;
 - [x] validação de segredos obrigatórios em produção;
 - [ ] armazenamento externo de segredos e observabilidade hospedada;
 
