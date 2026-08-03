@@ -564,3 +564,20 @@ test("closes all nineteen approved Admin routes with growth launch and support",
   assert.equal(new Set(provenance.destination.routes).size, 19);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+test("connects approved identity screens to the production API client", async () => {
+  const [appAuth, siteAuth, client, reset, server] = await Promise.all([
+    readFile(resolve(root, "apps/app/auth.js"), "utf8"),
+    readFile(resolve(root, "apps/site/login.js"), "utf8"),
+    readFile(resolve(root, "packages/contracts/api-client.js"), "utf8"),
+    readFile(resolve(root, "apps/app/reset-password.html"), "utf8"),
+    readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+  ]);
+  for (const endpoint of ["/v1/auth/register", "/v1/auth/login", "/v1/auth/verification/confirm", "/v1/auth/password/request", "/v1/auth/password/reset"]) {
+    assert.ok(appAuth.includes(endpoint) || siteAuth.includes(endpoint));
+  }
+  assert.match(client, /credentials: "include"/);
+  assert.match(client, /class ApiError/);
+  assert.match(reset, /data-architecture-route="\/app\/reset-password"/);
+  assert.match(server, /"\/app\/reset-password"/);
+});
