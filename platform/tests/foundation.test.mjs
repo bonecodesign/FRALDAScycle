@@ -387,7 +387,7 @@ test("closes the remaining approved App route inventory", async () => {
   }
 
   assert.match(await readFile(resolve(root, "apps/app/notifications.html"), "utf8"), /Notificações/);
-  assert.match(await readFile(resolve(root, "apps/app/profile.html"), "utf8"), /Perfil verificado/);
+  assert.match(await readFile(resolve(root, "apps/app/profile.html"), "utf8"), /Ana Souza/);
   assert.match(await readFile(resolve(root, "apps/app/my-impact.html"), "utf8"), /Meu impacto/);
   assert.match(behavior, /setupNotifications\(\)/);
   assert.match(behavior, /setupNotificationSettings\(\)/);
