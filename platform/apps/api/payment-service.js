@@ -30,6 +30,10 @@ function publicIntent(intent) {
 
 export function createPaymentService(repository, provider) {
   return Object.freeze({
+    async tokenizationSession(userId) {
+      return provider.createTokenizationSession({ userId });
+    },
+
     async processWebhook(event) {
       const result = await repository.processWebhook(event);
       if (result.missing) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");

@@ -65,4 +65,6 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] endpoint autenticado para criação de pagamento;
 - [x] contrato de webhooks financeiros com HMAC-SHA256, janela antirreplay e idempotência;
 - [x] transições persistentes para autorização, pagamento, falha, estorno e disputa;
-- [ ] credenciais, tokenização e formato final de webhooks do provedor financeiro;
+- [x] sessões curtas de tokenização e carregamento de SDK com Subresource Integrity;
+- [x] ponte da tela aprovada para intents reais sem enviar cartão à API FraldaCycle;
+- [ ] credenciais, SDK e formato final de webhooks do provedor financeiro;
