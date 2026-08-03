@@ -79,7 +79,12 @@
       "appStateRemoved",
       "setupNotifications",
       "setupNotificationSettings",
-      "actionMessage"
+      "actionMessage",
+      "courierHome",
+      "courierJob",
+      "courierRoute",
+      "courierProof",
+      "courierHistory"
     ],
     "routes": [
       "#/app/splash",
@@ -136,7 +141,12 @@
       "#/app/help",
       "#/app/state-offline",
       "#/app/state-permission",
-      "#/app/state-removed"
+      "#/app/state-removed",
+      "#/courier/home",
+      "#/courier/job",
+      "#/courier/route",
+      "#/courier/proof",
+      "#/courier/history"
     ]
   },
   "destination": {
@@ -197,7 +207,12 @@
       "/app/help",
       "/app/state-offline",
       "/app/state-permission",
-      "/app/state-removed"
+      "/app/state-removed",
+      "/courier/home",
+      "/courier/job",
+      "/courier/route",
+      "/courier/proof",
+      "/courier/history"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
@@ -206,7 +221,8 @@
       "platform/apps/app/negotiation.js",
       "platform/apps/app/finance.js",
       "platform/apps/app/logistics.js",
-      "platform/apps/app/profile.js"
+      "platform/apps/app/profile.js",
+      "platform/apps/app/courier.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
