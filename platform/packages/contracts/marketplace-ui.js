@@ -16,8 +16,9 @@ function approvedAsset(item) {
 
 function listingCard(item, surface) {
   const href = surface === "site" ? `/site/detail?id=${item.id}` : `/app/chat?listing=${item.id}`;
+  const proximity = item.distance_km == null ? "" : ` · ${Number(item.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
   if (surface === "site") {
-    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
+    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
   }
   return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
 }
