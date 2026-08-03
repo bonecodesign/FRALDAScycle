@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TYPE auth_token_kind AS ENUM ('email_verification', 'password_recovery');
 
 CREATE TABLE auth_tokens (
@@ -24,5 +22,3 @@ CREATE TABLE login_attempts (
 );
 CREATE INDEX login_attempts_rate_limit_idx
   ON login_attempts (email_hash, attempted_at DESC);
-
-COMMIT;
