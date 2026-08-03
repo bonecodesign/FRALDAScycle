@@ -1,5 +1,6 @@
-export function createNotificationService(repository) {
+export function createNotificationService(repository = null) {
   async function enqueue(kind, { email, phone, token }) {
+    if (!repository) return { queued: false };
     const recipient = email ?? phone;
     if (!recipient) throw new Error("Notification recipient is required");
     const id = await repository.enqueue({
