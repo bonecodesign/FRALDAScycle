@@ -395,3 +395,32 @@ test("closes the remaining approved App route inventory", async () => {
   assert.match(behavior, /Conexão restabelecida/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("closes the approved courier journey and the App surface", async () => {
+  const routes = [
+    ["home", /Minhas entregas/],
+    ["job", /Detalhes da coleta/],
+    ["route", /Rota em andamento/],
+    ["proof", /Finalizar entrega/],
+    ["history", /Histórico e repasses/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/app/courier.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/app/courier-${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/courier/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/courier/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/courier/${route}`));
+  }
+
+  assert.match(behavior, /Foto e localização registradas com segurança/);
+  assert.match(await readFile(resolve(root, "apps/app/courier-proof.html"), "utf8"), /repasse será liberado em até 24 horas/i);
+  for (const name of ["courierHome", "courierJob", "courierRoute", "courierProof", "courierHistory"]) {
+    assert.ok(provenance.source.functions.includes(name));
+  }
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
