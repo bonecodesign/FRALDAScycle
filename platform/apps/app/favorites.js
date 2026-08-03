@@ -1,3 +1,4 @@
+import { renderFavorites } from "/packages/contracts/marketplace-ui.js";
 document.querySelectorAll(".favorite").forEach((button) => {
   button.addEventListener("click", () => {
     const card = button.closest(".phone-card");
@@ -15,3 +16,5 @@ document.querySelectorAll(".segmented button").forEach((button) => {
     button.classList.add("active");
   });
 });
+
+renderFavorites({ surface: "app" });
