@@ -113,3 +113,29 @@ export async function renderFavorites({ surface }) {
 export async function publishListing(input) {
   return apiRequest("/v1/listings", { method: "POST", body: input });
 }
+
+export async function uploadListingMedia(file) {
+  const { upload } = await apiRequest("/v1/media/uploads", {
+    method: "POST",
+    body: { contentType: file.type, sizeBytes: file.size },
+  });
+  const response = await fetch(upload.uploadUrl, {
+    method: "PUT",
+    headers: { "content-type": file.type, ...upload.headers },
+    body: file,
+  });
+  if (!response.ok) throw new ApiError("upload_failed", response.status, "Não foi possível enviar a foto.");
+  return upload.storageKey;
+}
+
+export async function geocodeLocation(address) {
+  try {
+    const { location } = await apiRequest("/v1/geocoding/resolve", {
+      method: "POST", body: { address },
+    });
+    return location;
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "provider_not_configured") return null;
+    throw error;
+  }
+}

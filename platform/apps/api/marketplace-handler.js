@@ -10,9 +10,27 @@ async function authenticatedUser(request, authService) {
 }
 
 export async function handleMarketplace(request, response, {
-  url, headers, requestId, marketplaceService, authService,
+  url, headers, requestId, marketplaceService, marketplaceProviders, authService,
 }) {
-  if (!marketplaceService || !url.pathname.startsWith("/v1/")) return false;
+  if (!url.pathname.startsWith("/v1/")) return false;
+
+  if (request.method === "POST" && url.pathname === "/v1/media/uploads") {
+    const user = await authenticatedUser(request, authService);
+    if (!marketplaceProviders) return false;
+    const upload = await marketplaceProviders.signedUpload(user.id, await readJson(request));
+    sendJson(response, 201, { upload, requestId }, headers);
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/v1/geocoding/resolve") {
+    const user = await authenticatedUser(request, authService);
+    if (!marketplaceProviders) return false;
+    const location = await marketplaceProviders.geocode(user.id, await readJson(request));
+    sendJson(response, 200, { location, requestId }, headers);
+    return true;
+  }
+
+  if (!marketplaceService) return false;
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
     const items = await marketplaceService.search(Object.fromEntries(url.searchParams));

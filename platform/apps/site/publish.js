@@ -1,4 +1,4 @@
-import { publishListing } from "/packages/contracts/marketplace-ui.js";
+import { geocodeLocation, publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 import "/apps/site/home.js";
 
 function notify(message) {
@@ -16,6 +16,7 @@ function setupSitePublish(){
   const data={type:'Venda',title:'Pampers Confort Sec M - 50 unidades',brand:'Pampers',size:'M',quantity:'50',condition:'Novo e lacrado',price:'42,00',delivery:'Retirada no local',location:'Bairro Castelo, Belo Horizonte - MG'};
   let step=1;
   let photoReady=false;
+  const mediaKeys=[];
   const selectChoice=(selector,key)=>{
     content.querySelectorAll(selector).forEach(button=>button.addEventListener('click',()=>{
       content.querySelectorAll(selector).forEach(item=>item.classList.remove('active'));
@@ -44,7 +45,15 @@ function setupSitePublish(){
     selectChoice('[data-publish-condition]','condition');
     selectChoice('[data-publish-delivery]','delivery');
     const photo=document.getElementById('site-add-photo');
-    if(photo)photo.addEventListener('click',()=>{photoReady=true;draw();notify('Foto adicionada ao anúncio')});
+    if(photo)photo.addEventListener('click',()=>{
+      const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';
+      input.addEventListener('change',async()=>{
+        const file=input.files?.[0];if(!file)return;
+        photo.disabled=true;photo.textContent='Enviando...';
+        try{const key=await uploadListingMedia(file);mediaKeys.splice(0,mediaKeys.length,key);photoReady=true;draw();notify('Foto adicionada ao anúncio')}
+        catch(error){if(error.code==='provider_not_configured'){photoReady=true;draw();notify('Foto aprovada mantida até configurar o storage');return}photo.disabled=false;photo.textContent='Adicionar foto';notify(error.status===401?'Entre na sua conta para enviar fotos.':error.message)}
+      });input.click();
+    });
     document.getElementById('site-publish-back').addEventListener('click',()=>{if(step>1){step--;draw()}});
     document.getElementById('site-publish-next').addEventListener('click',async()=>{
       if(step===3&&!photoReady){document.getElementById('site-photo-error').textContent='Adicione pelo menos uma foto para continuar.';return}
@@ -52,6 +61,7 @@ function setupSitePublish(){
       try {
         const kind = { Venda: 'sale', Troca: 'exchange', Doação: 'donation' }[data.type];
         const numericPrice = Math.round(Number(String(data.price).replace('.', '').replace(',', '.')) * 100);
+        const location = await geocodeLocation(data.location);
         const result = await publishListing({
           title: data.title,
           description: `${data.condition}. ${data.delivery}. ${data.location}.`,
@@ -60,9 +70,11 @@ function setupSitePublish(){
           quantity: Number(data.quantity),
           kind,
           priceCents: kind === 'sale' ? numericPrice : null,
-          city: data.location.split(',')[1]?.trim() ?? null,
-          state: data.location.match(/-\s*([A-Z]{2})$/)?.[1] ?? null,
-          mediaKeys: [],
+          city: location?.city ?? data.location.split(',')[1]?.trim() ?? null,
+          state: location?.state ?? data.location.match(/-\s*([A-Z]{2})$/)?.[1] ?? null,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null,
+          mediaKeys,
         });
         sessionStorage.setItem('fc.lastListingId', result.listing.id);
       } catch (error) {

@@ -35,7 +35,9 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] venda, troca e doação;
 - [x] favoritos por usuário;
 - [x] referências de mídia independentes do storage;
-- [ ] upload assinado para storage externo;
-- [ ] geocodificação e busca por distância;
+- [x] contrato de upload assinado para storage externo;
+- [x] contrato de geocodificação externa;
+- [ ] busca por distância no banco;
 - [x] conexão das telas de busca, detalhe, favoritos e publicação;
-- [ ] upload real de mídia e geocodificação externa;
+- [x] telas preparadas para upload real de mídia e geocodificação externa;
+- [ ] credenciais e endpoints dos provedores de mídia e geocodificação;
