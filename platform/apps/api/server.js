@@ -17,6 +17,7 @@ export function createApiServer({
   readiness = async () => ({ database: "not-configured" }),
   authService = null,
   marketplaceService = null,
+  marketplaceProviders = null,
 } = {}) {
   return createServer(async (request, response) => {
     const id = requestId(request);
@@ -118,7 +119,7 @@ export function createApiServer({
       }
 
       if (await handleMarketplace(request, response, {
-        url, headers, requestId: id, marketplaceService, authService,
+        url, headers, requestId: id, marketplaceService, marketplaceProviders, authService,
       })) return;
 
       sendJson(response, 404, {
