@@ -536,3 +536,31 @@ test("transfers Admin security moderation audit webhooks and settings governance
   assert.match(provenance.architectureNotes.at(-1).detail, /No standalone admin webhook route exists/);
   assert.deepEqual(provenance.modifiedSourceFiles, []);
 });
+
+
+test("closes all nineteen approved Admin routes with growth launch and support", async () => {
+  const routes = [
+    ["partnerships", /Expansão e parcerias/],
+    ["innovation", /Inovação e produtos/],
+    ["launch", /Lançamento e suporte/],
+  ];
+  const behavior = await readFile(resolve(root, "apps/admin/growth.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
+
+  for (const [route, approvedCopy] of routes) {
+    const html = await readFile(resolve(root, `apps/admin/${route}.html`), "utf8");
+    assert.match(html, new RegExp(`data-source-route="#/admin/${route}"`));
+    assert.match(html, approvedCopy);
+    assert.ok(server.includes(`"/admin/${route}"`));
+    assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
+  }
+
+  assert.match(behavior, /setupAdminPartnerships\(\)/);
+  assert.match(behavior, /setupAdminInnovation\(\)/);
+  assert.match(behavior, /setupAdminLaunch\(\)/);
+  assert.equal(provenance.source.routes.length, 19);
+  assert.equal(provenance.destination.routes.length, 19);
+  assert.equal(new Set(provenance.destination.routes).size, 19);
+  assert.deepEqual(provenance.modifiedSourceFiles, []);
+});
