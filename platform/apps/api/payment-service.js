@@ -30,6 +30,13 @@ function publicIntent(intent) {
 
 export function createPaymentService(repository, provider) {
   return Object.freeze({
+    async processWebhook(event) {
+      const result = await repository.processWebhook(event);
+      if (result.missing) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
+      if (result.amountMismatch) throw new PaymentError("payment_amount_mismatch", 409, "Valor do evento financeiro não confere.");
+      return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null };
+    },
+
     async createIntent(buyerId, input) {
       const transactionId = String(input?.transactionId ?? "");
       const idempotencyKey = String(input?.idempotencyKey ?? "").trim();
