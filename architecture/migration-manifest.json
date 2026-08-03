@@ -156,7 +156,8 @@
         "launch",
         "data",
         "forecast",
-        "alerts"
+        "alerts",
+        "settings"
       ],
       "migrated": [
         "dashboard",
@@ -171,14 +172,17 @@
         "data",
         "forecast",
         "alerts",
-        "infrastructure"
-      ],
-      "next": [
+        "infrastructure",
         "security",
+        "moderation",
         "audit",
         "webhooks",
-        "moderation",
         "settings"
+      ],
+      "next": [
+        "partnerships",
+        "innovation",
+        "launch"
       ],
       "audit": {
         "approvedCoreRoutes": 5,
@@ -190,7 +194,11 @@
         "impactPlacement": "embedded-in-reports",
         "approvedIntelligenceRoutes": 4,
         "migratedIntelligenceRoutes": 4,
-        "missingIntelligenceRoutes": 0
+        "missingIntelligenceRoutes": 0,
+        "approvedGovernanceRoutes": 4,
+        "migratedGovernanceRoutes": 4,
+        "missingGovernanceRoutes": 0,
+        "webhookPlacement": "embedded-in-audit-and-settings"
       }
     }
   ],
