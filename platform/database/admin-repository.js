@@ -60,6 +60,69 @@ export function createAdminRepository(database) {
       });
     },
 
+    async createInvitation({ actorUserId, email, displayName, role, tokenHash, token, expiresAt }) {
+      return database.transaction(async (client) => {
+        const existing = await client.query(
+          "SELECT id FROM users WHERE email = $1 LIMIT 1",
+          [email],
+        );
+        if (existing.rows[0]) return null;
+        await client.query(
+          `UPDATE admin_invitations SET consumed_at = now()
+           WHERE email = $1 AND consumed_at IS NULL`,
+          [email],
+        );
+        const created = await client.query(
+          `INSERT INTO admin_invitations
+             (email, display_name, role, token_hash, invited_by, expires_at)
+           VALUES ($1,$2,$3::user_role,$4,$5,$6)
+           RETURNING id, email, display_name, role, expires_at, created_at`,
+          [email, displayName, role, tokenHash, actorUserId, expiresAt],
+        );
+        const invitation = created.rows[0];
+        await client.query(
+          `INSERT INTO notification_outbox (kind, recipient, payload)
+           VALUES ('admin_invitation'::auth_token_kind, $1, $2::jsonb)`,
+          [email, JSON.stringify({
+            token, channel: "email", displayName, role,
+            expiresAt: expiresAt.toISOString(),
+          })],
+        );
+        await client.query(
+          `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
+           VALUES ($1, 'admin.invitation.created', 'admin_invitation', $2, $3::jsonb)`,
+          [actorUserId, invitation.id, JSON.stringify({ email, role, expiresAt })],
+        );
+        return invitation;
+      });
+    },
+
+    async acceptInvitation({ tokenHash, passwordHash }) {
+      return database.transaction(async (client) => {
+        const consumed = await client.query(
+          `UPDATE admin_invitations SET consumed_at = now()
+           WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
+           RETURNING id, email, display_name, role, invited_by`,
+          [tokenHash],
+        );
+        const invitation = consumed.rows[0];
+        if (!invitation) return null;
+        const created = await client.query(
+          `INSERT INTO users (email, password_hash, display_name, role, email_verified_at)
+           VALUES ($1,$2,$3,$4::user_role,now())
+           RETURNING id, email, phone, display_name, role, email_verified_at, created_at`,
+          [invitation.email, passwordHash, invitation.display_name, invitation.role],
+        );
+        const user = created.rows[0];
+        await client.query(
+          `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
+           VALUES ($1, 'admin.invitation.accepted', 'user', $2, $3::jsonb)`,
+          [invitation.invited_by, user.id, JSON.stringify({ invitationId: invitation.id, role: invitation.role })],
+        );
+        return user;
+      });
+    },
+
     async listUserSessions({ userId, currentSessionId }) {
       const result = await database.query(
         `SELECT id, user_agent, created_at, expires_at, revoked_at,

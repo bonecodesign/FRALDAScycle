@@ -67,6 +67,19 @@ export function createApiServer({
         return;
       }
 
+      if (request.method === "POST" && url.pathname === "/v1/auth/invitations/accept") {
+        if (!adminService) {
+          sendJson(response, 503, {
+            error: { code: "invitation_unavailable", message: "Serviço de convites indisponível." },
+            requestId: id,
+          }, headers);
+          return;
+        }
+        const result = await adminService.acceptInvitation(await readJson(request));
+        sendJson(response, 201, { ...result, requestId: id }, headers);
+        return;
+      }
+
       if (url.pathname.startsWith("/v1/auth/") && !authService) {
         unavailable(response, headers);
         return;

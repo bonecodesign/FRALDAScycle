@@ -452,6 +452,8 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
   assert.match(behavior, /\/v1\/admin\/users/);
   assert.match(behavior, /loadLiveAdminUsers/);
   assert.match(behavior, /\/v1\/admin\/sessions/);
+  assert.match(behavior, /\/v1\/admin\/invitations/);
+  assert.match(behavior, /admin-user-invite-form/);
   assert.match(behavior, /loadLiveAdminSessions/);
   assert.match(behavior, /rbac-save/);
   assert.match(behavior, /admin-ad-search/);
