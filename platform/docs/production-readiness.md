@@ -71,3 +71,15 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] autorização do comprador, auditoria e adaptador externo para casos financeiros;
 - [x] telas aprovadas de reembolso e disputa conectadas ao backend;
 - [ ] credenciais, SDK e formato final de webhooks do provedor financeiro;
+
+
+## Corte 4 — logística
+
+- [x] remessas persistentes e idempotentes;
+- [x] modalidades de retirada, parceiro, Correios e expressa;
+- [x] seguro e timeline persistente de rastreamento;
+- [x] controle de acesso para comprador, vendedor e entregador;
+- [x] prova de entrega com mídia, recebedor, horário e coordenadas;
+- [x] conclusão atômica da remessa e transação;
+- [x] adaptador HTTPS provider-neutral para logística;
+- [ ] credenciais, rastreamento e webhooks do provedor logístico;
