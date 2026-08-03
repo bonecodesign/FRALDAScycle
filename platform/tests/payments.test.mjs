@@ -277,3 +277,69 @@ test("signed payment webhook endpoint is public to the provider but never unsign
   assert.equal(accepted.status, 200);
   assert.equal((await accepted.json()).accepted, true);
 });
+
+
+test("payment provider creates a short-lived integrity-pinned tokenization session", async () => {
+  const calls = [];
+  const adapter = createPaymentProvider(loadConfig({
+    NODE_ENV: "test",
+    PAYMENT_PROVIDER_URL: "https://payments.example.test/api",
+    PAYMENT_PROVIDER_SECRET: "payment-secret",
+    PAYMENT_PROVIDER_SDK_URL: "https://cdn.payments.example.test/sdk.js",
+    PAYMENT_PROVIDER_SDK_INTEGRITY: "sha384-dGVzdC1pbnRlZ3JpdHk=",
+  }), {
+    async fetchImpl(url, options) {
+      calls.push({ url: String(url), options });
+      return new Response(JSON.stringify({
+        clientToken: "short-lived-client-token-123",
+        expiresAt: "2030-01-01T00:05:00.000Z",
+      }), { status: 201, headers: { "content-type": "application/json" } });
+    },
+  });
+  const session = await adapter.createTokenizationSession({ userId: "buyer-1" });
+  assert.equal(session.sdkUrl, "https://cdn.payments.example.test/sdk.js");
+  assert.match(session.sdkIntegrity, /^sha384-/);
+  assert.equal(calls[0].options.headers.authorization, "Bearer payment-secret");
+  assert.deepEqual(JSON.parse(calls[0].options.body), { customerReference: "buyer-1" });
+});
+
+test("tokenization session endpoint requires authentication and exposes no provider secret", async (context) => {
+  const authService = { async session(token) { return token === "buyer" ? { id: "buyer-1" } : null; } };
+  const paymentService = {
+    async tokenizationSession(userId) {
+      return {
+        clientToken: "client-token", expiresAt: "2030-01-01T00:05:00.000Z",
+        sdkUrl: "https://cdn.example.test/sdk.js", sdkIntegrity: "sha384-integrity", userId,
+      };
+    },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }), authService, paymentService,
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  context.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+
+  assert.equal((await fetch(origin + "/v1/payments/tokenization-sessions", { method: "POST" })).status, 401);
+  const response = await fetch(origin + "/v1/payments/tokenization-sessions", {
+    method: "POST", headers: { cookie: "fc_session=buyer" },
+  });
+  assert.equal(response.status, 201);
+  const payload = await response.json();
+  assert.equal(payload.tokenization.userId, "buyer-1");
+  assert.equal(JSON.stringify(payload).includes("payment-secret"), false);
+});
+
+test("payment SDK configuration requires paired HTTPS URL and SRI", () => {
+  assert.throws(() => loadConfig({
+    PAYMENT_PROVIDER_SDK_URL: "https://cdn.example.test/sdk.js",
+  }), /configured together/);
+  assert.throws(() => loadConfig({
+    PAYMENT_PROVIDER_SDK_URL: "http://cdn.example.test/sdk.js",
+    PAYMENT_PROVIDER_SDK_INTEGRITY: "sha384-integrity",
+  }), /must use HTTPS/);
+  assert.throws(() => loadConfig({
+    PAYMENT_PROVIDER_SDK_URL: "https://cdn.example.test/sdk.js",
+    PAYMENT_PROVIDER_SDK_INTEGRITY: "not-sri",
+  }), /must use SRI/);
+});
