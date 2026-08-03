@@ -59,6 +59,53 @@ export function createPaymentRepository(database) {
       return result.rows[0];
     },
 
+    async processWebhook(event) {
+      return database.transaction(async (client) => {
+        const inserted = await client.query(
+          `INSERT INTO payment_webhook_events
+             (id, event_type, provider_reference, occurred_at, payload_hash)
+           VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING RETURNING id`,
+          [event.id, event.type, event.providerReference, event.occurredAt, event.payloadHash],
+        );
+        if (!inserted.rows[0]) return { duplicate: true };
+        const found = await client.query(
+          `SELECT p.id, p.transaction_id, p.amount_cents, p.status
+           FROM payment_intents p WHERE p.provider_reference = $1 FOR UPDATE`,
+          [event.providerReference],
+        );
+        const intent = found.rows[0];
+        if (!intent) return { missing: true };
+        if (intent.amount_cents !== event.amountCents) return { amountMismatch: true };
+
+        const intentStatus = {
+          "payment.authorized": "authorized", "payment.paid": "paid",
+          "payment.failed": "failed", "payment.refunded": "refunded",
+          "payment.disputed": "disputed",
+        }[event.type];
+        const transactionStatus = {
+          "payment.authorized": "payment_pending", "payment.paid": "paid",
+          "payment.failed": "payment_pending", "payment.refunded": "refunded",
+          "payment.disputed": "disputed",
+        }[event.type];
+        await client.query(
+          `UPDATE payment_intents SET status = $2::payment_intent_status, updated_at = now()
+           WHERE id = $1`,
+          [intent.id, intentStatus],
+        );
+        await client.query(
+          `UPDATE transactions SET status = $2::transaction_status, updated_at = now()
+           WHERE id = $1`,
+          [intent.transaction_id, transactionStatus],
+        );
+        await client.query(
+          `INSERT INTO audit_events (action, entity_type, entity_id, metadata)
+           VALUES ('payment.webhook.processed', 'payment_intent', $1, $2::jsonb)`,
+          [intent.id, JSON.stringify({ eventId: event.id, eventType: event.type })],
+        );
+        return { duplicate: false, status: intentStatus };
+      });
+    },
+
     async markProviderFailure({ intentId, failureCode }) {
       await database.query(
         `UPDATE payment_intents SET status = 'failed', failure_code = $2, updated_at = now()

@@ -1,4 +1,4 @@
-export async function readJson(request, { limit = 32_768 } = {}) {
+async function readJsonBuffer(request, { limit = 32_768 } = {}) {
   const contentType = request.headers["content-type"] ?? "";
   if (!contentType.toLowerCase().startsWith("application/json")) {
     const error = new TypeError("Content-Type must be application/json");
@@ -19,13 +19,25 @@ export async function readJson(request, { limit = 32_768 } = {}) {
     }
     chunks.push(chunk);
   }
+  return Buffer.concat(chunks);
+}
 
+function parseJson(buffer) {
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return JSON.parse(buffer.toString("utf8"));
   } catch {
     const error = new SyntaxError("Invalid JSON");
     error.status = 400;
     error.code = "invalid_json";
     throw error;
   }
+}
+
+export async function readJson(request, options) {
+  return parseJson(await readJsonBuffer(request, options));
+}
+
+export async function readSignedJson(request, options) {
+  const raw = await readJsonBuffer(request, options);
+  return { raw, value: parseJson(raw) };
 }

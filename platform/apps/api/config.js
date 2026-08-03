@@ -9,11 +9,15 @@ export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
   const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
   const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
+  const paymentWebhookSecret = env.PAYMENT_WEBHOOK_SECRET ?? null;
   if (Boolean(paymentProviderUrl) !== Boolean(paymentProviderSecret)) {
     throw new Error("PAYMENT_PROVIDER_URL and PAYMENT_PROVIDER_SECRET must be configured together");
   }
   if (paymentProviderUrl && !paymentProviderUrl.startsWith("https://")) {
     throw new Error("PAYMENT_PROVIDER_URL must use HTTPS");
+  }
+  if (nodeEnv === "production" && paymentProviderUrl && !paymentWebhookSecret) {
+    throw new Error("PAYMENT_WEBHOOK_SECRET is required with a production payment provider");
   }
   const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
   const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
@@ -59,6 +63,7 @@ export function loadConfig(env = process.env) {
     telemetryProviderSecret,
     paymentProviderUrl,
     paymentProviderSecret,
+    paymentWebhookSecret,
     notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
     notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
     mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,

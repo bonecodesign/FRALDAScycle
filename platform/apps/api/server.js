@@ -23,6 +23,7 @@ export function createApiServer({
   marketplaceService = null,
   marketplaceProviders = null,
   paymentService = null,
+  paymentProvider = null,
   adminService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
@@ -158,7 +159,7 @@ export function createApiServer({
       }
 
       if (await handlePayments(request, response, {
-        url, headers, requestId: id, authService, paymentService,
+        url, headers, requestId: id, authService, paymentService, paymentProvider,
       })) return;
 
       if (await handleAdmin(request, response, {

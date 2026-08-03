@@ -39,6 +39,7 @@ export async function startRuntime(config = null) {
     marketplaceService,
     marketplaceProviders,
     paymentService,
+    paymentProvider,
     adminService,
     telemetry,
   });
