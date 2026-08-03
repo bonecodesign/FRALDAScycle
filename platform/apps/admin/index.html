@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="FraldaCycle — painel administrativo"><title>FraldaCycle — Admin · dashboard</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/packages/ui/source-adapter.css"></head><body><a class="skip-link" href="#main">Pular para o conteúdo</a><main id="main" tabindex="-1" data-surface="admin" data-source-route="#/admin/dashboard">
+<section class="admin-layout"><nav class="admin-sidebar" aria-label="Painel administrativo"><a href="/admin/dashboard" class="active">▦ Dashboard</a><a href="/admin/users" class="">○ Usuários</a><a href="/admin/roles" class="">♙ Papéis e acessos</a><a href="/admin/ads" class="">□ Anúncios e produtos</a><a href="/admin/operations" class="">↔ Operações</a><a href="/admin/finance" class="">▣ Financeiro</a><a href="/admin/logistics" class="">⌖ Logística</a><a href="/admin/reports" class="">▥ Relatórios</a><a href="/admin/data" class="">◫ Dados e inteligência</a><a href="/admin/forecast" class="">⌁ Previsões e alertas</a><a href="/admin/infrastructure" class="">⌁ Infraestrutura</a><a href="/admin/partnerships" class="">♧ Expansão e parcerias</a><a href="/admin/innovation" class="">✦ Inovação e produtos</a><a href="/admin/launch" class="">✓ Lançamento e suporte</a><a href="/admin/alerts" class="">! Alertas</a><a href="/admin/moderation" class="">♢ Moderação e antifraude</a><a href="/admin/audit" class="">≡ Logs, auditoria e webhooks</a><a href="/admin/settings" class="">⚙ Configurações e integrações</a><a href="/admin/security" class="">⌁ Segurança e 2FA</a><a href="/site/home">↗ Ver plataforma</a></nav><div class="admin-main"><div class="admin-head"><div><span class="eyebrow">Painel administrativo</span><h1>Dashboard executivo</h1></div><div><span class="badge">Ambiente demonstrativo</span></div></div>
+  <div class="admin-dashboard-dense">
+    <div class="admin-toolbar">
+      <div class="admin-filter-pair">
+        <label>Período
+          <select class="input admin-period" id="admin-dashboard-period">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+        </label>
+        <label>Status
+          <select class="input" id="admin-dashboard-status-filter">
+            <option value="">Todos</option>
+            <option value="Concluído">Concluído</option>
+            <option value="Em andamento">Em andamento</option>
+            <option value="Aguardando">Aguardando</option>
+          </select>
+        </label>
+      </div>
+      <div class="admin-toolbar-actions">
+        <span class="dashboard-update-note" id="admin-dashboard-period-note">Atualizado hoje · dados simulados</span>
+        <button class="button secondary" id="admin-refresh">Atualizar dados</button>
+      </div>
+    </div>
+
+    <div class="stat-grid admin">
+      <article class="stat-card"><small>Usuários cadastrados · Simulado</small><strong>1.248</strong><span>+18% vs. período anterior</span></article>
+      <article class="stat-card"><small>Transações no mês · Simulado</small><strong>5.432</strong><span>+22% vs. período anterior</span></article>
+      <article class="stat-card"><small>Volume transacionado · Simulado</small><strong>R$ 512.980,30</strong><span>+19% vs. período anterior</span></article>
+      <article class="stat-card"><small>Taxa de aprovação · Simulado</small><strong>97,2%</strong><span>+1,4 p.p. vs. período anterior</span></article>
+    </div>
+
+    <div class="dashboard-grid admin-dashboard-overview">
+      <section class="panel">
+        <div class="section-head"><div><span class="eyebrow">Operação</span><h2>Operações nos últimos 7 dias</h2></div><span class="status-badge success">Saudável</span></div>
+        <div class="chart" role="img" aria-label="Gráfico de operações crescente"><div class="bar" style="height:38%"><span>42</span></div><div class="bar" style="height:50%"><span>58</span></div><div class="bar" style="height:46%"><span>52</span></div><div class="bar" style="height:64%"><span>76</span></div><div class="bar" style="height:71%"><span>84</span></div><div class="bar" style="height:82%"><span>96</span></div><div class="bar" style="height:92%"><span>112</span></div></div>
+      </section>
+      <aside class="panel">
+        <div class="section-head"><div><span class="eyebrow">Tempo real</span><h2>Atividade recente</h2></div><a href="/admin/audit">Ver auditoria</a></div>
+        <div class="activity">
+          <div class="activity-item"><div class="avatar">AS</div><div><strong>Ana Souza</strong><div class="muted">Anúncio publicado · 11:42</div></div></div>
+          <div class="activity-item"><div class="avatar">CS</div><div><strong>Carlos Silva</strong><div class="muted">Entrega confirmada · 11:35</div></div></div>
+          <div class="activity-item"><div class="avatar">JM</div><div><strong>João Martins</strong><div class="muted">Pagamento aprovado · 11:18</div></div></div>
+          <div class="activity-item"><div class="avatar">ML</div><div><strong>Marina Lima</strong><div class="muted">Relatório exportado · 10:52</div></div></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="dashboard-grid admin-dashboard-operations">
+      <section class="panel admin-dashboard-orders">
+        <div class="section-head"><div><span class="eyebrow">Pedidos</span><h2>Pedidos recentes</h2></div><a href="/admin/operations">Ver operações</a></div>
+        <div class="table-wrap"><table class="admin-table" id="admin-dashboard-orders-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>
+          <tr data-status="Concluído"><td>#FC12548</td><td>Maria Silva</td><td>R$ 89,90</td><td><span class="status-badge success">Concluído</span></td><td>Hoje, 11:35</td></tr>
+          <tr data-status="Em andamento"><td>#FC12547</td><td>João Santos</td><td>R$ 45,00</td><td><span class="status-badge warning">Em andamento</span></td><td>Hoje, 11:20</td></tr>
+          <tr data-status="Aguardando"><td>#FC12546</td><td>Camila Alves</td><td>R$ 72,50</td><td><span class="status-badge neutral">Aguardando</span></td><td>Hoje, 10:48</td></tr>
+          <tr data-status="Concluído"><td>#FC12545</td><td>Rafael Costa</td><td>R$ 51,20</td><td><span class="status-badge success">Concluído</span></td><td>Hoje, 10:12</td></tr>
+        </tbody></table></div>
+        <p class="empty-state compact" id="admin-dashboard-orders-empty" hidden>Nenhum pedido encontrado para este status.</p>
+      </section>
+      <aside class="panel admin-dashboard-status">
+        <span class="eyebrow">Distribuição</span><h2>Pedidos por status</h2>
+        <div class="admin-status-summary">
+          <div class="admin-status-donut" role="img" aria-label="62 por cento concluídos, 24 por cento em andamento e 14 por cento aguardando"><strong>5.432</strong><span>pedidos</span></div>
+          <div class="admin-status-legend">
+            <div><i class="legend-dot success"></i><span>Concluídos</span><strong>62%</strong></div>
+            <div><i class="legend-dot warning"></i><span>Em andamento</span><strong>24%</strong></div>
+            <div><i class="legend-dot neutral"></i><span>Aguardando</span><strong>14%</strong></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="dashboard-grid admin-dashboard-support">
+      <section class="panel admin-dashboard-alerts">
+        <div class="section-head"><div><span class="eyebrow">Monitoramento</span><h2>Alertas do sistema</h2></div><a href="/admin/alerts">Ver todos</a></div>
+        <div class="admin-dashboard-alert-list">
+          <article data-dashboard-alert><span class="alert-indicator danger"></span><div><strong>2 pagamentos com falha de confirmação</strong><p>Financeiro · requer análise</p></div><button class="button ghost small" data-dashboard-resolve>Revisar</button></article>
+          <article data-dashboard-alert><span class="alert-indicator warning"></span><div><strong>5 coletas com atraso leve</strong><p>Logística · monitoramento ativo</p></div><button class="button ghost small" data-dashboard-resolve>Revisar</button></article>
+          <article data-dashboard-alert><span class="alert-indicator success"></span><div><strong>Sistema operacional normal</strong><p>Infraestrutura · atualizado agora</p></div><span class="status-badge success">Saudável</span></article>
+        </div>
+      </section>
+      <aside class="panel admin-dashboard-shortcuts">
+        <span class="eyebrow">Gestão</span><h2>Atalhos principais</h2>
+        <div class="admin-shortcut-grid">
+          <a href="/admin/users"><span>♙</span><strong>Usuários</strong><small>Perfis e permissões</small></a>
+          <a href="/admin/ads"><span>▣</span><strong>Anúncios</strong><small>Catálogo e moderação</small></a>
+          <a href="/admin/logistics"><span>⌖</span><strong>Logística</strong><small>Entregas e rotas</small></a>
+          <a href="/admin/reports"><span>↗</span><strong>Relatórios</strong><small>Indicadores e exportação</small></a>
+        </div>
+      </aside>
+    </div>
+  </div></div></section>
+</main><div id="toast" role="status" aria-live="polite"></div><script type="module" src="/apps/admin/core.js"></script></body></html>

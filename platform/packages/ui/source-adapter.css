@@ -1,0 +1,15 @@
+/*
+ * Adaptador temporário e somente leitura.
+ * Fonte oficial: raiz da main, commit 64c818467c352b49f34e36f92a6c0d45e1078eb9.
+ */
+@import url("/source/styles.css");
+@import url("/source/map-safety.css");
+@import url("/source/fidelity.css");
+
+:root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}

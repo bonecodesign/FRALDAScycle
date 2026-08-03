@@ -1,0 +1,109 @@
+{
+  "source": {
+    "branch": "main",
+    "commit": "64c818467c352b49f34e36f92a6c0d45e1078eb9",
+    "files": [
+      "app.js"
+    ],
+    "functions": [
+      "adminShell",
+      "dataTable",
+      "adminDashboard",
+      "adminUsers",
+      "adminRoles",
+      "adminAds",
+      "adminOperations",
+      "setupAdmin",
+      "setupAdminAds",
+      "adminFinance",
+      "adminLogistics",
+      "adminReports",
+      "adminData",
+      "adminForecast",
+      "adminAlerts",
+      "adminInfrastructure",
+      "setupAdminData",
+      "setupAdminForecast",
+      "setupAdminInfrastructure",
+      "adminSecurity",
+      "adminModeration",
+      "adminAudit",
+      "adminSettings",
+      "setupAdminModeration",
+      "setupAdminAudit",
+      "setupAdminSettings",
+      "adminPartnerships",
+      "adminInnovation",
+      "adminLaunch",
+      "setupAdminPartnerships",
+      "setupAdminInnovation",
+      "setupAdminLaunch"
+    ],
+    "routes": [
+      "#/admin/dashboard",
+      "#/admin/users",
+      "#/admin/roles",
+      "#/admin/ads",
+      "#/admin/operations",
+      "#/admin/finance",
+      "#/admin/logistics",
+      "#/admin/reports",
+      "#/admin/data",
+      "#/admin/forecast",
+      "#/admin/alerts",
+      "#/admin/infrastructure",
+      "#/admin/security",
+      "#/admin/moderation",
+      "#/admin/audit",
+      "#/admin/settings",
+      "#/admin/partnerships",
+      "#/admin/innovation",
+      "#/admin/launch"
+    ]
+  },
+  "destination": {
+    "branch": "agent/integrated-architecture-foundation",
+    "root": "platform/apps/admin",
+    "routes": [
+      "/admin/dashboard",
+      "/admin/users",
+      "/admin/roles",
+      "/admin/ads",
+      "/admin/operations",
+      "/admin/finance",
+      "/admin/logistics",
+      "/admin/reports",
+      "/admin/data",
+      "/admin/forecast",
+      "/admin/alerts",
+      "/admin/infrastructure",
+      "/admin/security",
+      "/admin/moderation",
+      "/admin/audit",
+      "/admin/settings",
+      "/admin/partnerships",
+      "/admin/innovation",
+      "/admin/launch"
+    ],
+    "behaviorFiles": [
+      "platform/apps/admin/core.js",
+      "platform/apps/admin/intelligence.js",
+      "platform/apps/admin/governance.js",
+      "platform/apps/admin/growth.js"
+    ]
+  },
+  "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
+  "modifiedSourceFiles": [],
+  "architectureNotes": [
+    {
+      "area": "impact",
+      "decision": "preserve approved prototype organization",
+      "detail": "No standalone admin impact route exists; administrative impact indicators remain embedded in reports and operational dashboards."
+    },
+    {
+      "area": "webhooks",
+      "decision": "preserve approved prototype organization",
+      "detail": "No standalone admin webhook route exists; webhook controls remain embedded in audit and settings."
+    }
+  ]
+}

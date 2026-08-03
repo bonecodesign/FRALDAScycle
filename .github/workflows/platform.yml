@@ -1,0 +1,37 @@
+name: Platform CI
+
+on:
+  pull_request:
+    paths:
+      - "platform/**"
+      - ".github/workflows/platform.yml"
+  push:
+    paths:
+      - "platform/**"
+      - ".github/workflows/platform.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JavaScript syntax
+        run: |
+          node --check packages/contracts/routes.js
+          node --check tools/dev-server.mjs
+          node --check tests/foundation.test.mjs
+          for file in apps/*/*.js; do node --check "$file"; done
+      - name: Run platform tests
+        run: npm test
+      - name: Protect approved prototype
+        working-directory: .
+        run: node qa-regression.mjs

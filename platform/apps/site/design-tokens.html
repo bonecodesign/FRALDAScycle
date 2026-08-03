@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraldaCycle — economia circular para famílias">
+  <title>FraldaCycle — Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="/site/home" aria-label="FraldaCycle, início">
+      <img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle">
+    </a>
+    <nav class="surface-switcher" aria-label="Experiência atual">
+      <a class="active" href="/site/home" aria-current="page">Site</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
+      <a class="button secondary desktop-only" href="/site/login">Entrar</a>
+      <a class="button ghost desktop-only" href="/site/favorites">♡ Favoritos</a>
+      <a class="button primary desktop-only" href="/site/publish">Publicar anúncio</a>
+    </div>
+  </header>
+  <main id="main" tabindex="-1" data-source-route="#/site/design-tokens">
+<section class="section tokens-page"><span class="eyebrow">Fralda Design Language · Tokens e temas</span><div class="section-head"><div><h1>Tokens e padrões visuais</h1><p>Fonte única para web e aplicativo, com temas claro e escuro.</p></div><div class="theme-actions"><button class="button secondary" id="theme-toggle" aria-pressed="false">◐ Alternar tema</button><button class="button primary" id="tokens-export">Exportar JSON</button></div></div><section class="panel"><div class="section-head"><div><h2>Sistema de cores</h2><p>Tokens semânticos; não use valores diretos nas interfaces.</p></div><span class="badge">Claro e escuro</span></div><div class="token-color-grid"><article><i style="--token-color:#16A34A"></i><strong>Primária</strong><code>--color-primary</code><small>#16A34A</small></article><article><i style="--token-color:#0F7A3A"></i><strong>Primária escura</strong><code>--color-primary-dark</code><small>#0F7A3A</small></article><article><i style="--token-color:#2563EB"></i><strong>Secundária</strong><code>--color-secondary</code><small>#2563EB</small></article><article><i style="--token-color:#7C3AED"></i><strong>Apoio</strong><code>--color-support</code><small>#7C3AED</small></article><article><i style="--token-color:#F59E0B"></i><strong>Atenção</strong><code>--color-warning</code><small>#F59E0B</small></article><article><i style="--token-color:#EF4444"></i><strong>Erro</strong><code>--color-error</code><small>#EF4444</small></article><article><i style="--token-color:#06B6D4"></i><strong>Informação</strong><code>--color-info</code><small>#06B6D4</small></article><article><i style="--token-color:#64748B"></i><strong>Neutro</strong><code>--color-neutral</code><small>#64748B</small></article><article><i style="--token-color:#F8FAFC"></i><strong>Superfície</strong><code>--color-surface</code><small>#F8FAFC</small></article><article><i style="--token-color:#111827"></i><strong>Texto</strong><code>--color-text</code><small>#111827</small></article></div></section><div class="token-grid"><section class="panel"><h2>Tipografia</h2><div class="type-specimens"><div class="display-token"><span>Aa</span><div><strong>Inter</strong><small>Fonte principal e de interface</small></div></div><p class="type-display">Economia circular que transforma vidas.</p><p class="type-heading">Encontre, economize e transforme</p><p class="type-title">Título de seção</p><p class="type-body">Conectamos famílias e promovemos escolhas sustentáveis.</p><small>Texto auxiliar, legendas e informações complementares.</small></div></section><section class="panel"><h2>Escala tipográfica</h2><div class="token-list"><span><b>Display</b><code>48 / 56 · Bold</code></span><span><b>Headline</b><code>40 / 48 · Bold</code></span><span><b>Title</b><code>32 / 40 · SemiBold</code></span><span><b>Subtitle</b><code>24 / 32 · Medium</code></span><span><b>Body</b><code>16 / 24 · Regular</code></span><span><b>Caption</b><code>14 / 20 · Regular</code></span><span><b>Small</b><code>12 / 16 · Regular</code></span><span><b>Micro</b><code>10 / 14 · Regular</code></span></div></section><section class="panel"><h2>Espaçamento · base 4 px</h2><div class="spacing-tokens"><div><span style="width:4px;height:4px"></span><code>space-1 · 4px</code></div><div><span style="width:8px;height:4px"></span><code>space-2 · 8px</code></div><div><span style="width:12px;height:6px"></span><code>space-3 · 12px</code></div><div><span style="width:16px;height:8px"></span><code>space-4 · 16px</code></div><div><span style="width:20px;height:10px"></span><code>space-5 · 20px</code></div><div><span style="width:24px;height:12px"></span><code>space-6 · 24px</code></div><div><span style="width:32px;height:16px"></span><code>space-8 · 32px</code></div><div><span style="width:48px;height:24px"></span><code>space-12 · 48px</code></div><div><span style="width:64px;height:32px"></span><code>space-16 · 64px</code></div><div><span style="width:80px;height:40px"></span><code>space-20 · 80px</code></div><div><span style="width:96px;height:48px"></span><code>space-24 · 96px</code></div></div></section><section class="panel"><h2>Raios</h2><div class="radius-tokens"><div style="border-radius:4px"><code>sm<br>4px</code></div><div style="border-radius:8px"><code>md<br>8px</code></div><div style="border-radius:12px"><code>lg<br>12px</code></div><div style="border-radius:16px"><code>xl<br>16px</code></div><div style="border-radius:24px"><code>2xl<br>24px</code></div><div style="border-radius:999px"><code>full<br>999px</code></div></div></section><section class="panel"><h2>Sombras</h2><div class="shadow-tokens"><article class="shadow-sm">SM</article><article class="shadow-md">MD</article><article class="shadow-lg">LG</article><article class="shadow-xl">XL</article><article class="shadow-focus">Foco</article></div></section><section class="panel"><h2>Animações e transições</h2><div class="motion-tokens"><button data-motion="fast"><i></i><strong>Rápida</strong><small>150 ms</small></button><button data-motion="standard"><i></i><strong>Padrão</strong><small>250 ms</small></button><button data-motion="slow"><i></i><strong>Lenta</strong><small>300 ms</small></button></div><p class="muted">Ative cada amostra para visualizar o movimento.</p></section></div><section class="panel"><div class="section-head"><div><h2>Grid e breakpoints</h2><p>Mobile-first, responsivo por padrão.</p></div></div><div class="breakpoint-grid"><article><span class="device phone-device"></span><strong>Mobile</strong><small>&lt; 576 px · 4 colunas · gutter 16</small></article><article><span class="device tablet-device"></span><strong>Tablet</strong><small>≥ 576 px · 8 colunas · gutter 24</small></article><article><span class="device desktop-device"></span><strong>Desktop</strong><small>≥ 992 px · 12 colunas · gutter 24</small></article><article><span class="device wide-device"></span><strong>Wide</strong><small>≥ 1440 px · 12 colunas · gutter 32</small></article></div><div class="twelve-grid"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>10</i><i>11</i><i>12</i></div></section><section class="panel token-code"><div class="section-head"><div><h2>Implementação</h2><p>Tokens prontos para CSS e aplicações.</p></div><button class="button secondary" id="tokens-copy">Copiar exemplo</button></div><pre id="tokens-code"><code>:root {
+  --color-primary: #16A34A;
+  --color-secondary: #2563EB;
+  --color-background: #FFFFFF;
+  --color-text: #111827;
+  --space-4: 16px;
+  --radius-md: 8px;
+  --motion-standard: 250ms;
+}</code></pre></section><div class="principles-strip"><span>Consistência visual</span><span>Acessibilidade AA</span><span>Escalabilidade</span><span>Modo claro/escuro</span><span>Documentação viva</span></div></section>
+  </main>
+  <footer class="site-footer">
+    <div>
+      <a class="brand footer-brand" href="/site/home"><img class="brand-logo-approved" src="/source/assets/approved/logo-approved.png" alt="FraldaCycle"></a>
+      <p>Economia circular para famílias e para o planeta.</p>
+    </div>
+    <div><strong>Plataforma</strong><a href="/site/search">Marketplace</a><a href="/site/favorites">Favoritos</a><a href="/site/publish">Publicar</a><a href="/site/impact">Impacto</a></div>
+    <div><strong>Suporte</strong><a href="/site/help">Central de ajuda</a><a href="/site/help">Segurança</a><a href="/site/help">Termos e privacidade</a></div>
+    <small>Dados apresentados nesta experiência: simulados.</small>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/apps/site/design-tokens.js"></script>
+</body>
+</html>
