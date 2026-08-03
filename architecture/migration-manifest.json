@@ -135,7 +135,7 @@
     },
     {
       "id": "admin",
-      "status": "pending",
+      "status": "in_progress",
       "target": "platform/apps/admin",
       "areas": [
         "dashboard",
@@ -154,7 +154,25 @@
         "partnerships",
         "innovation",
         "launch"
-      ]
+      ],
+      "migrated": [
+        "dashboard",
+        "users",
+        "rbac",
+        "listings",
+        "operations"
+      ],
+      "next": [
+        "finance",
+        "logistics",
+        "reports",
+        "impact"
+      ],
+      "audit": {
+        "approvedCoreRoutes": 5,
+        "migratedCoreRoutes": 5,
+        "missingCoreRoutes": 0
+      }
     }
   ],
   "qualityGates": [
