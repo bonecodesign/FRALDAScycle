@@ -11,8 +11,11 @@ import { createMarketplaceService } from "./marketplace-service.js";
 import { createAdminService } from "./admin-service.js";
 import { createMarketplaceProviders } from "./marketplace-providers.js";
 import { migrate } from "../../database/migrate.js";
+import { resolveRuntimeEnv } from "./secrets.js";
+import { createTelemetry } from "./telemetry.js";
 
-export async function startRuntime(config = loadConfig()) {
+export async function startRuntime(config = null) {
+  if (!config) config = loadConfig(await resolveRuntimeEnv());
   const database = createDatabase(config);
   await migrate(database);
   const notificationService = createNotificationService(createNotificationRepository(database));
@@ -23,6 +26,7 @@ export async function startRuntime(config = loadConfig()) {
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
   const adminService = createAdminService(createAdminRepository(database));
+  const telemetry = createTelemetry(config);
   const server = createApiServer({
     config,
     readiness: () => database.readiness(),
@@ -30,6 +34,7 @@ export async function startRuntime(config = loadConfig()) {
     marketplaceService,
     marketplaceProviders,
     adminService,
+    telemetry,
   });
 
   server.listen(config.port, config.host, () => {
