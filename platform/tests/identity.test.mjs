@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAuthService, AuthError, hashSessionToken, normalizeEmail } from "../apps/api/auth-service.js";
+import { createAuthService, AuthError, hashSessionToken, normalizeEmail, normalizePhone } from "../apps/api/auth-service.js";
+import { createVerificationCode } from "../apps/api/security.js";
 import { clearSessionCookie, readSessionCookie, sessionCookie } from "../apps/api/cookies.js";
 import { createApiServer } from "../apps/api/server.js";
 import { loadConfig } from "../apps/api/config.js";
@@ -23,7 +24,9 @@ function repository() {
       users.set(user.email, user);
       return user;
     },
-    findUserByEmail(email) { return users.get(email) ?? null; },
+    findUserByContact({ email, phone }) {
+      return [...users.values()].find((user) => (email && user.email === email) || (phone && user.phone === phone)) ?? null;
+    },
     async createSession(input) {
       sessions.set(input.tokenHash.toString("hex"), input);
       return input;
@@ -69,6 +72,7 @@ function repository() {
 
 test("normalizes identity without weakening validation", () => {
   assert.equal(normalizeEmail(" Ana@Example.COM "), "ana@example.com");
+  assert.equal(normalizePhone("(31) 99900-0000"), "31999000000");
 });
 
 test("register login session and logout form a revocable journey", async () => {
@@ -237,4 +241,24 @@ test("login attempts are limited per normalized identity", async () => {
     auth.login({ email: "BLOCKED@example.com", password: "senha-incorreta" }),
     (error) => error.code === "too_many_attempts" && error.status === 429,
   );
+});
+
+test("phone-only identity preserves the approved email-or-phone contract", async () => {
+  const auth = createAuthService(repository(), {
+    notificationService: {
+      async verification() {},
+      async passwordRecovery() {},
+    },
+  });
+  const registered = await auth.register({
+    phone: "(31) 99900-0000", displayName: "Caio Lima", password: "senha-segura-2026",
+  });
+  assert.equal(registered.user.phone, "31999000000");
+  assert.equal(registered.user.email, null);
+  const login = await auth.login({ phone: "31 99900-0000", password: "senha-segura-2026" });
+  assert.ok(login.token);
+});
+
+test("approved verification codes contain exactly six numeric digits", () => {
+  for (let index = 0; index < 20; index += 1) assert.match(createVerificationCode(), /^\d{6}$/);
 });
