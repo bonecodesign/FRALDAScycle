@@ -18,7 +18,10 @@ export async function handlePayments(request, response, {
     sendJson(response, 200, { ...result, requestId }, headers);
     return true;
   }
-  if (!paymentService || request.method !== "POST") return false;
+  if (
+    !paymentService || request.method !== "POST"
+    || !["/v1/payments/tokenization-sessions", "/v1/payments/intents"].includes(url.pathname)
+  ) return false;
   const user = await authService.session(readSessionCookie(request.headers.cookie));
   if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
   if (url.pathname === "/v1/payments/tokenization-sessions") {
