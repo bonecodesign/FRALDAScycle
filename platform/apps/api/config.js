@@ -1,4 +1,4 @@
-const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET", "NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"];
+const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
 
 function integer(value, fallback) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -13,6 +13,9 @@ export function loadConfig(env = process.env) {
     }
     if ((env.SESSION_SECRET ?? "").length < 32) {
       throw new Error("SESSION_SECRET must contain at least 32 characters");
+    }
+    for (const key of ["NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"]) {
+      if (!env[key]) throw new Error(`Missing required production configuration: ${key}`);
     }
   }
 
