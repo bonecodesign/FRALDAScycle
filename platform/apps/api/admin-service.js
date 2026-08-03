@@ -17,6 +17,19 @@ export class AdminError extends Error {
 
 export function createAdminService(repository) {
   return Object.freeze({
+    async sessions(actor) {
+      if (!actor.sessionId) throw new AdminError("session_context_missing", 409, "Não foi possível identificar a sessão atual.");
+      return repository.listUserSessions({ userId: actor.id, currentSessionId: actor.sessionId });
+    },
+
+    async revokeOtherSessions(actor) {
+      if (!actor.sessionId) throw new AdminError("session_context_missing", 409, "Não foi possível identificar a sessão atual.");
+      const revokedCount = await repository.revokeOtherSessions({
+        actorUserId: actor.id, currentSessionId: actor.sessionId,
+      });
+      return { revokedCount };
+    },
+
     async users(params = {}) {
       const limit = Math.min(100, Math.max(1, Number(params.limit) || 50));
       const offset = Math.max(0, Number(params.offset) || 0);
