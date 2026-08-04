@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    env_file: platform/.env.production
+    environment:
+      API_HOST: 0.0.0.0
+    ports:
+      - "4200:4200"
+    restart: unless-stopped
+
+  notifications-worker:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    env_file: platform/.env.production
+    command: ["node", "workers/notifications.js"]
+    restart: unless-stopped
+
+  site:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile.surface
+      args:
+        SURFACE: site
+    ports:
+      - "4101:4100"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile.surface
+      args:
+        SURFACE: app
+    ports:
+      - "4102:4100"
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile.surface
+      args:
+        SURFACE: admin
+    ports:
+      - "4103:4100"
+    restart: unless-stopped

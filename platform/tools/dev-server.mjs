@@ -3,7 +3,9 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 
-const [surface = "site", portValue = "4101"] = process.argv.slice(2);
+const [surface = process.env.SURFACE ?? "site", portValue = process.env.PORT ?? "4101"] = process.argv.slice(2);
+const host = process.env.SURFACE_HOST ?? (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
+const production = process.env.NODE_ENV === "production";
 if (!["site", "app", "admin"].includes(surface)) throw new TypeError("surface must be site, app, or admin");
 
 const platformRoot = resolve(import.meta.dirname, "..");
@@ -72,11 +74,18 @@ createServer(async (request, response) => {
 
   try {
     if (!(await stat(candidate)).isFile()) throw new Error("not a file");
-    response.writeHead(200, { "content-type": types[extname(candidate)] ?? "application/octet-stream" });
+    response.writeHead(200, {
+      "content-type": types[extname(candidate)] ?? "application/octet-stream",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "cache-control": extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
+    });
     createReadStream(candidate).pipe(response);
   } catch {
     response.writeHead(404).end("Not found");
   }
-}).listen(Number(portValue), "127.0.0.1", () =>
-  console.log(`FraldaCycle ${surface}: http://127.0.0.1:${portValue}`),
+}).listen(Number(portValue), host, () =>
+  console.log(`FraldaCycle ${surface}: http://${host}:${portValue}`),
 );
