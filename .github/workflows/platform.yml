@@ -10,6 +10,7 @@ on:
       - "fidelity.css"
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
+      - ".github/workflows/release-images.yml"
   push:
     paths:
       - "platform/**"
@@ -19,6 +20,7 @@ on:
       - "fidelity.css"
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
+      - ".github/workflows/release-images.yml"
 
 permissions:
   contents: read
