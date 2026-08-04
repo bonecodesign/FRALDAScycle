@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: .
-      dockerfile: platform/Dockerfile
+      context: ./platform
+      dockerfile: Dockerfile
     env_file: platform/.env.production
     environment:
       API_HOST: 0.0.0.0
@@ -12,8 +12,8 @@ services:
 
   notifications-worker:
     build:
-      context: .
-      dockerfile: platform/Dockerfile
+      context: ./platform
+      dockerfile: Dockerfile
     env_file: platform/.env.production
     command: ["node", "workers/notifications.js"]
     restart: unless-stopped
