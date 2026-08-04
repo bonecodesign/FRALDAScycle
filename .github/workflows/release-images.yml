@@ -1,0 +1,49 @@
+name: Publish versioned images
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        component: [api, site, app, admin]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Build immutable image
+        env:
+          COMPONENT: ${{ matrix.component }}
+          VERSION: ${{ github.ref_name }}
+          REVISION: ${{ github.sha }}
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          image="ghcr.io/$repository/$COMPONENT"
+          labels="--label org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY --label org.opencontainers.image.revision=$REVISION --label org.opencontainers.image.version=$VERSION"
+          if [ "$COMPONENT" = "api" ]; then
+            docker build $labels --file platform/Dockerfile --tag "$image:$VERSION" platform
+          else
+            docker build $labels --file platform/Dockerfile.surface --build-arg "SURFACE=$COMPONENT" --tag "$image:$VERSION" .
+          fi
+          docker tag "$image:$VERSION" "$image:sha-${REVISION:0:12}"
+          docker push "$image:$VERSION"
+          docker push "$image:sha-${REVISION:0:12}"
+      - name: Logout from registry
+        if: always()
+        run: docker logout ghcr.io

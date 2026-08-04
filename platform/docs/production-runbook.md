@@ -19,6 +19,12 @@ O arquivo `compose.production.example.yaml` define API, worker de notificações
 
 As três superfícies usam a mesma imagem parametrizada por `SURFACE`, preservando os arquivos aprovados e expondo somente suas rotas oficiais.
 
+## Publicação de versões
+
+Uma tag no formato `vMAJOR.MINOR.PATCH` inicia a publicação de quatro imagens no GitHub Container Registry: `api`, `site`, `app` e `admin`. Cada imagem recebe uma tag semântica e outra vinculada aos 12 primeiros caracteres do commit.
+
+Crie a tag somente depois de CI verde e aprovação da versão. O workflow não publica `latest`, evitando promoção implícita ou substituição silenciosa de artefatos.
+
 ## Verificação antes da promoção
 
 No diretório `platform`:
