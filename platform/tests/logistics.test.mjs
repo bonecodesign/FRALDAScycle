@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 import { createLogisticsService } from "../apps/api/logistics-service.js";
 import { createLogisticsProvider } from "../apps/api/logistics-provider.js";
@@ -136,4 +137,47 @@ test("logistics configuration requires paired HTTPS credentials", () => {
   assert.throws(() => loadConfig({
     LOGISTICS_PROVIDER_URL: "http://logistics.example.test", LOGISTICS_PROVIDER_SECRET: "secret",
   }), /must use HTTPS/);
+});
+
+
+test("logistics webhook verifies HMAC and rejects tampering and stale replay", () => {
+  const secret="logistics-webhook-secret";
+  const provider=createLogisticsProvider(loadConfig({NODE_ENV:"test",LOGISTICS_WEBHOOK_SECRET:secret}));
+  const value={id:"log-evt-1",type:"shipment.in_transit",createdAt:"2030-01-01T00:00:00.000Z",data:{reference:"remote-1",latitude:-19.9,longitude:-43.9,description:"Em trânsito"}};
+  const raw=Buffer.from(JSON.stringify(value));const timestamp=1_893_456_000;
+  const signature=createHmac("sha256",secret).update(`${timestamp}.`).update(raw).digest("hex");
+  const event=provider.verifyWebhook({raw,timestamp:String(timestamp),signature:`v1=${signature}`,now:()=>timestamp*1000});
+  assert.equal(event.type,"shipment.in_transit");assert.equal(event.latitude,-19.9);
+  assert.throws(()=>provider.verifyWebhook({raw:Buffer.from(JSON.stringify({...value,type:"shipment.delivered"})),timestamp:String(timestamp),signature:`v1=${signature}`,now:()=>timestamp*1000}),(error)=>error.code==="invalid_logistics_webhook_signature");
+  assert.throws(()=>provider.verifyWebhook({raw,timestamp:String(timestamp),signature:`v1=${signature}`,now:()=>(timestamp+301)*1000}),(error)=>error.code==="invalid_logistics_webhook_timestamp");
+});
+
+test("logistics webhook updates timeline transaction and audit atomically", async () => {
+  const statements=[];const client={async query(text,values){statements.push({text,values});if(/INSERT INTO logistics_webhook_events/.test(text))return{rows:[{id:"evt-1"}]};if(/SELECT id,transaction_id,status/.test(text))return{rows:[{id:shipmentId,transaction_id:transactionId,status:"assigned"}]};return{rows:[]}}};
+  const repository=createLogisticsRepository({async transaction(operation){return operation(client)},async query(){return{rows:[]}}});
+  const result=await repository.processWebhook({id:"evt-1",type:"shipment.in_transit",providerReference:"remote-1",latitude:-19.9,longitude:-43.9,description:"Em trânsito",occurredAt:new Date(),payloadHash:Buffer.from("hash")});
+  assert.equal(result.status,"in_transit");assert.equal(statements.length,6);
+  assert.match(statements[2].text,/UPDATE shipments/);assert.deepEqual(statements[2].values,[shipmentId,"in_transit"]);
+  assert.match(statements[3].text,/UPDATE transactions/);assert.deepEqual(statements[3].values,[transactionId,"in_delivery"]);
+  assert.match(statements[4].text,/shipment_events/);assert.match(statements[5].text,/shipment\.webhook\.processed/);
+});
+
+test("logistics webhook blocks status regression and duplicate side effects", async () => {
+  let calls=0;const client={async query(text){calls+=1;if(/INSERT INTO logistics_webhook_events/.test(text))return{rows:[{id:"evt-regression"}]};if(/SELECT id,transaction_id,status/.test(text))return{rows:[{id:shipmentId,transaction_id:transactionId,status:"in_transit"}]};return{rows:[]}}};
+  const repository=createLogisticsRepository({async transaction(operation){return operation(client)},async query(){return{rows:[]}}});
+  const ignored=await repository.processWebhook({id:"evt-regression",type:"shipment.assigned",providerReference:"remote-1",occurredAt:new Date(),payloadHash:Buffer.from("hash")});
+  assert.deepEqual(ignored,{ignored:true,status:"in_transit"});assert.equal(calls,2);
+  let duplicateCalls=0;const duplicateRepository=createLogisticsRepository({async transaction(operation){return operation({async query(){duplicateCalls+=1;return{rows:[]}}})},async query(){return{rows:[]}}});
+  assert.deepEqual(await duplicateRepository.processWebhook({id:"same",type:"shipment.in_transit"}),{duplicate:true});assert.equal(duplicateCalls,1);
+});
+
+test("signed logistics webhook endpoint requires provider verification", async (context) => {
+  const logisticsService={async processWebhook(event){return{accepted:true,duplicate:false,status:event.type}}};
+  const logisticsProvider={verifyWebhook({timestamp,signature}){if(!timestamp||signature!=="valid"){const error=new Error("invalid");error.code="invalid_logistics_webhook_signature";error.status=401;throw error}return{type:"shipment.in_transit"}}};
+  const server=createApiServer({config:loadConfig({NODE_ENV:"test"}),logisticsService,logisticsProvider});
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));context.after(()=>server.close());
+  const origin=`http://127.0.0.1:${server.address().port}`;const body=JSON.stringify({id:"evt-http"});
+  assert.equal((await fetch(origin+"/v1/logistics/webhooks",{method:"POST",headers:{"content-type":"application/json"},body})).status,401);
+  const accepted=await fetch(origin+"/v1/logistics/webhooks",{method:"POST",headers:{"content-type":"application/json","x-logistics-timestamp":"123","x-logistics-signature":"valid"},body});
+  assert.equal(accepted.status,200);assert.equal((await accepted.json()).accepted,true);
 });
