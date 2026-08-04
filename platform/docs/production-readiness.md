@@ -82,4 +82,6 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] prova de entrega com mídia, recebedor, horário e coordenadas;
 - [x] conclusão atômica da remessa e transação;
 - [x] adaptador HTTPS provider-neutral para logística;
-- [ ] credenciais, rastreamento e webhooks do provedor logístico;
+- [x] webhooks logísticos com HMAC-SHA256, antirreplay e ledger idempotente;
+- [x] máquina de transições que bloqueia regressão de rastreamento;
+- [ ] credenciais e formato final de webhooks do provedor logístico;
