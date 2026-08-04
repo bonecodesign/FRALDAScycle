@@ -11,6 +11,7 @@ on:
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
       - ".github/workflows/release-images.yml"
+      - ".github/workflows/homologation.yml"
   push:
     paths:
       - "platform/**"
@@ -21,6 +22,7 @@ on:
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
       - ".github/workflows/release-images.yml"
+      - ".github/workflows/homologation.yml"
 
 permissions:
   contents: read
