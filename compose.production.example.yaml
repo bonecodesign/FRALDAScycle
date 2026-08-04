@@ -3,7 +3,7 @@ services:
     build:
       context: ./platform
       dockerfile: Dockerfile
-    env_file: platform/.env.production
+    env_file: ${FRALDACYCLE_ENV_FILE:-platform/.env.production}
     environment:
       API_HOST: 0.0.0.0
     ports:
@@ -14,7 +14,7 @@ services:
     build:
       context: ./platform
       dockerfile: Dockerfile
-    env_file: platform/.env.production
+    env_file: ${FRALDACYCLE_ENV_FILE:-platform/.env.production}
     command: ["node", "workers/notifications.js"]
     restart: unless-stopped
 
