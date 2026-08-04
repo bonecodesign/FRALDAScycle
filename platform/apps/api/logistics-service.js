@@ -9,6 +9,11 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider){
   return Object.freeze({
+    async processWebhook(event){
+      const result=await repository.processWebhook(event);
+      if(result.missing)throw new LogisticsError("shipment_not_found",404,"Entrega não encontrada.");
+      return {accepted:true,duplicate:Boolean(result.duplicate),ignored:Boolean(result.ignored),status:result.status??null};
+    },
     async create(buyerId,input){
       const transactionId=String(input?.transactionId??"");const mode=String(input?.mode??"");
       const idempotencyKey=String(input?.idempotencyKey??"").trim();const insured=Boolean(input?.insured);
