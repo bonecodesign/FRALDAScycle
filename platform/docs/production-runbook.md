@@ -13,6 +13,12 @@ Este documento conecta serviços reais à arquitetura integrada sem alterar o pr
 7. Validar webhooks assinados em homologação.
 8. Promover a mesma versão imutável para produção.
 
+## Empacotamento reproduzível
+
+O arquivo `compose.production.example.yaml` define API, worker de notificações, Site, App e Admin em processos independentes. Copie-o para a ferramenta de orquestração escolhida e injete `platform/.env.production` pelo cofre de segredos; esse arquivo real nunca deve entrar no Git.
+
+As três superfícies usam a mesma imagem parametrizada por `SURFACE`, preservando os arquivos aprovados e expondo somente suas rotas oficiais.
+
 ## Verificação antes da promoção
 
 No diretório `platform`:
