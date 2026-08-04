@@ -9,11 +9,15 @@ export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
   const logisticsProviderUrl = env.LOGISTICS_PROVIDER_URL ?? null;
   const logisticsProviderSecret = env.LOGISTICS_PROVIDER_SECRET ?? null;
+  const logisticsWebhookSecret = env.LOGISTICS_WEBHOOK_SECRET ?? null;
   if (Boolean(logisticsProviderUrl) !== Boolean(logisticsProviderSecret)) {
     throw new Error("LOGISTICS_PROVIDER_URL and LOGISTICS_PROVIDER_SECRET must be configured together");
   }
   if (logisticsProviderUrl && !logisticsProviderUrl.startsWith("https://")) {
     throw new Error("LOGISTICS_PROVIDER_URL must use HTTPS");
+  }
+  if (nodeEnv === "production" && logisticsProviderUrl && !logisticsWebhookSecret) {
+    throw new Error("LOGISTICS_WEBHOOK_SECRET is required with a production logistics provider");
   }
   const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
   const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
@@ -82,6 +86,7 @@ export function loadConfig(env = process.env) {
     telemetryProviderSecret,
     logisticsProviderUrl,
     logisticsProviderSecret,
+    logisticsWebhookSecret,
     paymentProviderUrl,
     paymentProviderSecret,
     paymentWebhookSecret,
