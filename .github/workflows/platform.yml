@@ -4,18 +4,33 @@ on:
   pull_request:
     paths:
       - "platform/**"
+      - "assets/**"
+      - "styles.css"
+      - "map-safety.css"
+      - "fidelity.css"
+      - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
   push:
     paths:
       - "platform/**"
+      - "assets/**"
+      - "styles.css"
+      - "map-safety.css"
+      - "fidelity.css"
+      - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
 
 permissions:
   contents: read
 
+concurrency:
+  group: platform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   foundation:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: platform
@@ -24,17 +39,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
       - name: Install locked dependencies
         run: npm ci
-
-      - name: Validate JavaScript syntax
-        run: |
-          node --check packages/contracts/routes.js
-          node --check tools/dev-server.mjs
-          node --check tests/foundation.test.mjs
-          for file in apps/*/*.js; do node --check "$file"; done
+      - name: Validate production syntax
+        run: npm run check:production
       - name: Run platform tests
         run: npm test
       - name: Protect approved prototype
         working-directory: .
         run: node qa-regression.mjs
+
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate production topology
+        env:
+          FRALDACYCLE_ENV_FILE: platform/.env.example
+        run: docker compose -f compose.production.example.yaml config --quiet
+      - name: Build API image
+        run: docker build --file platform/Dockerfile --tag fraldacycle-api:ci platform
+      - name: Build approved surfaces
+        run: |
+          for surface in site app admin; do
+            docker build --file platform/Dockerfile.surface --build-arg "SURFACE=$surface" --tag "fraldacycle-$surface:ci" .
+          done
