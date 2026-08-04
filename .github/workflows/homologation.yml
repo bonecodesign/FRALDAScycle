@@ -1,0 +1,43 @@
+name: Homologation gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: HTTPS base URL da API
+        required: true
+        type: string
+      site_url:
+        description: HTTPS base URL do Site
+        required: true
+        type: string
+      app_url:
+        description: HTTPS base URL do App
+        required: true
+        type: string
+      admin_url:
+        description: HTTPS base URL do Admin
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: homologation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate deployed product
+        working-directory: platform
+        env:
+          API_URL: ${{ inputs.api_url }}
+          SITE_URL: ${{ inputs.site_url }}
+          APP_URL: ${{ inputs.app_url }}
+          ADMIN_URL: ${{ inputs.admin_url }}
+        run: node tools/smoke-deployment.mjs
