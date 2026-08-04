@@ -68,6 +68,51 @@ export function createLogisticsRepository(database) {
       return result.rows[0] ?? null;
     },
 
+    async processWebhook(event) {
+      return database.transaction(async (client) => {
+        const inserted=await client.query(
+          `INSERT INTO logistics_webhook_events
+             (id,event_type,provider_reference,occurred_at,payload_hash)
+           VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING RETURNING id`,
+          [event.id,event.type,event.providerReference,event.occurredAt,event.payloadHash],
+        );
+        if(!inserted.rows[0])return {duplicate:true};
+        const found=await client.query(
+          "SELECT id,transaction_id,status FROM shipments WHERE provider_reference=$1 FOR UPDATE",
+          [event.providerReference],
+        );
+        const shipment=found.rows[0];if(!shipment)return {missing:true};
+        const next={
+          "shipment.assigned":"assigned","shipment.picked_up":"picked_up",
+          "shipment.in_transit":"in_transit","shipment.delivered":"delivered",
+          "shipment.failed":"failed","shipment.cancelled":"cancelled",
+        }[event.type];
+        const allowed={
+          provider_pending:new Set(["assigned","failed","cancelled"]),
+          awaiting_pickup:new Set(["assigned","picked_up","failed","cancelled"]),
+          assigned:new Set(["picked_up","in_transit","failed","cancelled"]),
+          picked_up:new Set(["in_transit","delivered","failed"]),
+          in_transit:new Set(["delivered","failed"]),
+          delivered:new Set(),failed:new Set(),cancelled:new Set(),
+        };
+        if(!allowed[shipment.status]?.has(next))return {ignored:true,status:shipment.status};
+        await client.query("UPDATE shipments SET status=$2::shipment_status,updated_at=now() WHERE id=$1",[shipment.id,next]);
+        const transactionStatus=["picked_up","in_transit","delivered"].includes(next)?"in_delivery":(next==="failed"||next==="cancelled")?"paid":null;
+        if(transactionStatus)await client.query("UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1",[shipment.transaction_id,transactionStatus]);
+        await client.query(
+          `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude,occurred_at)
+           VALUES ($1,$2::shipment_status,$3,$4,$5,$6)`,
+          [shipment.id,next,event.description,event.latitude,event.longitude,event.occurredAt],
+        );
+        await client.query(
+          `INSERT INTO audit_events (action,entity_type,entity_id,metadata)
+           VALUES ('shipment.webhook.processed','shipment',$1,$2::jsonb)`,
+          [shipment.id,JSON.stringify({eventId:event.id,eventType:event.type,status:next})],
+        );
+        return {duplicate:false,status:next};
+      });
+    },
+
     async assignCourier({ shipmentId, courierId }) {
       return database.transaction(async (client) => {
         const assigned = await client.query(
