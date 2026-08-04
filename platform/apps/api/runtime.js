@@ -46,6 +46,7 @@ export async function startRuntime(config = null) {
     paymentService,
     paymentProvider,
     logisticsService,
+    logisticsProvider,
     adminService,
     telemetry,
   });

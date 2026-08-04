@@ -1,9 +1,15 @@
-import { readJson } from "./body.js";
+import { readJson, readSignedJson } from "./body.js";
 import { readSessionCookie } from "./cookies.js";
 import { AuthError } from "./auth-service.js";
 import { sendJson } from "./http.js";
 async function user(request,authService){const value=await authService.session(readSessionCookie(request.headers.cookie));if(!value)throw new AuthError("unauthenticated",401,"Sessão não autenticada.");return value}
-export async function handleLogistics(request,response,{url,headers,requestId,authService,logisticsService}){
+export async function handleLogistics(request,response,{url,headers,requestId,authService,logisticsService,logisticsProvider}){
+  if(request.method==="POST"&&url.pathname==="/v1/logistics/webhooks"){
+    if(!logisticsService||!logisticsProvider)return false;
+    const {raw}=await readSignedJson(request,{limit:65536});
+    const event=logisticsProvider.verifyWebhook({raw,timestamp:request.headers["x-logistics-timestamp"],signature:request.headers["x-logistics-signature"]});
+    const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
+  }
   if(!logisticsService)return false;
   if(request.method==="POST"&&url.pathname==="/v1/shipments"){
     const actor=await user(request,authService);const result=await logisticsService.create(actor.id,await readJson(request));
