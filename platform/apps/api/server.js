@@ -26,6 +26,7 @@ export function createApiServer({
   paymentService = null,
   paymentProvider = null,
   logisticsService = null,
+  logisticsProvider = null,
   adminService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
@@ -161,7 +162,7 @@ export function createApiServer({
       }
 
       if (await handleLogistics(request, response, {
-        url, headers, requestId: id, authService, logisticsService,
+        url, headers, requestId: id, authService, logisticsService, logisticsProvider,
       })) return;
 
       if (await handlePayments(request, response, {
