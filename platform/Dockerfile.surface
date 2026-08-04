@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /srv/fraldacycle
+ARG SURFACE=site
+ENV NODE_ENV=production \
+    SURFACE_HOST=0.0.0.0 \
+    SURFACE=${SURFACE} \
+    PORT=4100
+
+COPY --chown=node:node styles.css map-safety.css fidelity.css ./
+COPY --chown=node:node assets ./assets
+COPY --chown=node:node platform/apps ./platform/apps
+COPY --chown=node:node platform/packages ./platform/packages
+COPY --chown=node:node platform/tools ./platform/tools
+
+USER node
+EXPOSE 4100
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:4100/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+CMD ["node", "platform/tools/dev-server.mjs"]
