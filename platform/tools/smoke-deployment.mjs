@@ -16,10 +16,12 @@ function endpoint(base, path, allowHttp) {
 
 export async function smokeDeployment(env = process.env, { fetchImpl = fetch } = {}) {
   const allowHttp = env.SMOKE_ALLOW_HTTP === "true";
-  const results = [];
-  for (const [name, key, path, kind] of TARGETS) {
+  const targets = TARGETS.map(([name, key, path, kind]) => {
     if (!env[key]) throw new Error(`Missing ${key}`);
-    const url = endpoint(env[key], path, allowHttp);
+    return [name, endpoint(env[key], path, allowHttp), kind];
+  });
+  const results = [];
+  for (const [name, url, kind] of targets) {
     let response;
     try {
       response = await fetchImpl(url, { redirect: "error", signal: AbortSignal.timeout(8_000) });
