@@ -93,7 +93,7 @@
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
-  "modifiedSourceFiles": [],
+  "modifiedSourceFiles": ["app.js", "qa-regression.mjs"],
   "architectureNotes": [
     {
       "area": "impact",
