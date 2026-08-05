@@ -8,12 +8,25 @@ function dumpPath(value) {
   return path;
 }
 
+function databaseEnvironment(value) {
+  const url = new URL(value);
+  if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") throw new Error("Database URL must use PostgreSQL");
+  return {
+    PGHOST: url.hostname,
+    PGPORT: url.port || "5432",
+    PGUSER: decodeURIComponent(url.username),
+    PGPASSWORD: decodeURIComponent(url.password),
+    PGDATABASE: decodeURIComponent(url.pathname.slice(1)),
+    ...(url.searchParams.get("sslmode") ? { PGSSLMODE: url.searchParams.get("sslmode") } : {}),
+  };
+}
+
 export function createBackupPlan(env = process.env) {
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL is required");
   return Object.freeze({
     command: "pg_dump",
     args: ["--format=custom", "--compress=9", "--no-owner", "--no-privileges", "--file", dumpPath(env.DATABASE_DUMP_PATH)],
-    env: { PGDATABASE: env.DATABASE_URL },
+    env: databaseEnvironment(env.DATABASE_URL),
   });
 }
 
@@ -22,8 +35,8 @@ export function createRestorePlan(env = process.env) {
   if (!env.RESTORE_DATABASE_URL) throw new Error("RESTORE_DATABASE_URL is required");
   return Object.freeze({
     command: "pg_restore",
-    args: ["--clean", "--if-exists", "--exit-on-error", "--no-owner", "--no-privileges", "--dbname", env.RESTORE_DATABASE_URL, dumpPath(env.DATABASE_DUMP_PATH)],
-    env: {},
+    args: ["--clean", "--if-exists", "--exit-on-error", "--no-owner", "--no-privileges", "--dbname", databaseEnvironment(env.RESTORE_DATABASE_URL).PGDATABASE, dumpPath(env.DATABASE_DUMP_PATH)],
+    env: databaseEnvironment(env.RESTORE_DATABASE_URL),
   });
 }
 
