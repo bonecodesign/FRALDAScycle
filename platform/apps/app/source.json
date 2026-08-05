@@ -32,11 +32,6 @@
       "appProposal",
       "appProposalReceived",
       "appNegotiationEvidence",
-      "appReservation",
-      "appReservationRules",
-      "appReservationCancel",
-      "appReservationCancelled",
-      "appReservationExpired",
       "normalizeText",
       "blockedChatContent",
       "escapeHtml",
@@ -109,11 +104,6 @@
       "#/app/proposal",
       "#/app/proposal-received",
       "#/app/negotiation-evidence",
-      "#/app/reservation",
-      "#/app/reservation-rules",
-      "#/app/reservation-cancel",
-      "#/app/reservation-cancelled",
-      "#/app/reservation-expired",
       "#/app/payment",
       "#/app/payment-success",
       "#/app/wallet",
@@ -175,11 +165,6 @@
       "/app/proposal",
       "/app/proposal-received",
       "/app/negotiation-evidence",
-      "/app/reservation",
-      "/app/reservation-rules",
-      "/app/reservation-cancel",
-      "/app/reservation-cancelled",
-      "/app/reservation-expired",
       "/app/payment",
       "/app/payment-success",
       "/app/wallet",
@@ -226,5 +211,5 @@
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
-  "modifiedSourceFiles": []
+  "modifiedSourceFiles": ["app.js", "qa-regression.mjs"]
 }
