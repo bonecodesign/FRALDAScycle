@@ -1,4 +1,4 @@
-import { apiRequest } from "/packages/contracts/api-client.js";
+import { apiOrigin, apiRequest } from "/packages/contracts/api-client.js";
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -107,3 +107,37 @@ document.getElementById('admin-close-sessions')?.addEventListener('click',async 
   }catch(error){button.disabled=false;button.textContent='Encerrar outras sessões';notify(error.message)}
 },true);
 loadLiveAdminSessions();
+
+function setupAdminRealtime(){
+  const activity=document.querySelector('.activity');
+  const note=document.getElementById('admin-dashboard-period-note');
+  if(!activity&&!note)return;
+  const labels={
+    'listing.published':'Anúncio publicado',
+    'payment.paid':'Pagamento aprovado',
+    'payment.failed':'Pagamento falhou',
+    'shipment.assigned':'Entrega atribuída',
+    'shipment.delivered':'Entrega confirmada',
+    'user.suspended':'Usuário suspenso',
+    'user.reactivated':'Usuário reativado',
+    'user.role.changed':'Papel de usuário alterado'
+  };
+  const stream=new EventSource(`${apiOrigin()}/v1/admin/events/stream`,{withCredentials:true});
+  stream.onopen=()=>{document.documentElement.dataset.realtimeState='connected';if(note)note.textContent='Conectado · monitoramento em tempo real'};
+  stream.onerror=()=>{document.documentElement.dataset.realtimeState='reconnecting';if(note)note.textContent='Reconectando monitoramento…'};
+  stream.addEventListener('realtime',event=>{
+    const item=JSON.parse(event.data);
+    document.documentElement.dataset.lastRealtimeEvent=item.id;
+    if(note)note.textContent=`Atualizado agora · ${labels[item.type]||item.type}`;
+    if(activity){
+      const row=document.createElement('div');row.className='activity-item';row.dataset.realtimeEvent=item.id;
+      const source=item.source==='admin'?'AD':item.source==='app'?'AP':item.source==='site'?'SI':'FC';
+      row.innerHTML=`<div class="avatar">${source}</div><div><strong>${adminEscape(labels[item.type]||item.type)}</strong><div class="muted">${adminEscape(item.source)} · agora</div></div>`;
+      activity.prepend(row);
+      [...activity.children].slice(8).forEach(child=>child.remove());
+    }
+    window.dispatchEvent(new CustomEvent('fraldacycle:realtime',{detail:item}));
+  });
+  window.addEventListener('pagehide',()=>stream.close(),{once:true});
+}
+setupAdminRealtime();
