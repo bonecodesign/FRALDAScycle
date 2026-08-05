@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-sent",
+  "policy": {
+    "externalContactPerformed": false,
+    "commercialApprovalGranted": false,
+    "legalApprovalGranted": false,
+    "securityApprovalGranted": false,
+    "privacyApprovalGranted": false,
+    "contracted": false,
+    "provisioned": false,
+    "credentialsStored": false
+  },
+  "scoreWeights": {
+    "technical": 25,
+    "security": 20,
+    "privacy": 15,
+    "commercial": 15,
+    "legal": 10,
+    "operations": 15
+  },
+  "approval": {
+    "minimumScore": 80,
+    "allGatesRequired": true,
+    "gates": [
+      "marketplace-compatible",
+      "lgpd-dpa-approved",
+      "https-and-encryption",
+      "sandbox-or-equivalent",
+      "data-export-and-deletion",
+      "bounded-cost",
+      "exit-plan",
+      "no-prototype-change"
+    ]
+  },
+  "providers": [
+    {
+      "id": "payments",
+      "candidate": "asaas",
+      "state": "not-contacted",
+      "questions": [
+        "PAY-01: O modelo aceita marketplace com split, subcontas e comissão da plataforma?",
+        "PAY-02: O split incide sobre valor bruto ou líquido e como taxas e arredondamentos são conciliados?",
+        "PAY-03: Pix, cartão, estorno parcial e total, disputa e chargeback estão disponíveis no sandbox?",
+        "PAY-04: Webhooks possuem assinatura, antirreplay, reenvio, ordenação documentada e idempotência?",
+        "PAY-05: Quais requisitos de CNPJ, KYC/KYB, prazo de aprovação, reserva e repasse se aplicam?"
+      ]
+    },
+    {
+      "id": "logistics",
+      "candidate": "lalamove",
+      "state": "not-contacted",
+      "questions": [
+        "LOG-01: Quais CEPs e modalidades atendem Belo Horizonte no piloto?",
+        "LOG-02: Sandbox reproduz cotação, pedido, atribuição, coleta, entrega, falha e cancelamento?",
+        "LOG-03: Webhooks são assinados e possuem reenvio, ordenação, deduplicação e SLA?",
+        "LOG-04: Prova de entrega inclui foto, assinatura, coordenadas e política de retenção configurável?",
+        "LOG-05: Como funcionam preço dinâmico, validade da cotação, suporte e ressarcimento?"
+      ]
+    },
+    {
+      "id": "notifications",
+      "candidate": "brevo",
+      "state": "not-contacted",
+      "questions": [
+        "NOT-01: E-mail e SMS transacionais brasileiros compartilham API, conta e faturamento?",
+        "NOT-02: Quais verificações de remetente, domínio, SPF, DKIM e opt-out são obrigatórias?",
+        "NOT-03: Webhooks cobrem entrega, bounce, reclamação e falha com reenvio e idempotência?",
+        "NOT-04: Qual residência, retenção, exclusão e suboperadores se aplicam aos dados?",
+        "NOT-05: Quais limites, preços por volume, SLA e suporte valem para homologação e produção?"
+      ]
+    },
+    {
+      "id": "media",
+      "candidate": "cloudflare-r2",
+      "state": "not-contacted",
+      "questions": [
+        "MED-01: Upload assinado curto suporta limites de tipo, tamanho e uso único?",
+        "MED-02: Como bloquear conteúdo inválido e integrar varredura antimalware antes de publicar?",
+        "MED-03: Quais região, replicação, durabilidade, disponibilidade e latência para o Brasil?",
+        "MED-04: Exclusão, retenção, lifecycle, auditoria e exportação S3 são suportados?",
+        "MED-05: Quais custos de armazenamento, operações e egress devem compor o teto mensal?"
+      ]
+    },
+    {
+      "id": "geocoding",
+      "candidate": "google-maps",
+      "state": "not-contacted",
+      "questions": [
+        "GEO-01: Qual precisão e cobertura são observadas em endereços do piloto em Belo Horizonte?",
+        "GEO-02: Quais restrições existem para cache, armazenamento e exibição dos resultados?",
+        "GEO-03: Como limitar chave, origem, API, quota diária e teto financeiro?",
+        "GEO-04: Quais dados são processados, retidos e transferidos internacionalmente?",
+        "GEO-05: Quais SLA, limites, suporte e estratégia recomendada para indisponibilidade?"
+      ]
+    },
+    {
+      "id": "distributedRateLimit",
+      "candidate": "upstash-redis",
+      "state": "not-contacted",
+      "questions": [
+        "RAT-01: Operações atômicas, TTL e consistência atendem limites distribuídos?",
+        "RAT-02: Quais regiões, replicação, failover, disponibilidade e perda aceitável existem?",
+        "RAT-03: TLS, criptografia em repouso, ACL, allowlist e auditoria estão disponíveis?",
+        "RAT-04: O orçamento máximo interrompe custos sem liberar tráfego sem proteção?",
+        "RAT-05: Como exportar dados, revogar acessos e migrar para Redis compatível?"
+      ]
+    },
+    {
+      "id": "telemetry",
+      "candidate": "sentry",
+      "state": "not-contacted",
+      "questions": [
+        "TEL-01: Como remover PII, tokens, cookies, payloads e segredos antes do envio?",
+        "TEL-02: Quais retenção, residência, suboperadores, exclusão e exportação se aplicam?",
+        "TEL-03: Alertas de erro e latência funcionam para API, workers e superfícies?",
+        "TEL-04: Quais limites, amostragem, excedentes, teto de custo e comportamento ao atingir quota?",
+        "TEL-05: Quais controles de acesso, MFA, auditoria, SLA e suporte estão disponíveis?"
+      ]
+    },
+    {
+      "id": "externalSecrets",
+      "candidate": "doppler",
+      "state": "not-contacted",
+      "questions": [
+        "SEC-01: Há separação entre homologação e produção, menor privilégio e tokens de serviço?",
+        "SEC-02: Rotação, revogação, expiração, allowlist e break-glass são auditáveis?",
+        "SEC-03: Qual retenção dos logs de auditoria e quais alertas estão disponíveis?",
+        "SEC-04: Como exportar segredos, recuperar acesso e sair do fornecedor sem indisponibilidade?",
+        "SEC-05: Quais SLA, regiões, criptografia, DPA, suboperadores e suporte se aplicam?"
+      ]
+    }
+  ],
+  "evidencePolicy": {
+    "allowed": ["public-url", "redacted-document-reference", "approval-record-id", "test-result-id"],
+    "forbidden": ["credential", "private-url", "personal-data", "contract-copy", "secret-value"],
+    "answersStoredInRepository": false
+  }
+}
