@@ -11,11 +11,21 @@ async function authenticatedUser(request, authService) {
 }
 
 export async function handleAdmin(request, response, {
-  url, headers, requestId, authService, adminService,
+  url, headers, requestId, authService, adminService, realtimeService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   if (!adminService) return false;
   const user = await authenticatedUser(request, authService);
+
+  if (request.method === "GET" && url.pathname === "/v1/admin/events/stream") {
+    requireScope(user, "admin:audit:read");
+    if (!realtimeService) throw new AuthError("realtime_unavailable", 503, "Monitoramento em tempo real indisponível.");
+    realtimeService.open(response, {
+      afterId: request.headers["last-event-id"] ?? url.searchParams.get("after") ?? 0,
+      headers,
+    });
+    return true;
+  }
 
   if (request.method === "POST" && url.pathname === "/v1/admin/invitations") {
     requireScope(user, "admin:users:write");
