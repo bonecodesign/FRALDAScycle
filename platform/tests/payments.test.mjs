@@ -76,6 +76,21 @@ test("payment service refuses raw card data and requires provider tokenization",
   }), (error) => error.code === "payment_token_required");
 });
 
+test("payment service rejects boleto as an unsupported method", async () => {
+  const service = createPaymentService(paymentStore(), provider);
+  await assert.rejects(service.createIntent("buyer-1", {
+    transactionId, idempotencyKey: "payment-boleto-disabled-0001", method: "boleto",
+  }), (error) => error.code === "invalid_payment_method" && error.status === 422);
+});
+
+test("payment service rejects debit card as an unsupported method", async () => {
+  const service = createPaymentService(paymentStore(), provider);
+  await assert.rejects(service.createIntent("buyer-1", {
+    transactionId, idempotencyKey: "payment-debit-disabled-0001", method: "debit",
+    paymentMethodToken: "token-that-must-not-be-used",
+  }), (error) => error.code === "invalid_payment_method" && error.status === 422);
+});
+
 test("payment provider sends idempotent BRL intent and exact split without exposing credentials", async () => {
   const calls = [];
   const adapter = createPaymentProvider(loadConfig({

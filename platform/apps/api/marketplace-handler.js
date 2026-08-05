@@ -67,5 +67,23 @@ export async function handleMarketplace(request, response, {
     return true;
   }
 
+  const startTransaction = url.pathname.match(/^\/v1\/listings\/([0-9a-f-]{36})\/transactions$/i);
+  if (request.method === "POST" && startTransaction) {
+    const user = await authenticatedUser(request, authService);
+    const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1]);
+    sendJson(response, 201, { transaction, requestId }, headers);
+    return true;
+  }
+
+  const transactionAction = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/(cancel|complete)$/i);
+  if (request.method === "POST" && transactionAction) {
+    const user = await authenticatedUser(request, authService);
+    const transaction = transactionAction[2] === "cancel"
+      ? await marketplaceService.cancelTransaction(user.id, transactionAction[1])
+      : await marketplaceService.completeTransaction(user.id, transactionAction[1]);
+    sendJson(response, 200, { transaction, requestId }, headers);
+    return true;
+  }
+
   return false;
 }

@@ -20,7 +20,8 @@
     "db:restore": "node database/recovery.js restore",
     "providers:validate": "node tools/provider-readiness.mjs",
     "providers:selection:validate": "node tools/provider-selection.mjs",
-    "providers:diligence:validate": "node tools/provider-due-diligence.mjs"
+    "providers:diligence:validate": "node tools/provider-due-diligence.mjs",
+    "release:check-local": "npm run check:production && npm test && npm run providers:validate && node ../qa-regression.mjs"
   },
   "dependencies": {
     "pg": "8.22.0"

@@ -10,7 +10,7 @@ A migração `001_initial.sql` cria:
 - sessões revogáveis com armazenamento apenas do hash do token;
 - endereços;
 - anúncios de venda, troca e doação;
-- transações e reservas;
+- transações e ciclo de disponibilidade;
 - trilha de auditoria.
 
 ## Segurança

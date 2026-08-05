@@ -1,4 +1,5 @@
 import { geocodeLocation, publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
+import { catalogOptions, DIAPER_CATEGORIES, modelsForCategory } from "/packages/contracts/diaper-catalog.js";
 import "/apps/site/home.js";
 
 function notify(message) {
@@ -13,7 +14,7 @@ function setupSitePublish(){
   const content=document.getElementById('site-publish-content');
   if(!content)return;
   const labels=['Tipo de negociação','Produto','Fotos','Condição','Preço','Entrega','Localização','Revisão'];
-  const data={type:'Venda',title:'Pampers Confort Sec M - 50 unidades',brand:'Pampers',size:'M',quantity:'50',condition:'Novo e lacrado',price:'42,00',delivery:'Retirada no local',location:'Bairro Castelo, Belo Horizonte - MG'};
+  const data={type:'Venda',category:'infant',title:'Pampers Confort Sec M - 50 unidades',brand:'Pampers',model:'Confort Sec',size:'M',quantity:'50',condition:'sealed',openPackageAttested:false,price:'42,00',delivery:'Retirada no local',location:'Bairro Castelo, Belo Horizonte - MG'};
   let step=1;
   let photoReady=false;
   const mediaKeys=[];
@@ -22,18 +23,20 @@ function setupSitePublish(){
       content.querySelectorAll(selector).forEach(item=>item.classList.remove('active'));
       button.classList.add('active');
       data[key]=button.dataset.value;
+      if(key==='type'&&data.type!=='Doação'){data.condition='sealed';data.openPackageAttested=false}
+      if(key==='condition')draw();
     }));
   };
   const syncInputs=()=>content.querySelectorAll('[data-publish-field]').forEach(input=>input.addEventListener('input',()=>{data[input.dataset.publishField]=input.value}));
   const body=()=>{
     if(step===1)return `<div class="publish-step-head"><span class="step-number">1</span><div><h2>Qual é o tipo do anúncio?</h2><p>Escolha como deseja disponibilizar as fraldas.</p></div></div><div class="publish-choice-grid"><button class="publish-choice active" data-publish-type data-value="Venda"><span>▣</span><strong>Venda</strong><small>Receba pelas suas fraldas</small></button><button class="publish-choice" data-publish-type data-value="Troca"><span>⇄</span><strong>Troca</strong><small>Troque por outro tamanho ou marca</small></button><button class="publish-choice" data-publish-type data-value="Doação"><span>♡</span><strong>Doação</strong><small>Doe para uma família</small></button></div>`;
-    if(step===2)return `<div class="publish-step-head"><span class="step-number">2</span><div><h2>Descreva o produto</h2><p>Informações claras ajudam as famílias a encontrar o item certo.</p></div></div><div class="form-grid"><label class="field full"><span>Título do anúncio</span><input data-publish-field="title" value="${data.title}"></label><label class="field"><span>Marca</span><select data-publish-field="brand"><option>Pampers</option><option>Huggies</option><option>MamyPoko</option><option>Babysec</option></select></label><label class="field"><span>Tamanho</span><select data-publish-field="size"><option>RN</option><option>P</option><option selected>M</option><option>G</option><option>XG</option><option>XXG</option></select></label><label class="field"><span>Quantidade</span><input data-publish-field="quantity" value="${data.quantity}" inputmode="numeric"></label></div>`;
+    if(step===2)return `<div class="publish-step-head"><span class="step-number">2</span><div><h2>Descreva a fralda descartável</h2><p>O FraldaCycle aceita somente fraldas infantis e para piscina.</p></div></div><div class="form-grid"><label class="field"><span>Categoria</span><select id="site-diaper-category" data-publish-field="category">${DIAPER_CATEGORIES.map(item=>`<option value="${item.value}"${item.value===data.category?' selected':''}>${item.label}</option>`).join('')}</select></label><label class="field"><span>Modelo vendido no Brasil</span><select id="site-diaper-model" data-publish-field="model">${catalogOptions(data.category,data.model)}</select></label><label class="field full"><span>Título do anúncio</span><input data-publish-field="title" value="${data.title}"></label><label class="field"><span>Tamanho</span><select data-publish-field="size"><option>RN</option><option>P</option><option selected>M</option><option>G</option><option>XG</option><option>XXG</option><option>XXXG</option></select></label><label class="field"><span>Quantidade de unidades</span><input data-publish-field="quantity" value="${data.quantity}" inputmode="numeric"></label></div>`;
     if(step===3)return `<div class="publish-step-head"><span class="step-number">3</span><div><h2>Adicione fotos nítidas</h2><p>A primeira imagem será a capa do anúncio.</p></div></div><div class="site-upload ${photoReady?'ready':''}"><img src="/source/assets/approved/pampers-approved.png" alt="Pacote Pampers aprovado pelo cliente"><div><strong>${photoReady?'Foto adicionada':'Imagem do produto'}</strong><p>Use a fotografia aprovada presente no acervo.</p><button class="button secondary" id="site-add-photo" type="button">${photoReady?'Trocar foto':'Adicionar foto'}</button></div></div><p class="field-error" id="site-photo-error"></p>`;
-    if(step===4)return `<div class="publish-step-head"><span class="step-number">4</span><div><h2>Informe a condição</h2><p>Selecione a opção que descreve o pacote.</p></div></div><div class="publish-choice-grid"><button class="publish-choice active" data-publish-condition data-value="Novo e lacrado"><strong>Novo e lacrado</strong><small>Embalagem original intacta</small></button><button class="publish-choice" data-publish-condition data-value="Novo, embalagem aberta"><strong>Embalagem aberta</strong><small>Produto novo e conferido</small></button></div><label class="field full"><span>Validade</span><input type="month" value="2026-10"></label>`;
+    if(step===4){const openAllowed=data.type==='Doação';return `<div class="publish-step-head"><span class="step-number">4</span><div><h2>Informe a condição do pacote</h2><p>Venda e troca exigem pacote fechado. Pacote aberto é exclusivo para doação.</p></div></div><div class="publish-choice-grid"><button class="publish-choice ${data.condition==='sealed'?'active':''}" data-publish-condition data-value="sealed"><strong>Fechado e lacrado</strong><small>Obrigatório para venda e troca</small></button>${openAllowed?`<button class="publish-choice ${data.condition==='open'?'active':''}" data-publish-condition data-value="open"><strong>Pacote aberto para doação</strong><small>Todas as unidades devem estar sem uso</small></button>`:''}</div>${openAllowed&&data.condition==='open'?`<label class="terms"><input id="site-open-attestation" type="checkbox" ${data.openPackageAttested?'checked':''}><span>Confirmo que as unidades estão sem uso, limpas, secas, íntegras e corretamente armazenadas.</span></label>`:''}<label class="field full"><span>Validade</span><input type="month" value="2026-10"></label>`;}
     if(step===5)return `<div class="publish-step-head"><span class="step-number">5</span><div><h2>Defina o valor</h2><p>Use um preço justo e transparente.</p></div></div><label class="field price-field"><span>Preço</span><div class="price-input"><b>R$</b><input data-publish-field="price" value="${data.price}" inputmode="decimal"></div></label><div class="notice"><strong>Splits aprovados:</strong> Venda 8% · Troca 5% total (2,5% por parte) · Doação sem taxa.</div>`;
     if(step===6)return `<div class="publish-step-head"><span class="step-number">6</span><div><h2>Como será a entrega?</h2><p>Você pode disponibilizar mais de uma opção.</p></div></div><div class="publish-choice-grid"><button class="publish-choice active" data-publish-delivery data-value="Retirada no local"><strong>Retirada no local</strong><small>Combine um ponto seguro</small></button><button class="publish-choice" data-publish-delivery data-value="Entrega por parceiro"><strong>Entrega por parceiro</strong><small>A partir de R$ 8,90</small></button><button class="publish-choice" data-publish-delivery data-value="Correios"><strong>Correios</strong><small>PAC ou SEDEX rastreado</small></button></div>`;
     if(step===7)return `<div class="publish-step-head"><span class="step-number">7</span><div><h2>Defina a localização</h2><p>Mostramos apenas uma posição aproximada antes da negociação.</p></div></div><label class="field full"><span>Bairro, cidade e estado</span><input data-publish-field="location" value="${data.location}"></label><div class="publish-location-map"><span class="map-pin">●</span><strong>Belo Horizonte</strong><small>Localização aproximada protegida</small></div>`;
-    return `<div class="publish-step-head"><span class="step-number">8</span><div><h2>Revise seu anúncio</h2><p>Confira as informações antes de publicar.</p></div></div><article class="review-product"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><span class="chip">${data.type}</span><h3>${data.title}</h3><strong>R$ ${data.price}</strong><p>${data.condition} · ${data.delivery}</p><small>${data.location}</small></div></article><div class="notice">Ao publicar, você confirma que as informações são verdadeiras e aceita as regras da comunidade.</div>`;
+    return `<div class="publish-step-head"><span class="step-number">8</span><div><h2>Revise seu anúncio</h2><p>Confira as informações antes de publicar.</p></div></div><article class="review-product"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><span class="chip">${data.type}</span><h3>${data.title}</h3>${data.type==='Venda'?`<strong>R$ ${data.price}</strong>`:''}<p>${data.brand} ${data.model} · ${data.condition==='sealed'?'Pacote fechado':'Pacote aberto para doação'} · ${data.delivery}</p><small>${data.location}</small></div></article><div class="notice">Ao publicar, você confirma as informações e as regras de higiene. Pacote aberto somente pode ser doado.</div>`;
   };
   const draw=()=>{
     document.getElementById('site-publish-subtitle').textContent=`Etapa ${step} de 8 · ${labels[step-1]}`;
@@ -44,6 +47,10 @@ function setupSitePublish(){
     selectChoice('[data-publish-type]','type');
     selectChoice('[data-publish-condition]','condition');
     selectChoice('[data-publish-delivery]','delivery');
+    const category=document.getElementById('site-diaper-category');const model=document.getElementById('site-diaper-model');
+    category?.addEventListener('change',()=>{data.category=category.value;const first=modelsForCategory(data.category)[0];data.brand=first.brand;data.model=first.model;draw()});
+    model?.addEventListener('change',()=>{data.model=model.value;data.brand=model.selectedOptions[0]?.dataset.brand||''});
+    document.getElementById('site-open-attestation')?.addEventListener('change',event=>{data.openPackageAttested=event.target.checked});
     const photo=document.getElementById('site-add-photo');
     if(photo)photo.addEventListener('click',()=>{
       const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';
@@ -57,6 +64,7 @@ function setupSitePublish(){
     document.getElementById('site-publish-back').addEventListener('click',()=>{if(step>1){step--;draw()}});
     document.getElementById('site-publish-next').addEventListener('click',async()=>{
       if(step===3&&!photoReady){document.getElementById('site-photo-error').textContent='Adicione pelo menos uma foto para continuar.';return}
+      if(step===4&&data.condition==='open'&&!data.openPackageAttested){notify('Confirme as condições sanitárias do pacote aberto.');return}
       if(step<8){step++;draw();document.getElementById('site-publish-content').scrollIntoView({behavior:'smooth',block:'start'});return}
       try {
         const kind = { Venda: 'sale', Troca: 'exchange', Doação: 'donation' }[data.type];
@@ -64,8 +72,12 @@ function setupSitePublish(){
         const location = await geocodeLocation(data.location);
         const result = await publishListing({
           title: data.title,
-          description: `${data.condition}. ${data.delivery}. ${data.location}.`,
+          description: `${data.condition==='sealed'?'Pacote fechado e lacrado':'Pacote aberto para doação, com unidades sem uso'}. ${data.delivery}. ${data.location}.`,
+          category: data.category,
           brand: data.brand,
+          model: data.model,
+          packageCondition: data.condition,
+          openPackageAttested: data.openPackageAttested,
           size: data.size,
           quantity: Number(data.quantity),
           kind,

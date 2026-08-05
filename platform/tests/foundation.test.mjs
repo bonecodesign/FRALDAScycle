@@ -13,7 +13,7 @@ test("keeps independent contracts for Site, App and Admin", () => {
   assert.equal(routeFor("admin", "security"), "/admin/security");
 });
 
-test("creates accessible shells without replacing the approved prototype", async () => {
+test("creates accessible shells synchronized with the approved prototype", async () => {
   for (const surface of Object.keys(SURFACES)) {
     const html = await readFile(resolve(root, "apps", surface, "index.html"), "utf8");
     assert.match(html, /<html lang="pt-BR"(?:\s[^>]*)?>/);
@@ -46,7 +46,8 @@ test("transfers the approved Site Home without changing its product language", a
   assert.match(html, /data-source-route="#\/site\/home"/);
   assert.match(html, /Pequenas escolhas,/);
   assert.match(html, /grandes mudanças\./);
-  assert.match(html, /Compre, troque ou doe fraldas fechadas/);
+  assert.match(html, /Compre ou troque pacotes fechados/);
+  assert.match(html, /Doe pacotes fechados ou abertos/);
   assert.match(html, /Uma jornada simples e segura/);
   assert.match(html, /Anúncios em destaque/);
   assert.match(html, /5\.080 kg/);
@@ -65,7 +66,7 @@ test("uses approved source assets through an explicit read-only adapter", async 
   assert.match(adapter, /@import url\("\/source\/fidelity\.css"\)/);
   assert.match(server, /approvedSourceFiles/);
   assert.match(server, /sourceAssetsRoot/);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
   assert.ok(provenance.source.functions.includes("siteHome"));
 });
 
@@ -87,7 +88,7 @@ test("transfers approved Site Search and Map as a dedicated route", async () => 
   assert.match(behavior, /toLocaleLowerCase\("pt-BR"\)/);
   assert.match(server, /pathname === "\/site\/search"/);
   for (const name of ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"]) assert.ok(provenance.source.functions.includes(name));
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -117,7 +118,7 @@ test("transfers detail seller and favorites while documenting missing destinatio
     assert.ok(provenance.source.functions.includes(name));
   }
   assert.equal(provenance.architectureAdditions[0].name, "productCard");
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -148,11 +149,11 @@ test("transfers the approved publish impact and help experiences", async () => {
   for (const name of ["sitePublish", "setupSitePublish", "siteImpact", "setupSiteImpact", "siteHelp"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
-test("closes the complete approved Site route inventory without changing source files", async () => {
+test("closes the complete approved Site route inventory and records source changes", async () => {
   const routes = [
     ["login", /Acesse sua conta para continuar/],
     ["component-states", /Estados completos dos componentes/],
@@ -186,7 +187,7 @@ test("closes the complete approved Site route inventory without changing source 
     "motion-lab.js",
   ]);
   assert.match(await readFile(resolve(root, "apps/site/login.js"), "utf8"), /Informações validadas com sucesso/);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -218,7 +219,7 @@ test("transfers the complete approved App identity journey", async () => {
   assert.match(behavior, /location\.pathname/);
   const verifyHtml = await readFile(resolve(root, "apps/app/verify.html"), "utf8");
   assert.equal((verifyHtml.match(/maxlength="1"/g) ?? []).length, 6);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -256,22 +257,17 @@ test("transfers App marketplace filters favorites and all eight publish steps", 
   for (const name of ["appSearch", "setupSearchStates", "appFavorites", "appPublish", "setupPublishValidation"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
-test("transfers protected chat proposal evidence and reservation states", async () => {
+test("transfers protected chat and proposal without reservation routes", async () => {
   const routes = [
     ["chat", /Negociação protegida/],
     ["safety", /Opções da conversa/],
     ["proposal", /Nova proposta/],
     ["proposal-received", /Contraproposta recebida/],
     ["negotiation-evidence", /Evidências da negociação/],
-    ["reservation", /Produto reservado/],
-    ["reservation-rules", /Regras da reserva/],
-    ["reservation-cancel", /Cancelar reserva\?/],
-    ["reservation-cancelled", /Reserva cancelada/],
-    ["reservation-expired", /Reserva expirada/],
   ];
   const behavior = await readFile(resolve(root, "apps/app/negotiation.js"), "utf8");
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
@@ -290,12 +286,15 @@ test("transfers protected chat proposal evidence and reservation states", async 
   assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
   assert.match(behavior, /QR Codes não podem ser compartilhados no chat/);
   assert.match(behavior, /protocolo #NEG-2025-0719/i);
-  assert.match(behavior, /reservation-timer/);
-  assert.match(behavior, /location\.pathname='\/app\/reservation-expired'/);
-  for (const name of ["appChat", "appProposal", "appReservation", "setupProtectedChat", "setupNegotiation", "setupSafetyActions"]) {
+  const proposal = await readFile(resolve(root, "apps/app/proposal-received.html"), "utf8");
+  assert.match(proposal, /Não existe etapa de reserva/);
+  assert.match(proposal, /anúncio ficará indisponível imediatamente/);
+  assert.doesNotMatch(behavior, /reservation-timer|reservation-expired/);
+  assert.doesNotMatch(server, /\/app\/reservation/);
+  for (const name of ["appChat", "appProposal", "setupProtectedChat", "setupNegotiation", "setupSafetyActions"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -321,7 +320,10 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   }
 
   const payment = await readFile(resolve(root, "apps/app/payment.html"), "utf8");
-  assert.equal((payment.match(/name="pay"/g) ?? []).length, 5);
+  assert.equal((payment.match(/name="pay"/g) ?? []).length, 3);
+  assert.doesNotMatch(payment, /boleto/i);
+  assert.doesNotMatch(behavior, /boleto/i);
+  assert.doesNotMatch(payment, /cartão de débito|value="debit"/i);
   assert.match(payment, /Valor protegido em custódia até o recebimento/);
   assert.match(behavior, /Cartão tokenizado com segurança/);
   assert.match(behavior, /\/v1\/payments\/tokenization-sessions/);
@@ -337,7 +339,7 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   for (const name of ["appPayment", "appWallet", "appRefund", "appDispute", "setupPaymentFlow", "setupWallet"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -374,7 +376,7 @@ test("transfers the complete approved App logistics journey", async () => {
   for (const name of ["appDeliveryOptions", "appDelivery", "appDeliveryProof", "appDeliveryRate", "setupDeliveryTracking"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -403,7 +405,7 @@ test("closes the remaining approved App route inventory", async () => {
   assert.match(behavior, /setupNotificationSettings\(\)/);
   assert.match(behavior, /Novo código enviado com sucesso/);
   assert.match(behavior, /Conexão restabelecida/);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -435,7 +437,7 @@ test("closes the approved courier journey and the App surface", async () => {
   for (const name of ["courierHome", "courierJob", "courierRoute", "courierProof", "courierHistory"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -470,7 +472,7 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
   assert.match(behavior, /loadLiveAdminSessions/);
   assert.match(behavior, /rbac-save/);
   assert.match(behavior, /admin-ad-search/);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -496,7 +498,7 @@ test("transfers Admin finance logistics and reports with impact kept in its appr
   assert.equal(provenance.architectureNotes[0].area, "impact");
   assert.match(provenance.architectureNotes[0].detail, /No standalone admin impact route exists/);
   for (const name of ["adminFinance", "adminLogistics", "adminReports"]) assert.ok(provenance.source.functions.includes(name));
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -524,7 +526,7 @@ test("transfers Admin data forecasts alerts and infrastructure", async () => {
   assert.match(behavior, /setupAdminInfrastructure\(\)/);
   assert.match(behavior, /data-run-pipeline/);
   for (const name of ["adminData", "adminForecast", "adminAlerts", "adminInfrastructure"]) assert.ok(provenance.source.functions.includes(name));
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -558,7 +560,7 @@ test("transfers Admin security moderation audit webhooks and settings governance
   assert.match(await readFile(resolve(root, "apps/admin/audit.html"), "utf8"), /webhook/i);
   assert.equal(provenance.architectureNotes.at(-1).area, "webhooks");
   assert.match(provenance.architectureNotes.at(-1).detail, /No standalone admin webhook route exists/);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
@@ -586,7 +588,24 @@ test("closes all nineteen approved Admin routes with growth launch and support",
   assert.equal(provenance.source.routes.length, 19);
   assert.equal(provenance.destination.routes.length, 19);
   assert.equal(new Set(provenance.destination.routes).size, 19);
-  assert.deepEqual(provenance.modifiedSourceFiles, []);
+  assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
+});
+
+test("protects every Admin module with email and password authentication", async () => {
+  const login = await readFile(resolve(root, "apps/admin/login.html"), "utf8");
+  const auth = await readFile(resolve(root, "apps/admin/auth.js"), "utf8");
+  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+  assert.match(login, /type="email"/);
+  assert.match(login, /type="password"/);
+  assert.match(login, /minlength="12"/);
+  assert.match(auth, /\/v1\/auth\/login/);
+  assert.match(auth, /\/v1\/auth\/session/);
+  assert.match(auth, /ADMIN_ROLES/);
+  assert.match(auth, /\/v1\/auth\/logout/);
+  assert.match(server, /\/admin\/login/);
+  for (const module of ["core.js", "governance.js", "intelligence.js", "growth.js"]) {
+    assert.match(await readFile(resolve(root, `apps/admin/${module}`), "utf8"), /\/apps\/admin\/auth\.js/);
+  }
 });
 
 test("connects approved identity screens to the production API client", async () => {
