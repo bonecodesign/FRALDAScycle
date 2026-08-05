@@ -111,7 +111,7 @@
     ]
   },
   "strategy": "markup rendered from approved source functions; styles and assets served read-only through source adapter",
-  "modifiedSourceFiles": [],
+  "modifiedSourceFiles": ["app.js", "qa-regression.mjs"],
   "architectureAdditions": [
     {
       "name": "productCard",
