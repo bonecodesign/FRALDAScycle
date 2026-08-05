@@ -8,6 +8,8 @@ on:
       - "styles.css"
       - "map-safety.css"
       - "fidelity.css"
+      - "app.js"
+      - "qa-regression.mjs"
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
       - ".github/workflows/release-images.yml"
@@ -19,6 +21,8 @@ on:
       - "styles.css"
       - "map-safety.css"
       - "fidelity.css"
+      - "app.js"
+      - "qa-regression.mjs"
       - "compose.production.example.yaml"
       - ".github/workflows/platform.yml"
       - ".github/workflows/release-images.yml"
@@ -51,7 +55,7 @@ jobs:
         run: npm run check:production
       - name: Run platform tests
         run: npm test
-      - name: Protect approved prototype
+      - name: Validate synchronized prototype
         working-directory: .
         run: node qa-regression.mjs
 
