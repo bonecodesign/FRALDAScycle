@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "status": "internal-dry-run",
+  "policy": {
+    "externalIntegrationsAllowed": false,
+    "realPersonalDataAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "gates": [
+    {
+      "id": "product-rules",
+      "owner": "product",
+      "evidence": [
+        "approved-rules",
+        "catalog-scope",
+        "no-reservation-flow"
+      ]
+    },
+    {
+      "id": "identity-access",
+      "owner": "engineering",
+      "evidence": [
+        "test-accounts",
+        "admin-auth",
+        "role-boundaries"
+      ]
+    },
+    {
+      "id": "marketplace-journey",
+      "owner": "product",
+      "evidence": [
+        "publish-search-negotiate",
+        "open-donation-attestation",
+        "listing-unavailability"
+      ]
+    },
+    {
+      "id": "safety-privacy",
+      "owner": "security",
+      "evidence": [
+        "synthetic-data",
+        "chat-protection",
+        "audit-trail"
+      ]
+    },
+    {
+      "id": "accessibility-devices",
+      "owner": "quality",
+      "evidence": [
+        "keyboard-check",
+        "screen-reader-check",
+        "device-matrix"
+      ]
+    },
+    {
+      "id": "support-incidents",
+      "owner": "operations",
+      "evidence": [
+        "support-script",
+        "incident-severity",
+        "rollback-owner"
+      ]
+    },
+    {
+      "id": "pilot-exit",
+      "owner": "management",
+      "evidence": [
+        "findings-log",
+        "go-no-go-decision",
+        "next-actions"
+      ]
+    }
+  ]
+}
