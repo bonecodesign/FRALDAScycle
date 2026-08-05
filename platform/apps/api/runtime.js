@@ -7,6 +7,7 @@ import { createMarketplaceRepository } from "../../database/marketplace-reposito
 import { createAdminRepository } from "../../database/admin-repository.js";
 import { createPaymentRepository } from "../../database/payment-repository.js";
 import { createLogisticsRepository } from "../../database/logistics-repository.js";
+import { createRealtimeRepository } from "../../database/realtime-repository.js";
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
@@ -19,6 +20,7 @@ import { createPaymentProvider } from "./payment-provider.js";
 import { createPaymentService } from "./payment-service.js";
 import { createLogisticsProvider } from "./logistics-provider.js";
 import { createLogisticsService } from "./logistics-service.js";
+import { createRealtimeService } from "./realtime-service.js";
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -36,6 +38,7 @@ export async function startRuntime(config = null) {
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
   const logisticsService = createLogisticsService(createLogisticsRepository(database), logisticsProvider);
+  const realtimeService = createRealtimeService(createRealtimeRepository(database));
   const telemetry = createTelemetry(config);
   const server = createApiServer({
     config,
@@ -48,6 +51,7 @@ export async function startRuntime(config = null) {
     logisticsService,
     logisticsProvider,
     adminService,
+    realtimeService,
     telemetry,
   });
 
