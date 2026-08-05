@@ -1,6 +1,19 @@
-# Runbook de ativação de produção
+# Runbook de preparação e ativação de produção
 
-Este documento conecta serviços reais à arquitetura integrada sem alterar o protótipo aprovado.
+Este documento separa a preparação técnica local da futura conexão de serviços reais. O protótipo acompanha as decisões aprovadas do produto e suas alterações devem permanecer sincronizadas com Site, App e Admin.
+
+## Fase atual — preparação técnica local
+
+As integrações externas estão adiadas por decisão do produto. Enquanto isso, a versão pode avançar até o portão local de publicação, sem credenciais, contratação, provisionamento ou publicação externa.
+
+No diretório `platform`:
+
+```powershell
+npm ci
+npm run release:check-local
+```
+
+Esse comando valida sintaxe de produção, testes da plataforma, manifesto neutro de fornecedores e regressão do protótipo. Ele não declara o ambiente pronto para produção e não substitui `production:doctor`.
 
 ## Ordem de ativação
 
@@ -12,6 +25,8 @@ Este documento conecta serviços reais à arquitetura integrada sem alterar o pr
 6. Executar o diagnóstico e a suíte completa.
 7. Validar webhooks assinados em homologação.
 8. Promover a mesma versão imutável para produção.
+
+Os itens desta seção permanecem em standby até a retomada explícita das integrações externas.
 
 ## Empacotamento reproduzível
 
@@ -60,4 +75,4 @@ O diagnóstico retorna JSON, nunca imprime valores secretos e termina com códig
 
 ## Regra do produto
 
-Site, App, Admin e os arquivos do protótipo são a fonte oficial da experiência e não devem ser modificados para acomodar fornecedores. Qualquer diferença deve ser absorvida por adaptadores em `platform/`.
+Site, App, Admin e o protótipo formam a fonte oficial da experiência e devem permanecer sincronizados. Limitações de fornecedores devem ser absorvidas por adaptadores, nunca pela remoção silenciosa de regras ou funcionalidades aprovadas.
