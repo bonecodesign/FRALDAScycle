@@ -14,7 +14,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate semantic version
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: '[[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - name: Install locked dependencies
+        working-directory: platform
+        run: npm ci
+      - name: Run local release gate
+        working-directory: platform
+        run: npm run release:check-local
+
   publish:
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
