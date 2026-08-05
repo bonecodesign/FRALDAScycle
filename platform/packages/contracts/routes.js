@@ -5,7 +5,7 @@ export const SURFACES = Object.freeze({
   }),
   app: Object.freeze({
     basePath: "/app",
-    routes: ["auth", "otp", "home", "search", "map", "publish", "chat", "proposal", "reservation", "payment", "wallet", "refund", "logistics", "profile", "notifications", "moderation", "courier", "global-states"],
+    routes: ["auth", "otp", "home", "search", "map", "publish", "chat", "proposal", "payment", "wallet", "refund", "logistics", "profile", "notifications", "moderation", "courier", "global-states"],
   }),
   admin: Object.freeze({
     basePath: "/admin",
