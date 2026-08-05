@@ -6,7 +6,7 @@ export class PaymentError extends Error {
   }
 }
 
-const METHODS = new Set(["pix", "credit", "debit", "boleto"]);
+const METHODS = new Set(["pix", "credit"]);
 const PAYABLE_STATUSES = new Set(["proposed", "reserved", "payment_pending"]);
 const PLATFORM_BPS = Object.freeze({ sale: 800, exchange: 500, donation: 0 });
 
@@ -85,7 +85,7 @@ export function createPaymentService(repository, provider) {
       if (idempotencyKey.length < 16 || idempotencyKey.length > 128) throw new PaymentError("invalid_idempotency_key", 422, "Chave de idempotência inválida.");
       if (!METHODS.has(method)) throw new PaymentError("invalid_payment_method", 422, "Método de pagamento inválido.");
       if (input?.cardNumber || input?.cvv) throw new PaymentError("raw_card_data_forbidden", 422, "Dados brutos de cartão não são aceitos.");
-      if (["credit", "debit"].includes(method) && !paymentMethodToken) {
+      if (method === "credit" && !paymentMethodToken) {
         throw new PaymentError("payment_token_required", 422, "Tokenize o cartão antes de continuar.");
       }
 
