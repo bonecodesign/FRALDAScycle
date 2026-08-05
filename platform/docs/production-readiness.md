@@ -85,3 +85,15 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] webhooks logísticos com HMAC-SHA256, antirreplay e ledger idempotente;
 - [x] máquina de transições que bloqueia regressão de rastreamento;
 - [ ] credenciais e formato final de webhooks do provedor logístico;
+
+## Corte 5 — monitoramento em tempo real
+
+- [x] ledger persistente e ordenado de eventos administrativos;
+- [x] publicação transacional a partir da trilha de auditoria;
+- [x] endpoint SSE autenticado e restrito por escopo;
+- [x] cursor de reconexão por `Last-Event-ID`;
+- [x] heartbeat, retry e proteção contra buffering;
+- [x] atualização da atividade recente no Admin;
+- [x] estados visíveis de conexão e reconexão;
+- [ ] Redis Streams ou barramento equivalente quando houver múltiplas instâncias em produção;
+- [ ] validação de carga no ambiente real de homologação.
