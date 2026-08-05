@@ -158,11 +158,9 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
         status: payload.status,
         checkout: {
           qrCode: typeof payload.qrCode === "string" ? payload.qrCode : null,
-          boletoUrl: typeof payload.boletoUrl === "string" ? payload.boletoUrl : null,
           clientSecret: typeof payload.clientSecret === "string" ? payload.clientSecret : null,
         },
       };
     },
   });
 }
-
