@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-05",
+  "status": "research-only",
+  "policy": {
+    "contracted": false,
+    "provisioned": false,
+    "credentialsStored": false,
+    "externalPublicationPerformed": false
+  },
+  "selection": [
+    {
+      "id": "payments",
+      "recommended": "asaas",
+      "alternative": "mercado-pago",
+      "reason": "API brasileira com split automático, subcontas, estorno do split e webhooks; adequada para validar o marketplace com menor complexidade inicial.",
+      "costModel": "Tarifas por meio de pagamento e condições comerciais devem ser cotadas antes da contratação.",
+      "blockingChecks": ["cnpj-and-compliance", "sandbox", "split-net-value", "refunds", "disputes", "signed-webhooks", "reconciliation"],
+      "evidence": [
+        "https://docs.asaas.com/docs/split-de-pagamentos",
+        "https://www.mercadopago.com.br/developers/pt/docs/split-payments/split-1-1/integration-configuration/integrate-marketplace"
+      ]
+    },
+    {
+      "id": "logistics",
+      "recommended": "lalamove",
+      "alternative": "loggi",
+      "reason": "API v3 disponível no Brasil e em Belo Horizonte, com sandbox, cotação, pedido, rastreamento, webhook, troca de motorista e prova de entrega.",
+      "costModel": "Preço dinâmico por cotação; custos e cobertura devem ser medidos com rotas reais do piloto.",
+      "blockingChecks": ["belo-horizonte-coverage", "sandbox", "quotation-expiry", "signed-requests", "webhooks", "proof-of-delivery", "cancellation"],
+      "evidence": [
+        "https://developers.lalamove.com/",
+        "https://www.loggi.com/"
+      ]
+    },
+    {
+      "id": "notifications",
+      "recommended": "brevo",
+      "alternative": "zenvia",
+      "reason": "API única para e-mail, SMS e WhatsApp, reduzindo integrações para uma operação de duas pessoas.",
+      "costModel": "Plano público de e-mail e SMS por volume; confirmar preços brasileiros, remetentes e limites antes da contratação.",
+      "blockingChecks": ["email-deliverability", "sms-brazil", "sender-verification", "webhooks", "retries", "opt-out", "dpa"],
+      "evidence": [
+        "https://developers.brevo.com/",
+        "https://www.brevo.com/pricing/",
+        "https://www.zenvia.com/"
+      ]
+    },
+    {
+      "id": "media",
+      "recommended": "cloudflare-r2",
+      "alternative": "cloudinary",
+      "reason": "Armazenamento S3 compatível, uploads assinados e egress público sem cobrança, preservando portabilidade do adaptador.",
+      "costModel": "R2 Standard inclui franquia pública e cobra armazenamento e operações; validar custo projetado com o volume de imagens do beta.",
+      "blockingChecks": ["signed-upload", "content-type", "size-limits", "malware-policy", "retention", "deletion", "brazil-latency"],
+      "evidence": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://developers.cloudflare.com/r2/api/s3/presigned-urls/",
+        "https://cloudinary.com/pricing"
+      ]
+    },
+    {
+      "id": "geocoding",
+      "recommended": "google-maps",
+      "alternative": "here",
+      "reason": "Cobertura consolidada de endereços brasileiros, quotas controláveis e documentação de segurança e faturamento.",
+      "costModel": "Pay as you go por evento; exige billing habilitado e limites diários para controlar custo.",
+      "blockingChecks": ["belo-horizonte-accuracy", "billing-cap", "daily-quota", "privacy", "cache-policy", "fallback"],
+      "evidence": [
+        "https://developers.google.com/maps/documentation/geocoding/usage-and-billing",
+        "https://developers.here.com/documentation/geocoding-search-api/"
+      ]
+    },
+    {
+      "id": "distributedRateLimit",
+      "recommended": "upstash-redis",
+      "alternative": "redis-cloud",
+      "reason": "Redis gerenciado com TLS, API adequada a contadores atômicos e opção de orçamento máximo no plano por uso.",
+      "costModel": "Franquia pública para validação e cobrança por comandos/armazenamento no plano por uso; produção exige avaliar alta disponibilidade e SLA.",
+      "blockingChecks": ["atomic-counters", "ttl", "tls", "budget-cap", "high-availability", "failover", "data-region"],
+      "evidence": [
+        "https://upstash.com/pricing/redis",
+        "https://redis.io/cloud/"
+      ]
+    },
+    {
+      "id": "telemetry",
+      "recommended": "sentry",
+      "alternative": "grafana-cloud",
+      "reason": "Monitoramento de erros, tracing, alertas e dashboards com implantação inicial simples.",
+      "costModel": "Plano Developer público para validação; operação com duas pessoas deve avaliar Team e retenção antes da produção.",
+      "blockingChecks": ["secret-redaction", "pii-scrubbing", "retention", "error-alerts", "latency-alerts", "export", "dpa"],
+      "evidence": [
+        "https://sentry.io/pricing/",
+        "https://grafana.com/products/cloud/pricing/"
+      ]
+    },
+    {
+      "id": "externalSecrets",
+      "recommended": "doppler",
+      "alternative": "aws-secrets-manager",
+      "reason": "Cofre centralizado com tokens de serviço, integrações e fluxo simples para equipe pequena.",
+      "costModel": "Developer público para até três usuários; produção deve avaliar retenção de auditoria, rotação e SLA do plano Team.",
+      "blockingChecks": ["least-privilege", "service-tokens", "audit-retention", "rotation", "break-glass", "export", "revocation"],
+      "evidence": [
+        "https://www.doppler.com/pricing",
+        "https://aws.amazon.com/secrets-manager/pricing/"
+      ]
+    }
+  ]
+}
