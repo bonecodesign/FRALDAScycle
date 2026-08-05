@@ -1,5 +1,6 @@
 export function createMarketplaceRepository(database) {
-  const publicColumns = `l.id, l.title, l.description, l.brand, l.size, l.quantity,
+  const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
+    l.package_condition, l.size, l.quantity,
     l.kind, l.price_cents, l.status, l.city, l.state, l.latitude, l.longitude,
     l.published_at, l.created_at, u.id AS seller_id, u.display_name AS seller_name`;
 
@@ -53,11 +54,13 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const result = await client.query(
           `INSERT INTO listings
-            (seller_id, title, description, brand, size, quantity, kind, price_cents,
-             status, city, state, latitude, longitude, published_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'published',$9,$10,$11,$12,now())
+            (seller_id, title, description, category, brand, model, package_condition,
+             open_package_attested, size, quantity, kind, price_cents, status,
+             city, state, latitude, longitude, published_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15,$16,now())
            RETURNING id, status, published_at`,
-          [input.sellerId, input.title, input.description, input.brand, input.size,
+          [input.sellerId, input.title, input.description, input.category, input.brand,
+           input.model, input.packageCondition, input.openPackageAttested, input.size,
            input.quantity, input.kind, input.priceCents, input.city, input.state,
            input.latitude, input.longitude],
         );
@@ -91,6 +94,53 @@ export function createMarketplaceRepository(database) {
 
     async removeFavorite(userId, listingId) {
       await database.query("DELETE FROM favorites WHERE user_id = $1 AND listing_id = $2", [userId, listingId]);
+    },
+
+    async startTransaction({ buyerId, listingId }) {
+      return database.transaction(async (client) => {
+        const listing = await client.query(
+          `UPDATE listings SET status = 'unavailable', updated_at = now()
+           WHERE id = $1 AND seller_id <> $2 AND status = 'published'
+           RETURNING id, seller_id, kind, price_cents`,
+          [listingId, buyerId],
+        );
+        if (!listing.rows[0]) throw Object.assign(new Error("Anúncio não está disponível."), { code: "listing_unavailable", status: 409 });
+        const result = await client.query(
+          `INSERT INTO transactions (listing_id, buyer_id, seller_id, status, amount_cents)
+           VALUES ($1,$2,$3,'initiated',$4)
+           RETURNING id, listing_id, status, created_at`,
+          [listingId, buyerId, listing.rows[0].seller_id, listing.rows[0].price_cents],
+        );
+        return result.rows[0];
+      });
+    },
+
+    async cancelTransaction({ actorId, transactionId }) {
+      return database.transaction(async (client) => {
+        const tx = await client.query(
+          `UPDATE transactions SET status = 'cancelled', updated_at = now()
+           WHERE id = $1 AND $2 IN (buyer_id, seller_id)
+             AND status NOT IN ('completed','cancelled','refunded')
+           RETURNING id, listing_id, status`, [transactionId, actorId],
+        );
+        if (!tx.rows[0]) throw Object.assign(new Error("Operação não pode ser cancelada."), { code: "transaction_not_cancellable", status: 409 });
+        await client.query("UPDATE listings SET status = 'published', updated_at = now() WHERE id = $1 AND status = 'unavailable'", [tx.rows[0].listing_id]);
+        return tx.rows[0];
+      });
+    },
+
+    async completeTransaction({ actorId, transactionId }) {
+      return database.transaction(async (client) => {
+        const tx = await client.query(
+          `UPDATE transactions SET status = 'completed', updated_at = now()
+           WHERE id = $1 AND $2 IN (buyer_id, seller_id)
+             AND status NOT IN ('completed','cancelled','refunded')
+           RETURNING id, listing_id, status`, [transactionId, actorId],
+        );
+        if (!tx.rows[0]) throw Object.assign(new Error("Operação não pode ser finalizada."), { code: "transaction_not_completable", status: 409 });
+        await client.query("UPDATE listings SET status = 'completed', updated_at = now() WHERE id = $1", [tx.rows[0].listing_id]);
+        return tx.rows[0];
+      });
     },
   });
 }
