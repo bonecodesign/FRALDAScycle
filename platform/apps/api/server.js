@@ -28,6 +28,7 @@ export function createApiServer({
   logisticsService = null,
   logisticsProvider = null,
   adminService = null,
+  realtimeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -170,7 +171,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService,
+        url, headers, requestId: id, authService, adminService, realtimeService,
       })) return;
 
       if (await handleMarketplace(request, response, {
