@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "status": "pre-contract",
+  "policy": {
+    "credentialsAllowed": false,
+    "paidProvisioningAllowed": false,
+    "externalPublicationAllowed": false
+  },
+  "providers": [
+    {
+      "id": "notifications",
+      "capability": "transactional-email-and-sms",
+      "requiredEnvironment": [
+        "NOTIFICATION_WEBHOOK_URL",
+        "NOTIFICATION_WEBHOOK_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "authenticated-delivery",
+        "idempotency",
+        "retry-policy",
+        "data-processing-agreement"
+      ]
+    },
+    {
+      "id": "media",
+      "capability": "signed-media-upload",
+      "requiredEnvironment": [
+        "MEDIA_PROVIDER_URL",
+        "MEDIA_PROVIDER_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "short-lived-signed-upload",
+        "content-type-validation",
+        "retention-policy",
+        "data-processing-agreement"
+      ]
+    },
+    {
+      "id": "geocoding",
+      "capability": "address-geocoding",
+      "requiredEnvironment": [
+        "GEOCODING_PROVIDER_URL",
+        "GEOCODING_PROVIDER_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "brazil-coverage",
+        "rate-limits",
+        "privacy-review",
+        "data-processing-agreement"
+      ]
+    },
+    {
+      "id": "payments",
+      "capability": "payments-split-refunds-disputes",
+      "requiredEnvironment": [
+        "PAYMENT_PROVIDER_URL",
+        "PAYMENT_PROVIDER_SECRET",
+        "PAYMENT_WEBHOOK_SECRET",
+        "PAYMENT_PROVIDER_SDK_URL",
+        "PAYMENT_PROVIDER_SDK_INTEGRITY"
+      ],
+      "contractChecks": [
+        "https",
+        "pci-tokenization",
+        "split-settlement",
+        "idempotency",
+        "signed-webhooks",
+        "refunds",
+        "disputes",
+        "sandbox"
+      ]
+    },
+    {
+      "id": "logistics",
+      "capability": "shipping-tracking-proof-of-delivery",
+      "requiredEnvironment": [
+        "LOGISTICS_PROVIDER_URL",
+        "LOGISTICS_PROVIDER_SECRET",
+        "LOGISTICS_WEBHOOK_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "brazil-coverage",
+        "idempotency",
+        "signed-webhooks",
+        "tracking",
+        "proof-of-delivery",
+        "sandbox"
+      ]
+    },
+    {
+      "id": "distributedRateLimit",
+      "capability": "distributed-rate-limiting",
+      "requiredEnvironment": [
+        "RATE_LIMIT_PROVIDER_URL",
+        "RATE_LIMIT_PROVIDER_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "atomic-counters",
+        "ttl",
+        "multi-region-behavior",
+        "failover"
+      ]
+    },
+    {
+      "id": "telemetry",
+      "capability": "logs-metrics-alerts",
+      "requiredEnvironment": [
+        "TELEMETRY_PROVIDER_URL",
+        "TELEMETRY_PROVIDER_SECRET"
+      ],
+      "contractChecks": [
+        "https",
+        "secret-redaction",
+        "retention-policy",
+        "latency-alerts",
+        "error-alerts"
+      ]
+    },
+    {
+      "id": "externalSecrets",
+      "capability": "managed-secrets",
+      "requiredEnvironment": [
+        "SECRETS_PROVIDER_URL",
+        "SECRETS_PROVIDER_TOKEN",
+        "SECRETS_PROVIDER_KEYS"
+      ],
+      "contractChecks": [
+        "https",
+        "key-allowlist",
+        "audit-log",
+        "rotation",
+        "least-privilege",
+        "break-glass"
+      ]
+    }
+  ]
+}
