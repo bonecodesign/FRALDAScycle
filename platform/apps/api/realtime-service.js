@@ -1,6 +1,6 @@
 function writeEvent(response, event) {
   response.write(`id: ${event.id}\n`);
-  response.write(`event: ${event.event_type}\n`);
+  response.write("event: realtime\n");
   response.write(`data: ${JSON.stringify({
     id: String(event.id),
     type: event.event_type,
