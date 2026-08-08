@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runId": "internal-dry-run-001",
+  "status": "pending",
+  "policy": {
+    "syntheticDataOnly": true,
+    "externalIntegrationsAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "gateResults": [],
+  "findings": [],
+  "decision": {
+    "outcome": "pending",
+    "decidedBy": null,
+    "decidedAt": null,
+    "rationale": null
+  },
+  "nextActions": []
+}
