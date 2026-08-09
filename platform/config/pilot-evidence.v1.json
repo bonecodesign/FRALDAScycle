@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "runId": "internal-dry-run-001",
+  "policy": {
+    "syntheticDataOnly": true,
+    "externalIntegrationsAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "evidence": [
+    {
+      "id": "approved-rules",
+      "gateId": "product-rules",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "catalog-scope",
+      "gateId": "product-rules",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "no-reservation-flow",
+      "gateId": "product-rules",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "test-accounts",
+      "gateId": "identity-access",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "admin-auth",
+      "gateId": "identity-access",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "role-boundaries",
+      "gateId": "identity-access",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "publish-search-negotiate",
+      "gateId": "marketplace-journey",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "open-donation-attestation",
+      "gateId": "marketplace-journey",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "listing-unavailability",
+      "gateId": "marketplace-journey",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "synthetic-data",
+      "gateId": "safety-privacy",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "chat-protection",
+      "gateId": "safety-privacy",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "audit-trail",
+      "gateId": "safety-privacy",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "keyboard-check",
+      "gateId": "accessibility-devices",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "screen-reader-check",
+      "gateId": "accessibility-devices",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "device-matrix",
+      "gateId": "accessibility-devices",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "support-script",
+      "gateId": "support-incidents",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "incident-severity",
+      "gateId": "support-incidents",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "rollback-owner",
+      "gateId": "support-incidents",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "findings-log",
+      "gateId": "pilot-exit",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "go-no-go-decision",
+      "gateId": "pilot-exit",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    },
+    {
+      "id": "next-actions",
+      "gateId": "pilot-exit",
+      "status": "pending",
+      "source": "synthetic",
+      "checkedAt": null,
+      "notes": null
+    }
+  ]
+}
