@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "runId": "internal-dry-run-001",
+  "title": "Sessão interna FraldaCycle",
+  "policy": {
+    "syntheticDataOnly": true,
+    "externalIntegrationsAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "scenarios": [
+    { "id": "confirm-approved-rules", "gateId": "product-rules", "evidenceIds": ["approved-rules"], "actor": "product", "instruction": "Conferir as regras aprovadas usando somente os registros sintéticos do roteiro." },
+    { "id": "confirm-catalog-scope", "gateId": "product-rules", "evidenceIds": ["catalog-scope"], "actor": "product", "instruction": "Validar o escopo do catálogo demonstrativo sem incluir itens ou dados reais." },
+    { "id": "confirm-no-reservation-flow", "gateId": "product-rules", "evidenceIds": ["no-reservation-flow"], "actor": "product", "instruction": "Confirmar que o fluxo sintético não cria reserva de produto." },
+    { "id": "exercise-test-accounts", "gateId": "identity-access", "evidenceIds": ["test-accounts"], "actor": "engineering", "instruction": "Acessar os perfis exclusivamente fictícios preparados para a sessão." },
+    { "id": "exercise-admin-auth", "gateId": "identity-access", "evidenceIds": ["admin-auth"], "actor": "engineering", "instruction": "Simular a autenticação administrativa sem credenciais ou serviços externos." },
+    { "id": "exercise-role-boundaries", "gateId": "identity-access", "evidenceIds": ["role-boundaries"], "actor": "engineering", "instruction": "Verificar limites de papéis com identidades sintéticas e acessos locais." },
+    { "id": "exercise-publish-search-negotiate", "gateId": "marketplace-journey", "evidenceIds": ["publish-search-negotiate"], "actor": "product", "instruction": "Percorrer publicação, busca e negociação usando o acervo demonstrativo." },
+    { "id": "exercise-open-donation-attestation", "gateId": "marketplace-journey", "evidenceIds": ["open-donation-attestation"], "actor": "product", "instruction": "Simular a declaração de doação aberta sem transação ou reserva real." },
+    { "id": "exercise-listing-unavailability", "gateId": "marketplace-journey", "evidenceIds": ["listing-unavailability"], "actor": "product", "instruction": "Marcar um anúncio sintético como indisponível e observar o fluxo local." },
+    { "id": "verify-synthetic-data", "gateId": "safety-privacy", "evidenceIds": ["synthetic-data"], "actor": "security", "instruction": "Confirmar que todos os nomes, contatos e registros da sessão são sintéticos." },
+    { "id": "verify-chat-protection", "gateId": "safety-privacy", "evidenceIds": ["chat-protection"], "actor": "security", "instruction": "Testar as proteções do chat com mensagens fictícias e sem envio externo." },
+    { "id": "verify-audit-trail", "gateId": "safety-privacy", "evidenceIds": ["audit-trail"], "actor": "security", "instruction": "Inspecionar a trilha local gerada por ações sintéticas da sessão." },
+    { "id": "check-keyboard", "gateId": "accessibility-devices", "evidenceIds": ["keyboard-check"], "actor": "quality", "instruction": "Percorrer os cenários principais somente pelo teclado." },
+    { "id": "check-screen-reader", "gateId": "accessibility-devices", "evidenceIds": ["screen-reader-check"], "actor": "quality", "instruction": "Revisar rótulos e ordem de leitura no protótipo local." },
+    { "id": "check-device-matrix", "gateId": "accessibility-devices", "evidenceIds": ["device-matrix"], "actor": "quality", "instruction": "Executar a matriz local de tamanhos de tela e dispositivos simulados." },
+    { "id": "rehearse-support-script", "gateId": "support-incidents", "evidenceIds": ["support-script"], "actor": "operations", "instruction": "Ensaiar o atendimento de um incidente fictício com o roteiro interno." },
+    { "id": "classify-incident-severity", "gateId": "support-incidents", "evidenceIds": ["incident-severity"], "actor": "operations", "instruction": "Classificar a severidade de ocorrências sintéticas previstas no exercício." },
+    { "id": "confirm-rollback-owner", "gateId": "support-incidents", "evidenceIds": ["rollback-owner"], "actor": "operations", "instruction": "Confirmar o responsável interno pela reversão sem executar publicação." },
+    { "id": "compile-findings-log", "gateId": "pilot-exit", "evidenceIds": ["findings-log"], "actor": "management", "instruction": "Consolidar achados da sessão sem dados pessoais ou referências externas." },
+    { "id": "record-go-no-go-decision", "gateId": "pilot-exit", "evidenceIds": ["go-no-go-decision"], "actor": "management", "instruction": "Registrar apenas a decisão interna; não autorizar homologação ou publicação." },
+    { "id": "record-next-actions", "gateId": "pilot-exit", "evidenceIds": ["next-actions"], "actor": "management", "instruction": "Documentar próximos passos internos sem ativar integrações externas." }
+  ]
+}
+
