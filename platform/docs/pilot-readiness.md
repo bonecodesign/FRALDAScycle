@@ -58,3 +58,16 @@ npm test
 ## Regra de bloqueio
 
 Este pacote não autoriza homologação externa nem produção. Integrações e dados reais continuam bloqueados até decisão expressa do fundador.
+
+## Roteiro executável da sessão interna
+
+O roteiro versionado está em `config/pilot-session.v1.json`. Ele organiza 21 cenários em ordem de execução e vincula cada cenário a uma das 21 evidências sintéticas de `config/pilot-evidence.v1.json`.
+
+Execute a validação e imprima o roteiro operacional com:
+
+```bash
+npm run pilot:session:validate
+```
+
+O comando falha se houver cenário ausente, cobertura parcial, vínculo com portão incorreto, evidência desconhecida ou cobertura duplicada. A política impede dados reais, transações, integrações e acesso público; uma decisão interna não autoriza homologação ou publicação externa.
+
