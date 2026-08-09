@@ -16,6 +16,8 @@ test("local release gate covers every pre-homologation manifest", async () => {
     "npm run providers:selection:validate",
     "npm run providers:diligence:validate",
     "npm run pilot:validate",
+    "npm run pilot:execution:validate",
+    "npm run pilot:evidence:validate",
     "node ../qa-regression.mjs",
   ]) {
     assert.equal(gate.includes(command), true, "missing release gate command: " + command);
