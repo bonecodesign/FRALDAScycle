@@ -1,5 +1,11 @@
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
+const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
+
+if (LOCAL_DEMO && location.pathname === "/app/login") {
+  location.replace("/app/home");
+}
+
 function notify(message) {
   const toast = document.querySelector("#toast");
   if (!toast) return;
@@ -30,6 +36,10 @@ function setupAuthValidation() {
   const login = document.getElementById("login-form");
   if (login) login.addEventListener("submit", async event => {
     event.preventDefault();
+    if (LOCAL_DEMO) {
+      location.pathname = "/app/home";
+      return;
+    }
     const inputs = login.querySelectorAll("input");
     const contact = inputs[0].value.trim();
     if (!contactValid(contact)) return showError(login, "Informe um e-mail ou telefone válido.");

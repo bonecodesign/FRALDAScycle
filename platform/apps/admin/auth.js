@@ -1,6 +1,7 @@
 import { apiRequest } from "/packages/contracts/api-client.js";
 
 const ADMIN_ROLES = new Set(["admin", "moderator"]);
+const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
 
 function showLoginError(message) {
   const error = document.getElementById("admin-login-error");
@@ -42,6 +43,21 @@ async function handleLogin() {
 }
 
 async function requireAdmin() {
+  if (LOCAL_DEMO) {
+    if (location.pathname === "/admin/login") {
+      location.replace("/admin/dashboard");
+      return;
+    }
+    document.documentElement.dataset.adminAuth = "ready";
+    const head = document.querySelector(".admin-head > div:last-child");
+    if (head) {
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "Admin sintético · modo local";
+      head.append(badge);
+    }
+    return;
+  }
   if (location.pathname === "/admin/login") return handleLogin();
   document.documentElement.dataset.adminAuth = "pending";
   try {
