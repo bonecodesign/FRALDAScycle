@@ -320,3 +320,11 @@ body:has(.app-stage) .phone-nav{position:fixed;z-index:25}
 .admin-alerts-dense,.admin-security-dense{display:grid;gap:18px}.admin-alerts-dense .dashboard-grid,.admin-security-dense .dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#admin-session-table tr.resolved{opacity:.58;background:#f6f8f7}@media(max-width:900px){.admin-alerts-dense .dashboard-grid,.admin-security-dense .dashboard-grid{grid-template-columns:1fr}}
 .admin-operations-dense{display:grid;gap:18px}.admin-operations-main{grid-template-columns:minmax(0,1.7fr) minmax(280px,.7fr)}.admin-operation-flow{grid-template-columns:repeat(6,minmax(0,1fr))}.operation-donut{background:radial-gradient(circle at center,#fff 0 52%,transparent 53%),conic-gradient(var(--green) 0 58%,#f59e0b 58% 85%,#94a3b8 85%)}@media(max-width:1050px){.admin-operation-flow{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-operations-main{grid-template-columns:1fr}}@media(max-width:620px){.admin-operation-flow{grid-template-columns:1fr}}
 .impact-methodology-panel{margin-block:18px;border-color:var(--green-200);background:linear-gradient(145deg,#fff 0%,#f2fbf5 100%);scroll-margin-top:90px}.impact-methodology-panel .stat-card{background:rgba(255,255,255,.86)}.impact-methodology-panel .notice{margin-top:16px;border-left:4px solid var(--green-600)}
+/* Visual fidelity corrections derived from the approved FraldaCycle boards. */
+.splash-logo-approved{display:none}
+.splash-brand:before{content:"";order:1;width:82px;height:82px;border-radius:50%;background:conic-gradient(#fff 0 31%,transparent 31% 43%,#fff 43% 79%,transparent 79%)}
+.splash-brand:after{content:"FraldaCycle";order:2;font:600 33px/1 Poppins,sans-serif;letter-spacing:-.04em;color:#fff}
+.splash-brand p{order:3}
+.admin-layout,.admin-main,.admin-main>*,.dashboard-grid>*{min-width:0}
+.stat-grid.admin{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dashboard-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr)}

@@ -1,6 +1,12 @@
 import "/apps/site/home.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
+const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
+
+if (LOCAL_DEMO) {
+  location.replace("/site/home");
+}
+
 function notify(message) {
   const toast = document.querySelector("#toast");
   if (!toast) return;
@@ -12,6 +18,10 @@ function notify(message) {
 const form = document.querySelector("[data-demo-form]");
 form?.addEventListener("submit", async event => {
   event.preventDefault();
+  if (LOCAL_DEMO) {
+    location.pathname = "/site/home";
+    return;
+  }
   if (!form.reportValidity()) return;
   const [contact, password] = form.querySelectorAll("input");
   const button = form.querySelector('[type="submit"]');
