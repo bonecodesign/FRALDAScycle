@@ -27,3 +27,18 @@ test('visual conformity matrix covers every normative requirement and the comple
   }
   assert.match(matrix, /Page6\.png` a `FraldaCycle_Acervopng_Page68\.png/);
 });
+
+test('site follows the normative institutional navigation and hero contract', async () => {
+  const [html, script] = await Promise.all([
+    read('../apps/site/index.html'),
+    read('../apps/site/home.js'),
+  ]);
+  for (const label of ['Como funciona', 'Categorias', 'Anunciar', 'Doações', 'Ajuda']) assert.match(html, new RegExp(label));
+  assert.doesNotMatch(html, /class="surface-switcher"/);
+  assert.match(script, /Conectamos famílias/);
+  assert.match(script, /Reduzimos desperdícios/);
+  assert.match(script, /Transformamos vidas/);
+  assert.match(script, /Começar agora/);
+  assert.match(script, /Saiba mais/);
+  assert.match(script, /sem uso e com higiene confirmada/);
+});

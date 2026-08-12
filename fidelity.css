@@ -328,3 +328,14 @@ body:has(.app-stage) .phone-nav{position:fixed;z-index:25}
 .admin-layout,.admin-main,.admin-main>*,.dashboard-grid>*{min-width:0}
 .stat-grid.admin{grid-template-columns:repeat(4,minmax(0,1fr))}
 .dashboard-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr)}
+/* Fidelidade final: Site institucional — pranchas 30–48 */
+.site-navigation{display:flex;align-items:center;justify-content:center;gap:clamp(12px,2vw,28px);margin-inline:auto}
+.site-navigation a{color:var(--text-soft,#475569);font:600 14px/1 var(--fc-font-interface,Inter,sans-serif);text-decoration:none;transition:color var(--fc-motion-fast,150ms) var(--fc-easing-standard,ease)}
+.site-navigation a:hover{color:var(--fc-color-primary-dark,#0f7a3a)}
+.fc-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.top-actions .button .fc-icon{width:17px;height:17px}
+.hero h1{max-width:780px;letter-spacing:-.035em}
+.hero .eyebrow{color:var(--fc-color-primary-dark,#0f7a3a)}
+.hero .floating-card{box-shadow:var(--fc-shadow-md);border:1px solid var(--fc-color-border)}
+.feature-card,.product-card,.stat-card{border-color:var(--fc-color-border);box-shadow:var(--fc-shadow-sm)}
+@media(max-width:991px){.site-navigation{display:none}}
