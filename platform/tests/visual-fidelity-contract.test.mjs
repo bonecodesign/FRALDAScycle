@@ -42,3 +42,19 @@ test('site follows the normative institutional navigation and hero contract', as
   assert.match(script, /Saiba mais/);
   assert.match(script, /sem uso e com higiene confirmada/);
 });
+
+test('app preserves five mobile destinations with one SVG icon family', async () => {
+  const [appHome, appRuntime] = await Promise.all([
+    read('../apps/app/home.html'),
+    read('../apps/app/auth.js'),
+  ]);
+  const phoneNav = appHome.match(/<nav class="phone-nav"[\s\S]*?<\/nav>/)?.[0] ?? '';
+
+  assert.equal((phoneNav.match(/<a /g) ?? []).length, 5);
+  for (const label of ['Início', 'Buscar', 'Publicar', 'Chat', 'Perfil']) {
+    assert.match(phoneNav, new RegExp(`>${label}<\\/a>`));
+  }
+  assert.match(appRuntime, /function setupAppIconography\(\)/);
+  assert.match(appRuntime, /class="fc-icon"/);
+  assert.match(appRuntime, /setupAppIconography\(\);/);
+});
