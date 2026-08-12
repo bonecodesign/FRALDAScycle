@@ -1,5 +1,38 @@
 import "/apps/admin/auth.js";
 import { apiOrigin, apiRequest } from "/packages/contracts/api-client.js";
+const adminNavIcons={
+  '/admin/dashboard':'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+  '/admin/users':'<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+  '/admin/roles':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+  '/admin/ads':'<path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 8 9 5 9-5M3 13l9 5 9-5"/>',
+  '/admin/operations':'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  '/admin/finance':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  '/admin/logistics':'<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
+  '/admin/reports':'<path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/>',
+  '/admin/data':'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
+  '/admin/forecast':'<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/><path d="M16 7h4v4"/>',
+  '/admin/infrastructure':'<rect x="3" y="3" width="18" height="6" rx="1"/><rect x="3" y="15" width="18" height="6" rx="1"/><path d="M7 6h.01M7 18h.01"/>',
+  '/admin/partnerships':'<path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3M8 11c-1.7 0-3-1.3-3-3s1.3-3 3-3M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0"/>',
+  '/admin/innovation':'<path d="M9 18h6M10 22h4"/><path d="M8.5 14.5A7 7 0 1 1 15.5 14.5C14.5 15.4 14 16 14 18h-4c0-2-.5-2.6-1.5-3.5Z"/>',
+  '/admin/launch':'<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2"/><path d="M9 15 4 10l5-1 6-6c3-3 6-2 6-2s1 3-2 6l-6 6-1 5-5-5"/><circle cx="16" cy="6" r="1"/>',
+  '/admin/alerts':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+  '/admin/moderation':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M8 12h8"/>',
+  '/admin/audit':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8"/><path d="M14 2v6h6M9 13h6M9 17h4"/><circle cx="18" cy="17" r="3"/><path d="m20 19 2 2"/>',
+  '/admin/settings':'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>',
+  '/admin/security':'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  '/site/home':'<path d="M14 3h7v7M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>'
+};
+function setupAdminIconography(){
+  document.querySelectorAll('.admin-sidebar a').forEach(link=>{
+    const path=new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'');
+    const drawing=adminNavIcons[path]||adminNavIcons['/admin/dashboard'];
+    const label=link.textContent.trim().replace(/^\S+\s+/, '');
+    link.textContent='';
+    link.insertAdjacentHTML('beforeend',`<svg class="fc-icon admin-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${drawing}</svg>`);
+    const text=document.createElement('span');text.textContent=label;link.append(text);
+    if(link.classList.contains('active'))link.setAttribute('aria-current','page');
+  });
+}
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -37,6 +70,7 @@ function setupAdmin(){
   const admin2fa=document.getElementById('admin-2fa-login');admin2fa?.addEventListener('submit',event=>{event.preventDefault();const panel=document.getElementById('admin-auth-panel');panel.innerHTML='<span class="eyebrow">Segunda etapa</span><h2>Digite o código de segurança</h2><p>Enviamos um código de 6 dígitos para o dispositivo administrativo confiável.</p><form id="admin-2fa-code"><div class="otp" aria-label="Código de autenticação"><input inputmode="numeric" maxlength="1" value="1"><input inputmode="numeric" maxlength="1" value="2"><input inputmode="numeric" maxlength="1" value="3"><input inputmode="numeric" maxlength="1" value="4"><input inputmode="numeric" maxlength="1" value="5"><input inputmode="numeric" maxlength="1" value="6"></div><small class="field-error" id="admin-code-error" role="alert"></small><button class="button primary block" type="submit">Confirmar acesso</button><button class="button text block" type="button" id="admin-code-resend">Reenviar código</button></form><a class="back-link-inline" href="/admin/security">Usar outro método de recuperação</a>';const codeForm=document.getElementById('admin-2fa-code');const inputs=[...codeForm.querySelectorAll('.otp input')];inputs.forEach((input,index)=>input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'');if(input.value)inputs[index+1]?.focus()}));document.getElementById('admin-code-resend')?.addEventListener('click',()=>notify('Novo código de segurança enviado'));codeForm.addEventListener('submit',codeEvent=>{codeEvent.preventDefault();const code=inputs.map(input=>input.value).join('');if(!/^\d{6}$/.test(code)){document.getElementById('admin-code-error').textContent='Digite os 6 dígitos do código.';return}panel.innerHTML='<div class="ui-state success-state"><div class="state-icon success">✓</div><span class="eyebrow">Identidade confirmada</span><h2>Acesso administrativo liberado</h2><p>Esta sessão está protegida por autenticação em duas etapas.</p><div class="notice">Chrome · Windows · Belo Horizonte, MG · agora</div><a class="button primary block" href="/admin/dashboard">Abrir painel administrativo</a></div>';notify('Acesso administrativo confirmado com 2FA')})});
 }
 function setupAdminAds(){const search=document.getElementById('admin-ad-search');const status=document.getElementById('admin-ad-status');if(!search||!status)return;const filter=()=>{let visible=0;document.querySelectorAll('[data-admin-ad]').forEach(row=>{const matchText=row.dataset.search.includes(search.value.trim().toLowerCase());const matchStatus=!status.value||row.dataset.search.includes(status.value.toLowerCase());row.hidden=!(matchText&&matchStatus);if(!row.hidden)visible++});document.getElementById('admin-ad-empty').hidden=visible>0};search.addEventListener('input',filter);status.addEventListener('change',filter);document.querySelectorAll('[data-ad-action]').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('[data-admin-ad]');const id=row.cells[0].textContent;const product=row.cells[1].textContent;if(button.dataset.adAction==='remove'){row.remove();notify(`${id} removido do catálogo`);filter();return}if(button.dataset.adAction==='pause'){row.cells[3].innerHTML='<span class="badge warn">Pausado</span>';notify(`${id} pausado`);return}document.getElementById('admin-ad-review').innerHTML=`<section class="panel"><div class="section-head"><div><span class="eyebrow">Revisão de anúncio</span><h2>${product}</h2><p>${id} · verificação de conteúdo, imagens e regras comerciais.</p></div><span class="badge">Em análise</span></div><div class="dashboard-grid"><div class="phone-list"><article class="phone-card"><span class="status-icon">✓</span><div><h3>Produto fechado</h3><p>Lacre e validade identificados nas imagens.</p></div></article><article class="phone-card"><span class="status-icon">✓</span><div><h3>Categoria e tamanho</h3><p>Marca, tamanho e quantidade coerentes.</p></div></article><article class="phone-card"><span class="status-icon">!</span><div><h3>Preço e descrição</h3><p>Requer confirmação manual antes da publicação.</p></div></article></div><div><label class="form-group">Observação ao anunciante<textarea class="input" rows="4" placeholder="Explique ajustes necessários"></textarea></label><div class="publish-actions action-pair"><button class="button secondary" id="admin-ad-request">Solicitar ajuste</button><button class="button primary" id="admin-ad-approve">Aprovar anúncio</button></div></div></div></section>`;document.getElementById('admin-ad-approve').addEventListener('click',()=>{row.cells[3].innerHTML='<span class="badge">Publicado</span>';document.getElementById('admin-ad-review').innerHTML='';notify(`${id} aprovado e publicado`)});document.getElementById('admin-ad-request').addEventListener('click',()=>notify(`Ajustes solicitados para ${id}`))}));document.getElementById('admin-ad-new')?.addEventListener('click',()=>notify('Cadastro administrativo de produto iniciado'))}
+setupAdminIconography();
 setupAdmin();
 setupAdminAds();
 

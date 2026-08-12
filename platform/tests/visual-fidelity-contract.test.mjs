@@ -58,3 +58,17 @@ test('app preserves five mobile destinations with one SVG icon family', async ()
   assert.match(appRuntime, /class="fc-icon"/);
   assert.match(appRuntime, /setupAppIconography\(\);/);
 });
+
+test('admin preserves the approved route architecture with one accessible SVG icon family', async () => {
+  const [dashboard, adminRuntime] = await Promise.all([
+    read('../apps/admin/index.html'),
+    read('../apps/admin/core.js'),
+  ]);
+  const sidebar = dashboard.match(/<nav class="admin-sidebar"[\s\S]*?<\/nav>/)?.[0] ?? '';
+
+  assert.ok((sidebar.match(/<a /g) ?? []).length >= 19);
+  assert.match(adminRuntime, /function setupAdminIconography\(\)/);
+  assert.match(adminRuntime, /class="fc-icon admin-nav-icon"/);
+  assert.match(adminRuntime, /aria-current/);
+  assert.match(adminRuntime, /setupAdminIconography\(\);/);
+});
