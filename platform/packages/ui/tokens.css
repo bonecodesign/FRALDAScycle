@@ -7,9 +7,15 @@
   --fc-color-error: #ef4444;
   --fc-color-info: #06b6d4;
   --fc-color-neutral: #64748b;
+  --fc-color-neutral-dark: #374151;
   --fc-color-surface: #f8fafc;
+  --fc-color-surface-raised: #ffffff;
+  --fc-color-surface-soft: #f0fdf4;
   --fc-color-background: #ffffff;
   --fc-color-text: #111827;
+  --fc-color-text-muted: #64748b;
+  --fc-color-border: #e5e7eb;
+  --fc-color-border-strong: #cbd5e1;
   --fc-font-interface: Inter, system-ui, sans-serif;
   --fc-font-display: Poppins, Inter, system-ui, sans-serif;
   --fc-space-1: 4px;
@@ -24,7 +30,32 @@
   --fc-radius-lg: 12px;
   --fc-radius-xl: 16px;
   --fc-radius-2xl: 24px;
+  --fc-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --fc-shadow-md: 0 4px 12px rgb(15 23 42 / 0.08);
+  --fc-shadow-lg: 0 10px 24px rgb(15 23 42 / 0.1);
+  --fc-focus-ring: 0 0 0 3px rgb(37 99 235 / 0.28);
+  --fc-target-min: 44px;
   --fc-motion-fast: 150ms;
   --fc-motion-standard: 250ms;
   --fc-motion-slow: 300ms;
+  --fc-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --fc-breakpoint-mobile: 576px;
+  --fc-breakpoint-tablet: 768px;
+  --fc-breakpoint-desktop: 992px;
+  --fc-breakpoint-wide: 1440px;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--fc-color-secondary);
+  outline-offset: 2px;
+  box-shadow: var(--fc-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
