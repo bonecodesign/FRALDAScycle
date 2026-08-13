@@ -80,6 +80,11 @@ test('admin preserves the approved route architecture with one accessible SVG ic
 
   assert.ok((sidebar.match(/<a /g) ?? []).length >= 19);
   assert.match(adminRuntime, /function setupAdminIconography\(\)/);
+  assert.match(adminRuntime, /const adminNavGroups=/);
+  for (const group of ['Visão geral', 'Gestão', 'Financeiro', 'Inteligência', 'Estratégia', 'Sistema', 'Atalhos']) {
+    assert.match(adminRuntime, new RegExp(group));
+  }
+  assert.match(adminRuntime, /className='admin-nav-group'/);
   assert.match(adminRuntime, /class="fc-icon admin-nav-icon"/);
   assert.match(adminRuntime, /aria-current/);
   assert.match(adminRuntime, /setupAdminIconography\(\);/);

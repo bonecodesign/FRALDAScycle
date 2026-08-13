@@ -34,7 +34,7 @@ Esta matriz transforma os cinco documentos normativos e as pranchas oficiais do 
 | AP-07 | Pagamentos permitidos e transparência | 52–60 | protótipo App | Implementado |
 | AP-08 | Logística e rastreamento | 61–62 | protótipo App | Implementado |
 | AD-01 | Acesso administrativo e RBAC | 63 | Admin e testes RBAC | Implementado |
-| AD-02 | Navegação agrupada por módulos | 63–64 | Admin | Em implementação |
+| AD-02 | Navegação agrupada por módulos | 63–64 | Admin | Em validação |
 | AD-03 | Dashboard e indicadores sintéticos rotulados | 63–64 | Admin | Implementado |
 | AD-04 | Gestão, moderação, auditoria e alertas | 63–65 | Admin | Implementado |
 | AD-05 | Relatórios, exportação e inteligência | 64 | Admin | Implementado |

@@ -22,8 +22,20 @@ const adminNavIcons={
   '/admin/security':'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
   '/site/home':'<path d="M14 3h7v7M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>'
 };
+const adminNavGroups=[
+  {label:'Visão geral',paths:['/admin/dashboard']},
+  {label:'Gestão',paths:['/admin/users','/admin/roles','/admin/ads','/admin/operations','/admin/logistics']},
+  {label:'Financeiro',paths:['/admin/finance']},
+  {label:'Inteligência',paths:['/admin/reports','/admin/data','/admin/forecast']},
+  {label:'Estratégia',paths:['/admin/partnerships','/admin/innovation','/admin/launch']},
+  {label:'Sistema',paths:['/admin/alerts','/admin/moderation','/admin/audit','/admin/infrastructure','/admin/settings','/admin/security']},
+  {label:'Atalhos',paths:['/site/home']}
+];
 function setupAdminIconography(){
-  document.querySelectorAll('.admin-sidebar a').forEach(link=>{
+  const sidebar=document.querySelector('.admin-sidebar');
+  if(!sidebar)return;
+  const links=[...sidebar.querySelectorAll('a')];
+  links.forEach(link=>{
     const path=new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'');
     const drawing=adminNavIcons[path]||adminNavIcons['/admin/dashboard'];
     const label=link.textContent.trim().replace(/^\S+\s+/, '');
@@ -31,6 +43,14 @@ function setupAdminIconography(){
     link.insertAdjacentHTML('beforeend',`<svg class="fc-icon admin-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${drawing}</svg>`);
     const text=document.createElement('span');text.textContent=label;link.append(text);
     if(link.classList.contains('active'))link.setAttribute('aria-current','page');
+  });
+  adminNavGroups.forEach(group=>{
+    const firstLink=links.find(link=>group.paths.includes(new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'')));
+    if(!firstLink)return;
+    const heading=document.createElement('span');
+    heading.className='admin-nav-group';
+    heading.textContent=group.label;
+    firstLink.before(heading);
   });
 }
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
