@@ -20,10 +20,10 @@ Esta matriz transforma os cinco documentos normativos e as pranchas oficiais do 
 | DS-03 | Escala 4px, raios e sombras | 7, 11–13, 16, 21–24 | `tokens.css` | Implementado |
 | DS-04 | Estados, foco, alvo mínimo e contraste AA | 9–12, 15, 17, 22–25 | tokens e testes de contrato | Em validação |
 | DS-05 | Movimento 150–300ms e redução de movimento | 7, 12, 18, 21–23 | `tokens.css` | Implementado |
-| ST-01 | Cabeçalho institucional completo | 30–45 | `platform/apps/site/index.html` | Em implementação |
-| ST-02 | Hero e CTAs normativos | 30–45 | `platform/apps/site/index.html` | Em implementação |
-| ST-03 | Como funciona e categorias | 46–48 | Site e catálogo | Em implementação |
-| ST-04 | Bloco de doação com regra higiênica | 46–48 | Site | Em implementação |
+| ST-01 | Cabeçalho institucional completo | 30–45 | `platform/apps/site/index.html` | Em validação |
+| ST-02 | Hero e CTAs normativos | 30–45 | `platform/apps/site/index.html` | Em validação |
+| ST-03 | Como funciona e categorias | 46–48 | Site e catálogo | Em validação |
+| ST-04 | Bloco de doação com regra higiênica | 46–48 | Site | Em validação |
 | ST-05 | Rodapé e responsividade | 21–24, 46–48 | Site e CSS compartilhado | Em validação |
 | AP-01 | Splash e onboarding | 30–45 | protótipo App | Implementado |
 | AP-02 | Login, cadastro, recuperação e OTP | 40–45 | protótipo App | Implementado |

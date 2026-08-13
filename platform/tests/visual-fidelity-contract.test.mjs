@@ -41,6 +41,18 @@ test('site follows the normative institutional navigation and hero contract', as
   assert.match(script, /Começar agora/);
   assert.match(script, /Saiba mais/);
   assert.match(script, /sem uso e com higiene confirmada/);
+  assert.match(script, /site-category-section/);
+  assert.match(script, /Recém-nascido/);
+  assert.match(script, /site-donation/);
+  for (const rule of ['Fraldas sem uso', 'Higiene confirmada', 'Embalagem protegida']) assert.match(script, new RegExp(rule));
+});
+
+test('project keeps an explicit internal founder and ownership record', async () => {
+  const ownership = await read('../../OWNERSHIP.md');
+  assert.match(ownership, /Rafael Sérgio Silveira/);
+  assert.match(ownership, /bonecodesign/);
+  assert.match(ownership, /criador, idealizador, fundador e titular/);
+  assert.match(ownership, /não substitui registros públicos, contratos ou aconselhamento jurídico/);
 });
 
 test('app preserves five mobile destinations with one SVG icon family', async () => {
