@@ -281,7 +281,7 @@ test("transfers payment-gated operational chat without proposal or reservation r
   assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
   assert.match(behavior, /QR Codes não podem ser compartilhados no chat/);
   assert.doesNotMatch(behavior, /proposal-form|setupNegotiation/);
-  assert.doesNotMatch(server, /\\/app\\/proposal|\\/app\\/reservation/);
+  assert.doesNotMatch(server, /\/app\/proposal|\/app\/reservation/);
   assert.ok(provenance.destination.routes.includes("/app/chat"));
   assert.ok(provenance.destination.routes.includes("/app/safety"));
   assert.ok(provenance.destination.routes.includes("/app/negotiation-evidence"));
