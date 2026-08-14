@@ -41,6 +41,18 @@ test('site follows the normative institutional navigation and hero contract', as
   assert.match(script, /Começar agora/);
   assert.match(script, /Saiba mais/);
   assert.match(script, /sem uso e com higiene confirmada/);
+  assert.match(script, /site-category-section/);
+  assert.match(script, /Recém-nascido/);
+  assert.match(script, /site-donation/);
+  for (const rule of ['Fraldas sem uso', 'Higiene confirmada', 'Embalagem protegida']) assert.match(script, new RegExp(rule));
+});
+
+test('project keeps an explicit internal founder and ownership record', async () => {
+  const ownership = await read('../../OWNERSHIP.md');
+  assert.match(ownership, /Rafael Sérgio Silveira/);
+  assert.match(ownership, /bonecodesign/);
+  assert.match(ownership, /criador, idealizador, fundador e titular/);
+  assert.match(ownership, /não substitui registros públicos, contratos ou aconselhamento jurídico/);
 });
 
 test('app preserves five mobile destinations with one SVG icon family', async () => {
@@ -68,7 +80,45 @@ test('admin preserves the approved route architecture with one accessible SVG ic
 
   assert.ok((sidebar.match(/<a /g) ?? []).length >= 19);
   assert.match(adminRuntime, /function setupAdminIconography\(\)/);
+  assert.match(adminRuntime, /const adminNavGroups=/);
+  for (const group of ['Visão geral', 'Gestão', 'Financeiro', 'Inteligência', 'Estratégia', 'Sistema', 'Atalhos']) {
+    assert.match(adminRuntime, new RegExp(group));
+  }
+  assert.match(adminRuntime, /className='admin-nav-group'/);
   assert.match(adminRuntime, /class="fc-icon admin-nav-icon"/);
   assert.match(adminRuntime, /aria-current/);
   assert.match(adminRuntime, /setupAdminIconography\(\);/);
+});
+
+test('all three navigable surfaces explicitly identify synthetic demonstration data', async () => {
+  const [site, appRuntime, adminRuntime] = await Promise.all([
+    read('../apps/site/index.html'),
+    read('../apps/app/auth.js'),
+    read('../apps/admin/core.js'),
+  ]);
+
+  assert.match(site, /Dados apresentados nesta experiência: simulados/);
+  assert.match(appRuntime, /function setupSyntheticDataDisclosure\(\)/);
+  assert.match(appRuntime, /Dados sintéticos · demonstração local/);
+  assert.match(appRuntime, /setupSyntheticDataDisclosure\(\);/);
+  assert.match(adminRuntime, /function setupAdminSyntheticDataDisclosure\(\)/);
+  assert.match(adminRuntime, /Dados sintéticos · ambiente demonstrativo/);
+  assert.match(adminRuntime, /setupAdminSyntheticDataDisclosure\(\);/);
+});
+
+test('visual conformity matrix links every normative source inside the repository', async () => {
+  const matrix = await read('../docs/visual-fidelity/MATRIZ_CONFORMIDADE_VISUAL.md');
+  const sources = [
+    'FRALDACYcle_Auditoria_Visual_Final_e_Comando_Codex_v1.md',
+    'FRALDACYcle_Design_System_Consolidado_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_Site_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_App_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_Admin_v1.md',
+  ];
+
+  for (const source of sources) {
+    assert.match(matrix, new RegExp(`sources/${source.replaceAll('.', '\\.')}`));
+    const content = await read(`../docs/visual-fidelity/sources/${source}`);
+    assert.ok(content.length > 1_000, `${source} must preserve its complete normative content`);
+  }
 });

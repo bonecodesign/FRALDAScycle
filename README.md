@@ -10,6 +10,10 @@ Superfícies disponíveis:
 
 O protótipo é estático e utiliza dados demonstrativos classificados como simulados. Nenhuma integração real, autenticação, pagamento ou envio é executado.
 
+## Autoria e governança
+
+O registro interno de criação, fundação e titularidade declarada do projeto está em [`OWNERSHIP.md`](OWNERSHIP.md). O documento identifica **Rafael Sérgio Silveira** como criador, idealizador, fundador e titular declarado, e registra **bonecodesign** como nome utilizado em sua atuação como microempreendedor. As recomendações de formalização jurídica ficaram reservadas para a etapa final.
+
 Camadas visuais complementares:
 
 - `map-safety.css`: mapa de resultados e proteção visual do chat.

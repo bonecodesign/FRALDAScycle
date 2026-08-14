@@ -19,7 +19,25 @@ if (heroActions) heroActions.innerHTML = '<a class="button primary" href="/site/
 const howItWorks = document.querySelector(".feature-grid")?.closest(".section");
 if (howItWorks) howItWorks.id = "como-funciona";
 const marketplace = document.querySelector(".marketplace");
-if (marketplace) marketplace.id = "categorias";
+if (marketplace) marketplace.setAttribute("aria-label", "Anúncios em destaque");
+
+const categorySection = document.createElement("section");
+categorySection.className = "section site-category-section";
+categorySection.id = "categorias";
+categorySection.innerHTML = `
+  <div class="section-head"><div><span class="eyebrow">Categorias</span><h2>Encontre o tamanho certo para cada fase</h2></div><p>Filtros claros por tamanho, marca e modalidade.</p></div>
+  <div class="site-category-grid" aria-label="Categorias de fraldas">
+    ${[['RN', 'Recém-nascido', 'até 4 kg'], ['P', 'Pequena', '3 a 6 kg'], ['M', 'Média', '5 a 9 kg'], ['G', 'Grande', '9 a 13 kg'], ['XG', 'Extra grande', 'acima de 13 kg']].map(([size, label, range]) => `<a class="site-category-card" href="/site/search"><span class="site-category-size">${size}</span><strong>${label}</strong><small>${range}</small></a>`).join('')}
+  </div>`;
+marketplace?.before(categorySection);
+
+const donationSection = document.createElement("section");
+donationSection.className = "section site-donation";
+donationSection.id = "doacoes";
+donationSection.innerHTML = `
+  <div class="site-donation-copy"><span class="eyebrow">Doações responsáveis</span><h2>O cuidado continua depois que o pacote foi aberto.</h2><p>Doe pacotes fechados ou abertos somente quando as fraldas estiverem sem uso, secas, limpas e protegidas contra contaminação.</p><div class="site-donation-rules">${['Fraldas sem uso', 'Higiene confirmada', 'Embalagem protegida'].map((rule) => `<span><svg class="fc-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>${rule}</span>`).join('')}</div><a class="button primary" href="/site/publish">Quero doar</a></div>
+  <div class="site-donation-visual" aria-label="Doação segura de fraldas"><span class="site-donation-heart">♥</span><strong>Doar com cuidado</strong><small>Segurança e acolhimento em cada detalhe.</small></div>`;
+marketplace?.after(donationSection);
 
 const iconPaths = [
   '<circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/>',

@@ -22,8 +22,20 @@ const adminNavIcons={
   '/admin/security':'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
   '/site/home':'<path d="M14 3h7v7M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>'
 };
+const adminNavGroups=[
+  {label:'Visão geral',paths:['/admin/dashboard']},
+  {label:'Gestão',paths:['/admin/users','/admin/roles','/admin/ads','/admin/operations','/admin/logistics']},
+  {label:'Financeiro',paths:['/admin/finance']},
+  {label:'Inteligência',paths:['/admin/reports','/admin/data','/admin/forecast']},
+  {label:'Estratégia',paths:['/admin/partnerships','/admin/innovation','/admin/launch']},
+  {label:'Sistema',paths:['/admin/alerts','/admin/moderation','/admin/audit','/admin/infrastructure','/admin/settings','/admin/security']},
+  {label:'Atalhos',paths:['/site/home']}
+];
 function setupAdminIconography(){
-  document.querySelectorAll('.admin-sidebar a').forEach(link=>{
+  const sidebar=document.querySelector('.admin-sidebar');
+  if(!sidebar)return;
+  const links=[...sidebar.querySelectorAll('a')];
+  links.forEach(link=>{
     const path=new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'');
     const drawing=adminNavIcons[path]||adminNavIcons['/admin/dashboard'];
     const label=link.textContent.trim().replace(/^\S+\s+/, '');
@@ -31,6 +43,21 @@ function setupAdminIconography(){
     link.insertAdjacentHTML('beforeend',`<svg class="fc-icon admin-nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${drawing}</svg>`);
     const text=document.createElement('span');text.textContent=label;link.append(text);
     if(link.classList.contains('active'))link.setAttribute('aria-current','page');
+  });
+  adminNavGroups.forEach(group=>{
+    const firstLink=links.find(link=>group.paths.includes(new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'')));
+    if(!firstLink)return;
+    const heading=document.createElement('span');
+    heading.className='admin-nav-group';
+    heading.textContent=group.label;
+    firstLink.before(heading);
+  });
+}
+function setupAdminSyntheticDataDisclosure(){
+  document.querySelectorAll('.admin-head .badge').forEach(badge=>{
+    if(badge.textContent.trim()!=='Ambiente demonstrativo')return;
+    badge.textContent='Dados sintéticos · ambiente demonstrativo';
+    badge.setAttribute('title','Nenhum dado real é usado nesta experiência local.');
   });
 }
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
@@ -71,6 +98,7 @@ function setupAdmin(){
 }
 function setupAdminAds(){const search=document.getElementById('admin-ad-search');const status=document.getElementById('admin-ad-status');if(!search||!status)return;const filter=()=>{let visible=0;document.querySelectorAll('[data-admin-ad]').forEach(row=>{const matchText=row.dataset.search.includes(search.value.trim().toLowerCase());const matchStatus=!status.value||row.dataset.search.includes(status.value.toLowerCase());row.hidden=!(matchText&&matchStatus);if(!row.hidden)visible++});document.getElementById('admin-ad-empty').hidden=visible>0};search.addEventListener('input',filter);status.addEventListener('change',filter);document.querySelectorAll('[data-ad-action]').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('[data-admin-ad]');const id=row.cells[0].textContent;const product=row.cells[1].textContent;if(button.dataset.adAction==='remove'){row.remove();notify(`${id} removido do catálogo`);filter();return}if(button.dataset.adAction==='pause'){row.cells[3].innerHTML='<span class="badge warn">Pausado</span>';notify(`${id} pausado`);return}document.getElementById('admin-ad-review').innerHTML=`<section class="panel"><div class="section-head"><div><span class="eyebrow">Revisão de anúncio</span><h2>${product}</h2><p>${id} · verificação de conteúdo, imagens e regras comerciais.</p></div><span class="badge">Em análise</span></div><div class="dashboard-grid"><div class="phone-list"><article class="phone-card"><span class="status-icon">✓</span><div><h3>Produto fechado</h3><p>Lacre e validade identificados nas imagens.</p></div></article><article class="phone-card"><span class="status-icon">✓</span><div><h3>Categoria e tamanho</h3><p>Marca, tamanho e quantidade coerentes.</p></div></article><article class="phone-card"><span class="status-icon">!</span><div><h3>Preço e descrição</h3><p>Requer confirmação manual antes da publicação.</p></div></article></div><div><label class="form-group">Observação ao anunciante<textarea class="input" rows="4" placeholder="Explique ajustes necessários"></textarea></label><div class="publish-actions action-pair"><button class="button secondary" id="admin-ad-request">Solicitar ajuste</button><button class="button primary" id="admin-ad-approve">Aprovar anúncio</button></div></div></div></section>`;document.getElementById('admin-ad-approve').addEventListener('click',()=>{row.cells[3].innerHTML='<span class="badge">Publicado</span>';document.getElementById('admin-ad-review').innerHTML='';notify(`${id} aprovado e publicado`)});document.getElementById('admin-ad-request').addEventListener('click',()=>notify(`Ajustes solicitados para ${id}`))}));document.getElementById('admin-ad-new')?.addEventListener('click',()=>notify('Cadastro administrativo de produto iniciado'))}
 setupAdminIconography();
+setupAdminSyntheticDataDisclosure();
 setupAdmin();
 setupAdminAds();
 
