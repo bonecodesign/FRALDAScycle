@@ -4,12 +4,14 @@ Esta matriz transforma os cinco documentos normativos e as pranchas oficiais do 
 
 ## Fontes normativas
 
-- `FRALDACYcle_Auditoria_Visual_Final_e_Comando_Codex_v1.md`
-- `FRALDACYcle_Design_System_Consolidado_v1.md`
-- `FRALDACYcle_Especificacao_Fidelidade_Visual_Site_v1.md`
-- `FRALDACYcle_Especificacao_Fidelidade_Visual_App_v1.md`
-- `FRALDACYcle_Especificacao_Fidelidade_Visual_Admin_v1.md`
+- [`sources/FRALDACYcle_Auditoria_Visual_Final_e_Comando_Codex_v1.md`](sources/FRALDACYcle_Auditoria_Visual_Final_e_Comando_Codex_v1.md)
+- [`sources/FRALDACYcle_Design_System_Consolidado_v1.md`](sources/FRALDACYcle_Design_System_Consolidado_v1.md)
+- [`sources/FRALDACYcle_Especificacao_Fidelidade_Visual_Site_v1.md`](sources/FRALDACYcle_Especificacao_Fidelidade_Visual_Site_v1.md)
+- [`sources/FRALDACYcle_Especificacao_Fidelidade_Visual_App_v1.md`](sources/FRALDACYcle_Especificacao_Fidelidade_Visual_App_v1.md)
+- [`sources/FRALDACYcle_Especificacao_Fidelidade_Visual_Admin_v1.md`](sources/FRALDACYcle_Especificacao_Fidelidade_Visual_Admin_v1.md)
 - Acervo oficial: `FraldaCycle_Acervopng_Page6.png` a `FraldaCycle_Acervopng_Page68.png`
+
+As cinco especificações textuais oficiais estão versionadas integralmente neste repositório. As pranchas PNG permanecem no acervo visual de origem devido ao seu volume; a faixa de páginas e os critérios derivados estão registrados nesta matriz, sem depender de caminhos absolutos de uma estação local.
 
 ## Cobertura por requisito
 

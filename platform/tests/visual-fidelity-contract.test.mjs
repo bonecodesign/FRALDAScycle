@@ -105,3 +105,20 @@ test('all three navigable surfaces explicitly identify synthetic demonstration d
   assert.match(adminRuntime, /Dados sintéticos · ambiente demonstrativo/);
   assert.match(adminRuntime, /setupAdminSyntheticDataDisclosure\(\);/);
 });
+
+test('visual conformity matrix links every normative source inside the repository', async () => {
+  const matrix = await read('../docs/visual-fidelity/MATRIZ_CONFORMIDADE_VISUAL.md');
+  const sources = [
+    'FRALDACYcle_Auditoria_Visual_Final_e_Comando_Codex_v1.md',
+    'FRALDACYcle_Design_System_Consolidado_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_Site_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_App_v1.md',
+    'FRALDACYcle_Especificacao_Fidelidade_Visual_Admin_v1.md',
+  ];
+
+  for (const source of sources) {
+    assert.match(matrix, new RegExp(`sources/${source.replaceAll('.', '\\.')}`));
+    const content = await read(`../docs/visual-fidelity/sources/${source}`);
+    assert.ok(content.length > 1_000, `${source} must preserve its complete normative content`);
+  }
+});

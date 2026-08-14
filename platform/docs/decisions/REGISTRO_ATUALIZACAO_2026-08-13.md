@@ -40,7 +40,7 @@ Fornecedores candidatos não podem ser apresentados como parceiros ativos. A pla
 - definir matriz única de prazos operacionais;
 - definir matriz de cancelamentos, disputas, reembolsos e repasses;
 - concluir regras numéricas de retirada e novas tentativas;
-- implementar cadastro, verificação e ciclo de vida das instituições;
+- acompanhar operacionalmente o cadastro, a verificação e o ciclo de vida das instituições, implementados na migração `018_institutions_and_chat_access.sql` e na API institucional da PR #49;
 - definir reputação e avaliações;
 - fechar funcionamento operacional do Premium;
 - definir canais, horários e níveis de atendimento;
