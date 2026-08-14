@@ -49,6 +49,8 @@ function setupRealPayments(){
   },true)
 }
 
+if (document.getElementById("payment-success-content")) sessionStorage.setItem("fc.paymentConfirmed", "true");
+
 setupPaymentFlow();
 setupRealPayments();
 setupWallet();

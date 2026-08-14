@@ -261,42 +261,36 @@ test("transfers App marketplace filters favorites and all eight publish steps", 
 });
 
 
-test("transfers protected chat and proposal without reservation routes", async () => {
-  const routes = [
-    ["chat", /Negociação protegida/],
-    ["safety", /Opções da conversa/],
-    ["proposal", /Nova proposta/],
-    ["proposal-received", /Contraproposta recebida/],
-    ["negotiation-evidence", /Evidências da negociação/],
-  ];
-  const behavior = await readFile(resolve(root, "apps/app/negotiation.js"), "utf8");
-  const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
+test("transfers payment-gated operational chat without proposal or reservation routes", async () => {
+  const [chat, safety, evidence, behavior, server] = await Promise.all([
+    readFile(resolve(root, "apps/app/chat.html"), "utf8"),
+    readFile(resolve(root, "apps/app/safety.html"), "utf8"),
+    readFile(resolve(root, "apps/app/negotiation-evidence.html"), "utf8"),
+    readFile(resolve(root, "apps/app/negotiation.js"), "utf8"),
+    readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+  ]);
   const provenance = JSON.parse(await readFile(resolve(root, "apps/app/source.json"), "utf8"));
 
-  for (const [route, approvedCopy] of routes) {
-    const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
-    assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
-    assert.match(html, approvedCopy);
-    assert.ok(server.includes(`"/app/${route}"`));
-    assert.ok(provenance.destination.routes.includes(`/app/${route}`));
-  }
-
+  assert.match(chat, /Chat somente após pagamento/);
+  assert.match(chat, /finalidade|operacional/i);
+  assert.match(safety, /Opções da conversa/);
+  assert.match(evidence, /Evidências da negociação/);
+  assert.match(behavior, /fc\\.paymentConfirmed/);
   assert.match(behavior, /Telefones não podem ser compartilhados no chat/);
   assert.match(behavior, /E-mails não podem ser compartilhados no chat/);
   assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
   assert.match(behavior, /QR Codes não podem ser compartilhados no chat/);
-  assert.match(behavior, /protocolo #NEG-2025-0719/i);
-  const proposal = await readFile(resolve(root, "apps/app/proposal-received.html"), "utf8");
-  assert.match(proposal, /Não existe etapa de reserva/);
-  assert.match(proposal, /anúncio ficará indisponível imediatamente/);
-  assert.doesNotMatch(behavior, /reservation-timer|reservation-expired/);
-  assert.doesNotMatch(server, /\/app\/reservation/);
-  for (const name of ["appChat", "appProposal", "setupProtectedChat", "setupNegotiation", "setupSafetyActions"]) {
+  assert.doesNotMatch(behavior, /proposal-form|setupNegotiation/);
+  assert.doesNotMatch(server, /\\/app\\/proposal|\\/app\\/reservation/);
+  assert.ok(provenance.destination.routes.includes("/app/chat"));
+  assert.ok(provenance.destination.routes.includes("/app/safety"));
+  assert.ok(provenance.destination.routes.includes("/app/negotiation-evidence"));
+  assert.ok(!provenance.destination.routes.some((route) => route.includes("/app/proposal")));
+  for (const name of ["appChat", "setupProtectedChat", "setupSafetyActions"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
-
 
 test("transfers protected payment wallet refund and dispute journeys", async () => {
   const routes = [

@@ -29,14 +29,11 @@
       "setupPublishValidation",
       "appChat",
       "appSafety",
-      "appProposal",
-      "appProposalReceived",
       "appNegotiationEvidence",
       "normalizeText",
       "blockedChatContent",
       "escapeHtml",
       "setupProtectedChat",
-      "setupNegotiation",
       "setupSafetyActions",
       "appPayment",
       "appPaymentSuccess",
@@ -101,8 +98,6 @@
       "#/app/publish-8",
       "#/app/chat",
       "#/app/safety",
-      "#/app/proposal",
-      "#/app/proposal-received",
       "#/app/negotiation-evidence",
       "#/app/payment",
       "#/app/payment-success",
@@ -162,8 +157,6 @@
       "/app/publish-8",
       "/app/chat",
       "/app/safety",
-      "/app/proposal",
-      "/app/proposal-received",
       "/app/negotiation-evidence",
       "/app/payment",
       "/app/payment-success",
@@ -211,5 +204,8 @@
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
-  "modifiedSourceFiles": ["app.js", "qa-regression.mjs"]
+  "modifiedSourceFiles": [
+    "app.js",
+    "qa-regression.mjs"
+  ]
 }
