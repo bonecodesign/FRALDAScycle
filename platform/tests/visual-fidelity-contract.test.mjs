@@ -89,3 +89,19 @@ test('admin preserves the approved route architecture with one accessible SVG ic
   assert.match(adminRuntime, /aria-current/);
   assert.match(adminRuntime, /setupAdminIconography\(\);/);
 });
+
+test('all three navigable surfaces explicitly identify synthetic demonstration data', async () => {
+  const [site, appRuntime, adminRuntime] = await Promise.all([
+    read('../apps/site/index.html'),
+    read('../apps/app/auth.js'),
+    read('../apps/admin/core.js'),
+  ]);
+
+  assert.match(site, /Dados apresentados nesta experiência: simulados/);
+  assert.match(appRuntime, /function setupSyntheticDataDisclosure\(\)/);
+  assert.match(appRuntime, /Dados sintéticos · demonstração local/);
+  assert.match(appRuntime, /setupSyntheticDataDisclosure\(\);/);
+  assert.match(adminRuntime, /function setupAdminSyntheticDataDisclosure\(\)/);
+  assert.match(adminRuntime, /Dados sintéticos · ambiente demonstrativo/);
+  assert.match(adminRuntime, /setupAdminSyntheticDataDisclosure\(\);/);
+});

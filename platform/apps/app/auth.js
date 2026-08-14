@@ -59,6 +59,17 @@ function setupAppIconography() {
   });
 }
 
+function setupSyntheticDataDisclosure() {
+  const contextPanel = document.querySelector(".context-panel");
+  if (!contextPanel || contextPanel.querySelector("[data-synthetic-disclosure]")) return;
+  const disclosure = document.createElement("div");
+  disclosure.className = "notice";
+  disclosure.dataset.syntheticDisclosure = "true";
+  disclosure.setAttribute("role", "note");
+  disclosure.textContent = "Dados sintéticos · demonstração local";
+  contextPanel.append(disclosure);
+}
+
 if (LOCAL_DEMO && location.pathname === "/app/login") {
   location.replace("/app/home");
 }
@@ -227,3 +238,4 @@ function setupAuthValidation() {
 
 setupAuthValidation();
 setupAppIconography();
+setupSyntheticDataDisclosure();

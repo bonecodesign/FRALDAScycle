@@ -40,7 +40,7 @@ Esta matriz transforma os cinco documentos normativos e as pranchas oficiais do 
 | AD-05 | Relatórios, exportação e inteligência | 64 | Admin | Implementado |
 | AD-06 | Estados vazios, erro, carregamento e responsividade | 15, 22–25, 63–65 | Admin e CSS | Em validação |
 | RG-01 | Proibição de fluxos e integrações não aprovados | 52–60 + normas | testes de plataforma | Implementado |
-| RG-02 | Dados exclusivamente sintéticos e rotulados | 19, 25, 63–68 | superfícies e QA | Em validação |
+| RG-02 | Dados exclusivamente sintéticos e rotulados | 19, 25, 63–68 | rótulos globais em Site, App e Admin + contrato automatizado | Em validação |
 
 ## Regra de aceite
 

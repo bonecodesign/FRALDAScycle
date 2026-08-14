@@ -53,6 +53,13 @@ function setupAdminIconography(){
     firstLink.before(heading);
   });
 }
+function setupAdminSyntheticDataDisclosure(){
+  document.querySelectorAll('.admin-head .badge').forEach(badge=>{
+    if(badge.textContent.trim()!=='Ambiente demonstrativo')return;
+    badge.textContent='Dados sintéticos · ambiente demonstrativo';
+    badge.setAttribute('title','Nenhum dado real é usado nesta experiência local.');
+  });
+}
 function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
@@ -91,6 +98,7 @@ function setupAdmin(){
 }
 function setupAdminAds(){const search=document.getElementById('admin-ad-search');const status=document.getElementById('admin-ad-status');if(!search||!status)return;const filter=()=>{let visible=0;document.querySelectorAll('[data-admin-ad]').forEach(row=>{const matchText=row.dataset.search.includes(search.value.trim().toLowerCase());const matchStatus=!status.value||row.dataset.search.includes(status.value.toLowerCase());row.hidden=!(matchText&&matchStatus);if(!row.hidden)visible++});document.getElementById('admin-ad-empty').hidden=visible>0};search.addEventListener('input',filter);status.addEventListener('change',filter);document.querySelectorAll('[data-ad-action]').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('[data-admin-ad]');const id=row.cells[0].textContent;const product=row.cells[1].textContent;if(button.dataset.adAction==='remove'){row.remove();notify(`${id} removido do catálogo`);filter();return}if(button.dataset.adAction==='pause'){row.cells[3].innerHTML='<span class="badge warn">Pausado</span>';notify(`${id} pausado`);return}document.getElementById('admin-ad-review').innerHTML=`<section class="panel"><div class="section-head"><div><span class="eyebrow">Revisão de anúncio</span><h2>${product}</h2><p>${id} · verificação de conteúdo, imagens e regras comerciais.</p></div><span class="badge">Em análise</span></div><div class="dashboard-grid"><div class="phone-list"><article class="phone-card"><span class="status-icon">✓</span><div><h3>Produto fechado</h3><p>Lacre e validade identificados nas imagens.</p></div></article><article class="phone-card"><span class="status-icon">✓</span><div><h3>Categoria e tamanho</h3><p>Marca, tamanho e quantidade coerentes.</p></div></article><article class="phone-card"><span class="status-icon">!</span><div><h3>Preço e descrição</h3><p>Requer confirmação manual antes da publicação.</p></div></article></div><div><label class="form-group">Observação ao anunciante<textarea class="input" rows="4" placeholder="Explique ajustes necessários"></textarea></label><div class="publish-actions action-pair"><button class="button secondary" id="admin-ad-request">Solicitar ajuste</button><button class="button primary" id="admin-ad-approve">Aprovar anúncio</button></div></div></div></section>`;document.getElementById('admin-ad-approve').addEventListener('click',()=>{row.cells[3].innerHTML='<span class="badge">Publicado</span>';document.getElementById('admin-ad-review').innerHTML='';notify(`${id} aprovado e publicado`)});document.getElementById('admin-ad-request').addEventListener('click',()=>notify(`Ajustes solicitados para ${id}`))}));document.getElementById('admin-ad-new')?.addEventListener('click',()=>notify('Cadastro administrativo de produto iniciado'))}
 setupAdminIconography();
+setupAdminSyntheticDataDisclosure();
 setupAdmin();
 setupAdminAds();
 
