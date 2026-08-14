@@ -5,6 +5,8 @@ import { createApiServer } from "../apps/api/server.js";
 import { loadConfig } from "../apps/api/config.js";
 import { createMarketplaceRepository } from "../database/marketplace-repository.js";
 
+const INSTITUTION_ID = "11111111-1111-4111-8111-111111111111";
+
 function repository() {
   const items = [];
   const favorites = new Map();
@@ -12,6 +14,7 @@ function repository() {
     items,
     async search(filters) { return items.filter((item) => !filters.kind || item.kind === filters.kind); },
     async detail(id) { return items.find((item) => item.id === id) ?? null; },
+    async activeInstitution(id) { return id === INSTITUTION_ID ? { id, open_packages_accepted: true } : null; },
     async create(input) {
       const item = { id: crypto.randomUUID(), status: "published", ...input };
       items.push(item);
@@ -31,6 +34,7 @@ function repository() {
     },
     async cancelTransaction({ transactionId }) { return { id: transactionId, status: "cancelled" }; },
     async completeTransaction({ transactionId }) { return { id: transactionId, status: "completed" }; },
+    async chatAccess() { return { kind: "sale", status: "paid", payment_confirmed: true }; },
   };
 }
 
@@ -74,6 +78,7 @@ test("marketplace accepts open packages only for attested donations", async () =
   const base = {
     title: "Pampers Confort Sec M", description: "Pacote aberto, limpo, seco e armazenado corretamente.",
     quantity: 18, category: "infant", brand: "Pampers", model: "Confort Sec", packageCondition: "open",
+    institutionId: INSTITUTION_ID,
   };
   await assert.rejects(
     service.create("seller-1", { ...base, kind: "sale", priceCents: 2500, openPackageAttested: true }),
@@ -92,7 +97,7 @@ test("marketplace permits only disposable infant and swim catalog models", async
   const service = createMarketplaceService(repository());
   const base = {
     title: "Fralda descartável", description: "Pacote fechado e armazenado em ambiente limpo e seco.",
-    kind: "donation", quantity: 12, packageCondition: "sealed",
+    kind: "donation", quantity: 12, packageCondition: "sealed", institutionId: INSTITUTION_ID,
   };
   await assert.rejects(
     service.create("seller-1", { ...base, category: "adult", brand: "Outro", model: "Geriátrica" }),
@@ -113,13 +118,24 @@ test("starting a transaction makes its listing immediately unavailable", async (
   const service = createMarketplaceService(store);
   const listing = await service.create("seller-1", {
     title: "Huggies Natural Care M", description: "Pacote fechado com vinte e quatro unidades.",
-    kind: "donation", quantity: 24, category: "infant", brand: "Huggies",
+    kind: "sale", quantity: 24, priceCents: 3000, category: "infant", brand: "Huggies",
     model: "Natural Care", packageCondition: "sealed",
   });
   const transaction = await service.startTransaction("buyer-1", listing.id);
   assert.equal(transaction.status, "initiated");
   assert.equal(listing.status, "unavailable");
   assert.equal(await service.startTransaction("buyer-2", listing.id), null);
+});
+
+test("chat access is authorized by transaction participation and confirmed payment", async () => {
+  const store = repository();
+  const service = createMarketplaceService(store);
+  const allowed = await service.chatAccess("buyer-1", "22222222-2222-4222-8222-222222222222");
+  assert.deepEqual(allowed, { allowed: true, reason: "payment_confirmed" });
+  store.chatAccess = async () => ({ kind: "sale", status: "initiated", payment_confirmed: false });
+  assert.deepEqual(await service.chatAccess("buyer-1", "22222222-2222-4222-8222-222222222222"), {
+    allowed: false, reason: "payment_not_confirmed",
+  });
 });
 
 test("HTTP marketplace keeps public reads open and protects writes", async (context) => {

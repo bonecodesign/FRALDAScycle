@@ -75,6 +75,14 @@ export async function handleMarketplace(request, response, {
     return true;
   }
 
+  const chatAccess = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/chat-access$/i);
+  if (request.method === "GET" && chatAccess) {
+    const user = await authenticatedUser(request, authService);
+    const access = await marketplaceService.chatAccess(user.id, chatAccess[1]);
+    sendJson(response, 200, { ...access, requestId }, headers);
+    return true;
+  }
+
   const transactionAction = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/(cancel|complete)$/i);
   if (request.method === "POST" && transactionAction) {
     const user = await authenticatedUser(request, authService);

@@ -53,6 +53,7 @@ export function createMarketplaceService(repository) {
       const packageCondition = String(input?.packageCondition ?? "");
       const brand = String(input?.brand ?? "").trim();
       const model = String(input?.model ?? "").trim();
+      const institutionId = String(input?.institutionId ?? "").trim() || null;
       if (title.length < 5 || title.length > 120) throw new MarketplaceError("invalid_title", 422, "Informe o título do anúncio.");
       if (description.length < 20 || description.length > 4000) throw new MarketplaceError("invalid_description", 422, "Descreva o produto com mais detalhes.");
       if (!KINDS.has(kind)) throw new MarketplaceError("invalid_kind", 422, "Escolha venda, troca ou doação.");
@@ -63,10 +64,21 @@ export function createMarketplaceService(repository) {
       if (!PACKAGE_CONDITIONS.has(packageCondition)) throw new MarketplaceError("invalid_package_condition", 422, "Informe se o pacote está fechado ou aberto.");
       if (packageCondition === "open" && kind !== "donation") throw new MarketplaceError("open_package_not_allowed", 422, "Pacotes abertos são permitidos somente em doações.");
       if (packageCondition === "open" && input?.openPackageAttested !== true) throw new MarketplaceError("open_package_attestation_required", 422, "Confirme as condições sanitárias do pacote aberto.");
+      if (kind === "donation" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(institutionId ?? "")) {
+        throw new MarketplaceError("institution_required", 422, "Escolha uma instituição verificada para receber a doação.");
+      }
+      if (kind !== "donation" && institutionId) throw new MarketplaceError("unexpected_institution", 422, "A instituição é permitida somente em doações.");
+      if (kind === "donation") {
+        const institution = await repository.activeInstitution(institutionId);
+        if (!institution) throw new MarketplaceError("institution_not_active", 409, "A instituição escolhida não está ativa.");
+        if (packageCondition === "open" && !institution.open_packages_accepted) {
+          throw new MarketplaceError("institution_rejects_open_packages", 409, "A instituição escolhida não recebe pacotes abertos.");
+        }
+      }
       if (!brand || !model) throw new MarketplaceError("invalid_model", 422, "Informe a marca e o modelo da fralda.");
       if (!catalogHasModel(category, brand, model)) throw new MarketplaceError("unsupported_model", 422, "Escolha um modelo disponível no catálogo brasileiro.");
       return repository.create({
-        sellerId: userId, title, description, kind, quantity, priceCents,
+        sellerId: userId, title, description, kind, quantity, priceCents, institutionId,
         category, brand, model, packageCondition,
         openPackageAttested: packageCondition === "open" && input.openPackageAttested === true,
         size: String(input?.size ?? "").trim() || null,
@@ -91,6 +103,23 @@ export function createMarketplaceService(repository) {
 
     async completeTransaction(userId, transactionId) {
       return repository.completeTransaction({ actorId: userId, transactionId });
+    },
+
+    async chatAccess(userId, transactionId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) {
+        throw new MarketplaceError("transaction_not_found", 404, "Operação não encontrada.");
+      }
+      const access = await repository.chatAccess({ actorId: userId, transactionId });
+      if (!access) throw new MarketplaceError("transaction_not_found", 404, "Operação não encontrada.");
+      const terminal = new Set(["cancelled", "refunded"]);
+      const allowed = access.kind !== "donation" && access.payment_confirmed && !terminal.has(access.status);
+      return {
+        allowed,
+        reason: allowed ? "payment_confirmed"
+          : access.kind === "donation" ? "donation_chat_disabled"
+          : terminal.has(access.status) ? "transaction_closed"
+          : "payment_not_confirmed",
+      };
     },
   });
 }

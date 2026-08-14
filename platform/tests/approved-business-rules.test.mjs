@@ -41,7 +41,8 @@ test("keeps chat operational and gated by confirmed payment", async () => {
     read("../apps/app/finance.js"),
   ]);
   assert.match(chat, /finalidade|operacional|Condição fixa/i);
-  assert.match(runtime, /fc\.paymentConfirmed/);
+  assert.match(runtime, /\/v1\/transactions\/.*chat-access/);
+  assert.doesNotMatch(runtime, /fc\.paymentConfirmed/);
   assert.match(runtime, /Chat bloqueado/);
   assert.match(runtime, /preço e as condições não podem ser alterados/i);
   assert.match(finance, /fc\.paymentConfirmed/);
