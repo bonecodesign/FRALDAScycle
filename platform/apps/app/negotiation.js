@@ -1,3 +1,5 @@
+import { apiRequest } from "/packages/contracts/api-client.js";
+
 function notify(message) {
   const toast = document.querySelector("#toast");
   if (!toast) return;
@@ -32,25 +34,37 @@ function escapeHtml(value) {
   return value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 }
 
-function setupProtectedChat() {
+async function setupProtectedChat() {
   const form = document.getElementById("chat-form");
   if (!form) return;
   const input = document.getElementById("msg");
   const error = document.getElementById("chat-error");
   const gate = document.getElementById("chat-payment-gate");
-  const paymentConfirmed = sessionStorage.getItem("fc.paymentConfirmed") === "true";
-
-  input.disabled = !paymentConfirmed;
-  form.querySelector('button[type="submit"]').disabled = !paymentConfirmed;
+  const submit = form.querySelector('button[type="submit"]');
+  const transactionId = sessionStorage.getItem("fc.activeTransactionId");
+  let chatAllowed = false;
+  input.disabled = true;
+  submit.disabled = true;
+  if (gate) gate.textContent = "Verificando a autorização do chat…";
+  if (transactionId) {
+    try {
+      const access = await apiRequest(`/v1/transactions/${encodeURIComponent(transactionId)}/chat-access`);
+      chatAllowed = access.allowed === true;
+    } catch {
+      chatAllowed = false;
+    }
+  }
+  input.disabled = !chatAllowed;
+  submit.disabled = !chatAllowed;
   if (gate) {
-    gate.textContent = paymentConfirmed
+    gate.textContent = chatAllowed
       ? "Pagamento confirmado. Use o chat somente para combinar preparação, coleta ou retirada."
-      : "Chat bloqueado. Ele será liberado após a confirmação do pagamento ou da cobrança da troca.";
+      : "Chat bloqueado. O servidor libera a conversa somente após confirmar o pagamento e os participantes.";
   }
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!paymentConfirmed) {
+    if (!chatAllowed) {
       error.textContent = "Conclua a cobrança dentro do FraldaCycle para liberar o chat.";
       return;
     }
@@ -90,5 +104,5 @@ function setupSafetyActions() {
   });
 }
 
-setupProtectedChat();
+void setupProtectedChat();
 setupSafetyActions();

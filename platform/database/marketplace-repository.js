@@ -2,7 +2,8 @@ export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
     l.package_condition, l.size, l.quantity,
     l.kind, l.price_cents, l.status, l.city, l.state, l.latitude, l.longitude,
-    l.published_at, l.created_at, u.id AS seller_id, u.display_name AS seller_name`;
+    l.published_at, l.created_at, u.id AS seller_id, u.display_name AS seller_name,
+    l.institution_id, i.public_name AS institution_name`;
 
   return Object.freeze({
     async search({
@@ -21,7 +22,7 @@ export function createMarketplaceRepository(database) {
                 cos(radians(l.longitude) - radians($5::double precision))
               )))
             END AS distance_km
-          FROM listings l JOIN users u ON u.id = l.seller_id
+          FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
           WHERE l.status = 'published'
             AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
             AND ($2::transaction_kind IS NULL OR l.kind = $2)
@@ -41,10 +42,10 @@ export function createMarketplaceRepository(database) {
         `SELECT ${publicColumns},
           COALESCE(json_agg(json_build_object('storageKey', m.storage_key, 'position', m.position)
             ORDER BY m.position) FILTER (WHERE m.id IS NOT NULL), '[]') AS media
-         FROM listings l JOIN users u ON u.id = l.seller_id
+         FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
          LEFT JOIN listing_media m ON m.listing_id = l.id
          WHERE l.id = $1 AND l.status = 'published'
-         GROUP BY l.id, u.id`,
+         GROUP BY l.id, u.id, i.id`,
         [id],
       );
       return result.rows[0] ?? null;
@@ -56,13 +57,13 @@ export function createMarketplaceRepository(database) {
           `INSERT INTO listings
             (seller_id, title, description, category, brand, model, package_condition,
              open_package_attested, size, quantity, kind, price_cents, status,
-             city, state, latitude, longitude, published_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15,$16,now())
+             city, state, latitude, longitude, institution_id, published_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15,$16,$17,now())
            RETURNING id, status, published_at`,
           [input.sellerId, input.title, input.description, input.category, input.brand,
            input.model, input.packageCondition, input.openPackageAttested, input.size,
            input.quantity, input.kind, input.priceCents, input.city, input.state,
-           input.latitude, input.longitude],
+           input.latitude, input.longitude, input.institutionId],
         );
         for (const [position, storageKey] of (input.mediaKeys ?? []).entries()) {
           await client.query(
@@ -75,10 +76,19 @@ export function createMarketplaceRepository(database) {
       });
     },
 
+    async activeInstitution(institutionId) {
+      const result = await database.query(
+        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active'",
+        [institutionId],
+      );
+      return result.rows[0] ?? null;
+    },
+
     async favorites(userId) {
       const result = await database.query(
         `SELECT ${publicColumns} FROM favorites f
          JOIN listings l ON l.id = f.listing_id JOIN users u ON u.id = l.seller_id
+         LEFT JOIN institutions i ON i.id = l.institution_id
          WHERE f.user_id = $1 AND l.status = 'published' ORDER BY f.created_at DESC`,
         [userId],
       );
@@ -100,7 +110,7 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()
-           WHERE id = $1 AND seller_id <> $2 AND status = 'published'
+           WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind <> 'donation'
            RETURNING id, seller_id, kind, price_cents`,
           [listingId, buyerId],
         );
@@ -113,6 +123,20 @@ export function createMarketplaceRepository(database) {
         );
         return result.rows[0];
       });
+    },
+
+    async chatAccess({ actorId, transactionId }) {
+      const result = await database.query(
+        `SELECT t.id, t.status, l.kind,
+           EXISTS (
+             SELECT 1 FROM payment_intents p
+             WHERE p.transaction_id = t.id AND p.status IN ('authorized','paid')
+           ) AS payment_confirmed
+         FROM transactions t JOIN listings l ON l.id = t.listing_id
+         WHERE t.id = $1 AND $2 IN (t.buyer_id, t.seller_id)`,
+        [transactionId, actorId],
+      );
+      return result.rows[0] ?? null;
     },
 
     async cancelTransaction({ actorId, transactionId }) {

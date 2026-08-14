@@ -4,6 +4,7 @@ import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
 import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
+import { createInstitutionRepository } from "../../database/institution-repository.js";
 import { createAdminRepository } from "../../database/admin-repository.js";
 import { createPaymentRepository } from "../../database/payment-repository.js";
 import { createLogisticsRepository } from "../../database/logistics-repository.js";
@@ -11,6 +12,7 @@ import { createRealtimeRepository } from "../../database/realtime-repository.js"
 import { createAuthService } from "./auth-service.js";
 import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
+import { createInstitutionService } from "./institution-service.js";
 import { createAdminService } from "./admin-service.js";
 import { createMarketplaceProviders } from "./marketplace-providers.js";
 import { migrate } from "../../database/migrate.js";
@@ -32,6 +34,7 @@ export async function startRuntime(config = null) {
     notificationService,
   });
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
+  const institutionService = createInstitutionService(createInstitutionRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
   const adminService = createAdminService(createAdminRepository(database));
   const paymentProvider = createPaymentProvider(config);
@@ -46,6 +49,7 @@ export async function startRuntime(config = null) {
     authService,
     marketplaceService,
     marketplaceProviders,
+    institutionService,
     paymentService,
     paymentProvider,
     logisticsService,

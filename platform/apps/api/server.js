@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { AuthError } from "./auth-service.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
+import { handleInstitutions } from "./institution-handler.js";
 import { handleAdmin } from "./admin-handler.js";
 import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 import { createTelemetry } from "./telemetry.js";
@@ -23,6 +24,7 @@ export function createApiServer({
   authService = null,
   marketplaceService = null,
   marketplaceProviders = null,
+  institutionService = null,
   paymentService = null,
   paymentProvider = null,
   logisticsService = null,
@@ -168,6 +170,10 @@ export function createApiServer({
 
       if (await handlePayments(request, response, {
         url, headers, requestId: id, authService, paymentService, paymentProvider,
+      })) return;
+
+      if (await handleInstitutions(request, response, {
+        url, headers, requestId: id, authService, institutionService,
       })) return;
 
       if (await handleAdmin(request, response, {

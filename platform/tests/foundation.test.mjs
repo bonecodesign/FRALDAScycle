@@ -275,7 +275,8 @@ test("transfers payment-gated operational chat without proposal or reservation r
   assert.match(chat, /finalidade|operacional/i);
   assert.match(safety, /Opções da conversa/);
   assert.match(evidence, /Evidências da negociação/);
-  assert.ok(behavior.includes("fc.paymentConfirmed"));
+  assert.match(behavior, /\/v1\/transactions\/.*chat-access/);
+  assert.doesNotMatch(behavior, /fc\.paymentConfirmed/);
   assert.match(behavior, /Telefones não podem ser compartilhados no chat/);
   assert.match(behavior, /E-mails não podem ser compartilhados no chat/);
   assert.match(behavior, /Links externos não podem ser compartilhados no chat/);
