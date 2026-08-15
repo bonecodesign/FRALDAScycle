@@ -5,6 +5,71 @@ const products=[
  {name:'MamyPoko Fralda-Calça',detail:'XG · 32 unidades',price:'R$ 38,00',distance:'1,6 km',tone:'purple'}
 ];
 const productImages=['pampers-approved.png','huggies-approved.png','babysec-approved.png','mamypoko-approved.png'];
+const appIcons={
+ home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5M9 20v-6h6v6"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+ publish:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+ chat:'<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+ swap:'<path d="m7 7-4 4 4 4M3 11h14M17 3l4 4-4 4M21 7H7"/>',
+ gift:'<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8H7.5a2.5 2.5 0 1 1 2.2-3.7L12 8Zm0 0h4.5a2.5 2.5 0 1 0-2.2-3.7L12 8Z"/>',
+ cart:'<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.4 10.4A2 2 0 0 0 9.3 16h7.9a2 2 0 0 0 1.9-1.4L21 8H6"/>',
+ heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/>',
+ bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+ payment:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
+ delivery:'<path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>',
+ courier:'<circle cx="12" cy="7" r="3"/><path d="m8 21 1-8h6l1 8M6 16h12"/>'
+};
+function appIcon(name){return `<svg class="fc-icon" aria-hidden="true" viewBox="0 0 24 24">${appIcons[name]||appIcons.home}</svg>`}
+
+let appIconographyScheduled=false;
+function setupAppIconography(){
+ appIconographyScheduled=false;
+ const routeIcons={home:'home',products:'search',publish:'publish',chat:'chat',profile:'user',wallet:'payment',delivery:'delivery',courier:'courier'};
+ document.querySelectorAll('.phone-nav a,.app-menu a').forEach(link=>{
+  const route=(link.getAttribute('href')||'').split('/').pop();
+  const name=route.startsWith('publish')?'publish':routeIcons[route]||'home';
+  let marker=link.querySelector(':scope > span');
+  if(!marker){marker=document.createElement('span');link.prepend(marker)}
+  if(marker.dataset.fcIcon!==name){marker.innerHTML=appIcon(name);marker.dataset.fcIcon=name}
+ });
+ const quickIcons={trocar:'swap',doar:'gift',comprar:'cart',favoritos:'heart'};
+ document.querySelectorAll('.quick-action').forEach(action=>{
+  const label=(action.textContent||'').trim().toLowerCase();
+  const name=Object.entries(quickIcons).find(([key])=>label.includes(key))?.[1];
+  if(!name)return;
+  let marker=action.querySelector(':scope > span');
+  if(!marker){marker=document.createElement('span');action.prepend(marker)}
+  if(marker.dataset.fcIcon!==name){marker.innerHTML=appIcon(name);marker.dataset.fcIcon=name}
+ });
+ document.querySelectorAll('.notification-button').forEach(button=>{
+  if(button.dataset.fcIcon==='bell')return;
+  const badge=button.querySelector('.notification-badge');
+  button.innerHTML=appIcon('bell');
+  if(badge)button.append(badge);
+  button.dataset.fcIcon='bell';
+ });
+ document.querySelectorAll('.favorite,.phone-card>span:last-child').forEach(control=>{
+  const raw=(control.textContent||'').trim();
+  if(raw!=='♡'&&raw!=='♥')return;
+  control.classList.toggle('is-active',raw==='♥');
+  control.innerHTML=appIcon('heart');
+  control.setAttribute('aria-label',raw==='♥'?'Remover dos favoritos':'Adicionar aos favoritos');
+ });
+ document.querySelectorAll('.state-icon').forEach(icon=>{
+  if((icon.textContent||'').trim()==='⌕')icon.innerHTML=appIcon('search');
+ });
+ document.querySelectorAll('h1,.screen-title-row .muted').forEach(element=>{
+  element.childNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&node.nodeValue.includes('👋'))node.nodeValue=node.nodeValue.replace(/\s*👋/g,'')});
+ });
+}
+function scheduleAppIconography(){
+ if(appIconographyScheduled)return;
+ appIconographyScheduled=true;
+ requestAnimationFrame(setupAppIconography);
+}
+new MutationObserver(scheduleAppIconography).observe(document.documentElement,{childList:true,subtree:true});
+scheduleAppIconography();
 const diaperCatalog=[
  ['Pampers','Recém Nascido','infant'],['Pampers','Primeiros Dias','infant'],['Pampers','Premium Care','infant'],['Pampers','Premium Care Pants','infant'],['Pampers','Confort Sec','infant'],['Pampers','Pants Ajuste Total','infant'],['Pampers','Supersequinha','infant'],['Pampers','Splashers','swim'],
  ['Huggies','Natural Care','infant'],['Huggies','Máxima Proteção','infant'],['Huggies','Rápida Absorção','infant'],['Huggies','Proteção Acolchoada Pants','infant'],['Huggies','Little Swimmers','swim'],
