@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 import { DIAPER_CATEGORIES, catalogOptions } from "/packages/contracts/diaper-catalog.js";
 

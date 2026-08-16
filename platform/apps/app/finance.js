@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 function notify(message) {
   const toast = document.querySelector("#toast");

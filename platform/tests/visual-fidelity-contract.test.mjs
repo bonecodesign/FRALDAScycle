@@ -106,6 +106,23 @@ test('all three navigable surfaces explicitly identify synthetic demonstration d
   assert.match(adminRuntime, /setupAdminSyntheticDataDisclosure\(\);/);
 });
 
+test('shared SVG iconography reaches every independent platform entrypoint', async () => {
+  const runtime = await read('../packages/ui/iconography.js');
+  for (const contract of ['function setupAppIcons', 'function setupAdminIcons', 'function setupSiteIcons', 'class="fc-icon']) {
+    assert.match(runtime, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  const entrypoints = [
+    '../apps/admin/auth.js',
+    '../apps/app/auth.js', '../apps/app/courier.js', '../apps/app/favorites.js', '../apps/app/finance.js',
+    '../apps/app/logistics.js', '../apps/app/negotiation.js', '../apps/app/profile.js', '../apps/app/publish.js', '../apps/app/search.js',
+    '../apps/site/home.js', '../apps/site/detail.js', '../apps/site/favorites.js', '../apps/site/publish.js', '../apps/site/search.js',
+  ];
+  for (const entrypoint of entrypoints) {
+    assert.match(await read(entrypoint), /import "\/packages\/ui\/iconography\.js";/, `${entrypoint} must load shared SVG iconography`);
+  }
+});
+
 test('visual conformity matrix links every normative source inside the repository', async () => {
   const matrix = await read('../docs/visual-fidelity/MATRIZ_CONFORMIDADE_VISUAL.md');
   const sources = [

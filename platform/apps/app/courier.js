@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 import { uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 function notify(message) {

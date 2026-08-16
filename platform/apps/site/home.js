@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 const themeToggle = document.querySelector("#theme-toggle");
 const storedTheme = localStorage.getItem("fraldacycle-theme") === "dark" ? "dark" : "light";
 
