@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { renderAppSearch } from "/packages/contracts/marketplace-ui.js";
 const products=[
  {name:'Pampers Confort',detail:'M · 50 unidades',price:'R$ 45,00',distance:'0,8 km',tone:''},

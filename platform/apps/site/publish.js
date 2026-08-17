@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { geocodeLocation, publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 import { catalogOptions, DIAPER_CATEGORIES, modelsForCategory } from "/packages/contracts/diaper-catalog.js";
 import "/apps/site/home.js";

@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
 const ADMIN_ROLES = new Set(["admin", "moderator"]);

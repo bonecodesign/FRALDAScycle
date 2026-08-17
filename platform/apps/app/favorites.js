@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { renderFavorites } from "/packages/contracts/marketplace-ui.js";
 document.querySelectorAll(".favorite").forEach((button) => {
   button.addEventListener("click", () => {

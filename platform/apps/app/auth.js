@@ -1,3 +1,4 @@
+import "/packages/ui/iconography.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
 const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
@@ -22,6 +23,8 @@ function icon(name) {
 }
 
 function setupAppIconography() {
+  const root = document.querySelector('main[data-surface="app"]');
+  if (root?.dataset.iconified === "true") return;
   const routeIcon = href => {
     if (href.includes("/search")) return "search";
     if (href.includes("/publish")) return "publish";

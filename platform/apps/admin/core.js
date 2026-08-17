@@ -32,6 +32,8 @@ const adminNavGroups=[
   {label:'Atalhos',paths:['/site/home']}
 ];
 function setupAdminIconography(){
+  const root=document.querySelector('main[data-surface="admin"]');
+  if(root?.dataset.iconified==='true')return;
   const sidebar=document.querySelector('.admin-sidebar');
   if(!sidebar)return;
   const links=[...sidebar.querySelectorAll('a')];
