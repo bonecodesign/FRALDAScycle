@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const IDS = Object.freeze(["notifications", "media", "geocoding", "payments", "logistics", "distributedRateLimit", "telemetry", "externalSecrets"]);
 const CATEGORIES = Object.freeze(["technical", "security", "privacy", "commercial", "legal", "operations"]);
@@ -49,8 +50,7 @@ export async function inspectProviderDueDiligence(path = new URL("../config/prov
   return { diligence, ...validateProviderDueDiligence(diligence) };
 }
 
-const invokedPath = process.argv[1]?.replaceAll("\\", "/");
-if (invokedPath && import.meta.url === "file://" + invokedPath) {
+if (isMainModule(import.meta.url)) {
   try {
     const report = await inspectProviderDueDiligence(process.argv[2]);
     console.log(JSON.stringify({ valid: report.valid, errors: report.errors }, null, 2));

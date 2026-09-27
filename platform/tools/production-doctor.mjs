@@ -1,4 +1,5 @@
 import { loadConfig } from "../apps/api/config.js";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const PLACEHOLDER = /(example\.(com|test)|change-me|replace-with)/i;
 
@@ -41,7 +42,7 @@ export function inspectProductionReadiness(env = process.env) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   const report = inspectProductionReadiness();
   console.log(JSON.stringify(report, null, 2));
   if (!report.ready) process.exitCode = 1;

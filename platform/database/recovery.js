@@ -53,7 +53,7 @@ export function executePlan(plan, { spawnImpl = spawn } = {}) {
 }
 
 const mode = process.argv[2];
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   const plan = mode === "backup" ? createBackupPlan() : mode === "restore" ? createRestorePlan() : null;
   if (!plan) {
     console.error("Usage: node database/recovery.js <backup|restore>");
@@ -65,3 +65,4 @@ if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
     });
   }
 }
+import { isMainModule } from "../packages/contracts/main-module.js";

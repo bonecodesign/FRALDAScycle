@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const ID = /^[a-z][a-z0-9-]*$/;
 const OWNERS = new Set(["product", "engineering", "security", "quality", "operations", "management"]);
@@ -42,8 +43,7 @@ export async function inspectPilotReadinessManifest(path = new URL("../config/pi
   return { manifest, ...validatePilotReadinessManifest(manifest) };
 }
 
-const invokedPath = process.argv[1]?.replaceAll("\\", "/");
-if (invokedPath && import.meta.url === "file://" + invokedPath) {
+if (isMainModule(import.meta.url)) {
   try {
     const report = await inspectPilotReadinessManifest(process.argv[2]);
     console.log(JSON.stringify({ valid: report.valid, errors: report.errors }, null, 2));

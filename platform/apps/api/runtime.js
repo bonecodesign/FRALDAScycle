@@ -1,4 +1,5 @@
 import { loadConfig } from "./config.js";
+import { isMainModule } from "../../packages/contracts/main-module.js";
 import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
@@ -75,7 +76,7 @@ export async function startRuntime(config = null) {
   return { server, database };
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   startRuntime().catch((error) => {
     console.error(error);
     process.exitCode = 1;

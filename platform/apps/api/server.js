@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { isMainModule } from "../../packages/contracts/main-module.js";
 import { readJson } from "./body.js";
 import { clearSessionCookie, readSessionCookie, sessionCookie } from "./cookies.js";
 import { loadConfig } from "./config.js";
@@ -207,4 +208,4 @@ export function startApi(config = loadConfig()) {
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) startApi();
+if (isMainModule(import.meta.url)) startApi();

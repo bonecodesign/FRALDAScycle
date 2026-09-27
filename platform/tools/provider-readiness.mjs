@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const ID = /^[a-z][A-Za-z0-9]*$/;
 const ENV_KEY = /^[A-Z][A-Z0-9_]*$/;
@@ -40,8 +41,7 @@ export async function inspectProviderReadinessManifest(path = new URL("../config
   return { manifest, ...validateProviderReadinessManifest(manifest) };
 }
 
-const invokedPath = process.argv[1]?.replaceAll("\\", "/");
-if (invokedPath && import.meta.url === "file://" + invokedPath) {
+if (isMainModule(import.meta.url)) {
   try {
     const report = await inspectProviderReadinessManifest(process.argv[2]);
     console.log(JSON.stringify({ valid: report.valid, errors: report.errors }, null, 2));

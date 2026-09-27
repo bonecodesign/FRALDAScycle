@@ -4,6 +4,18 @@
 
 O produto visual e navegável permanece íntegro. A fundação de produção começa por API, configuração, segurança de credenciais e modelo persistente.
 
+## Portão local — aprovado em 27 de setembro de 2026
+
+- [x] sintaxe dos módulos de produção;
+- [x] 167 testes automatizados;
+- [x] 57 verificações de regressão navegável;
+- [x] manifestos pré-contrato de fornecedores;
+- [x] contratos estruturais do piloto interno;
+- [x] execução correta dos comandos operacionais no Windows;
+- [x] diagnóstico de produção falha de forma segura sem credenciais reais.
+
+O registro reproduzível está em [`local-readiness-2026-09-27.md`](local-readiness-2026-09-27.md). Esta aprovação cobre somente preparação local e não autoriza homologação ou produção.
+
 ## Corte 1 — fundação
 
 - [x] contrato de configuração por ambiente;
