@@ -1,6 +1,5 @@
 import { readJson, readSignedJson } from "./body.js";
-import { readSessionCookie } from "./cookies.js";
-import { AuthError } from "./auth-service.js";
+import { authenticatedUser } from "./session.js";
 import { sendJson } from "./http.js";
 
 export async function handlePayments(request, response, {
@@ -23,8 +22,7 @@ export async function handlePayments(request, response, {
     !paymentService || request.method !== "POST"
     || (!paymentCase && !["/v1/payments/tokenization-sessions", "/v1/payments/intents"].includes(url.pathname))
   ) return false;
-  const user = await authService.session(readSessionCookie(request.headers.cookie));
-  if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
+  const user = await authenticatedUser(request, authService);
   if (paymentCase) {
     const kind = paymentCase[2] === "refunds" ? "refund" : "dispute";
     const result = await paymentService.createCase(user.id, paymentCase[1], kind, await readJson(request));
@@ -41,3 +39,4 @@ export async function handlePayments(request, response, {
   sendJson(response, result.reused ? 200 : 201, { ...result, requestId }, headers);
   return true;
 }
+
