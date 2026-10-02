@@ -320,7 +320,10 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.doesNotMatch(behavior, /boleto/i);
   assert.doesNotMatch(payment, /cartão de débito|value="debit"/i);
   assert.match(payment, /Valor protegido em custódia até o recebimento/);
-  assert.match(behavior, /Cartão tokenizado com segurança/);
+  const actions = await readFile(resolve(root, "apps/app/action-states.js"), "utf8");
+  assert.match(behavior, /import \{ setupWalletLogisticsExtras \} from "\/apps\/app\/action-states\.js"/);
+  assert.match(behavior, /setupWalletLogisticsExtras\(\);/);
+  assert.match(actions, /Cartão tokenizado com segurança/);
   assert.match(behavior, /\/v1\/payments\/tokenization-sessions/);
   assert.match(behavior, /\/v1\/payments\/intents/);
   assert.match(behavior, /FraldaCyclePaymentProvider/);
@@ -363,9 +366,13 @@ test("transfers the complete approved App logistics journey", async () => {
   assert.match(behavior, /\/v1\/shipments/);
   assert.match(behavior, /activeShipmentId/);
   assert.match(behavior, /createRealShipment/);
-  assert.match(behavior, /reschedule-submit/);
-  assert.match(behavior, /delivery-problem-submit/);
-  assert.match(behavior, /Avaliação enviada com sucesso/);
+  const actions = await readFile(resolve(root, "apps/app/action-states.js"), "utf8");
+  assert.match(behavior, /import \{ setupWalletLogisticsExtras, setupActionStates \} from "\/apps\/app\/action-states\.js"/);
+  assert.match(behavior, /setupWalletLogisticsExtras\(\);/);
+  assert.match(behavior, /setupActionStates\(\);/);
+  assert.match(actions, /reschedule-submit/);
+  assert.match(actions, /delivery-problem-submit/);
+  assert.match(actions, /Avaliação enviada com sucesso/);
   const options = await readFile(resolve(root, "apps/app/delivery-options.html"), "utf8");
   assert.equal((options.match(/name="delivery-option"/g) ?? []).length, 4);
   for (const name of ["appDeliveryOptions", "appDelivery", "appDeliveryProof", "appDeliveryRate", "setupDeliveryTracking"]) {
@@ -642,3 +649,4 @@ test("connects approved marketplace screens to persistent API contracts", async 
   assert.match(files[4], /fc\.lastListingId/);
   assert.match(files[7], /fc\.lastListingId/);
 });
+
