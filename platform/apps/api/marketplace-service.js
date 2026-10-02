@@ -1,10 +1,9 @@
+import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
 
-export class MarketplaceError extends Error {
+export class MarketplaceError extends ServiceError {
   constructor(code, status, message) {
-    super(message);
-    this.code = code;
-    this.status = status;
+    super(code, status, message);
   }
 }
 
@@ -123,3 +122,4 @@ export function createMarketplaceService(repository) {
     },
   });
 }
+

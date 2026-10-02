@@ -1,8 +1,7 @@
-export class PaymentError extends Error {
+import { ServiceError } from "./service-error.js";
+export class PaymentError extends ServiceError {
   constructor(code, status, message) {
-    super(message);
-    this.code = code;
-    this.status = status;
+    super(code, status, message);
   }
 }
 
@@ -123,3 +122,4 @@ export function createPaymentService(repository, provider) {
     },
   });
 }
+

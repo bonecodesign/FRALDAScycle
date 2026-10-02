@@ -26,6 +26,7 @@ const files = [
   "apps/api/secrets.js",
   "apps/api/server.js",
   "apps/api/session.js",
+  "apps/api/service-error.js",
   "apps/api/telemetry.js",
   "apps/api/runtime.js",
   "database/admin-repository.js",

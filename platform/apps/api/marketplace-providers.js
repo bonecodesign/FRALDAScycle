@@ -1,8 +1,7 @@
-export class ProviderError extends Error {
+import { ServiceError } from "./service-error.js";
+export class ProviderError extends ServiceError {
   constructor(code, status, message) {
-    super(message);
-    this.code = code;
-    this.status = status;
+    super(code, status, message);
   }
 }
 
@@ -92,3 +91,4 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
     },
   });
 }
+
