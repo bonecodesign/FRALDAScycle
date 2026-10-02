@@ -1,12 +1,8 @@
+import { PILOT_ID as ID, isDateString } from "./pilot-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
-const ID = /^[a-z][a-z0-9-]*$/;
 const STATUSES = new Set(["pending", "passed", "failed", "skipped"]);
-
-function isIsoDate(value) {
-  return typeof value === "string" && !Number.isNaN(Date.parse(value));
-}
 
 export function validatePilotEvidenceRegister(register, manifest) {
   const errors = [];
@@ -52,7 +48,7 @@ export function validatePilotEvidenceRegister(register, manifest) {
         if (evidence.checkedAt !== null) errors.push(at + ".checkedAt must be null while pending");
         if (evidence.notes !== null) errors.push(at + ".notes must be null while pending");
       } else {
-        if (!isIsoDate(evidence?.checkedAt)) errors.push(at + ".checkedAt is invalid");
+        if (!isDateString(evidence?.checkedAt)) errors.push(at + ".checkedAt is invalid");
         if (typeof evidence?.notes !== "string" || evidence.notes.trim().length < 10) {
           errors.push(at + ".notes are required when evidence is executed");
         }
@@ -92,3 +88,4 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+

@@ -1,7 +1,7 @@
+import { PILOT_ID as ID } from "./pilot-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
-const ID = /^[a-z][a-z0-9-]*$/;
 
 export function validatePilotSession(session, evidenceRegister) {
   const errors = [];
@@ -106,4 +106,5 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+
 
