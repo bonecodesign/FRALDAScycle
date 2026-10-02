@@ -82,6 +82,8 @@ createServer(async (request, response) => {
       "referrer-policy": "strict-origin-when-cross-origin",
       "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
       "cache-control": extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
+      "x-fraldacycle-surface": surface,
+      "x-fraldacycle-mode": production ? "production" : "local-demo",
     });
     createReadStream(candidate).pipe(response);
   } catch {

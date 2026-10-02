@@ -1,6 +1,6 @@
 /*
  * Adaptador temporário e somente leitura.
- * Fonte oficial: raiz da main, commit 64c818467c352b49f34e36f92a6c0d45e1078eb9.
+ * Fonte oficial: raiz da main, commit 6e85098af7d7cf941bccf7e83e86f68e83f2c0af.
  */
 @import url("/source/styles.css");
 @import url("/source/map-safety.css");
@@ -31,4 +31,17 @@
 .admin-sidebar a {
   align-items: center;
   gap: 0.65rem;
+}
+
+.admin-environment-disclosure {
+  margin:-8px 0 20px;
+  border:1px solid #cfe5d8;
+  background:#f2f9f4;
+  color:#14532d;
+}
+
+[data-theme="dark"] .admin-environment-disclosure {
+  border-color:#2d6b50;
+  background:#123c2c;
+  color:#d1fae5;
 }
