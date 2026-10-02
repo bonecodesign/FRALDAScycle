@@ -25,6 +25,8 @@
         <a href="#/admin/dashboard" data-surface-link="admin">Admin</a>
       </nav>
       <div class="top-actions">
+        <button class="button secondary desktop-only" id="experience-toggle" type="button" aria-expanded="false">Áreas</button>
+        <button class="button secondary desktop-only" id="presentation-toggle" type="button" aria-pressed="false">Modo apresentação</button>
         <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema"><span aria-hidden="true">◐</span></button>
         <a class="button secondary desktop-only" href="#/site/login">Entrar</a>
         <a class="button ghost desktop-only" href="#/site/favorites">♡ Favoritos</a>
@@ -44,6 +46,7 @@
       <small>Dados apresentados neste protótipo: simulados.</small>
     </footer>
   </div>
+  <button class="presentation-exit" id="presentation-exit" type="button" hidden>Sair da apresentação</button>
   <div id="toast" role="status" aria-live="polite"></div>
 <script src="design-tokens.js"></script>
 <script src="responsive-lab.js"></script>
