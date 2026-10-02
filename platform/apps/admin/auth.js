@@ -3,6 +3,32 @@ import { apiRequest } from "/packages/contracts/api-client.js";
 
 const ADMIN_ROLES = new Set(["admin", "moderator"]);
 const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
+const ROLE_NAVIGATION = {
+  admin: ["dashboard", "users", "roles", "ads", "operations", "finance", "logistics", "reports", "data", "forecast", "infrastructure", "partnerships", "innovation", "launch", "alerts", "moderation", "audit", "settings", "security"],
+  moderator: ["dashboard", "users", "ads", "operations", "logistics", "reports", "alerts", "moderation", "audit"],
+};
+
+function applyNavigationScope(role) {
+  const allowed = new Set(ROLE_NAVIGATION[role] ?? []);
+  document.querySelectorAll(".admin-sidebar a[href^='/admin/']").forEach(link => {
+    const section = link.getAttribute("href").split("/").at(-1);
+    const visible = allowed.has(section);
+    link.hidden = !visible;
+    link.toggleAttribute("aria-hidden", !visible);
+  });
+  document.documentElement.dataset.adminRole = role;
+}
+
+function addEnvironmentDisclosure(label) {
+  const head = document.querySelector(".admin-head");
+  if (!head || head.querySelector("[data-environment-disclosure]")) return;
+  const disclosure = document.createElement("p");
+  disclosure.className = "notice admin-environment-disclosure";
+  disclosure.dataset.environmentDisclosure = "true";
+  disclosure.setAttribute("role", "note");
+  disclosure.textContent = label;
+  head.after(disclosure);
+}
 
 function showLoginError(message) {
   const error = document.getElementById("admin-login-error");
@@ -50,6 +76,8 @@ async function requireAdmin() {
       return;
     }
     document.documentElement.dataset.adminAuth = "ready";
+    applyNavigationScope("admin");
+    addEnvironmentDisclosure("Modo local demonstrativo: dados sintéticos e acesso aberto apenas no ambiente local. Em produção, este painel exige autenticação e permissões por papel.");
     const head = document.querySelector(".admin-head > div:last-child");
     if (head) {
       const badge = document.createElement("span");
@@ -65,6 +93,8 @@ async function requireAdmin() {
     const result = await apiRequest("/v1/auth/session");
     if (!ADMIN_ROLES.has(result.user?.role)) throw new Error("forbidden");
     document.documentElement.dataset.adminAuth = "ready";
+    applyNavigationScope(result.user.role);
+    addEnvironmentDisclosure(`Sessão autenticada · perfil ${result.user.role === "admin" ? "administrador" : "moderação"}. Os módulos visíveis seguem o princípio do menor privilégio.`);
     const head = document.querySelector(".admin-head > div:last-child");
     if (head) {
       const logout = document.createElement("button");
