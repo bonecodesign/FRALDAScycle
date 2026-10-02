@@ -1,19 +1,9 @@
+import { PROVIDER_CAPABILITIES as EXPECTED_IDS, CREDENTIAL_PATTERN as CREDENTIAL } from "./provider-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
-const EXPECTED_IDS = Object.freeze([
-  "notifications",
-  "media",
-  "geocoding",
-  "payments",
-  "logistics",
-  "distributedRateLimit",
-  "telemetry",
-  "externalSecrets",
-]);
 const SLUG = /^[a-z][a-z0-9-]*$/;
 const CHECK = /^[a-z0-9][a-z0-9-]*$/;
-const CREDENTIAL = /(-----BEGIN [A-Z ]+PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|sk_(live|test)_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16})/;
 
 export function validateProviderSelection(value) {
   const errors = [];
@@ -64,3 +54,4 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+

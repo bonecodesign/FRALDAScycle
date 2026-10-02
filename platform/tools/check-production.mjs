@@ -45,6 +45,7 @@ const files = [
   "database/recovery.js",
   "apps/api/realtime-service.js",
   "database/realtime-repository.js",
+  "tools/provider-contract.mjs",
   "tools/provider-readiness.mjs",
   "tools/provider-selection.mjs",
   "tools/provider-due-diligence.mjs",
