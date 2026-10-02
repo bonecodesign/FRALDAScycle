@@ -1,4 +1,5 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
+import { verifyWebhookSignature } from "./webhook-signature.js";
 export class LogisticsProviderError extends Error {
   constructor(code="logistics_provider_unavailable",message="Provedor logístico indisponível.") {
     super(message); this.code=code; this.status=503;
@@ -12,12 +13,11 @@ export function createLogisticsProvider(config,{fetchImpl=fetch}={}) {
     configured:Boolean(endpoint),
     verifyWebhook({raw,timestamp,signature,now=Date.now}){
       if(!webhookSecret)throw new LogisticsProviderError("logistics_webhook_not_configured","Webhook logístico não configurado.");
-      const seconds=Number(timestamp);
-      if(!Number.isInteger(seconds)||Math.abs(Math.floor(now()/1000)-seconds)>300){const error=new LogisticsProviderError("invalid_logistics_webhook_timestamp","Webhook logístico inválido.");error.status=401;throw error}
-      const receivedHex=String(signature??"").replace(/^v1=/,"");
-      if(!/^[0-9a-f]{64}$/i.test(receivedHex)){const error=new LogisticsProviderError("invalid_logistics_webhook_signature","Webhook logístico inválido.");error.status=401;throw error}
-      const expected=createHmac("sha256",webhookSecret).update(`${seconds}.`).update(raw).digest();const received=Buffer.from(receivedHex,"hex");
-      if(received.length!==expected.length||!timingSafeEqual(received,expected)){const error=new LogisticsProviderError("invalid_logistics_webhook_signature","Webhook logístico inválido.");error.status=401;throw error}
+      verifyWebhookSignature({ raw, timestamp, signature, now }, webhookSecret, kind => {
+        const error = new LogisticsProviderError("invalid_logistics_webhook_" + kind, "Webhook logístico inválido.");
+        error.status = 401;
+        return error;
+      });
       let value;try{value=JSON.parse(raw.toString("utf8"))}catch{const error=new LogisticsProviderError("invalid_logistics_webhook_payload","Webhook logístico inválido.");error.status=400;throw error}
       const types=["shipment.assigned","shipment.picked_up","shipment.in_transit","shipment.delivered","shipment.failed","shipment.cancelled"];
       const latitude=value?.data?.latitude;const longitude=value?.data?.longitude;
@@ -43,3 +43,4 @@ export function createLogisticsProvider(config,{fetchImpl=fetch}={}) {
     },
   });
 }
+

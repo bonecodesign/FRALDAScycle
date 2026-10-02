@@ -28,6 +28,7 @@ const files = [
   "apps/api/session.js",
   "apps/api/service-error.js",
   "apps/api/pagination.js",
+  "apps/api/webhook-signature.js",
   "apps/api/telemetry.js",
   "apps/api/runtime.js",
   "database/admin-repository.js",
