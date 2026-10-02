@@ -10,6 +10,8 @@ Superfícies disponíveis:
 
 O protótipo é estático e utiliza dados demonstrativos classificados como simulados. Nenhuma integração real, autenticação, pagamento ou envio é executado.
 
+O acompanhamento percentual da prontidão de UX/UI, com a separação entre entregas automatizáveis e validações que dependem de uso real, está em [`platform/docs/ux-readiness-2026-10-01.md`](platform/docs/ux-readiness-2026-10-01.md).
+
 ## Autoria e governança
 
 O registro interno de criação, fundação e titularidade declarada do projeto está em [`OWNERSHIP.md`](OWNERSHIP.md). O documento identifica **Rafael Sérgio Silveira** como criador, idealizador, fundador e titular declarado, e registra **bonecodesign** como nome utilizado em sua atuação como microempreendedor. As recomendações de formalização jurídica ficaram reservadas para a etapa final.
