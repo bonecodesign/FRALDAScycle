@@ -35,3 +35,14 @@ Somente `platform/`; desktop e protótipo raiz preservados.
 - Este lote é uma proteção parcial dos itens 13–20, não a implementação integral: telas de aprovação, validação administrativa, auditoria das duas decisões, troca com duas entregas e repasses em até três dias continuam pendentes. Nenhum repasse foi ativado.
 
 PR encadeado sobre #63. Item 12 permanece em standby; somente `platform/`.
+
+## Lote de registro das decisões de recebimento (venda)
+
+- Migração 019 adiciona registros separados e únicos por comprovante para aprovação do comprador e validação administrativa, com data/hora do banco. Repetição conserva a decisão original e não duplica auditoria.
+- `POST /v1/shipments/:id/receipt`: exige `approved: true`, comprador da entrega, comprovante enviado, entrega registrada e transação em andamento.
+- `POST /v1/shipments/:id/proof/validate`: exige administrador autorizado, `validated: true` e justificativa de 10–1000 caracteres. Comprador, vendedor e entregador da operação não podem validar seu próprio comprovante.
+- `GET /v1/shipments/:id/proof`: metadados restritos às partes, entregador e administrador autorizado; consulta e decisões auditadas. A chave de mídia não é um endereço público.
+- Botão de confirmação do aplicativo grava a aprovação pela API e apresenta erros reais; mensagem do entregador informa envio de comprovante, sem afirmar aprovação do recebedor.
+- A rota legada de conclusão continua bloqueada. As decisões não concluem transações, não verificam elegibilidade financeira e não acionam repasse. Disputas, prazo de três dias, pagamento externo, trocas com duas entregas e confirmação institucional continuam pendentes. Dados de crianças e item 12 preservam suas pendências.
+
+Validação: testes de serviço/repositório com banco simulado e HTTP local; verificação completa de release. Migração em PostgreSQL real, telas administrativas e navegação em navegador real ainda não homologadas. Sem alteração de migrações antigas, protótipo ou desktop.

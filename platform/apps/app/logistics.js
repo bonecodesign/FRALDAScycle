@@ -31,3 +31,21 @@ setupDeliveryTracking();
 setupWalletLogisticsExtras();
 setupActionStates();
 
+
+
+const receiptApproval = document.getElementById('receipt-approve');
+if (receiptApproval) receiptApproval.addEventListener('click', async () => {
+  const shipmentId = sessionStorage.getItem('fc.activeShipmentId');
+  if (!shipmentId) { notify('Entrega não identificada. Abra o pedido para confirmar.'); return; }
+  receiptApproval.disabled = true;
+  try {
+    await apiRequest('/v1/shipments/' + shipmentId + '/receipt', {
+      method: 'POST', body: { approved: true },
+    });
+    receiptApproval.textContent = 'Recebimento aprovado';
+    notify('Sua aprovação foi registrada. O repasse ainda não foi liberado.');
+  } catch (error) {
+    receiptApproval.disabled = false;
+    notify(error.message || 'Não foi possível registrar sua aprovação');
+  }
+});

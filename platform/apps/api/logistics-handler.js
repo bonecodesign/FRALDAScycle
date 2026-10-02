@@ -10,6 +10,20 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
   }
   if(!logisticsService)return false;
+  const receipt=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/(receipt|proof\/validate|proof)$/i);
+  if(receipt && request.method==="GET" && receipt[2]==="proof"){
+    const actor=await authenticatedUser(request,authService);
+    const proof=await logisticsService.receiptEvidence(actor,receipt[1]);
+    sendJson(response,200,{proof,requestId},headers);return true;
+  }
+  if(receipt && request.method==="POST" && receipt[2]!=="proof"){
+    const actor=await authenticatedUser(request,authService);
+    const input=await readJson(request);
+    const result=receipt[2]==="receipt"
+      ? await logisticsService.approveReceipt(actor.id,receipt[1],input)
+      : await logisticsService.validateProof(actor,receipt[1],input);
+    sendJson(response,result.reused?200:201,{decision:result,requestId},headers);return true;
+  }
   if(request.method==="POST"&&url.pathname==="/v1/shipments"){
     const actor=await authenticatedUser(request,authService);const result=await logisticsService.create(actor.id,await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},headers);return true;
@@ -22,4 +36,3 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
   if(request.method==="POST"&&proof){const actor=await authenticatedUser(request,authService);if(actor.role!=="courier"&&actor.role!=="admin")throw new AuthError("forbidden",403,"Acesso não autorizado.");const result=await logisticsService.proof(actor.id,proof[1],await readJson(request));sendJson(response,201,{proof:result,requestId},headers);return true}
   return false;
 }
-

@@ -1,4 +1,5 @@
 import { ServiceError } from "./service-error.js";
+import { hasScope, requireScope } from "./authorization.js";
 export class LogisticsError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -12,6 +13,29 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider){
   return Object.freeze({
+    async receiptEvidence(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({
+        userId: actor.id, shipmentId, reviewer: hasScope(actor, "admin:deliveries:validate"),
+      });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
+      return {
+        id: proof.id, mediaKey: proof.media_key, courierId: proof.courier_id,
+        createdAt: proof.created_at, approvedAt: proof.approved_at ?? null,
+        validatedAt: proof.validated_at ?? null, payoutStatus: "not_configured",
+      };
+    },
+    async approveReceipt(actorId, shipmentId, input) {
+      if (input?.approved !== true) throw new LogisticsError("explicit_approval_required", 422, "Confirme explicitamente que recebeu e verificou o produto.");
+      return repository.recordReceiptDecision({ actorId, shipmentId });
+    },
+    async validateProof(actor, shipmentId, input) {
+      requireScope(actor, "admin:deliveries:validate");
+      const reason = String(input?.reason ?? "").trim();
+      if (input?.validated !== true || reason.length < 10 || reason.length > 1000) {
+        throw new LogisticsError("invalid_proof_validation", 422, "Confirme a validação e registre sua justificativa.");
+      }
+      return repository.recordReceiptDecision({ actorId: actor.id, shipmentId, validation: true, reason });
+    },
     async processWebhook(event){
       const result=await repository.processWebhook(event);
       if(result.missing)throw new LogisticsError("shipment_not_found",404,"Entrega não encontrada.");
@@ -55,4 +79,3 @@ export function createLogisticsService(repository,provider){
     },
   })
 }
-
