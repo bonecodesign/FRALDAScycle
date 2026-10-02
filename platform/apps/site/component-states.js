@@ -1,12 +1,6 @@
+import { notify } from "/packages/ui/notify.js";
 import "/apps/site/home.js";
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 function setupComponentStates(){
   const page=document.querySelector('.component-states-page');if(!page)return;
@@ -31,3 +25,4 @@ function setupComponentStates(){
   }));
 }
 setupComponentStates();
+

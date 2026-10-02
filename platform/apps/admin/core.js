@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/apps/admin/auth.js";
 import { apiOrigin, apiRequest } from "/packages/contracts/api-client.js";
 const adminNavIcons={
@@ -62,7 +63,6 @@ function setupAdminSyntheticDataDisclosure(){
     badge.setAttribute('title','Nenhum dado real é usado nesta experiência local.');
   });
 }
-function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function setupAdmin(){
   const userSearch=document.getElementById('admin-user-search');const userStatus=document.getElementById('admin-user-status');const userTable=document.getElementById('admin-user-table');const userEmpty=document.getElementById('admin-user-empty');
   const filterUsers=()=>{if(!userTable)return;let visible=0;userTable.querySelectorAll('tbody tr').forEach(row=>{const text=row.textContent.toLowerCase();const show=(!userSearch?.value||text.includes(userSearch.value.toLowerCase()))&&(!userStatus?.value||text.includes(userStatus.value.toLowerCase()));row.hidden=!show;if(show)visible++});if(userEmpty)userEmpty.hidden=visible>0};
@@ -206,3 +206,4 @@ function setupAdminRealtime(){
   window.addEventListener('pagehide',()=>stream.close(),{once:true});
 }
 setupAdminRealtime();
+

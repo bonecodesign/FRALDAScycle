@@ -1,15 +1,9 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { geocodeLocation, publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 import { catalogOptions, DIAPER_CATEGORIES, modelsForCategory } from "/packages/contracts/diaper-catalog.js";
 import "/apps/site/home.js";
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 function setupSitePublish(){
   const content=document.getElementById('site-publish-content');
@@ -108,3 +102,4 @@ function setupSitePublish(){
 }
 
 setupSitePublish();
+

@@ -1,5 +1,5 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
-function notify(message){const toast=document.querySelector("#toast");if(!toast)return;toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),1800)}
 function actionMessage(action){return {favorite:'Adicionado aos favoritos',search:'128 resultados encontrados',send:'Mensagem enviada',pay:'Pagamento aprovado e protegido',receipt:'Comprovante preparado para visualização',delivery:'Recebimento confirmado',publish:'Opção selecionada. Avançando para a próxima etapa',invite:'Convite enviado',export:'Relatório preparado para exportação','read-all':'Todas as notificações foram marcadas como lidas','add-balance':'Opções para adicionar saldo abertas',refund:'Solicitação de reembolso enviada','delivery-problem':'Atendimento de entrega iniciado',rating:'Avaliação enviada com sucesso','publish-complete':'Anúncio publicado com sucesso'}[action]||'Ação concluída'}
 function setupNotifications(){
   const list=document.getElementById('notification-list');
@@ -108,3 +108,4 @@ setupNotificationSettings();
 setupAuthValidation();
 setupWalletLogisticsExtras();
 setupActionStates();
+

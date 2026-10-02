@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { publishListing, uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 import { DIAPER_CATEGORIES, catalogOptions } from "/packages/contracts/diaper-catalog.js";
@@ -5,13 +6,6 @@ import { DIAPER_CATEGORIES, catalogOptions } from "/packages/contracts/diaper-ca
 const DRAFT_KEY = "fc.publishDraft";
 function readDraft(){try{return JSON.parse(sessionStorage.getItem(DRAFT_KEY))||{}}catch{return {}}}
 function saveDraft(patch){const next={...readDraft(),...patch};sessionStorage.setItem(DRAFT_KEY,JSON.stringify(next));return next}
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 function setupPublishValidation(){
   const content=document.getElementById('publish-content');
@@ -58,3 +52,4 @@ publish?.addEventListener("click", async () => {
     if (error.status === 401) location.pathname = "/app/login";
   }
 });
+

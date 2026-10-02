@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
@@ -17,7 +18,6 @@ function setupRealLogistics(){
   if(document.getElementById('delivery-tracking'))void refreshRealShipment().catch(()=>{});
 }
 
-function notify(message) { const toast=document.querySelector("#toast"); if(!toast)return; toast.textContent=message; toast.classList.add("show"); window.setTimeout(()=>toast.classList.remove("show"),1800); }
 function setupDeliveryTracking(){
   const tracking=document.getElementById('delivery-tracking');if(!tracking)return;
   const refresh=document.getElementById('delivery-refresh');const driver=document.getElementById('tracking-driver');const eta=document.getElementById('delivery-eta');const contact=document.getElementById('delivery-contact');
@@ -31,3 +31,4 @@ setupRealLogistics();
 setupDeliveryTracking();
 setupWalletLogisticsExtras();
 setupActionStates();
+
