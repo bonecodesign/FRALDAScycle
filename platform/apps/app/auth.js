@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
@@ -77,13 +78,6 @@ if (LOCAL_DEMO && location.pathname === "/app/login") {
   location.replace("/app/home");
 }
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 2400);
-}
 
 function setupAuthValidation() {
   const contactValid = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || value.replace(/\D/g, "").length >= 8;
@@ -201,7 +195,7 @@ function setupAuthValidation() {
         digits.forEach(input => { input.value = ""; });
         digits[0].focus();
         verify.querySelector(".otp-time").textContent = "Novo código enviado · expira em 10:00";
-        notify("Novo código enviado com sucesso");
+        notify("Novo código enviado com sucesso", 2400);
       } catch (error) { fail(verify, error); }
     });
   }
@@ -218,7 +212,7 @@ function setupAuthValidation() {
     try {
       await apiRequest("/v1/auth/password/reset", { method: "POST", body: { token, password: password.value } });
       sessionStorage.removeItem("fc.auth.recoveryToken");
-      notify("Senha atualizada com sucesso");
+      notify("Senha atualizada com sucesso", 2400);
       location.pathname = "/app/login";
     } catch (error) { fail(reset, error); restore(); }
   });
@@ -229,10 +223,10 @@ function setupAuthValidation() {
     button.innerHTML = '<span class="inline-spinner"></span> Verificando conexão...';
     try {
       await apiRequest("/health");
-      notify("Conexão restabelecida");
+      notify("Conexão restabelecida", 2400);
       location.pathname = "/app/login";
     } catch {
-      notify("Conexão ainda indisponível");
+      notify("Conexão ainda indisponível", 2400);
       button.disabled = false;
       button.textContent = "Tentar novamente";
     }
@@ -242,3 +236,4 @@ function setupAuthValidation() {
 setupAuthValidation();
 setupAppIconography();
 setupSyntheticDataDisclosure();
+
