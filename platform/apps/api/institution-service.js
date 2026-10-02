@@ -1,3 +1,4 @@
+import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 export class InstitutionError extends ServiceError {
   constructor(code, status, message) {
@@ -24,8 +25,7 @@ export function createInstitutionService(repository) {
       return repository.listActive({
         state: text(params.state).toUpperCase() || null,
         city: text(params.city).slice(0, 100) || null,
-        limit: Math.min(100, Math.max(1, Number(params.limit) || 50)),
-        offset: Math.max(0, Number(params.offset) || 0),
+        ...pagination(params),
       });
     },
 
@@ -33,8 +33,7 @@ export function createInstitutionService(repository) {
       const status = text(params.status);
       return repository.listAdmin({
         status: status && STATUSES.has(status) ? status : null,
-        limit: Math.min(100, Math.max(1, Number(params.limit) || 50)),
-        offset: Math.max(0, Number(params.offset) || 0),
+        ...pagination(params),
       });
     },
 

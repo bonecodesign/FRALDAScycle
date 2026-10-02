@@ -1,3 +1,4 @@
+import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { createHash, randomBytes } from "node:crypto";
 import { hashPassword } from "./security.js";
@@ -75,8 +76,7 @@ export function createAdminService(repository) {
     },
 
     async users(params = {}) {
-      const limit = Math.min(100, Math.max(1, Number(params.limit) || 50));
-      const offset = Math.max(0, Number(params.offset) || 0);
+      const { limit, offset } = pagination(params);
       const role = params.role && ROLES.has(params.role) ? params.role : null;
       const status = params.status && USER_STATUSES.has(params.status) ? params.status : null;
       return repository.listUsers({
@@ -101,8 +101,7 @@ export function createAdminService(repository) {
     },
 
     async auditEvents(params = {}) {
-      const limit = Math.min(100, Math.max(1, Number(params.limit) || 50));
-      const offset = Math.max(0, Number(params.offset) || 0);
+      const { limit, offset } = pagination(params);
       return repository.listAuditEvents({ limit, offset });
     },
 
