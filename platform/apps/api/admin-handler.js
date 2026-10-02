@@ -1,21 +1,15 @@
 import { readJson } from "./body.js";
-import { readSessionCookie } from "./cookies.js";
+import { authenticatedUser } from "./session.js";
 import { AuthError } from "./auth-service.js";
 import { requireScope } from "./authorization.js";
 import { sendCsv, sendJson } from "./http.js";
-
-async function authenticatedUser(request, authService) {
-  const user = await authService?.session(readSessionCookie(request.headers.cookie));
-  if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
-  return user;
-}
 
 export async function handleAdmin(request, response, {
   url, headers, requestId, authService, adminService, realtimeService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   if (!adminService) return false;
-  const user = await authenticatedUser(request, authService);
+  const user = await authenticatedUser(request, authService, { optionalService: true });
 
   if (request.method === "GET" && url.pathname === "/v1/admin/events/stream") {
     requireScope(user, "admin:audit:read");
@@ -86,3 +80,4 @@ export async function handleAdmin(request, response, {
 
   return false;
 }
+

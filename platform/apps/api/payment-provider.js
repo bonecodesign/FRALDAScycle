@@ -1,4 +1,5 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
+import { verifyWebhookSignature } from "./webhook-signature.js";
 
 export class PaymentProviderError extends Error {
   constructor(code = "payment_provider_unavailable", message = "Provedor de pagamentos indisponível.") {
@@ -18,25 +19,11 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
     configured: Boolean(endpoint),
     verifyWebhook({ raw, timestamp, signature, now = Date.now }) {
       if (!webhookSecret) throw new PaymentProviderError("payment_webhook_not_configured", "Webhook financeiro não configurado.");
-      const seconds = Number(timestamp);
-      if (!Number.isInteger(seconds) || Math.abs(Math.floor(now() / 1000) - seconds) > 300) {
-        const error = new PaymentProviderError("invalid_webhook_timestamp", "Webhook financeiro inválido.");
+      verifyWebhookSignature({ raw, timestamp, signature, now }, webhookSecret, kind => {
+        const error = new PaymentProviderError("invalid_webhook_" + kind, "Webhook financeiro inválido.");
         error.status = 401;
-        throw error;
-      }
-      const receivedHex = String(signature ?? "").replace(/^v1=/, "");
-      if (!/^[0-9a-f]{64}$/i.test(receivedHex)) {
-        const error = new PaymentProviderError("invalid_webhook_signature", "Webhook financeiro inválido.");
-        error.status = 401;
-        throw error;
-      }
-      const expected = createHmac("sha256", webhookSecret).update(`${seconds}.`).update(raw).digest();
-      const received = Buffer.from(receivedHex, "hex");
-      if (received.length !== expected.length || !timingSafeEqual(received, expected)) {
-        const error = new PaymentProviderError("invalid_webhook_signature", "Webhook financeiro inválido.");
-        error.status = 401;
-        throw error;
-      }
+        return error;
+      });
       let event;
       try { event = JSON.parse(raw.toString("utf8")); } catch {
         const error = new PaymentProviderError("invalid_webhook_payload", "Webhook financeiro inválido.");
@@ -164,3 +151,4 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
     },
   });
 }
+

@@ -33,3 +33,28 @@ test("session lookup failures propagate to the existing API error handler", asyn
   );
   await assert.rejects(authenticatedUser({ headers: {} }, null), TypeError);
 });
+
+test("optional identity service keeps administrative requests unauthorized without reading cookies", async () => {
+  const request = { get headers() { assert.fail("cookies must not be read without the service"); } };
+  for (const authService of [null, undefined]) {
+    await assert.rejects(
+      authenticatedUser(request, authService, { optionalService: true }),
+      error => error instanceof AuthError && error.status === 401 && error.code === "unauthenticated",
+    );
+  }
+});
+
+test("optional identity service still validates sessions and propagates cookie and lookup failures", async () => {
+  const user = { id: "admin-1", role: "admin" };
+  const service = { session: async token => { assert.equal(token, "active"); return user; } };
+  assert.equal(await authenticatedUser({ headers: { cookie: "fc_session=active" } }, service, { optionalService: true }), user);
+  await assert.rejects(
+    authenticatedUser({ headers: { cookie: "fc_session=%" } }, service, { optionalService: true }),
+    URIError,
+  );
+  const failure = new Error("identity lookup failed");
+  await assert.rejects(
+    authenticatedUser({ headers: {} }, { session: async () => { throw failure; } }, { optionalService: true }),
+    error => error === failure,
+  );
+});
