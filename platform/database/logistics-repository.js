@@ -144,6 +144,11 @@ export function createLogisticsRepository(database) {
           [input.shipmentId, input.courierId],
         );
         if (!shipment.rows[0]) return null;
+        if (!["picked_up", "in_transit", "delivered"].includes(shipment.rows[0].status)) {
+          throw Object.assign(new Error("A entrega ainda não permite comprovante."), {
+            code: "shipment_proof_not_allowed", status: 409,
+          });
+        }
         const proof = await client.query(
           `INSERT INTO delivery_proofs
              (shipment_id,courier_id,media_key,recipient_name,latitude,longitude)
@@ -153,10 +158,10 @@ export function createLogisticsRepository(database) {
         );
         if (!proof.rows[0]) return { duplicate: true };
         await client.query("UPDATE shipments SET status='delivered',updated_at=now() WHERE id=$1",[input.shipmentId]);
-        await client.query("UPDATE transactions SET status='completed',updated_at=now() WHERE id=$1",[shipment.rows[0].transaction_id]);
+        await client.query("UPDATE transactions SET status='in_delivery',updated_at=now() WHERE id=$1 AND status IN ('paid','in_delivery')",[shipment.rows[0].transaction_id]);
         await client.query(
           `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude)
-           VALUES ($1,'delivered','Entrega comprovada.',$2,$3)`,
+           VALUES ($1,'delivered','Comprovante enviado; aguardando validação e aprovação do recebedor.',$2,$3)`,
           [input.shipmentId,input.latitude,input.longitude],
         );
         await client.query(
@@ -169,3 +174,4 @@ export function createLogisticsRepository(database) {
     },
   });
 }
+

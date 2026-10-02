@@ -26,3 +26,12 @@ Tarifas desconhecidas não são inventadas nem configuradas como zero. Item 12 p
 Validação deste lote: `npm run release:check-local`, 182 testes aprovados e 83 verificações de regressão. Navegação com navegador real permanece pendente pelo bloqueio registrado no piloto. Evidências históricas do piloto não foram reescritas como aprovação; repetir a jornada depois da correção.
 
 Somente `platform/`; desktop e protótipo raiz preservados.
+
+## Lote de proteção da confirmação do recebimento
+
+- O envio do comprovante pelo entregador registra a entrega, mas mantém a transação em `in_delivery`. Foto e webhook não constituem aprovação do recebedor.
+- Comprovantes só são aceitos após coleta/trânsito ou entrega registrada; estados anteriores, falhos e cancelados são rejeitados.
+- A rota legada de conclusão fica explicitamente indisponível (503), inclusive ao vendedor, até persistir aprovação do recebedor, validação independente do comprovante e verificação de disputas. O suporte acompanha a pendência; não há conclusão automática por silêncio.
+- Este lote é uma proteção parcial dos itens 13–20, não a implementação integral: telas de aprovação, validação administrativa, auditoria das duas decisões, troca com duas entregas e repasses em até três dias continuam pendentes. Nenhum repasse foi ativado.
+
+PR encadeado sobre #63. Item 12 permanece em standby; somente `platform/`.

@@ -79,7 +79,7 @@ test("courier assignment persists event and audit atomically", async () => {
   assert.match(statements[2].text, /shipment\.courier\.assigned/);
 });
 
-test("delivery proof completes shipment and transaction in one transaction", async () => {
+test("delivery proof records delivery without completing the transaction", async () => {
   const statements = [];
   const client = {
     async query(text, values) {
@@ -100,7 +100,8 @@ test("delivery proof completes shipment and transaction in one transaction", asy
   assert.equal(proof.id, "proof-1");
   assert.equal(statements.length, 6);
   assert.match(statements[2].text, /status='delivered'/);
-  assert.match(statements[3].text, /status='completed'/);
+  assert.match(statements[3].text, /status='in_delivery'/);
+  assert.ok(statements.every(({ text }) => !/status\s*=\s*'completed'/.test(text)));
   assert.match(statements[4].text, /shipment_events/);
   assert.match(statements[5].text, /shipment\.proof\.created/);
 });
@@ -180,4 +181,23 @@ test("signed logistics webhook endpoint requires provider verification", async (
   assert.equal((await fetch(origin+"/v1/logistics/webhooks",{method:"POST",headers:{"content-type":"application/json"},body})).status,401);
   const accepted=await fetch(origin+"/v1/logistics/webhooks",{method:"POST",headers:{"content-type":"application/json","x-logistics-timestamp":"123","x-logistics-signature":"valid"},body});
   assert.equal(accepted.status,200);assert.equal((await accepted.json()).accepted,true);
+});
+
+
+
+test("proof cannot mark an uncollected or cancelled shipment delivered", async () => {
+  for (const status of ["assigned", "awaiting_pickup", "cancelled", "failed"]) {
+    let calls = 0;
+    const repository = createLogisticsRepository({
+      async transaction(operation) {
+        return operation({ async query() {
+          calls += 1;
+          return { rows: [{ id: shipmentId, transaction_id: transactionId, status }] };
+        } });
+      },
+    });
+    await assert.rejects(repository.addProof({ shipmentId, courierId: "courier-1" }),
+      (error) => error.code === "shipment_proof_not_allowed" && error.status === 409);
+    assert.equal(calls, 1);
+  }
 });
