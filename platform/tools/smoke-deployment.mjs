@@ -1,3 +1,5 @@
+import { isMainModule } from "../packages/contracts/main-module.js";
+
 const TARGETS = Object.freeze([
   ["apiHealth", "API_URL", "/health", "api"],
   ["apiReadiness", "API_URL", "/ready", "api"],
@@ -41,7 +43,7 @@ export async function smokeDeployment(env = process.env, { fetchImpl = fetch } =
   return Object.freeze({ ready: true, checkedAt: new Date().toISOString(), results });
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   smokeDeployment().then((report) => console.log(JSON.stringify(report, null, 2))).catch((error) => {
     console.error(JSON.stringify({ ready: false, error: error.message }));
     process.exitCode = 1;

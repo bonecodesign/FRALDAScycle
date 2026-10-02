@@ -24,6 +24,16 @@ npm run pilot:validate
 npm test
 ```
 
+## Pré-validação automatizada — concluída em 27 de setembro de 2026
+
+- [x] manifesto de entrada válido e restrito a dados sintéticos;
+- [x] roteiro com 21 cenários cobrindo 21 evidências sem duplicidade;
+- [x] suíte automatizada com 167/167 testes aprovados;
+- [x] regressão navegável com 57/57 verificações aprovadas;
+- [x] integrações externas, transações reais e acesso público permanecem bloqueados.
+
+Esta pré-validação habilita a sessão humana, mas não substitui sua execução nem a decisão de saída.
+
 ## Checklist de entrada
 
 - [ ] regras de produto conferidas no Site, App, Admin, API e protótipo;

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const ID = /^[a-z][a-z0-9-]*$/;
 
@@ -81,8 +82,7 @@ export async function inspectPilotSession(
   return { session, evidenceRegister, ...validatePilotSession(session, evidenceRegister) };
 }
 
-const invokedPath = process.argv[1]?.replaceAll("\\", "/");
-if (invokedPath && import.meta.url === "file://" + invokedPath) {
+if (isMainModule(import.meta.url)) {
   try {
     const report = await inspectPilotSession(process.argv[2], process.argv[3]);
     const coveredEvidence = report.session.scenarios.flatMap((scenario) => scenario.evidenceIds);

@@ -1,4 +1,5 @@
 import { loadConfig } from "../apps/api/config.js";
+import { isMainModule } from "../packages/contracts/main-module.js";
 import { createDatabase } from "../database/client.js";
 import { createNotificationRepository } from "../database/notification-repository.js";
 
@@ -54,6 +55,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => { console.error(error); process.exitCode = 1; });
 }

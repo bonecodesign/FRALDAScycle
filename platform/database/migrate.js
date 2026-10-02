@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { createDatabase } from "./client.js";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const migrationsRoot = resolve(import.meta.dirname, "migrations");
 
@@ -60,7 +61,7 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll("\\", "/")}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

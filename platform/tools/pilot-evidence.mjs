@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isMainModule } from "../packages/contracts/main-module.js";
 
 const ID = /^[a-z][a-z0-9-]*$/;
 const STATUSES = new Set(["pending", "passed", "failed", "skipped"]);
@@ -77,8 +78,7 @@ export async function inspectPilotEvidenceRegister(
   return { register, manifest, ...validatePilotEvidenceRegister(register, manifest) };
 }
 
-const invokedPath = process.argv[1]?.replaceAll("\\", "/");
-if (invokedPath && import.meta.url === "file://" + invokedPath) {
+if (isMainModule(import.meta.url)) {
   try {
     const report = await inspectPilotEvidenceRegister(process.argv[2], process.argv[3]);
     const counts = Object.fromEntries([...STATUSES].map((status) => [
