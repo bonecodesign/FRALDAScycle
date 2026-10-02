@@ -1,13 +1,9 @@
+import { PILOT_ID as ID, isDateString } from "./pilot-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
-const ID = /^[a-z][a-z0-9-]*$/;
 const OUTCOMES = new Set(["pending", "go", "no-go"]);
 const STATUSES = new Set(["pending", "completed"]);
-
-function isIsoDate(value) {
-  return typeof value === "string" && !Number.isNaN(Date.parse(value));
-}
 
 export function validatePilotExecutionRecord(value) {
   const errors = [];
@@ -39,7 +35,7 @@ export function validatePilotExecutionRecord(value) {
   if (decision.outcome !== "pending") {
     if (value.status !== "completed") errors.push("decided record must be completed");
     if (!ID.test(decision.decidedBy ?? "")) errors.push("decision.decidedBy is invalid");
-    if (!isIsoDate(decision.decidedAt)) errors.push("decision.decidedAt is invalid");
+    if (!isDateString(decision.decidedAt)) errors.push("decision.decidedAt is invalid");
     if (typeof decision.rationale !== "string" || decision.rationale.trim().length < 10) {
       errors.push("decision.rationale is required");
     }
@@ -75,3 +71,4 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+

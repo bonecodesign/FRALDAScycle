@@ -51,6 +51,7 @@ const files = [
   "tools/provider-readiness.mjs",
   "tools/provider-selection.mjs",
   "tools/provider-due-diligence.mjs",
+  "tools/pilot-contract.mjs",
   "tools/pilot-readiness.mjs",
   "tools/pilot-execution.mjs",
   "tools/pilot-evidence.mjs",
