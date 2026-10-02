@@ -33,7 +33,7 @@ export function createPaymentRepository(database) {
         );
         await client.query(
           `UPDATE transactions SET status = 'payment_pending', updated_at = now()
-           WHERE id = $1 AND status IN ('proposed', 'reserved', 'payment_pending')`,
+           WHERE id = $1 AND status IN ('initiated', 'payment_pending')`,
           [input.transactionId],
         );
         await client.query(
@@ -170,3 +170,4 @@ export function createPaymentRepository(database) {
     },
   });
 }
+
