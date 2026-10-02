@@ -1,13 +1,6 @@
 import { readJson } from "./body.js";
-import { readSessionCookie } from "./cookies.js";
-import { AuthError } from "./auth-service.js";
+import { authenticatedUser } from "./session.js";
 import { sendJson } from "./http.js";
-
-async function authenticatedUser(request, authService) {
-  const user = await authService.session(readSessionCookie(request.headers.cookie));
-  if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
-  return user;
-}
 
 export async function handleMarketplace(request, response, {
   url, headers, requestId, marketplaceService, marketplaceProviders, authService,
@@ -95,3 +88,4 @@ export async function handleMarketplace(request, response, {
 
   return false;
 }
+

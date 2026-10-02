@@ -1,5 +1,8 @@
-export class LogisticsError extends Error {
-  constructor(code,status,message){super(message);this.code=code;this.status=status}
+import { ServiceError } from "./service-error.js";
+export class LogisticsError extends ServiceError {
+  constructor(code, status, message) {
+    super(code, status, message);
+  }
 }
 const MODES=new Set(["pickup","partner","postal","express"]);
 const ELIGIBLE=new Set(["paid","in_delivery"]);
@@ -52,3 +55,4 @@ export function createLogisticsService(repository,provider){
     },
   })
 }
+

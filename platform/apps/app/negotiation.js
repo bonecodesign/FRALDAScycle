@@ -1,13 +1,7 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 function normalizeText(value) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -107,3 +101,4 @@ function setupSafetyActions() {
 
 void setupProtectedChat();
 setupSafetyActions();
+

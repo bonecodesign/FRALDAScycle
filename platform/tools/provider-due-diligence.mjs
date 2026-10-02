@@ -1,11 +1,10 @@
+import { PROVIDER_CAPABILITIES as IDS, CREDENTIAL_PATTERN as SECRET } from "./provider-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
-const IDS = Object.freeze(["notifications", "media", "geocoding", "payments", "logistics", "distributedRateLimit", "telemetry", "externalSecrets"]);
 const CATEGORIES = Object.freeze(["technical", "security", "privacy", "commercial", "legal", "operations"]);
 const REQUIRED_GATES = Object.freeze(["marketplace-compatible", "lgpd-dpa-approved", "https-and-encryption", "sandbox-or-equivalent", "data-export-and-deletion", "bounded-cost", "exit-plan", "no-prototype-change"]);
 const QUESTION = /^[A-Z]{3}-\d{2}: .{20,}$/;
-const SECRET = /(-----BEGIN [A-Z ]+PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|sk_(live|test)_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16})/;
 
 export function validateProviderDueDiligence(value) {
   const errors = [];
@@ -60,3 +59,4 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+

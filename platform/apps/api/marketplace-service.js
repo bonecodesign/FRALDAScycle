@@ -1,10 +1,10 @@
+import { pagination } from "./pagination.js";
+import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
 
-export class MarketplaceError extends Error {
+export class MarketplaceError extends ServiceError {
   constructor(code, status, message) {
-    super(message);
-    this.code = code;
-    this.status = status;
+    super(code, status, message);
   }
 }
 
@@ -15,8 +15,7 @@ const PACKAGE_CONDITIONS = new Set(["sealed", "open"]);
 export function createMarketplaceService(repository) {
   return Object.freeze({
     async search(params = {}) {
-      const limit = Math.min(50, Math.max(1, Number(params.limit) || 24));
-      const offset = Math.max(0, Number(params.offset) || 0);
+      const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
       const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
       const hasLatitude = params.latitude != null && params.latitude !== "";
       const hasLongitude = params.longitude != null && params.longitude !== "";
@@ -123,3 +122,4 @@ export function createMarketplaceService(repository) {
     },
   });
 }
+

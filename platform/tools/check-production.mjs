@@ -1,0 +1,68 @@
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const platformRoot = fileURLToPath(new URL("../", import.meta.url));
+const files = [
+  "apps/api/admin-handler.js",
+  "apps/api/admin-service.js",
+  "apps/api/institution-handler.js",
+  "apps/api/institution-service.js",
+  "database/institution-repository.js",
+  "apps/api/authorization.js",
+  "apps/api/auth-service.js",
+  "apps/api/body.js",
+  "apps/api/config.js",
+  "apps/api/cookies.js",
+  "apps/api/http.js",
+  "apps/api/logistics-handler.js",
+  "apps/api/logistics-provider.js",
+  "apps/api/logistics-service.js",
+  "apps/api/notifications.js",
+  "apps/api/payment-handler.js",
+  "apps/api/payment-provider.js",
+  "apps/api/payment-service.js",
+  "apps/api/rate-limit.js",
+  "apps/api/security.js",
+  "apps/api/secrets.js",
+  "apps/api/server.js",
+  "apps/api/session.js",
+  "apps/api/service-error.js",
+  "apps/api/pagination.js",
+  "apps/api/telemetry.js",
+  "apps/api/runtime.js",
+  "database/admin-repository.js",
+  "database/auth-repository.js",
+  "database/client.js",
+  "database/logistics-repository.js",
+  "database/migrate.js",
+  "database/notification-repository.js",
+  "database/payment-repository.js",
+  "workers/notifications.js",
+  "apps/api/marketplace-handler.js",
+  "apps/api/marketplace-providers.js",
+  "apps/api/marketplace-service.js",
+  "database/marketplace-repository.js",
+  "tools/production-doctor.mjs",
+  "tools/smoke-deployment.mjs",
+  "database/recovery.js",
+  "apps/api/realtime-service.js",
+  "database/realtime-repository.js",
+  "tools/provider-contract.mjs",
+  "tools/provider-readiness.mjs",
+  "tools/provider-selection.mjs",
+  "tools/provider-due-diligence.mjs",
+  "tools/pilot-readiness.mjs",
+  "tools/pilot-execution.mjs",
+  "tools/pilot-evidence.mjs",
+  "tools/pilot-session.mjs"
+];
+
+for (const file of files) {
+  const result = spawnSync(process.execPath, ["--check", file], {
+    cwd: platformRoot,
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
+console.log(`Production syntax: ${files.length} files approved.`);

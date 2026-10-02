@@ -1,12 +1,6 @@
+import { notify } from "/packages/ui/notify.js";
 import "/apps/site/home.js";
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 const fraldaTokens={
   color:{primary:'#16A34A',primaryDark:'#0F7A3A',secondary:'#2563EB',support:'#7C3AED',warning:'#F59E0B',error:'#EF4444',info:'#06B6D4',neutral:'#64748B',surface:'#F8FAFC',background:'#FFFFFF',text:'#111827'},
@@ -42,3 +36,4 @@ function setupDesignTokens(){
 applyStoredTheme();
 
 setupDesignTokens();
+

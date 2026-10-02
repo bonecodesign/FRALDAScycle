@@ -1,10 +1,10 @@
+import { CREDENTIAL_PATTERN as SECRET_VALUE } from "./provider-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
 const ID = /^[a-z][A-Za-z0-9]*$/;
 const ENV_KEY = /^[A-Z][A-Z0-9_]*$/;
 const CHECK = /^[a-z0-9][a-z0-9-]*$/;
-const SECRET_VALUE = /(-----BEGIN [A-Z ]+PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|sk_(live|test)_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16})/;
 
 export function validateProviderReadinessManifest(value) {
   const errors = [];
@@ -51,3 +51,4 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = 1;
   }
 }
+

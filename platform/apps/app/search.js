@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { renderAppSearch } from "/packages/contracts/marketplace-ui.js";
 const products=[
@@ -8,13 +9,6 @@ const products=[
 ];
 const productImages=['pampers-approved.png','huggies-approved.png','babysec-approved.png','mamypoko-approved.png'];
 function searchResultsMarkup(items,sortLabel='Mais relevantes'){if(!items.length)return `<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum item encontrado</h2><p>Tente outro termo, tamanho ou aumente a distância da busca.</p><button class="button secondary" id="clear-app-search">Limpar filtros</button></div>`;const cards=items.map(({product,index})=>`<a class="phone-card" href="/app/chat"><img class="phone-thumb" src="/source/assets/approved/${productImages[index]}" alt="${product.name}"><div><span class="result-deal">${['Venda','Troca','Doação','Venda'][index]}</span><h3>${product.name}</h3><p>${product.detail} · ${product.distance}</p><strong>${product.price}</strong></div><span class="favorite" aria-label="Favoritar">♡</span></a>`).join('');const markers=items.slice(0,3).map(({product,index},position)=>`<button class="map-marker m${position+1}${position===0?' active':''}" data-map-product="${index}" aria-label="${product.name}, ${product.distance}"><span>${product.price.replace(',00','').replace(' ','')}</span></button>`).join('');const first=items[0].product;return `<div class="section-head compact"><h2>${items.length===products.length?'128':items.length} resultados</h2><span class="muted">${sortLabel}</span></div><div class="phone-list">${cards}</div><h2 style="margin-top:24px">Resultados no mapa</h2><p class="muted map-caption">Veja no mapa os itens encontrados nesta pesquisa.</p><div class="results-map" style="height:260px">${markers}<div class="map-preview" id="map-preview"><strong>${first.name}</strong><small>${first.detail} · ${first.distance}</small></div></div>`}
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 1800);
-}
 
 function setupMap(){const preview=document.getElementById('map-preview');if(!preview)return;document.querySelectorAll('[data-map-product]').forEach(marker=>marker.addEventListener('click',()=>{document.querySelectorAll('[data-map-product]').forEach(m=>m.classList.remove('active'));marker.classList.add('active');const p=products[Number(marker.dataset.mapProduct)];preview.innerHTML=`<strong>${p.name}</strong><small>${p.detail} · ${p.distance}</small>${location.pathname.includes('/site/')?'<a class="button secondary block small" href="/site/detail">Ver detalhes</a>':''}`}))}
 function setupAccessibility(){
@@ -37,3 +31,4 @@ function setupSearchStates(){const input=document.getElementById('app-search-inp
 setupSearchStates();
 
 renderAppSearch();
+

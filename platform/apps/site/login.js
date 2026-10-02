@@ -1,3 +1,4 @@
+import { notify } from "/packages/ui/notify.js";
 import "/apps/site/home.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
@@ -7,13 +8,6 @@ if (LOCAL_DEMO) {
   location.replace("/site/home");
 }
 
-function notify(message) {
-  const toast = document.querySelector("#toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 2400);
-}
 
 const form = document.querySelector("[data-demo-form]");
 form?.addEventListener("submit", async event => {
@@ -36,11 +30,12 @@ form?.addEventListener("submit", async event => {
       method: "POST",
       body: { ...identity, password: password.value },
     });
-    notify("Informações validadas com sucesso");
+    notify("Informações validadas com sucesso", 2400);
     window.setTimeout(() => { location.pathname = "/site/home"; }, 500);
   } catch (error) {
-    notify(error instanceof ApiError ? error.message : "Não foi possível entrar.");
+    notify(error instanceof ApiError ? error.message : "Não foi possível entrar.", 2400);
     button.disabled = false;
     button.textContent = original;
   }
 });
+

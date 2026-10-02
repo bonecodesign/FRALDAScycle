@@ -3,7 +3,7 @@ import { isMainModule } from "../../packages/contracts/main-module.js";
 import { readJson } from "./body.js";
 import { clearSessionCookie, readSessionCookie, sessionCookie } from "./cookies.js";
 import { loadConfig } from "./config.js";
-import { AuthError } from "./auth-service.js";
+import { authenticatedUser } from "./session.js";
 import { corsHeaders, requestId, sendJson } from "./http.js";
 import { handleMarketplace } from "./marketplace-handler.js";
 import { handleInstitutions } from "./institution-handler.js";
@@ -123,8 +123,7 @@ export function createApiServer({
       }
 
       if (request.method === "GET" && url.pathname === "/v1/auth/session") {
-        const user = await authService.session(readSessionCookie(request.headers.cookie));
-        if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
+        const user = await authenticatedUser(request, authService);
         sendJson(response, 200, { user, requestId: id }, headers);
         return;
       }
@@ -209,3 +208,4 @@ export function startApi(config = loadConfig()) {
 }
 
 if (isMainModule(import.meta.url)) startApi();
+
