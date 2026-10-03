@@ -1,5 +1,6 @@
 import { ServiceError } from "./service-error.js";
 import { hasScope, requireScope } from "./authorization.js";
+import { sellerSettlementReadiness } from "../../packages/contracts/settlement-readiness.js";
 export class LogisticsError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -13,6 +14,12 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    async settlementStatus(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
+        reviewer: hasScope(actor, "admin:deliveries:validate") });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Recebimento não encontrado.");
+      return sellerSettlementReadiness(proof);
+    },
     async proofPhoto(actor, shipmentId) {
       const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
         reviewer: hasScope(actor, "admin:deliveries:validate") });

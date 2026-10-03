@@ -8,8 +8,20 @@ export function createReceiptRepository(database) {
       return database.transaction(async (client) => {
         const result = await client.query(
           `SELECT p.id, p.media_key, p.courier_id, p.created_at,
-                  a.approved_at, v.validated_at
-           FROM shipments s JOIN delivery_proofs p ON p.shipment_id=s.id
+                  a.approved_at, v.validated_at, s.status AS shipment_status,
+                  t.status AS transaction_status, l.kind,
+                  (SELECT count(*)::integer FROM payment_intents pi
+                   WHERE pi.transaction_id=t.id AND pi.status='paid') AS paid_count,
+                  EXISTS (SELECT 1 FROM payment_intents pi
+                          WHERE pi.transaction_id=t.id AND
+                            (pi.status IN ('disputed','refunded','provider_pending','pending','authorized')
+                             OR (pi.status='paid' AND (pi.amount_cents IS DISTINCT FROM t.amount_cents
+                                 OR pi.amount_cents <= 0 OR pi.provider_reference IS NULL)))) AS payment_blocked,
+                  EXISTS (SELECT 1 FROM payment_cases pc JOIN payment_intents pi ON pi.id=pc.payment_intent_id
+                          WHERE pi.transaction_id=t.id AND pc.status <> 'rejected') AS financial_case_pending
+           FROM shipments s JOIN transactions t ON t.id=s.transaction_id
+           JOIN listings l ON l.id=t.listing_id
+           JOIN delivery_proofs p ON p.shipment_id=s.id
            LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id
            LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
            WHERE s.id=$1 AND ($3::boolean OR $2 IN (s.buyer_id,s.seller_id,s.courier_id))`,

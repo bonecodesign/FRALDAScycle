@@ -54,3 +54,15 @@ O painel de logística permite consultar uma entrega pelo UUID, visualizar a fot
 `GET /v1/shipments/:id/proof/photo` verifica acesso pela mesma regra do comprovante e solicita leitura assinada ao fornecedor de mídia (`signed-read`, validade máxima de 300 segundos). Resposta sem cache; imagem sem Referer. Fornecedor não configurado ou resposta inválida impedem a visualização. Não são criados endereços públicos a partir da chave de mídia. O contrato precisa de homologação com o fornecedor real.
 
 Testes cobrem controle de revisão, falha/expiração da foto, troca de entrega, permissão e adaptador com respostas sintéticas. Navegador real, PostgreSQL real e fornecedor real continuam pendentes. Somente platform/; item 12 em standby, sem repasses, lançamento ou desktop.
+
+## Consulta das pendências de repasse ao vendedor
+
+`GET /v1/shipments/:id/settlement-status` apresenta uma consulta restrita e auditada para venda com comprovante. Exige entrega registrada, transação em `in_delivery`, exatamente um pagamento pago, valor coerente/referência externa, ausência de pagamento em disputa/reembolsado ou cobrança pendente, ausência de ocorrência financeira não rejeitada e ambas as decisões. Dados ausentes bloqueiam o resultado. Casos falhos, aprovados ou concluídos não são presumidos como liberação financeira; ainda exigem fluxo de resolução/homologação.
+
+O prazo alvo é de 72 horas após a última das duas decisões; é mostrado mesmo com bloqueios para preservar a referência, sem garantir o prazo externo nem reiniciá-lo por disputa. Silêncio e vencimento não autorizam transferência. O painel administrativo traduz as pendências, informa o prazo alvo sujeito ao fornecedor e identifica que a integração de repasse continua pendente.
+
+Consulta não executa nem autoriza repasse: `payoutAllowed` permanece falso. A integração futura precisará revalidar os requisitos de forma atômica; este resultado pode ficar desatualizado após nova ocorrência. Não implementa repasse do entregador, troca ou doação.
+
+Eventos de logística não sobrescrevem disputa, reembolso ou estado final de transação. Eventos financeiros tardios de autorização/falha não regridem pagamento pago; eventos de pagamento não reabrem disputa/reembolso nem retornam uma entrega a `paid`. O encerramento formal das ocorrências continua pendente.
+
+Validação com banco simulado, contratos e HTTP local; banco e fornecedores reais ainda pendentes. Item 12 em standby, sem transferência, contratação, lançamento ou desktop.

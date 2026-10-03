@@ -137,6 +137,11 @@ export function createPaymentRepository(database) {
           "payment.failed": "failed", "payment.refunded": "refunded",
           "payment.disputed": "disputed",
         }[event.type];
+        if ((intent.status === "refunded" && intentStatus !== "refunded") ||
+            (intent.status === "disputed" && !["disputed", "refunded"].includes(intentStatus)) ||
+            (intent.status === "paid" && ["authorized", "failed"].includes(intentStatus))) {
+          return { ignored: true, status: intent.status };
+        }
         const transactionStatus = {
           "payment.authorized": "payment_pending", "payment.paid": "paid",
           "payment.failed": "payment_pending", "payment.refunded": "refunded",
@@ -149,7 +154,10 @@ export function createPaymentRepository(database) {
         );
         await client.query(
           `UPDATE transactions SET status = $2::transaction_status, updated_at = now()
-           WHERE id = $1`,
+           WHERE id = $1 AND (
+             ($2 IN ('refunded','disputed') AND status <> 'refunded') OR
+             ($2 IN ('paid','payment_pending') AND status IN ('initiated','payment_pending','paid'))
+           )`,
           [intent.transaction_id, transactionStatus],
         );
         await client.query(
@@ -170,4 +178,3 @@ export function createPaymentRepository(database) {
     },
   });
 }
-

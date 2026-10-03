@@ -6,7 +6,7 @@
 <p>Consulte uma entrega real. A validação do comprovante é independente da aprovação do recebedor e não libera o repasse.</p>
 <form id="proof-search"><label for="proof-shipment">Identificador da entrega</label><input class="input" id="proof-shipment" name="shipment" required autocomplete="off"><button class="button secondary" type="submit">Consultar comprovante</button></form>
 <p id="proof-review-status" role="status" aria-live="polite"></p>
-<div id="proof-review-details" hidden><p id="proof-review-metadata"></p><img id="proof-review-photo" alt="Foto do pacote entregue" referrerpolicy="no-referrer" style="max-width:100%;max-height:420px" hidden>
+<div id="proof-review-details" hidden><p id="proof-review-metadata"></p><p id="proof-settlement-summary" role="status" aria-live="polite"></p><img id="proof-review-photo" alt="Foto do pacote entregue" referrerpolicy="no-referrer" style="max-width:100%;max-height:420px" hidden>
 <form id="proof-validation"><label for="proof-review-reason">Justificativa da validação</label><textarea class="input" id="proof-review-reason" name="reason" minlength="10" maxlength="1000" required></textarea>
 <label><input type="checkbox" name="verified" required> Conferi a foto e os registros desta entrega.</label><button class="button primary" id="proof-review-submit" type="submit" disabled>Registrar validação</button></form></div>
 </section>

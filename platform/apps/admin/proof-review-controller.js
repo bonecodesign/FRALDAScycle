@@ -10,7 +10,9 @@ export function createProofReviewController({ request, showPhoto, now = Date.now
       if (session.user?.role !== 'admin') throw new Error('Somente administradores autorizados podem validar comprovantes.');
       const { proof } = await request(`/v1/shipments/${shipmentId}/proof`);
       if (current !== generation) return null;
-      if (proof.validatedAt) return { proof, alreadyValidated: true };
+      const { settlement } = await request(`/v1/shipments/${shipmentId}/settlement-status`);
+      if (current !== generation) return null;
+      if (proof.validatedAt) return { proof, settlement, alreadyValidated: true };
       const { image } = await request(`/v1/shipments/${shipmentId}/proof/photo`);
       if (current !== generation) return null;
       const expiresAt = Date.parse(image.expiresAt);
@@ -20,7 +22,7 @@ export function createProofReviewController({ request, showPhoto, now = Date.now
       if (current !== generation) return null;
       if (expiresAt <= now()) throw new Error('Acesso à foto expirado. Consulte novamente.');
       selected = { shipmentId, expiresAt };
-      return { proof, alreadyValidated: false };
+      return { proof, settlement, alreadyValidated: false };
     },
     clear() { generation += 1; selected = null; },
     async validate(reason, verified) {
