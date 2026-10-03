@@ -14,6 +14,28 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    ownAddresses(userId) { return repository.ownAddresses(userId); },
+    async createAddress(userId,input) {
+      const address={};
+      for(const field of ["label","street","number","district","city"]) {
+        address[field]=String(input?.[field]??"").trim();
+        if(address[field].length<1||address[field].length>150)throw new LogisticsError("invalid_address",422,"Preencha os campos do endereço.");
+      }
+      address.postalCode=String(input?.postalCode??"").replace(/\D/g,"");
+      address.state=String(input?.state??"").trim().toUpperCase();
+      address.complement=String(input?.complement??"").trim()||null;
+      if(!/^\d{8}$/.test(address.postalCode)||
+        !["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].includes(address.state)||
+        (address.complement&&address.complement.length>150))throw new LogisticsError("invalid_address",422,"Informe CEP, estado e complemento válidos.");
+      return repository.createAddress(userId,address);
+    },
+    async shareAddress(userId,shipmentId,input) {
+      if(input?.confirmed!==true||input?.noticeVersion!=="FC-ADDRESS-1")throw new LogisticsError("address_consent_required",422,"Confirme o aviso de compartilhamento do endereço.");
+      const addressId=String(input?.addressId??"");
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addressId))throw new LogisticsError("invalid_address",422,"Selecione seu endereço.");
+      return repository.shareAddress({actorId:userId,shipmentId,addressId});
+    },
+    sharedAddresses(userId,shipmentId) { return repository.sharedAddresses({userId,shipmentId}); },
     async settlementStatus(actor, shipmentId) {
       const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
         reviewer: hasScope(actor, "admin:deliveries:validate") });

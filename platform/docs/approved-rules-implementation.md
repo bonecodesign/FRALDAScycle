@@ -77,3 +77,15 @@ Validação com banco simulado, contratos e HTTP local; banco e fornecedores rea
 - E-mail e horários do suporte aparecem como pendentes de definição, sem divulgar endereço ou prazo não aprovado. Canal externo por e-mail permanece pendente; não foi contratado nem enviado e-mail.
 
 Endpoints locais: `GET/POST /v1/support/tickets`, `GET /v1/support/tickets/:id`, `POST /v1/support/tickets/:id/reply` e rota de cancelamento existente. Sem fornecedor externo ou contratação. Testes com banco simulado e HTTP local; migrações em PostgreSQL e navegação em navegador real permanecem pendentes de homologação. Cancelamento com devolução financeira ainda depende de reembolso homologado; item 12 em standby. Somente platform/, sem desktop, credenciais ou lançamento.
+
+## Cadastro manual e compartilhamento privado de endereço (venda)
+
+O aplicativo cadastra e consulta endereços próprios sem geocodificação externa. Na venda com pagamento confirmado, o titular escolhe seu endereço e aceita o aviso `FC-ADDRESS-1`: após compartilhar, cancelamentos seguem pelo suporte. A migração 021 registra destinatário, versão do aviso, horário e cópia imutável dos dados do endereço; a mesma transação grava `address_shared_at`, ativando o bloqueio de cancelamento do lote anterior. Auditoria não copia o endereço completo.
+
+- Entrega: somente entregador atualmente atribuído pode receber os endereços das partes; outro participante não ganha acesso pelo fato de comprar/vender. Sem entregador definido, compartilhamento permanece bloqueado.
+- Retirada: somente o endereço de coleta do vendedor é compartilhado com o comprador. O endereço do comprador não é liberado ao vendedor.
+- Consulta: titular acessa seus registros; destinatário acessa somente durante a execução e enquanto ainda responsável pela entrega/retirada. Não há acesso administrativo irrestrito. Respostas privadas sem cache e leituras auditadas.
+- Aceite explícito, endereço próprio, pagamento confirmado, operação permitida e ausência de ocorrência financeira são verificados. Troca/doação, coleta já realizada e operações disputadas não permitem nova liberação neste lote.
+- Repetição preserva o registro; mudança de endereço já liberado exige suporte. Alteração administrativa, retenção/exclusão dos registros e fluxo de troca/doação permanecem pendentes. O novo cadastro manual não é validação postal nem geográfica; não representa homologação do piloto.
+
+Endpoints: `GET/POST /v1/addresses`, `GET/POST /v1/shipments/:id/addresses`. Sem contratar ou chamar geocodificador, entregador ou fornecedor de mensagens. Testes sintéticos de serviço/repositório e HTTP; PostgreSQL real, navegador real e revisão dos prazos de retenção ainda pendentes. Somente platform/, item 12 em standby, sem desktop ou lançamento.

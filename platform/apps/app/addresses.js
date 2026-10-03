@@ -1,0 +1,17 @@
+import { apiRequest } from '/packages/contracts/api-client.js';
+import '/packages/ui/iconography.js';
+const feedback=document.getElementById('address-feedback');
+const form=document.getElementById('address-form');
+const share=document.getElementById('address-share-form');
+const choice=share.elements.address;
+const say=value=>{feedback.textContent=value;};
+share.elements.shipment.value=sessionStorage.getItem('fc.activeShipmentId')||'';
+function shipmentId(){const id=share.elements.shipment.value.trim();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw new Error('Informe o identificador da entrega.');return id;}
+async function load(){share.elements.confirmed.checked=false;const {items}=await apiRequest('/v1/addresses');choice.replaceChildren();for(const item of items){const option=document.createElement('option');option.value=item.id;option.textContent=item.label+' · '+item.street+', '+item.number+' · '+item.city;choice.append(option);}if(!items.length)say('Cadastre um endereço para compartilhar.');}
+form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;try{const body=Object.fromEntries(new FormData(form));await apiRequest('/v1/addresses',{method:'POST',body});say('Endereço cadastrado. Ele ainda não foi compartilhado.');form.reset();await load();}catch(error){say(error.message);}finally{button.disabled=false;}});
+document.getElementById('address-refresh').addEventListener('click',async event=>{event.currentTarget.disabled=true;try{await load();}catch(error){say(error.message);}finally{document.getElementById('address-refresh').disabled=false;}});
+share.addEventListener('submit',async event=>{event.preventDefault();const button=share.querySelector('button');button.disabled=true;choice.disabled=true;share.elements.shipment.disabled=true;share.elements.confirmed.disabled=true;try{await apiRequest('/v1/shipments/'+shipmentId()+'/addresses',{method:'POST',body:{addressId:choice.value,confirmed:share.elements.confirmed.checked,noticeVersion:'FC-ADDRESS-1'}});say('Endereço compartilhado com acesso restrito. Cancelamentos devem seguir pelo suporte.');share.elements.confirmed.checked=false;}catch(error){say(error.message);}finally{button.disabled=false;choice.disabled=false;share.elements.shipment.disabled=false;share.elements.confirmed.disabled=false;}});
+document.getElementById('address-read').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;const output=document.getElementById('shared-addresses');output.replaceChildren();try{const requested=shipmentId();const {items}=await apiRequest('/v1/shipments/'+requested+'/addresses');if(share.elements.shipment.value.trim()!==requested)return;for(const item of items){const address=item.address_snapshot;const paragraph=document.createElement('p');paragraph.textContent=[address.street,address.number,address.complement,address.district,address.city,address.state,address.postal_code].filter(Boolean).join(' · ');output.append(paragraph);}say('Acesso aos endereços registrado.');}catch(error){say(error.message);}finally{button.disabled=false;}});
+share.elements.shipment.addEventListener('input',()=>{document.getElementById('shared-addresses').replaceChildren();share.elements.confirmed.checked=false;});
+
+choice.addEventListener('change',()=>{share.elements.confirmed.checked=false;});
