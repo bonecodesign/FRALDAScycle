@@ -11,8 +11,15 @@ function publicShipment(row){return {
   id:row.id,transactionId:row.transaction_id,mode:row.mode,insured:row.insured,
   status:row.status,estimatedDeliveryAt:row.estimated_delivery_at??null,events:row.events??[],
 }}
-export function createLogisticsService(repository,provider){
+export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    async proofPhoto(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
+        reviewer: hasScope(actor, "admin:deliveries:validate") });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
+      if (!mediaProvider) throw new LogisticsError("provider_not_configured", 503, "A leitura privada da foto ainda não foi configurada.");
+      return mediaProvider.signedProofRead(actor.id, proof.media_key);
+    },
     async receiptEvidence(actor, shipmentId) {
       const proof = await repository.receiptEvidence({
         userId: actor.id, shipmentId, reviewer: hasScope(actor, "admin:deliveries:validate"),

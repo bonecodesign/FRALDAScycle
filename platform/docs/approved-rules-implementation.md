@@ -46,3 +46,11 @@ PR encadeado sobre #63. Item 12 permanece em standby; somente `platform/`.
 - A rota legada de conclusão continua bloqueada. As decisões não concluem transações, não verificam elegibilidade financeira e não acionam repasse. Disputas, prazo de três dias, pagamento externo, trocas com duas entregas e confirmação institucional continuam pendentes. Dados de crianças e item 12 preservam suas pendências.
 
 Validação: testes de serviço/repositório com banco simulado e HTTP local; verificação completa de release. Migração em PostgreSQL real, telas administrativas e navegação em navegador real ainda não homologadas. Sem alteração de migrações antigas, protótipo ou desktop.
+
+## Tela administrativa de revisão do comprovante
+
+O painel de logística permite consultar uma entrega pelo UUID, visualizar a foto privada e registrar justificativa e confirmação de conferência. O envio permanece bloqueado sem foto carregada, com URL expirada, sem sessão administrativa ou após mudança da entrega consultada. Aprovação do recebedor e validação são mostradas como decisões independentes; nenhuma libera repasse.
+
+`GET /v1/shipments/:id/proof/photo` verifica acesso pela mesma regra do comprovante e solicita leitura assinada ao fornecedor de mídia (`signed-read`, validade máxima de 300 segundos). Resposta sem cache; imagem sem Referer. Fornecedor não configurado ou resposta inválida impedem a visualização. Não são criados endereços públicos a partir da chave de mídia. O contrato precisa de homologação com o fornecedor real.
+
+Testes cobrem controle de revisão, falha/expiração da foto, troca de entrega, permissão e adaptador com respostas sintéticas. Navegador real, PostgreSQL real e fornecedor real continuam pendentes. Somente platform/; item 12 em standby, sem repasses, lançamento ou desktop.

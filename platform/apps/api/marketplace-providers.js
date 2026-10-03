@@ -42,6 +42,23 @@ async function providerRequest(endpoint, secret, payload, fetchImpl) {
 
 export function createMarketplaceProviders(config, fetchImpl = fetch) {
   return Object.freeze({
+    async signedProofRead(userId, storageKey) {
+      configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
+      if (!/^[a-zA-Z0-9/_-]{8,512}$/.test(storageKey)) {
+        throw new ProviderError("invalid_proof_media", 422, "Chave do comprovante inválida.");
+      }
+      const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
+        operation: "signed-read", requesterId: userId, storageKey, expiresInSeconds: 300,
+      }, fetchImpl);
+      const expiresAt = Date.parse(result.expiresAt);
+      const now = Date.now();
+      if (!Number.isFinite(expiresAt) || expiresAt <= now || expiresAt > now + 300_000) {
+        throw new ProviderError("invalid_provider_response", 502, "Prazo de acesso ao comprovante inválido.");
+      }
+      const url = new URL(httpsUrl(result.readUrl, "readUrl"));
+      if (url.username || url.password) throw new ProviderError("invalid_provider_response", 502, "Endereço do comprovante inválido.");
+      return { readUrl: url.toString(), expiresAt: new Date(expiresAt).toISOString() };
+    },
     async signedUpload(userId, input) {
       configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
       const contentType = String(input?.contentType ?? "");
@@ -91,4 +108,3 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
     },
   });
 }
-

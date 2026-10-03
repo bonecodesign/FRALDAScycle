@@ -10,6 +10,12 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
   }
   if(!logisticsService)return false;
+  const photo=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/proof\/photo$/i);
+  if(photo && request.method==="GET"){
+    const actor=await authenticatedUser(request,authService);
+    const image=await logisticsService.proofPhoto(actor,photo[1]);
+    sendJson(response,200,{image,requestId},{...headers,"cache-control":"no-store","pragma":"no-cache"});return true;
+  }
   const receipt=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/(receipt|proof\/validate|proof)$/i);
   if(receipt && request.method==="GET" && receipt[2]==="proof"){
     const actor=await authenticatedUser(request,authService);
