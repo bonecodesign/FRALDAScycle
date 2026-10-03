@@ -66,3 +66,14 @@ Consulta não executa nem autoriza repasse: `payoutAllowed` permanece falso. A i
 Eventos de logística não sobrescrevem disputa, reembolso ou estado final de transação. Eventos financeiros tardios de autorização/falha não regridem pagamento pago; eventos de pagamento não reabrem disputa/reembolso nem retornam uma entrega a `paid`. O encerramento formal das ocorrências continua pendente.
 
 Validação com banco simulado, contratos e HTTP local; banco e fornecedores reais ainda pendentes. Item 12 em standby, sem transferência, contratação, lançamento ou desktop.
+
+## Cancelamento e suporte implementados sem contratação
+
+- Cancelamento direto somente antes da coleta, sem endereço compartilhado e sem intenção de pagamento registrada. Histórico de coleta e comprovantes também bloqueiam o cancelamento, mesmo se o estado atual da entrega tiver mudado. Bloqueios retornam `cancellation_requires_support`, sem cancelar, republicar produto ou prometer reembolso.
+- Migração 020 adiciona `transactions.address_shared_at` como requisito para a futura liberação real do endereço. Nenhum endereço é liberado neste lote; esse fluxo deverá gravar o marcador atomicamente antes de conceder acesso. A regra de endereço não está integralmente implementada.
+- Nova cobrança revalida e bloqueia a transação no banco antes de persistir a intenção, evitando cobrar uma operação cancelada entre a consulta inicial e a gravação.
+- Suporte dentro da plataforma: criação com protocolo `FC-S-<número>`, lista e detalhes privados, histórico de respostas administrativas, estado e auditoria. Chaves de idempotência reutilizam pedido apenas para o titular. Pedidos ligados a operação exigem participação nela; somente administrador autorizado responde/altera estado.
+- Telas: formulário e acompanhamento em Ajuda do aplicativo; consulta e resposta em Operações do admin. Cancelamento bloqueado direciona o formulário para atendimento. Encerrar atendimento não cancela operação nem executa reembolso. Pedidos de cancelamento/problema de recebimento em aberto também bloqueiam a consulta de requisitos do vendedor.
+- E-mail e horários do suporte aparecem como pendentes de definição, sem divulgar endereço ou prazo não aprovado. Canal externo por e-mail permanece pendente; não foi contratado nem enviado e-mail.
+
+Endpoints locais: `GET/POST /v1/support/tickets`, `GET /v1/support/tickets/:id`, `POST /v1/support/tickets/:id/reply` e rota de cancelamento existente. Sem fornecedor externo ou contratação. Testes com banco simulado e HTTP local; migrações em PostgreSQL e navegação em navegador real permanecem pendentes de homologação. Cancelamento com devolução financeira ainda depende de reembolso homologado; item 12 em standby. Somente platform/, sem desktop, credenciais ou lançamento.

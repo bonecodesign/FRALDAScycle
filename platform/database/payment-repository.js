@@ -21,6 +21,10 @@ export function createPaymentRepository(database) {
 
     async createIntent(input) {
       return database.transaction(async (client) => {
+        const eligibility = await client.query(`SELECT id FROM transactions
+          WHERE id=$1 AND buyer_id=$2 AND status IN ('initiated','payment_pending') FOR UPDATE`,
+          [input.transactionId,input.buyerId]);
+        if (!eligibility.rows[0]) throw Object.assign(new Error("Esta transação não pode ser paga."), {code:"transaction_not_payable",status:409});
         const created = await client.query(
           `INSERT INTO payment_intents
              (transaction_id, buyer_id, idempotency_key, method, amount_cents,
