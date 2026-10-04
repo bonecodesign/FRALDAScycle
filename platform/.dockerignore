@@ -4,7 +4,12 @@ npm-debug.log
 .env.*
 !.env.example
 tests
-docs
+docs/*
+!docs/legal/
+docs/legal/*
+!docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md
+!docs/legal/politicas-operacionais-instituicoes-pre-operacionais.md
 apps/site
 apps/app
 apps/admin
+
