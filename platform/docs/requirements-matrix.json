@@ -576,10 +576,14 @@
       "references": [
         "apps/api/notifications.js",
         "workers/notifications.js",
-        "tests/notifications.test.mjs"
+        "tests/notifications.test.mjs",
+        "apps/api/operational-preferences.js",
+        "database/operational-preference-repository.js",
+        "tests/operational-preferences.test.mjs",
+        "docs/operational-preferences-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Verificação/recuperação independem de publicidade; outros avisos e preferências pendentes."
+      "evidence": "11 testes locais de preferências aprovados, com banco simulado; HTTP no CI. PostgreSQL/navegador e despacho pendentes. Ver operational-preferences-beta.md.",
+      "reason": "Verificação/recuperação independem de publicidade; preferências e janela silenciosa registráveis; despacho dos demais avisos e exceções do silêncio pendentes."
     },
     {
       "id": 50,

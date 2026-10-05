@@ -1,5 +1,7 @@
+import { createOperationalPreferenceRepository } from './operational-preference-repository.js';
 export function createAccountConsentRepository(database) {
   return Object.freeze({
+    ...createOperationalPreferenceRepository(database),
     async marketingPreferences(userId) {
       const result=await database.query('SELECT email,sms,push,updated_at FROM account_marketing_preferences WHERE user_id=$1',[userId]);
       return result.rows[0]??{email:false,sms:false,push:false,updated_at:null};
