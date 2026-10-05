@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "99bf1331d9ca20a9fad40c04e4e51395e1b75973",
+  "baseline": "cd08dc212d8a5875f7d1f0782a613a487543abca",
   "denominator": 70,
   "requirements": [
     {
@@ -502,17 +502,22 @@
     {
       "id": 39,
       "title": "Contatos em avaliações",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
-        "docs/moderation-beta.md"
+        "docs/moderation-beta.md",
+        "database/review-moderation-repository.js",
+        "apps/api/review-moderation-service.js",
+        "apps/app/review-moderation.html",
+        "tools/beta-review-moderation-check.mjs",
+        "docs/review-moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Contatos identificados bloqueados no servidor; denúncia/ocultação e análise de avaliações pendentes."
+      "evidence": "PR #80, commit 69b3aee: CI 275 testes, 83 verificações e sintaxe 103; PostgreSQL nativo e Chrome 154 com denúncia/recurso/restauração via teclado e quatro larguras, job 111807355110. Limites em review-moderation-beta.md.",
+      "reason": "Denúncia, ocultação provisória, análise/restauração/remoção pública e recurso com protocolo, versão e revisor independente validados. Remoção preserva registros; retenção/capacidade humana são pendências separadas."
     },
     {
       "id": 40,

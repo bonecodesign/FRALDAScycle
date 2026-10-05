@@ -39,6 +39,6 @@ export function createCommunicationsRepository(database) {
       await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'review.created','transaction',$2,'{}'::jsonb)`,[userId,transactionId]);
       return {review,reused:false};
     }); },
-    async publicReviews(subjectId) { return (await database.query('SELECT id,rating,comment,created_at FROM transaction_reviews WHERE subject_id=$1 ORDER BY created_at DESC,id LIMIT 100',[subjectId])).rows; },
+    async publicReviews(subjectId) { return (await database.query("SELECT id,rating,comment,created_at FROM transaction_reviews WHERE subject_id=$1 AND visibility='public' ORDER BY created_at DESC,id LIMIT 100",[subjectId])).rows; },
   });
 }

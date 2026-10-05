@@ -15,7 +15,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -195,6 +195,21 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
       assert.equal(layout.overflow,false,`Privacy overflow ${width}`);assert.equal(layout.missingLabels,0);privacyLayouts.push({viewport:width,...layout});
     }
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/review-moderation?reviewId=${browserReview.receivedId}`});
+    await until(()=>evaluate(`!document.querySelector('#review-report-form fieldset')?.disabled`),'review report authenticated form');
+    await evaluate(`(()=>{const f=document.getElementById('review-report-form');f.elements.category.value='fraud';f.elements.details.value='Solicito análise do risco fictício na avaliação.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('review-mod-feedback').textContent.includes('Denúncia registrada — protocolo FC-S-')`),'review report via keyboard');
+    await evaluate(`document.querySelector('#review-own-list button').focus()`);await key('Enter','Enter',13);
+    await evaluate(`(()=>{const f=document.getElementById('review-visibility-appeal');f.elements.details.value='Solicito revisão da minha avaliação fictícia oculta.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('review-mod-feedback').textContent.includes('Contestação registrada — protocolo FC-S-')`),'review author appeal keyboard');
+    const reviewLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      assert.equal(layout.overflow,false,`Review moderation overflow ${width}`);assert.equal(layout.missingLabels,0);reviewLayouts.push({viewport:width,...layout});
+    }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${adminOrigin}/admin/moderation`});
     await until(()=>evaluate(`document.getElementById('moderation-admin-feedback')?.textContent.includes('Decisões carregadas')`),'admin moderation load');
@@ -239,7 +254,20 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('privacy-feedback').textContent.includes('Análise registrada')`),'privacy keyboard assessment');
     const privacyAssessed=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/privacy-requests/')}+${JSON.stringify(privacyRequest.id)},{credentials:'include'}).then(r=>r.json()).then(r=>r.request)`);
     assert.equal(privacyAssessed.status,'under_review');assert.equal(privacyAssessed.version,1);assert.equal(privacyAssessed.erasureAllowed,false);assert.equal(privacyAssessed.closureAllowed,false);
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/review-moderation`});
+    await until(()=>evaluate(`!document.getElementById('review-mod-admin')?.hidden&&document.getElementById('review-mod-feedback').textContent.includes('Avaliações carregadas')`),'review moderator list');
+    await evaluate(`(()=>{const article=[...document.querySelectorAll('#review-mod-list article')].find(a=>a.textContent.includes(${JSON.stringify(browserReview.receivedId)}));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`!document.querySelector('#review-mod-decision fieldset').disabled`),'private reported review');
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Review moderator detail overflow ${width}`);
+    }
+    await evaluate(`(()=>{const f=document.getElementById('review-mod-decision');f.elements.outcome.value='public';f.elements.reason.value='Conferência fictícia não confirma risco da denúncia.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('review-mod-feedback').textContent.includes('Decisão registrada')`),'review restoration keyboard');
+    const reviewRestored=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/admin/review-moderation/')}+${JSON.stringify(browserReview.receivedId)},{credentials:'include'}).then(r=>r.json()).then(r=>r.review)`);
+    assert.equal(reviewRestored.visibility,'public');assert.equal(reviewRestored.visibility_version,2);
+    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

@@ -26,6 +26,8 @@ import { createLogisticsService } from "./logistics-service.js";
 import { createRealtimeService } from "./realtime-service.js";
 import { createAccountConsentService } from "./account-consent-service.js";
 import { createAccountConsentRepository } from "../../database/account-consent-repository.js";
+import { createReviewModerationService } from "./review-moderation-service.js";
+import { createReviewModerationRepository } from "../../database/review-moderation-repository.js";
 import { createPrivacyRequestService } from './privacy-request-service.js';
 import { createPrivacyRequestRepository } from '../../database/privacy-request-repository.js';
 import { createAddressChangeService } from './address-change-service.js';
@@ -46,6 +48,7 @@ export async function startRuntime(config = null) {
     notificationService,
   });
   const moderationRepository = createModerationRepository(database);
+  const reviewModerationService = createReviewModerationService(createReviewModerationRepository(database),moderationRepository);
   const moderationService = createModerationService(moderationRepository);
   const communicationsService = createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
@@ -79,6 +82,7 @@ export async function startRuntime(config = null) {
     logisticsService,
     addressChangeService,
     privacyRequestService,
+    reviewModerationService,
     logisticsProvider,
     adminService,
     realtimeService,

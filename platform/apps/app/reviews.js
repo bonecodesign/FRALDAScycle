@@ -4,7 +4,7 @@ async function load(){
   try{const user=(await apiRequest('/v1/auth/session')).user;const result=await apiRequest('/v1/users/'+user.id+'/reviews');
     const list=document.getElementById('reviews-list');list.replaceChildren();
     if(!result.items.length)list.textContent='Nenhuma avaliação recebida.';
-    for(const review of result.items){const article=document.createElement('article');article.className='panel';article.textContent='Nota '+review.rating+'/5 — '+review.comment;list.append(article);}
+    for(const review of result.items){const article=document.createElement('article');article.className='panel';article.textContent='Nota '+review.rating+'/5 — '+review.comment;const link=document.createElement('a');link.href='/app/review-moderation?reviewId='+encodeURIComponent(review.id);link.textContent='Denunciar possível risco nesta avaliação';article.append(link);list.append(article);}
     form.querySelector('fieldset').disabled=false;form.elements.transactionId.value=sessionStorage.getItem('fc.activeTransactionId')||'';
   }catch(error){feedback.textContent=error.message;}
 }

@@ -74,6 +74,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticModeration(database,{user,other,transaction});
       const {validateSyntheticPrivacy}=await import('../tools/beta-privacy-check.mjs');
       await validateSyntheticPrivacy(database,{user,other});
+      const {validateSyntheticReviewModeration}=await import('../tools/beta-review-moderation-check.mjs');
+      await validateSyntheticReviewModeration(database,{user,other,transaction});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -126,7 +128,16 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const browserNewAddress=await logisticsService.createAddress(currentSession.id,{...addressFields,label:'Novo endereço fictício',street:'Rua nova fictícia'});
       await logisticsService.shareAddress(currentSession.id,addressShipment.id,{addressId:browserOldAddress.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'});
       const browserAddress={shipmentId:addressShipment.id,addressId:browserNewAddress.id};
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService });
+      const {createReviewModerationService}=await import('../apps/api/review-moderation-service.js');
+      const {createReviewModerationRepository}=await import('../database/review-moderation-repository.js');
+      const reviewModerationService=createReviewModerationService(createReviewModerationRepository(database),moderationRepository);
+      const browserReviewTransaction=await seedBrowserCommunication(database,currentSession.id,user);
+      await database.query("UPDATE transactions SET status='completed' WHERE id=$1",[browserReviewTransaction]); // Completed fixture only, no financial finalization.
+      const browserReceivedReview=(await communicationsService.review(user,browserReviewTransaction,{rating:5,comment:'Descrição fictícia da operação conforme informado.'})).review;
+      const browserWrittenReview=(await communicationsService.review(currentSession.id,browserReviewTransaction,{rating:5,comment:'Avaliação escrita pela pessoa fictícia do navegador.'})).review;
+      await reviewModerationService.report({id:user,role:'customer'},browserWrittenReview.id,{category:'fraud',details:'Risco fictício para testar contestação no navegador.',confirmed:true});
+      const browserReview={receivedId:browserReceivedReview.id,writtenId:browserWrittenReview.id};
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
@@ -152,7 +163,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
+        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);
