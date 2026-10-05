@@ -15,7 +15,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -139,7 +139,51 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       assert.equal(layout.overflow,false,`Premium overflow ${width}`); assert.equal(layout.bounded,true); assert.equal(layout.missingLabels,0);
       premiumLayouts.push({viewport:width,...layout});
     }
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', draftTerms: 'aceite indisponível', layouts, premiumLayouts, humanTest: false, screenReader: false, physicalDevices: false };
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/chat`});
+    await until(()=>evaluate(`Boolean(document.getElementById('chat-form'))`),'chat document');
+    await evaluate(`sessionStorage.setItem('fc.activeTransactionId',${JSON.stringify(browserTransaction)})`);
+    await call('Page.reload');
+    await until(()=>evaluate(`document.getElementById('msg')&&!document.getElementById('msg').disabled`),'authorized persisted chat');
+    await evaluate(`document.getElementById('msg').value='O pacote está pronto para coleta.';document.querySelector('#chat-form button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
+    try { await until(()=>evaluate(`document.getElementById('message-list').textContent.includes('O pacote está pronto para coleta.')`),'chat keyboard persistence'); }
+    catch(error) { throw new Error(error.message+': '+JSON.stringify(await evaluate(`({error:document.getElementById('chat-error')?.textContent,gate:document.getElementById('chat-payment-gate')?.textContent,disabled:document.getElementById('msg')?.disabled,route:location.pathname})`))); }
+    await evaluate(`document.getElementById('msg').value='fake@example.test';document.querySelector('#chat-form button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('chat-error').textContent.includes('Conteúdo bloqueado')`),'chat contact block');
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/moderation`});
+    await until(()=>evaluate(`document.getElementById('moderation-list')?.textContent.includes('Conteúdo identificado')`),'moderation private decision');
+    await evaluate(`document.querySelector('#moderation-list button').focus()`);await key('Enter','Enter',13);
+    assert.equal(await evaluate('document.activeElement.name'),'body');
+    await evaluate(`document.querySelector('#moderation-appeal-form textarea').value='Solicito revisão do bloqueio fictício sem dados privados.';document.querySelector('#moderation-appeal-form button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('moderation-feedback').textContent.includes('Contestação registrada')`),'appeal keyboard submission');
+    const appealedDecision=await evaluate(`document.querySelector('#moderation-list p:nth-child(2)').textContent.replace('Registro: ','')`);
+    const moderationLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>!c.labels.length).length})`);
+      assert.equal(layout.overflow,false,`Moderation overflow ${width}`);assert.equal(layout.missingLabels,0);moderationLayouts.push({viewport:width,...layout});
+    }
+    await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
+    await call('Page.navigate',{url:`${adminOrigin}/admin/moderation`});
+    await until(()=>evaluate(`document.getElementById('moderation-admin-feedback')?.textContent.includes('Decisões carregadas')`),'admin moderation load');
+    await evaluate(`(()=>{const article=[...document.querySelectorAll('#moderation-admin-list article')].find(a=>a.textContent.includes(${JSON.stringify(appealedDecision)}));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`!document.querySelector('#moderation-review-form fieldset').disabled`),'admin private appeal consultation');
+    await evaluate(`(()=>{const f=document.getElementById('moderation-review-form');f.elements.reason.value='Contato fictício reconhecido; o bloqueio permanece aplicado.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);
+    assert.equal(await evaluate(`document.activeElement.closest('form').id`),'moderation-review-form');
+    await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('moderation-admin-feedback').textContent.includes('Revisão registrada')`),'admin keyboard appeal review');
+    const reviewed=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/moderation/decisions/')}+${JSON.stringify(appealedDecision)},{credentials:'include'}).then(r=>r.json()).then(r=>r.decision)`);
+    assert.equal(reviewed.outcome,'upheld');assert.equal(reviewed.status,'upheld');
+    const adminLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      assert.equal(layout.overflow,false,`Admin moderation overflow ${width}`);assert.equal(layout.missingLabels,0);adminLayouts.push({viewport:width,...layout});
+    }
+    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

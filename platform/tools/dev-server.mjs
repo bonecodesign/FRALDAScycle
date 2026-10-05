@@ -37,7 +37,7 @@ function resolveRequest(pathname) {
   if (surface === "admin" && ["/admin/users", "/admin/roles", "/admin/ads", "/admin/operations", "/admin/finance", "/admin/logistics", "/admin/reports", "/admin/data", "/admin/forecast", "/admin/alerts", "/admin/infrastructure", "/admin/security", "/admin/moderation", "/admin/audit", "/admin/settings", "/admin/partnerships", "/admin/innovation", "/admin/launch"].includes(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
   }
-  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/reset-password", "/app/home", "/app/search", "/app/favorites", "/app/chat", "/app/safety", "/app/negotiation-evidence", "/app/payment", "/app/payment-success", "/app/wallet", "/app/wallet-cards", "/app/refund", "/app/dispute", "/app/delivery-options", "/app/delivery", "/app/delivery-reschedule", "/app/delivery-proof", "/app/delivery-confirm", "/app/delivery-rate", "/app/auth-error", "/app/auth-locked", "/app/auth-offline", "/app/notifications", "/app/notification-settings", "/app/profile", "/app/profile-ads", "/app/profile-history", "/app/profile-reviews", "/app/addresses", "/app/settings", "/app/premium", "/app/my-impact", "/app/help", "/app/state-offline", "/app/state-permission", "/app/state-removed"].includes(pathname)) {
+  if (surface === "app" && ["/app/onboarding", "/app/login", "/app/register", "/app/recovery", "/app/verify", "/app/reset-password", "/app/home", "/app/search", "/app/favorites", "/app/chat", "/app/safety", "/app/negotiation-evidence", "/app/payment", "/app/payment-success", "/app/wallet", "/app/wallet-cards", "/app/refund", "/app/dispute", "/app/delivery-options", "/app/delivery", "/app/delivery-reschedule", "/app/delivery-proof", "/app/delivery-confirm", "/app/delivery-rate", "/app/auth-error", "/app/auth-locked", "/app/auth-offline", "/app/notifications", "/app/notification-settings", "/app/profile", "/app/profile-ads", "/app/profile-history", "/app/profile-reviews", "/app/addresses", "/app/settings", "/app/premium", "/app/moderation", "/app/reviews", "/app/my-impact", "/app/help", "/app/state-offline", "/app/state-permission", "/app/state-removed"].includes(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
   }
   if (surface === "app" && /^\/app\/publish-[1-8]$/.test(pathname)) {
@@ -90,7 +90,7 @@ createServer(async (request, response) => {
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
       "referrer-policy": "strict-origin-when-cross-origin",
-      "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:${localApiOrigin ? ' ' + localApiOrigin : ''}; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`,
+      "content-security-policy": `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:${localApiOrigin ? ' ' + localApiOrigin : ''}; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`,
       "cache-control": extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
       "x-fraldacycle-surface": surface,
       "x-fraldacycle-mode": production ? "production" : "local-demo",

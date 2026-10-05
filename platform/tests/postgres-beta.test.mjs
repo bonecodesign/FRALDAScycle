@@ -70,6 +70,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticSale(database, { user, other, transaction });
       const { validateSyntheticPremium, seedBrowserPremium } = await import('../tools/beta-premium-check.mjs');
       await validateSyntheticPremium(database);
+      const { validateSyntheticModeration,seedBrowserCommunication } = await import('../tools/beta-moderation-check.mjs');
+      await validateSyntheticModeration(database,{user,other,transaction});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -81,6 +83,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const session = await authService.login(fixture);
       const currentSession = await authService.session(session.token);
       await seedBrowserPremium(database, currentSession.id);
+      const browserTransaction=await seedBrowserCommunication(database,currentSession.id,user);
       const { createPremiumRepository } = await import('../database/premium-repository.js');
       const { createPremiumService } = await import('../apps/api/premium-service.js');
       const premiumService = createPremiumService(createPremiumRepository(database));
@@ -91,7 +94,22 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.ok(await authService.session(session.token));
       const surfacePort = await freeLocalPort();
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service, premiumService });
+      const adminPort=await freeLocalPort(),adminOrigin=`http://127.0.0.1:${adminPort}`;
+      const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1'};
+      await authService.register(adminFixture);
+      await database.query("UPDATE users SET role='admin' WHERE email=$1",[adminFixture.email]);
+      const adminSession=await authService.login(adminFixture);
+      const { createMarketplaceService } = await import('../apps/api/marketplace-service.js');
+      const { createMarketplaceRepository } = await import('../database/marketplace-repository.js');
+      const { createModerationService } = await import('../apps/api/moderation-service.js');
+      const { createModerationRepository } = await import('../database/moderation-repository.js');
+      const { createCommunicationsService } = await import('../apps/api/communications-service.js');
+      const { createCommunicationsRepository } = await import('../database/communications-repository.js');
+      const moderationRepository=createModerationRepository(database);
+      const moderationService=createModerationService(moderationRepository);
+      const communicationsService=createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
+      const marketplaceService=createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       const premiumUrl = `http://127.0.0.1:${api.address().port}/v1/account/premium`;
       assert.equal((await fetch(premiumUrl)).status, 401);
@@ -101,11 +119,12 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.equal(premiumResponse.headers.get('cache-control'), 'no-store');
       assert.equal((await premiumResponse.json()).premium.billingAllowed, false);
       const surface = spawn(process.execPath, [fileURLToPath(new URL('../tools/dev-server.mjs', import.meta.url)), 'app', String(surfacePort)], { env: { ...process.env, NODE_ENV: 'test', SURFACE_HOST: '127.0.0.1', SURFACE_API_ORIGIN: `http://127.0.0.1:${api.address().port}` }, stdio: ['ignore', 'ignore', 'ignore'] });
+      const adminSurface=spawn(process.execPath,[fileURLToPath(new URL('../tools/dev-server.mjs',import.meta.url)),'admin',String(adminPort)],{env:{...process.env,NODE_ENV:'test',SURFACE_HOST:'127.0.0.1',SURFACE_API_ORIGIN:`http://127.0.0.1:${api.address().port}`},stdio:['ignore','ignore','ignore']});
       try {
         const deadline = Date.now() + 12000;
         let ready = false;
         while (Date.now() < deadline) {
-          try { if ((await fetch(surfaceOrigin + '/app/notification-settings')).ok) { ready = true; break; } } catch { /* Aguardando somente servidor local. */ }
+          try { if ((await fetch(surfaceOrigin + '/app/notification-settings')).ok && (await fetch(adminOrigin + '/admin/moderation')).ok) { ready = true; break; } } catch { /* Aguardando somente servidor local. */ }
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         assert.equal(ready, true, 'Surface server did not start');
@@ -114,7 +133,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token }));
+        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);
@@ -122,6 +141,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         console.log('BETA_BROWSER: ' + JSON.stringify(result));
       } finally {
         if (surface.exitCode === null && surface.signalCode === null) { const stopped = new Promise(resolve => surface.once('exit', resolve)); surface.kill('SIGKILL'); await stopped; }
+        if(adminSurface.exitCode===null&&adminSurface.signalCode===null){const stopped=new Promise(resolve=>adminSurface.once('exit',resolve));adminSurface.kill('SIGKILL');await stopped;}
         await new Promise(resolve => api.close(resolve));
       }
     } finally { await database.close(); }

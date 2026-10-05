@@ -3,6 +3,19 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "tools/beta-moderation-check.mjs",
+  "packages/contracts/content-moderation.js",
+  "apps/api/content-guard.js",
+  "apps/api/moderation-service.js",
+  "apps/api/moderation-handler.js",
+  "apps/api/communications-service.js",
+  "database/moderation-repository.js",
+  "database/communications-repository.js",
+  "apps/app/moderation.js",
+  "apps/app/reviews.js",
+  "apps/app/negotiation.js",
+  "apps/app/publish.js",
+  "apps/admin/moderation-management.js",
   "database/premium-repository.js",
   "apps/api/premium-service.js",
   "apps/api/premium-handler.js",

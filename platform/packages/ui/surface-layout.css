@@ -20,3 +20,14 @@
 [data-surface="app"] fieldset {
   min-inline-size: 0;
 }
+
+[data-surface="admin"] .admin-main { min-width: 0; }
+[data-surface="admin"] .admin-main fieldset { min-inline-size: 0; }
+[data-surface="admin"] .admin-main pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-surface="admin"] .admin-main input,
+[data-surface="admin"] .admin-main textarea,
+[data-surface="admin"] .admin-main select { max-width: 100%; }
+@media (min-width: 576px) and (max-width: 991px) {
+  [data-surface="admin"] .admin-layout { grid-template-columns: minmax(0, 1fr); }
+  [data-surface="admin"] .admin-sidebar { position: static; width: auto; }
+}

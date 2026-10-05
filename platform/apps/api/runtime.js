@@ -26,6 +26,10 @@ import { createLogisticsService } from "./logistics-service.js";
 import { createRealtimeService } from "./realtime-service.js";
 import { createAccountConsentService } from "./account-consent-service.js";
 import { createAccountConsentRepository } from "../../database/account-consent-repository.js";
+import { createModerationService } from './moderation-service.js';
+import { createCommunicationsService } from './communications-service.js';
+import { createModerationRepository } from '../../database/moderation-repository.js';
+import { createCommunicationsRepository } from '../../database/communications-repository.js';
 import { createPremiumService } from './premium-service.js';
 import { createPremiumRepository } from '../../database/premium-repository.js';
 
@@ -38,7 +42,10 @@ export async function startRuntime(config = null) {
     sessionTtlSeconds: config.sessionTtlSeconds,
     notificationService,
   });
-  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
+  const moderationRepository = createModerationRepository(database);
+  const moderationService = createModerationService(moderationRepository);
+  const communicationsService = createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
+  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
   const premiumService = createPremiumService(createPremiumRepository(database));
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database));
@@ -56,6 +63,8 @@ export async function startRuntime(config = null) {
     authService,
     marketplaceService,
     premiumService,
+    moderationService,
+    communicationsService,
     accountConsentService,
     marketplaceProviders,
     institutionService,

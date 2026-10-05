@@ -1,3 +1,4 @@
+import { assertContentAllowed } from './content-guard.js';
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
@@ -13,7 +14,7 @@ const KINDS = new Set(["sale", "exchange", "donation"]);
 const CATEGORIES = new Set(["infant", "swim"]);
 const PACKAGE_CONDITIONS = new Set(["sealed", "open"]);
 
-export function createMarketplaceService(repository) {
+export function createMarketplaceService(repository, moderation = null) {
   return Object.freeze({
     async createSupportTicket(userId, input) {
       const category = String(input?.category ?? "general");
@@ -107,6 +108,7 @@ export function createMarketplaceService(repository) {
       }
       if (!brand || !model) throw new MarketplaceError("invalid_model", 422, "Informe a marca e o modelo da fralda.");
       if (!catalogHasModel(category, brand, model)) throw new MarketplaceError("unsupported_model", 422, "Escolha um modelo disponível no catálogo brasileiro.");
+      await assertContentAllowed(moderation,userId,'listing',title+'\n'+description);
       return repository.create({
         sellerId: userId, title, description, kind, quantity, priceCents, institutionId,
         category, brand, model, packageCondition,
@@ -153,3 +155,4 @@ export function createMarketplaceService(repository) {
     },
   });
 }
+
