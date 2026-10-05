@@ -77,7 +77,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
       const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
-      const surface = spawn(process.execPath, [fileURLToPath(new URL('../tools/dev-server.mjs', import.meta.url)), 'app', String(surfacePort)], { env: { ...process.env, NODE_ENV: 'test', SURFACE_HOST: '127.0.0.1' }, stdio: ['ignore', 'ignore', 'ignore'] });
+      const surface = spawn(process.execPath, [fileURLToPath(new URL('../tools/dev-server.mjs', import.meta.url)), 'app', String(surfacePort)], { env: { ...process.env, NODE_ENV: 'test', SURFACE_HOST: '127.0.0.1', SURFACE_API_ORIGIN: `http://127.0.0.1:${api.address().port}` }, stdio: ['ignore', 'ignore', 'ignore'] });
       try {
         const deadline = Date.now() + 12000;
         let ready = false;

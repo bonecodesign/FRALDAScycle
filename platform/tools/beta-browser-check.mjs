@@ -66,7 +66,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
     await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
     await call('Network.setCookie', { name: 'fc_session', value: sessionToken, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Lax' });
-    await call('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const set = () => { if (!document.documentElement) return false; document.documentElement.dataset.apiOrigin=${JSON.stringify(apiOrigin)}; return true; }; if (!set()) { const observer=new MutationObserver(() => { if (set()) observer.disconnect(); }); observer.observe(document,{childList:true}); } })();` });
     await call('Page.navigate', { url: `${surfaceOrigin}/app/notification-settings` });
     await until(() => evaluate(`Boolean(document.querySelector('#operational-preferences-form fieldset:not([disabled])'))`), 'authenticated preferences load');
     const key = async (name, code, virtual) => {
