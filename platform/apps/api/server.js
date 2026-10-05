@@ -11,6 +11,7 @@ import { handleAdmin } from "./admin-handler.js";
 import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 import { createTelemetry } from "./telemetry.js";
 import { handlePayments } from "./payment-handler.js";
+import { handlePrivacyRequests } from "./privacy-request-handler.js";
 import { handleAddressChanges } from "./address-change-handler.js";
 import { handleLogistics } from "./logistics-handler.js";
 import { handleAccountConsent } from "./account-consent-handler.js";
@@ -34,6 +35,7 @@ export function createApiServer({
   paymentProvider = null,
   logisticsService = null,
   addressChangeService = null,
+  privacyRequestService = null,
   logisticsProvider = null,
   accountConsentService = null,
   premiumService = null,
@@ -173,6 +175,7 @@ export function createApiServer({
         return;
       }
 
+      if (await handlePrivacyRequests(request,response,{url,headers,requestId:id,authService,privacyRequestService})) return;
       if (await handleAddressChanges(request,response,{url,headers,requestId:id,authService,addressChangeService})) return;
       if (await handleModeration(request,response,{url,headers,requestId:id,authService,moderationService,communicationsService})) return;
       if (await handlePremium(request,response,{url,headers,requestId:id,authService,premiumService})) return;

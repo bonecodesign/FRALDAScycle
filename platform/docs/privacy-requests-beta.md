@@ -1,0 +1,15 @@
+# Pedidos de privacidade e preparação da retenção
+
+Somente platform/. Configurações abre pedido tipado de acesso, correção ou exclusão da conta/dados, com confirmação explícita e protocolo no suporte. Identificador do solicitante vem da sessão, não do corpo. Repetição semântica é idempotente; chave de outra conta ou outro conteúdo conflita. Pedido fica privado e pode ser acompanhado em Ajuda ou Dados e privacidade.
+
+Consulta apresenta contagens necessárias à análise, sem nomes, mensagens, endereços ou identificadores de terceiros: transações não terminadas, casos financeiros, ocorrências operacionais, registros financeiros, compartilhamentos e mensagens próprias. Contagens são uma observação do banco naquele momento, não uma prova de que todas as obrigações terminaram. Casos financeiros são conservadoramente encaminhados à conferência humana; não se deduz conclusão de repasse ou reembolso pelo estado local.
+
+Somente admin:privacy:review consulta/anota pedidos de outras pessoas. Análise independente grava justificativa privada, versão, contagens e instante do banco; suporte permanece em análise. Auditoria conserva ação/tipo/versão, sem copiar descrição, justificativa ou dados pessoais. Consulta não cria exportação pública.
+
+Encerramento e exclusão retornam sempre closureAllowed=false e erasureAllowed=false. Nenhum endpoint/worker de purga foi criado; tampouco são apagados registros operacionais, mensagens, endereços, aceites ou backups. Revisão jurídica/privacidade precisa definir finalidade/base de conservação, prazos, responsáveis, dados realmente sujeitos a exclusão, processo de verificação de identidade e propagação a fornecedores/backups. Não se inventa prazo nem se ativa política jurídica por um checkbox de análise. Pedidos de acesso/correção ficam encaminhados ao suporte, sem declarar resposta/alteração efetiva que não ocorreu.
+
+O beta não coleta documentos ou dados de crianças. E-mail oficial/SLA/equipe e autenticação administrativa de produção permanecem pendentes. Conta autenticada vincula o pedido; não comprova uma verificação humana de identidade. Não envia mensagem externa, não encerra acesso nem executa ação financeira.
+
+Local: dois testes de serviço e sintaxe de 98 arquivos. CI preparado para migração 027, protocolo e análise concorrentes, idempotência, isolamento, auditoria mínima, tipos de pedido e conservação das contas. Chrome preparado para solicitar/consultar/analisar via Space/Tab/Enter e quatro larguras; resultado aguardando CI. Sem testes humanos, leitor de tela ou dispositivos físicos registrados.
+
+Matriz conserva 7/70 = 10%; itens 45/52 parciais. Prontidão para produção bloqueada, item 12 standby, termos reais rascunhos.
