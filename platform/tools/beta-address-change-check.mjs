@@ -31,6 +31,10 @@ export async function validateSyntheticAddressChange(database,{service,repositor
   await database.query("UPDATE shipments SET status='picked_up' WHERE id=$1",[shipment.id]);
   await assert.rejects(changes.request({id:user,role:'customer'},{...input,addressId:address.id,expectedRevision:1,idempotencyKey:'synthetic-address-after-collection'}),e=>e.code==='address_change_not_allowed');
   await database.query("UPDATE shipments SET status='awaiting_pickup' WHERE id=$1",[shipment.id]);
+  const event=(await database.query("INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'picked_up','Coleta histórica fictícia') RETURNING id",[shipment.id])).rows[0];
+  await assert.rejects(changes.request({id:user,role:'customer'},{...input,addressId:address.id,expectedRevision:1,idempotencyKey:'synthetic-address-historical-collection'}),e=>e.code==='address_change_not_allowed');
+  await assert.rejects(service.shareAddress(user,shipment.id,{addressId:next.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'}),e=>e.code==='address_share_not_allowed');
+  await database.query('DELETE FROM shipment_events WHERE id=$1',[event.id]); // Cleanup of the exclusively synthetic historical fixture.
   const audit=await database.query('SELECT metadata FROM audit_events');assert.equal(JSON.stringify(audit.rows).includes(next.street),false);
   console.log('BETA_ADDRESS_CHANGE: protocolo, consentimento, isolamento, revisão independente concorrente, histórico imutável, versão, bloqueio após coleta e cancelamento preservado em PostgreSQL; retirada sintética, sem fornecedor.');
 }

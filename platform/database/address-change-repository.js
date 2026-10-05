@@ -8,6 +8,7 @@ async function audit(client,actor,action,id,metadata={}) {
 }
 async function lockedShare(client,shareId) {
   const result=await client.query(`SELECT a.*,s.mode,s.status AS shipment_status,s.buyer_id,s.courier_id,t.status AS transaction_status,t.id AS transaction_id,l.kind,
+    EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id) AS collected,
     EXISTS(SELECT 1 FROM payment_intents p WHERE p.transaction_id=t.id AND p.status='paid' AND p.amount_cents=t.amount_cents AND p.provider_reference IS NOT NULL) AS payment_confirmed,
     EXISTS(SELECT 1 FROM payment_cases pc JOIN payment_intents pi ON pi.id=pc.payment_intent_id WHERE pi.transaction_id=t.id AND pc.status<>'rejected') OR
     EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_issue
@@ -16,7 +17,7 @@ async function lockedShare(client,shareId) {
   return result.rows[0];
 }
 function eligible(share) {
-  if(share.kind!=='sale'||share.payment_confirmed!==true||share.financial_issue!==false||!['paid','in_delivery'].includes(share.transaction_status)||!['awaiting_pickup','assigned'].includes(share.shipment_status)) {
+  if(share.kind!=='sale'||share.collected!==false||share.payment_confirmed!==true||share.financial_issue!==false||!['paid','in_delivery'].includes(share.transaction_status)||!['awaiting_pickup','assigned'].includes(share.shipment_status)) {
     throw fail('address_change_not_allowed',409,'A alteração precisa de análise de ocorrência ou a coleta já foi realizada.');
   }
   const recipient=share.mode==='pickup'?share.buyer_id:share.courier_id;

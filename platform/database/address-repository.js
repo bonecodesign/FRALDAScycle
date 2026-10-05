@@ -24,6 +24,7 @@ export function createAddressRepository(database) {
       return database.transaction(async client=>{
         const found=await client.query(`SELECT s.id,s.transaction_id,s.buyer_id,s.seller_id,s.courier_id,s.mode,s.status,
           t.status AS transaction_status,l.kind,
+          EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id) AS collected,
           EXISTS(SELECT 1 FROM payment_intents pi WHERE pi.transaction_id=t.id AND pi.status='paid'
             AND pi.amount_cents=t.amount_cents AND pi.provider_reference IS NOT NULL) AS payment_confirmed,
           EXISTS(SELECT 1 FROM payment_cases pc JOIN payment_intents pi ON pi.id=pc.payment_intent_id
@@ -35,7 +36,7 @@ export function createAddressRepository(database) {
         const shipment=found.rows[0];
         if(!shipment)throw fail('shipment_not_found',404,'Entrega não encontrada.');
         if(shipment.kind!=='sale')throw fail('address_flow_not_configured',503,'Compartilhamento de troca ou doação ainda pendente.');
-        if(shipment.payment_confirmed!==true||shipment.financial_issue!==false||!['paid','in_delivery'].includes(shipment.transaction_status)||!['awaiting_pickup','assigned'].includes(shipment.status)) {
+        if(shipment.collected!==false||shipment.payment_confirmed!==true||shipment.financial_issue!==false||!['paid','in_delivery'].includes(shipment.transaction_status)||!['awaiting_pickup','assigned'].includes(shipment.status)) {
           throw fail('address_share_not_allowed',409,'A entrega ainda não permite compartilhar o endereço, ou já passou da coleta.');
         }
         const recipientId=shipment.mode==='pickup'&&actorId===shipment.seller_id?shipment.buyer_id:
