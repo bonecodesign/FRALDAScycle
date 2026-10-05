@@ -252,7 +252,7 @@
         "tools/beta-institution-access-check.mjs",
         "docs/institution-access-beta.md"
       ],
-      "evidence": "Autoridade institucional e trava de estado preparadas para PostgreSQL/Chrome; aguardando CI, ver institution-access-beta.md.",
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
       "reason": "Representante explicitamente indicado, aceita e recebe conferência administrativa; confirmação institucional da entrega e repasse ainda não ligados. Homologação documental/identidade humana pendente."
     },
     {
@@ -872,7 +872,7 @@
         "tools/beta-institution-access-check.mjs",
         "docs/institution-access-beta.md"
       ],
-      "evidence": "Autoridade institucional e trava de estado preparadas para PostgreSQL/Chrome; aguardando CI, ver institution-access-beta.md.",
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
       "reason": "Instituição ativa e pacote aberto conferidos; estado revalidado sob trava e autoridade vinculada à conta. Documentos, identidade humana e capacidade real pendentes."
     },
     {
