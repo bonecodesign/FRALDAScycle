@@ -323,7 +323,7 @@
         "tools/beta-address-change-check.mjs",
         "docs/address-change-beta.md"
       ],
-      "evidence": "Compartilhamento validado em PostgreSQL/Chrome nos lotes anteriores; nova alteração aguarda CI, ver address-change-beta.md.",
+      "evidence": "PR #78, commit 1b0d8c8: CI 271 testes, 83 verificações, sintaxe 93; PostgreSQL e Chrome 154 com pedido/aprovação via teclado e quatro larguras, job 111796766311. Limites em address-change-beta.md.",
       "reason": "Venda: consentimento, acesso privado e alteração pelo suporte com versões; retirada testável. Troca/doação, rota de fornecedor e retenção continuam pendentes."
     },
     {
