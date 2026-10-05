@@ -1,4 +1,5 @@
 import { ServiceError } from "./service-error.js";
+import { saleSplit } from "../../packages/contracts/commercial-rules.js";
 export class PaymentError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -6,12 +7,7 @@ export class PaymentError extends ServiceError {
 }
 
 const METHODS = new Set(["pix", "credit"]);
-const PAYABLE_STATUSES = new Set(["proposed", "reserved", "payment_pending"]);
-const PLATFORM_BPS = Object.freeze({ sale: 800, exchange: 500, donation: 0 });
-
-function fee(amount, basisPoints) {
-  return Math.round(amount * basisPoints / 10_000);
-}
+const PAYABLE_STATUSES = new Set(["initiated", "payment_pending"]);
 
 function publicIntent(intent) {
   return {
@@ -72,7 +68,8 @@ export function createPaymentService(repository, provider) {
       const result = await repository.processWebhook(event);
       if (result.missing) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
       if (result.amountMismatch) throw new PaymentError("payment_amount_mismatch", 409, "Valor do evento financeiro não confere.");
-      return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null };
+      return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null,
+        ...(result.ignored ? { ignored: true } : {}) };
     },
 
     async createIntent(buyerId, input) {
@@ -93,12 +90,16 @@ export function createPaymentService(repository, provider) {
       const transaction = context.transaction;
       if (!transaction) throw new PaymentError("transaction_not_found", 404, "Transação não encontrada.");
       if (!PAYABLE_STATUSES.has(transaction.status)) throw new PaymentError("transaction_not_payable", 409, "Esta transação não pode ser paga.");
-      if (!(transaction.kind in PLATFORM_BPS)) throw new PaymentError("invalid_transaction_kind", 409, "Tipo de transação inválido.");
+      if (!["sale", "exchange", "donation"].includes(transaction.kind)) throw new PaymentError("invalid_transaction_kind", 409, "Tipo de transação inválido.");
+      if (input?.deliveryRequested || transaction.kind !== "sale") {
+        throw new PaymentError("settlement_not_configured", 503, "Pagamento de troca ou frete depende de configuração dos recebedores e homologação do fornecedor.");
+      }
       const amountCents = Number(transaction.amount_cents ?? 0);
-      if (!Number.isInteger(amountCents) || amountCents < 0) throw new PaymentError("invalid_amount", 409, "Valor da transação inválido.");
-      const platformFeeCents = fee(amountCents, PLATFORM_BPS[transaction.kind]);
-      const deliveryFeeCents = input?.deliveryRequested ? fee(amountCents, 500) : 0;
-      const sellerAmountCents = amountCents - platformFeeCents - deliveryFeeCents;
+      if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new PaymentError("invalid_amount", 409, "Valor da transação inválido.");
+      const split = saleSplit(amountCents);
+      const platformFeeCents = split.platformCents;
+      const deliveryFeeCents = 0;
+      const sellerAmountCents = split.sellerCents;
       if (sellerAmountCents < 0) throw new PaymentError("invalid_split", 409, "Divisão financeira inválida.");
 
       const created = await repository.createIntent({
@@ -122,4 +123,3 @@ export function createPaymentService(repository, provider) {
     },
   });
 }
-

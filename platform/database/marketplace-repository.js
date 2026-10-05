@@ -1,3 +1,4 @@
+import { createOperationSupportRepository } from "./operation-support-repository.js";
 export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
     l.package_condition, l.size, l.quantity,
@@ -6,6 +7,7 @@ export function createMarketplaceRepository(database) {
     l.institution_id, i.public_name AS institution_name`;
 
   return Object.freeze({
+    ...createOperationSupportRepository(database),
     async search({
       query = null, kind = null, size = null,
       latitude = null, longitude = null, radiusKm = null,
@@ -139,32 +141,13 @@ export function createMarketplaceRepository(database) {
       return result.rows[0] ?? null;
     },
 
-    async cancelTransaction({ actorId, transactionId }) {
-      return database.transaction(async (client) => {
-        const tx = await client.query(
-          `UPDATE transactions SET status = 'cancelled', updated_at = now()
-           WHERE id = $1 AND $2 IN (buyer_id, seller_id)
-             AND status NOT IN ('completed','cancelled','refunded')
-           RETURNING id, listing_id, status`, [transactionId, actorId],
-        );
-        if (!tx.rows[0]) throw Object.assign(new Error("Operação não pode ser cancelada."), { code: "transaction_not_cancellable", status: 409 });
-        await client.query("UPDATE listings SET status = 'published', updated_at = now() WHERE id = $1 AND status = 'unavailable'", [tx.rows[0].listing_id]);
-        return tx.rows[0];
+    async completeTransaction() {
+      // Fail closed until independent proof validation and receiver approval are persisted.
+      throw Object.assign(new Error("Conclusão aguarda validação do comprovante e aprovação do recebedor. Procure o suporte."), {
+        code: "receipt_confirmation_not_configured", status: 503,
       });
     },
 
-    async completeTransaction({ actorId, transactionId }) {
-      return database.transaction(async (client) => {
-        const tx = await client.query(
-          `UPDATE transactions SET status = 'completed', updated_at = now()
-           WHERE id = $1 AND $2 IN (buyer_id, seller_id)
-             AND status NOT IN ('completed','cancelled','refunded')
-           RETURNING id, listing_id, status`, [transactionId, actorId],
-        );
-        if (!tx.rows[0]) throw Object.assign(new Error("Operação não pode ser finalizada."), { code: "transaction_not_completable", status: 409 });
-        await client.query("UPDATE listings SET status = 'completed', updated_at = now() WHERE id = $1", [tx.rows[0].listing_id]);
-        return tx.rows[0];
-      });
-    },
   });
 }
+

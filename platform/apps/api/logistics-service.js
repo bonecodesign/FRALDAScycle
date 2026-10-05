@@ -1,4 +1,6 @@
 import { ServiceError } from "./service-error.js";
+import { hasScope, requireScope } from "./authorization.js";
+import { sellerSettlementReadiness } from "../../packages/contracts/settlement-readiness.js";
 export class LogisticsError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -10,8 +12,66 @@ function publicShipment(row){return {
   id:row.id,transactionId:row.transaction_id,mode:row.mode,insured:row.insured,
   status:row.status,estimatedDeliveryAt:row.estimated_delivery_at??null,events:row.events??[],
 }}
-export function createLogisticsService(repository,provider){
+export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    ownAddresses(userId) { return repository.ownAddresses(userId); },
+    async createAddress(userId,input) {
+      const address={};
+      for(const field of ["label","street","number","district","city"]) {
+        address[field]=String(input?.[field]??"").trim();
+        if(address[field].length<1||address[field].length>150)throw new LogisticsError("invalid_address",422,"Preencha os campos do endereço.");
+      }
+      address.postalCode=String(input?.postalCode??"").replace(/\D/g,"");
+      address.state=String(input?.state??"").trim().toUpperCase();
+      address.complement=String(input?.complement??"").trim()||null;
+      if(!/^\d{8}$/.test(address.postalCode)||
+        !["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].includes(address.state)||
+        (address.complement&&address.complement.length>150))throw new LogisticsError("invalid_address",422,"Informe CEP, estado e complemento válidos.");
+      return repository.createAddress(userId,address);
+    },
+    async shareAddress(userId,shipmentId,input) {
+      if(input?.confirmed!==true||input?.noticeVersion!=="FC-ADDRESS-1")throw new LogisticsError("address_consent_required",422,"Confirme o aviso de compartilhamento do endereço.");
+      const addressId=String(input?.addressId??"");
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addressId))throw new LogisticsError("invalid_address",422,"Selecione seu endereço.");
+      return repository.shareAddress({actorId:userId,shipmentId,addressId});
+    },
+    sharedAddresses(userId,shipmentId) { return repository.sharedAddresses({userId,shipmentId}); },
+    async settlementStatus(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
+        reviewer: hasScope(actor, "admin:deliveries:validate") });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Recebimento não encontrado.");
+      return sellerSettlementReadiness(proof);
+    },
+    async proofPhoto(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
+        reviewer: hasScope(actor, "admin:deliveries:validate") });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
+      if (!mediaProvider) throw new LogisticsError("provider_not_configured", 503, "A leitura privada da foto ainda não foi configurada.");
+      return mediaProvider.signedProofRead(actor.id, proof.media_key);
+    },
+    async receiptEvidence(actor, shipmentId) {
+      const proof = await repository.receiptEvidence({
+        userId: actor.id, shipmentId, reviewer: hasScope(actor, "admin:deliveries:validate"),
+      });
+      if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
+      return {
+        id: proof.id, mediaKey: proof.media_key, courierId: proof.courier_id,
+        createdAt: proof.created_at, approvedAt: proof.approved_at ?? null,
+        validatedAt: proof.validated_at ?? null, payoutStatus: "not_configured",
+      };
+    },
+    async approveReceipt(actorId, shipmentId, input) {
+      if (input?.approved !== true) throw new LogisticsError("explicit_approval_required", 422, "Confirme explicitamente que recebeu e verificou o produto.");
+      return repository.recordReceiptDecision({ actorId, shipmentId });
+    },
+    async validateProof(actor, shipmentId, input) {
+      requireScope(actor, "admin:deliveries:validate");
+      const reason = String(input?.reason ?? "").trim();
+      if (input?.validated !== true || reason.length < 10 || reason.length > 1000) {
+        throw new LogisticsError("invalid_proof_validation", 422, "Confirme a validação e registre sua justificativa.");
+      }
+      return repository.recordReceiptDecision({ actorId: actor.id, shipmentId, validation: true, reason });
+    },
     async processWebhook(event){
       const result=await repository.processWebhook(event);
       if(result.missing)throw new LogisticsError("shipment_not_found",404,"Entrega não encontrada.");
@@ -55,4 +115,3 @@ export function createLogisticsService(repository,provider){
     },
   })
 }
-

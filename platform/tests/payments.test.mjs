@@ -11,14 +11,16 @@ const transactionId = "11111111-1111-4111-8111-111111111111";
 
 function paymentStore(kind = "sale", amountCents = 10_000) {
   let sequence = 0;
+  let saved;
   return {
     async context() {
       return { existing: false, transaction: {
-        id: transactionId, buyer_id: "buyer-1", status: "reserved", kind, amount_cents: amountCents,
+        id: transactionId, buyer_id: "buyer-1", status: "initiated", kind, amount_cents: amountCents,
       } };
     },
     async createIntent(input) {
       sequence += 1;
+      saved = input;
       return {
         id: "22222222-2222-4222-8222-222222222222",
         transaction_id: input.transactionId, method: input.method,
@@ -30,10 +32,10 @@ function paymentStore(kind = "sale", amountCents = 10_000) {
     async attachProvider(input) {
       return {
         id: input.intentId, transaction_id: transactionId, method: "pix",
-        amount_cents: amountCents,
-        platform_fee_cents: kind === "sale" ? 800 : kind === "exchange" ? 500 : 0,
-        delivery_fee_cents: 500,
-        seller_amount_cents: amountCents - (kind === "sale" ? 800 : kind === "exchange" ? 500 : 0) - 500,
+        amount_cents: saved.amountCents,
+        platform_fee_cents: saved.platformFeeCents,
+        delivery_fee_cents: saved.deliveryFeeCents,
+        seller_amount_cents: saved.sellerAmountCents,
         status: input.status, checkout_payload: input.checkoutPayload,
       };
     },
@@ -48,21 +50,27 @@ const provider = {
   },
 };
 
-test("payment service enforces approved sale exchange donation and delivery splits", async () => {
-  for (const [kind, platformFee] of [["sale", 800], ["exchange", 500], ["donation", 0]]) {
+test("sale deducts eight percent from seller without charging product for freight", async () => {
+  const result = await createPaymentService(paymentStore(), provider).createIntent("buyer-1", {
+    transactionId, idempotencyKey: "payment-sale-0001", method: "pix",
+  });
+  assert.equal(result.intent.amountCents, 10000);
+  assert.equal(result.intent.platformFeeCents, 800);
+  assert.equal(result.intent.deliveryFeeCents, 0);
+  assert.equal(result.intent.sellerAmountCents, 9200);
+});
+
+test("unsupported freight and exchange settlement cannot reach provider", async () => {
+  let called = false;
+  const remote = { async createIntent() { called = true; } };
+  for (const [kind, deliveryRequested] of [["sale", true], ["exchange", false], ["donation", false]]) {
     const store = paymentStore(kind);
-    const service = createPaymentService(store, provider);
-    const result = await service.createIntent("buyer-1", {
-      transactionId, idempotencyKey: `payment-${kind}-0001`, method: "pix", deliveryRequested: true,
-    });
-    assert.equal(result.intent.platformFeeCents, platformFee);
-    assert.equal(result.intent.deliveryFeeCents, 500);
-    assert.equal(result.intent.sellerAmountCents, 10_000 - platformFee - 500);
-    assert.equal(
-      result.intent.platformFeeCents + result.intent.deliveryFeeCents + result.intent.sellerAmountCents,
-      result.intent.amountCents,
-    );
+    await assert.rejects(createPaymentService(store, remote).createIntent("buyer-1", {
+      transactionId, idempotencyKey: "payment-blocked-0001", method: "pix", deliveryRequested,
+    }), e => e.code === "settlement_not_configured");
+    assert.equal(store.sequence, 0);
   }
+  assert.equal(called, false);
 });
 
 test("payment service refuses raw card data and requires provider tokenization", async () => {
@@ -123,6 +131,7 @@ test("payment persistence updates transaction and audit atomically", async () =>
   const client = {
     async query(text, values) {
       statements.push({ text, values });
+      if (/SELECT id FROM transactions/.test(text)) return { rows: [{ id: transactionId }] };
       if (/INSERT INTO payment_intents/.test(text)) return { rows: [{ id: "intent-1" }] };
       return { rows: [] };
     },
@@ -136,10 +145,11 @@ test("payment persistence updates transaction and audit atomically", async () =>
     method: "pix", amountCents: 10_000, platformFeeCents: 800,
     deliveryFeeCents: 500, sellerAmountCents: 8_700,
   });
-  assert.equal(statements.length, 3);
-  assert.match(statements[0].text, /INSERT INTO payment_intents/);
-  assert.match(statements[1].text, /status = 'payment_pending'/);
-  assert.match(statements[2].text, /payment\.intent\.created/);
+  assert.equal(statements.length, 4);
+  assert.match(statements[0].text, /FOR UPDATE/);
+  assert.match(statements[1].text, /INSERT INTO payment_intents/);
+  assert.match(statements[2].text, /status = 'payment_pending'/);
+  assert.match(statements[3].text, /payment\.intent\.created/);
 });
 
 test("payment HTTP endpoint requires an authenticated buyer", async (context) => {
@@ -470,3 +480,4 @@ test("refund and dispute HTTP routes require the payment owner session", async (
   assert.equal(body.paymentCase.userId, "buyer-1");
   assert.equal(body.paymentCase.kind, "refund");
 });
+

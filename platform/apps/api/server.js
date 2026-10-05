@@ -12,6 +12,7 @@ import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from 
 import { createTelemetry } from "./telemetry.js";
 import { handlePayments } from "./payment-handler.js";
 import { handleLogistics } from "./logistics-handler.js";
+import { handleAccountConsent } from "./account-consent-handler.js";
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -30,6 +31,7 @@ export function createApiServer({
   paymentProvider = null,
   logisticsService = null,
   logisticsProvider = null,
+  accountConsentService = null,
   adminService = null,
   realtimeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
@@ -52,7 +54,7 @@ export function createApiServer({
       if (request.method === "OPTIONS") {
         response.writeHead(204, {
           ...headers,
-          "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
           "access-control-allow-headers": "content-type,authorization,x-request-id",
         });
         response.end();
@@ -164,6 +166,10 @@ export function createApiServer({
         return;
       }
 
+      if (await handleAccountConsent(request,response,{
+        url,headers,requestId:id,authService,accountConsentService,
+      })) return;
+
       if (await handleLogistics(request, response, {
         url, headers, requestId: id, authService, logisticsService, logisticsProvider,
       })) return;
@@ -208,4 +214,3 @@ export function startApi(config = loadConfig()) {
 }
 
 if (isMainModule(import.meta.url)) startApi();
-
