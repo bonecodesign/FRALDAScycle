@@ -1,7 +1,12 @@
+import { createReceiptRepository } from "./receipt-repository.js";
+import { createAddressRepository } from "./address-repository.js";
+
 export function createLogisticsRepository(database) {
   const shipmentColumns = `s.id, s.transaction_id, s.buyer_id, s.seller_id, s.courier_id,
     s.mode, s.insured, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
   return Object.freeze({
+    ...createReceiptRepository(database),
+    ...createAddressRepository(database),
     async context({ buyerId, transactionId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
@@ -98,7 +103,7 @@ export function createLogisticsRepository(database) {
         if(!allowed[shipment.status]?.has(next))return {ignored:true,status:shipment.status};
         await client.query("UPDATE shipments SET status=$2::shipment_status,updated_at=now() WHERE id=$1",[shipment.id,next]);
         const transactionStatus=["picked_up","in_transit","delivered"].includes(next)?"in_delivery":(next==="failed"||next==="cancelled")?"paid":null;
-        if(transactionStatus)await client.query("UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1",[shipment.transaction_id,transactionStatus]);
+        if(transactionStatus)await client.query("UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1 AND status IN ('paid','in_delivery')",[shipment.transaction_id,transactionStatus]);
         await client.query(
           `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude,occurred_at)
            VALUES ($1,$2::shipment_status,$3,$4,$5,$6)`,
@@ -174,4 +179,3 @@ export function createLogisticsRepository(database) {
     },
   });
 }
-

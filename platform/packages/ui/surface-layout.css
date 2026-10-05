@@ -1,0 +1,22 @@
+/* Ajustes do produto em platform/, preservando as fontes do protótipo. */
+@media (min-width: 576px) and (max-width: 991px) {
+  [data-surface="app"] .app-stage {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    max-width: 100%;
+    min-width: 0;
+  }
+  [data-surface="app"] .app-menu,
+  [data-surface="app"] .context-panel {
+    max-width: 100%;
+    min-width: 0;
+  }
+  [data-surface="app"] .phone {
+    width: 100%;
+    max-width: 390px;
+    min-width: 0;
+  }
+}
+[data-surface="app"] fieldset {
+  min-inline-size: 0;
+}
