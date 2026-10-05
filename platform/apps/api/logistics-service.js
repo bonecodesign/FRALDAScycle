@@ -83,11 +83,16 @@ export function createLogisticsService(repository,provider,mediaProvider){
       if(!/^[0-9a-f-]{36}$/i.test(transactionId))throw new LogisticsError("invalid_transaction",422,"Transação inválida.");
       if(!MODES.has(mode))throw new LogisticsError("invalid_shipment_mode",422,"Modalidade de entrega inválida.");
       if(idempotencyKey.length<16||idempotencyKey.length>128)throw new LogisticsError("invalid_idempotency_key",422,"Chave de idempotência inválida.");
-      const context=await repository.context({buyerId,transactionId,idempotencyKey});
-      if(context.existing)return {shipment:publicShipment(context.shipment),reused:true};
+      const context=await repository.context({buyerId,transactionId,idempotencyKey,mode,insured});
+      if(context.existing){
+        const existing=context.shipment;
+        if(existing.buyer_id!==buyerId||existing.transaction_id!==transactionId||existing.mode!==mode||existing.insured!==insured)throw new LogisticsError('shipment_idempotency_conflict',409,'Chave de idempotência já utilizada para outra solicitação.');
+        return {shipment:publicShipment(existing),reused:true};
+      }
       const transaction=context.transaction;if(!transaction)throw new LogisticsError("transaction_not_found",404,"Transação não encontrada.");
       if(!ELIGIBLE.has(transaction.status))throw new LogisticsError("shipment_not_allowed",409,"Esta transação ainda não permite entrega.");
       const created=await repository.createShipment({transactionId,buyerId,sellerId:transaction.seller_id,mode,insured,idempotencyKey});
+      if(created.reused)return {shipment:publicShipment(created),reused:true};
       if(mode==="pickup")return {shipment:publicShipment(created),reused:false};
       const remote=await provider.createShipment({shipmentId:created.id,transactionId,mode,insured,idempotencyKey});
       const attached=await repository.attachProvider({shipmentId:created.id,...remote});
@@ -115,3 +120,4 @@ export function createLogisticsService(repository,provider,mediaProvider){
     },
   })
 }
+
