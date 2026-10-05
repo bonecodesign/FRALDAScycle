@@ -59,7 +59,8 @@ export async function validateSyntheticPremium(database) {
   assert.equal(current.listings.find(listing=>listing.id===ongoing).status,'unavailable');
   assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[tx])).rows[0].status,'initiated');
   await assert.rejects(service.changeListingStatus(owner,{listingId:foreign,status:'paused',expectedStatus:'published'}),e=>e.status===404);
-  await assert.rejects(service.changeListingStatus(owner,{listingId:ongoing,status:'paused',expectedStatus:'unavailable'}),e=>e.code==='invalid_listing_status');
+  assert.throws(()=>service.changeListingStatus(owner,{listingId:ongoing,status:'paused',expectedStatus:'unavailable'}),e=>e.code==='invalid_listing_status');
+  await assert.rejects(service.changeListingStatus(owner,{listingId:ongoing,status:'paused',expectedStatus:'published'}),e=>e.code==='listing_operation_pending');
   // Completar as três vagas e disputar a última: uma única retomada pode ocupar a vaga.
   for(const listing of (await service.status(owner)).listings.filter(l=>l.status==='published')) await service.changeListingStatus(owner,{listingId:listing.id,status:'paused',expectedStatus:'published'});
   for(const id of ids.slice(0,2)) await service.changeListingStatus(owner,{listingId:id,status:'published',expectedStatus:'paused'});
