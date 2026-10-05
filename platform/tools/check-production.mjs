@@ -3,6 +3,11 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "database/review-moderation-repository.js",
+  "apps/api/review-moderation-service.js",
+  "apps/api/review-moderation-handler.js",
+  "apps/app/review-moderation.js",
+  "tools/beta-review-moderation-check.mjs",
   "database/privacy-request-repository.js",
   "apps/api/privacy-request-service.js",
   "apps/api/privacy-request-handler.js",
