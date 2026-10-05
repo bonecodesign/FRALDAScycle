@@ -15,7 +15,8 @@ export function detectProhibitedContent(value, { chat = false, review = false } 
   if (/(?<!\d)(?:\d[^\p{L}\p{N}]{0,5}){8,15}(?!\d)/u.test(numbers)) reasons.push('phone');
   if (/(?:https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|io|app|me|link)\b)/i.test(email)) reasons.push('external_link');
   if (/\b(?:whats\s*app|whats|zap|telegram|instagram|insta|facebook|pix\s+direto|pagar\s+(?:por\s+)?fora|negociar\s+fora|me\s+liga|chama\s+no)\b|@[a-z0-9._]{3,}/i.test(text)) reasons.push('external_contact');
-  if (chat && /\b(?:qr\s*code|qrcode|codigo\s*qr|contraproposta|fechar\s+por|abaixar\s+preco|pagar\s+por\s+fora)\b/.test(text)) reasons.push('chat_conditions');
+  if (chat && /\b(?:qr\s*code|qrcode|codigo\s*qr)\b/.test(text)) reasons.push('qr_code');
+  if (chat && /\b(?:contraproposta|fechar\s+por|abaixar\s+preco|pagar\s+por\s+fora)\b/.test(text)) reasons.push('chat_conditions');
   if (review && /\b(?:rua|avenida|travessa|logradouro|cep)\s+[^\s]|\b(?:data\s+de\s+nascimento|nome\s+do\s+bebe|comprovante\s+de\s+entrega|conteudo\s+do\s+chat)\b/.test(text)) reasons.push('private_review_content');
   return [...new Set(reasons)];
 }
