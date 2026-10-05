@@ -1,10 +1,12 @@
 import { createReceiptRepository } from "./receipt-repository.js";
+import { createAddressRepository } from "./address-repository.js";
 
 export function createLogisticsRepository(database) {
   const shipmentColumns = `s.id, s.transaction_id, s.buyer_id, s.seller_id, s.courier_id,
     s.mode, s.insured, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
   return Object.freeze({
     ...createReceiptRepository(database),
+    ...createAddressRepository(database),
     async context({ buyerId, transactionId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
