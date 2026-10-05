@@ -13,7 +13,7 @@ export function createAccountConsentRepository(database) {
           push=EXCLUDED.push,updated_at=now() RETURNING email,sms,push,updated_at`,[userId,input.email,input.sms,input.push]);
         await client.query('INSERT INTO marketing_preference_events(user_id,email,sms,push) VALUES($1,$2,$3,$4)',[userId,input.email,input.sms,input.push]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES($1,'account.marketing.changed','user',$1::text,'{}'::jsonb)`,[userId]);
+          VALUES($1::uuid,'account.marketing.changed','user',$1::text,'{}'::jsonb)`,[userId]);
         return result.rows[0];
       });
     },

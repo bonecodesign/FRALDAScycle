@@ -67,6 +67,12 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const fixture = { email: 'browser-fixture@example.test', displayName: 'Pessoa fictícia navegador', password: 'synthetic-only-password-v1' };
       await authService.register(fixture);
       const session = await authService.login(fixture);
+      const currentSession = await authService.session(session.token);
+      const extraSession = await authService.login(fixture);
+      const { createAdminRepository } = await import('../database/admin-repository.js');
+      assert.equal(await createAdminRepository(database).revokeOtherSessions({ actorUserId: currentSession.id, currentSessionId: currentSession.sessionId }), 1);
+      assert.equal(await authService.session(extraSession.token), null);
+      assert.ok(await authService.session(session.token));
       const surfacePort = await freeLocalPort();
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
       const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service });

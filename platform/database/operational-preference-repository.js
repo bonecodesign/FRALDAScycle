@@ -35,7 +35,7 @@ export function createOperationalPreferenceRepository(database) {
         await client.query(`INSERT INTO operational_preference_events(user_id,version,preferences)
           VALUES($1,$2,$3::jsonb)`, [userId, result.rows[0].version, JSON.stringify({ channels: input.channels, quietHours: input.quietHours })]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES($1,'account.operational_preferences.changed','user',$1::text,'{}'::jsonb)`, [userId]);
+          VALUES($1::uuid,'account.operational_preferences.changed','user',$1::text,'{}'::jsonb)`, [userId]);
         return { preferences: present(result.rows[0]), reused: false };
       });
     },
