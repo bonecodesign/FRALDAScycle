@@ -72,6 +72,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticPremium(database);
       const { validateSyntheticModeration,seedBrowserCommunication } = await import('../tools/beta-moderation-check.mjs');
       await validateSyntheticModeration(database,{user,other,transaction});
+      const {validateSyntheticPrivacy}=await import('../tools/beta-privacy-check.mjs');
+      await validateSyntheticPrivacy(database,{user,other});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -112,6 +114,9 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const {createLogisticsRepository}=await import('../database/logistics-repository.js');
       const {createLogisticsService}=await import('../apps/api/logistics-service.js');
       const {createAddressChangeService}=await import('../apps/api/address-change-service.js');
+      const {createPrivacyRequestService}=await import('../apps/api/privacy-request-service.js');
+      const {createPrivacyRequestRepository}=await import('../database/privacy-request-repository.js');
+      const privacyRequestService=createPrivacyRequestService(createPrivacyRequestRepository(database));
       const logisticsRepository=createLogisticsRepository(database),logisticsService=createLogisticsService(logisticsRepository,null,null);
       const addressChangeService=createAddressChangeService(logisticsRepository.addressChanges);
       const addressTransaction=await seedBrowserCommunication(database,user,currentSession.id);
@@ -121,8 +126,10 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const browserNewAddress=await logisticsService.createAddress(currentSession.id,{...addressFields,label:'Novo endereço fictício',street:'Rua nova fictícia'});
       await logisticsService.shareAddress(currentSession.id,addressShipment.id,{addressId:browserOldAddress.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'});
       const browserAddress={shipmentId:addressShipment.id,addressId:browserNewAddress.id};
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService });
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
+      assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
+      assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
       const premiumUrl = `http://127.0.0.1:${api.address().port}/v1/account/premium`;
       assert.equal((await fetch(premiumUrl)).status, 401);
       assert.equal((await fetch(premiumUrl + '/cancel-renewal', { method: 'POST', headers: { cookie: `fc_session=${session.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: true, userId: user }) })).status, 422);

@@ -3,6 +3,11 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "database/privacy-request-repository.js",
+  "apps/api/privacy-request-service.js",
+  "apps/api/privacy-request-handler.js",
+  "apps/app/privacy.js",
+  "tools/beta-privacy-check.mjs",
   "tools/beta-address-change-check.mjs",
   "database/address-change-repository.js",
   "apps/api/address-change-service.js",

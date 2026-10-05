@@ -31,3 +31,6 @@
   [data-surface="admin"] .admin-layout { grid-template-columns: minmax(0, 1fr); }
   [data-surface="admin"] .admin-sidebar { position: static; width: auto; }
 }
+
+[data-surface="app"] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-surface="app"] input, [data-surface="app"] select, [data-surface="app"] textarea { max-width: 100%; }

@@ -180,6 +180,21 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
       assert.equal(layout.overflow,false,`Address overflow ${width}`);assert.equal(layout.missingLabels,0);addressLayouts.push({viewport:width,...layout});
     }
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/privacy`});
+    await until(()=>evaluate(`!document.querySelector('#privacy-form fieldset')?.disabled`),'privacy authenticated form');
+    await evaluate(`(()=>{const f=document.getElementById('privacy-form');f.elements.kind.value='deletion';f.elements.details.value='Solicitação fictícia de exclusão no navegador, sem dados privados.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('privacy-feedback').textContent.includes('Solicitação registrada — protocolo FC-S-')`),'privacy protocol via keyboard');
+    const privacyRequest=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/privacy-requests')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0])`);
+    assert.equal(privacyRequest.kind,'deletion');assert.equal(privacyRequest.erasureAllowed,false);assert.equal(privacyRequest.closureAllowed,false);
+    await evaluate(`document.querySelector('#privacy-list button').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('privacy-detail').textContent.includes('Retenção: aguardando revisão')`),'privacy private obligations');
+    const privacyLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      assert.equal(layout.overflow,false,`Privacy overflow ${width}`);assert.equal(layout.missingLabels,0);privacyLayouts.push({viewport:width,...layout});
+    }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${adminOrigin}/admin/moderation`});
     await until(()=>evaluate(`document.getElementById('moderation-admin-feedback')?.textContent.includes('Decisões carregadas')`),'admin moderation load');
@@ -202,6 +217,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`!document.getElementById('address-change-review')?.hidden&&document.querySelector('#address-change-list button')`),'support address list');
     await evaluate(`document.querySelector('#address-change-list button').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#address-change-review fieldset').disabled`),'authorized address consultation');
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Private address detail overflow ${width}`);
+    }
     await evaluate(`(()=>{const f=document.getElementById('address-change-review');f.elements.outcome.value='approved';f.elements.reason.value='Conferência fictícia de consentimento, titular e retirada.';f.elements.confirmed.focus();})()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Análise registrada')`),'support address approval keyboard');
@@ -211,7 +230,16 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
       assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Support address overflow ${width}`);
     }
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/privacy`});
+    await until(()=>evaluate(`!document.getElementById('privacy-assessment')?.hidden&&document.querySelector('#privacy-list button')`),'authorized privacy requests');
+    await evaluate(`document.querySelector('#privacy-list button').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`!document.querySelector('#privacy-assessment fieldset').disabled`),'privacy support detail');
+    await evaluate(`(()=>{const f=document.getElementById('privacy-assessment');f.elements.reason.value='Pendências fictícias conferidas, aguardando política de retenção.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('privacy-feedback').textContent.includes('Análise registrada')`),'privacy keyboard assessment');
+    const privacyAssessed=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/privacy-requests/')}+${JSON.stringify(privacyRequest.id)},{credentials:'include'}).then(r=>r.json()).then(r=>r.request)`);
+    assert.equal(privacyAssessed.status,'under_review');assert.equal(privacyAssessed.version,1);assert.equal(privacyAssessed.erasureAllowed,false);assert.equal(privacyAssessed.closureAllowed,false);
+    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }
