@@ -6,6 +6,6 @@ A repetição de uma chave verifica titular, transação, modalidade e seguro an
 
 Repetições concorrentes criam somente uma entrega, evento e auditoria. O perdedor retorna a entrega existente sem repetir chamada do fornecedor. Falha externa continua sem retentativa automática; fornecedor e homologação permanecem pendentes, sem ativação neste lote.
 
-Validação preparada: dois testes de serviço sem fornecedor; PostgreSQL nativo acrescenta concorrência, isolamento entre titulares, divergência de payload, chave diferente e operação cancelada após preflight. Resultado de CI pendente, não registrado como executado até aprovação. O fluxo completo existente de venda/endereço/comprovante/validação e Chrome também será reexecutado.
+Validação preparada: dois testes de serviço sem fornecedor; PostgreSQL nativo acrescenta concorrência, isolamento entre titulares, divergência de payload, chave diferente e operação cancelada após preflight. CI do commit 0622d6d: 269 testes e 83 verificações aprovados; PostgreSQL nativo executou os casos adicionais e o fluxo completo de venda/endereço/comprovante/validação. Chrome 154 reexecutou preferências, Premium, chat, recurso e administração com teclado e quatro larguras. Evidência: job 111792067673. Sem teste humano, leitor de tela ou dispositivo físico.
 
 Matriz permanece 7/70 = 10% concluídos. Produção bloqueada; não há cobrança, repasse, envio externo ou serviço pago. Item 12 standby. Alteração de endereço pelo suporte e logística de troca/doação permanecem em lotes seguintes.
