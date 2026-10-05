@@ -68,7 +68,8 @@ export function createPaymentService(repository, provider) {
       const result = await repository.processWebhook(event);
       if (result.missing) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
       if (result.amountMismatch) throw new PaymentError("payment_amount_mismatch", 409, "Valor do evento financeiro não confere.");
-      return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null };
+      return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null,
+        ...(result.ignored ? { ignored: true } : {}) };
     },
 
     async createIntent(buyerId, input) {

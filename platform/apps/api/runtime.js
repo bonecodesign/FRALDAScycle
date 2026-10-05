@@ -24,6 +24,8 @@ import { createPaymentService } from "./payment-service.js";
 import { createLogisticsProvider } from "./logistics-provider.js";
 import { createLogisticsService } from "./logistics-service.js";
 import { createRealtimeService } from "./realtime-service.js";
+import { createAccountConsentService } from "./account-consent-service.js";
+import { createAccountConsentRepository } from "../../database/account-consent-repository.js";
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -35,13 +37,14 @@ export async function startRuntime(config = null) {
     notificationService,
   });
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
+  const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
   const adminService = createAdminService(createAdminRepository(database));
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
-  const logisticsService = createLogisticsService(createLogisticsRepository(database), logisticsProvider);
+  const logisticsService = createLogisticsService(createLogisticsRepository(database), logisticsProvider, marketplaceProviders);
   const realtimeService = createRealtimeService(createRealtimeRepository(database));
   const telemetry = createTelemetry(config);
   const server = createApiServer({
@@ -49,6 +52,7 @@ export async function startRuntime(config = null) {
     readiness: () => database.readiness(),
     authService,
     marketplaceService,
+    accountConsentService,
     marketplaceProviders,
     institutionService,
     paymentService,

@@ -1,0 +1,881 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-05",
+  "baseline": "9491eae879284b3dd88f409d1e4e99a62563beef",
+  "denominator": 70,
+  "requirements": [
+    {
+      "id": 1,
+      "title": "Comissão de venda",
+      "status": "concluido",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Preço informado, desconto de 8% e líquido antes da tarifa; integração financeira real é tratada nos itens 3 e 13."
+    },
+    {
+      "id": 2,
+      "title": "Comissão logística",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Cálculo de 5% existe; ligação ao repasse do entregador pendente."
+    },
+    {
+      "id": 3,
+      "title": "Processamento do produto",
+      "status": "bloqueado",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Oferta e contrato do processador ausentes; tarifa desconhecida não é zero."
+    },
+    {
+      "id": 4,
+      "title": "Taxa de troca",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Cálculo de 2,5% por pacote existe; duas partes e cobrança ainda não integradas."
+    },
+    {
+      "id": 5,
+      "title": "Entrega de doação",
+      "status": "pendente",
+      "references": [
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Fluxo de doação e pagador logístico específico não implementados."
+    },
+    {
+      "id": 6,
+      "title": "Renovação Premium",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local de vigência/cancelamento existe; renovação persistida, aviso e fornecedor ainda não integrados."
+    },
+    {
+      "id": 7,
+      "title": "Retorno ao gratuito",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Plano puro escolhe três anúncios e preserva operações; seleção persistida e pausa atômica pendentes."
+    },
+    {
+      "id": 8,
+      "title": "Falha de renovação",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local calcula três dias da falha original; aviso, evento persistido e regularização real pendentes."
+    },
+    {
+      "id": 9,
+      "title": "Frete na troca",
+      "status": "pendente",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Logística por pacote recebido ainda não implementada."
+    },
+    {
+      "id": 10,
+      "title": "Diferença na troca",
+      "status": "bloqueado",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Fluxo das duas partes pendente; processamento depende de fornecedor."
+    },
+    {
+      "id": 11,
+      "title": "Frete na venda",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Produto e frete separados no contrato; checkout com entrega bloqueado."
+    },
+    {
+      "id": 12,
+      "title": "Processamento do frete",
+      "status": "bloqueado",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "STANDBY; nenhuma parte recebe atribuição da tarifa."
+    },
+    {
+      "id": 13,
+      "title": "Repasse ao vendedor",
+      "status": "parcial",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs",
+        "packages/contracts/settlement-readiness.js",
+        "tests/settlement-readiness.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Decisões separadas e consulta existem; não autorizam nem executam repasse."
+    },
+    {
+      "id": 14,
+      "title": "Prazo e silêncio",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/settlement-readiness.js",
+        "tests/settlement-readiness.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Consulta usa 72 horas e proíbe silêncio; prazo externo não homologado."
+    },
+    {
+      "id": 15,
+      "title": "Repasse ao entregador",
+      "status": "pendente",
+      "references": [
+        "packages/contracts/commercial-rules.js",
+        "apps/api/payment-service.js",
+        "tests/commercial-rules.test.mjs",
+        "tests/payments.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Não há fluxo de elegibilidade e repasse do entregador homologado."
+    },
+    {
+      "id": 16,
+      "title": "Conclusão da troca",
+      "status": "pendente",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Faltam duas entregas e confirmações; conclusão legada bloqueada."
+    },
+    {
+      "id": 17,
+      "title": "Entregadores na troca",
+      "status": "pendente",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Elegibilidade independente por perna não implementada."
+    },
+    {
+      "id": 18,
+      "title": "Recebimento institucional",
+      "status": "pendente",
+      "references": [
+        "apps/api/institution-service.js",
+        "database/institution-repository.js",
+        "tests/institutions.test.mjs",
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Aprovação pelo representante autorizado não implementada."
+    },
+    {
+      "id": 19,
+      "title": "Comprovante mínimo",
+      "status": "parcial",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Vínculo, registro e foto privados existem; fornecedor e jornada real pendentes."
+    },
+    {
+      "id": 20,
+      "title": "Divergência",
+      "status": "parcial",
+      "references": [
+        "packages/contracts/settlement-readiness.js",
+        "tests/settlement-readiness.test.mjs",
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Ocorrências bloqueiam consulta; resolução integral pendente."
+    },
+    {
+      "id": 21,
+      "title": "Cancelamento antes da coleta",
+      "status": "parcial",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Proteção antes de endereço/coleta existe; devolução financeira depende de homologação."
+    },
+    {
+      "id": 22,
+      "title": "Após coleta",
+      "status": "parcial",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Cancelamento direto bloqueado; análise de retorno/reembolso ainda pendente."
+    },
+    {
+      "id": 23,
+      "title": "Endereço",
+      "status": "parcial",
+      "references": [
+        "database/address-repository.js",
+        "tests/private-address-sharing.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Venda possui acesso restrito; troca, doação e alteração pelo suporte pendentes."
+    },
+    {
+      "id": 24,
+      "title": "Aviso de endereço",
+      "status": "parcial",
+      "references": [
+        "database/address-repository.js",
+        "tests/private-address-sharing.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Aviso explícito FC-ADDRESS-1 na venda; outras modalidades pendentes."
+    },
+    {
+      "id": 25,
+      "title": "Acesso ao comprovante",
+      "status": "parcial",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Permissão e mídia privada implementadas para venda; prazos de retenção pendentes."
+    },
+    {
+      "id": 26,
+      "title": "Dados do bebê",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Revisão de privacidade obrigatória antes de coleta ou uso."
+    },
+    {
+      "id": 27,
+      "title": "Obrigatoriedade do dado infantil",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Não ativar exigência ou bloqueio de cadastro antes da revisão."
+    },
+    {
+      "id": 28,
+      "title": "Parceiros e idade",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Sem coleta infantil; ofertas por faixa aguardam revisão."
+    },
+    {
+      "id": 29,
+      "title": "Publicidade",
+      "status": "concluido",
+      "references": [
+        "apps/api/account-consent-service.js",
+        "database/account-consent-repository.js",
+        "tests/account-consents.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Escolhas separadas, inicialmente falsas, revogáveis; nenhuma campanha ativada."
+    },
+    {
+      "id": 30,
+      "title": "Maioridade",
+      "status": "pendente",
+      "references": [
+        "apps/api/auth-service.js",
+        "database/auth-repository.js",
+        "tests/identity.test.mjs",
+        "tests/session.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Controle explícito de 18 anos não demonstrado por estes testes de identidade."
+    },
+    {
+      "id": 31,
+      "title": "Perfis distintos",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Requisito infantil familiar depende de revisão; não coletar nos outros perfis."
+    },
+    {
+      "id": 32,
+      "title": "Mais de um bebê",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Não implementar datas infantis antes da revisão."
+    },
+    {
+      "id": 33,
+      "title": "Correção/remoção de datas",
+      "status": "bloqueado",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Regra de bloqueio após remoção aguarda revisão específica."
+    },
+    {
+      "id": 34,
+      "title": "Cookies publicitários",
+      "status": "concluido",
+      "references": [
+        "apps/api/account-consent-service.js",
+        "database/account-consent-repository.js",
+        "tests/account-consents.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Sem ativação de cookies publicitários ou mecanismo de campanhas no piloto."
+    },
+    {
+      "id": 35,
+      "title": "Contatos entre partes",
+      "status": "parcial",
+      "references": [
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Chat exige operação paga; compartilhamento final autorizado não implementado."
+    },
+    {
+      "id": 36,
+      "title": "Exceção logística de contato",
+      "status": "pendente",
+      "references": [
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "tests/receipt-records.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Acesso específico ao contato necessário não demonstrado."
+    },
+    {
+      "id": 37,
+      "title": "Autorização de contatos",
+      "status": "pendente",
+      "references": [],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Recurso de autorização expressa após conclusão não implementado."
+    },
+    {
+      "id": 38,
+      "title": "Avaliações",
+      "status": "pendente",
+      "references": [],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Persistência e autorização de avaliação após finalização não demonstradas."
+    },
+    {
+      "id": 39,
+      "title": "Contatos em avaliações",
+      "status": "pendente",
+      "references": [],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Moderação persistida de avaliações e denúncia pendentes."
+    },
+    {
+      "id": 40,
+      "title": "Contatos no chat",
+      "status": "parcial",
+      "references": [
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Proteções visuais não comprovam detecção de contatos disfarçados no servidor."
+    },
+    {
+      "id": 41,
+      "title": "Contatos nos anúncios",
+      "status": "pendente",
+      "references": [
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Título, descrição e fotos ainda não possuem revisão de contatos completa."
+    },
+    {
+      "id": 42,
+      "title": "Burlas e sanções",
+      "status": "parcial",
+      "references": [
+        "apps/api/authorization.js",
+        "database/admin-repository.js",
+        "tests/admin-rbac.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Suspensão administrativa existe; motivo, aviso e contestação específicos pendentes."
+    },
+    {
+      "id": 43,
+      "title": "Contestação",
+      "status": "pendente",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Suporte genérico existe; recurso vinculado à decisão e revisão independente pendentes."
+    },
+    {
+      "id": 44,
+      "title": "Suspensão e pendências",
+      "status": "parcial",
+      "references": [
+        "apps/api/authorization.js",
+        "database/admin-repository.js",
+        "tests/admin-rbac.test.mjs",
+        "apps/api/auth-service.js",
+        "database/auth-repository.js",
+        "tests/identity.test.mjs",
+        "tests/session.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Revogação existe; acesso restrito ao acompanhamento após suspensão pendente."
+    },
+    {
+      "id": 45,
+      "title": "Exclusão da conta",
+      "status": "parcial",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs",
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Categoria de privacidade no suporte; encerramento, retenção justificada e acesso restrito pendentes."
+    },
+    {
+      "id": 46,
+      "title": "Mudanças nos termos",
+      "status": "bloqueado",
+      "references": [
+        "apps/api/account-consent-service.js",
+        "database/account-consent-repository.js",
+        "tests/account-consents.test.mjs",
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "docs/product-readiness-plan.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Termos reais são rascunhos; ativação e comunicação relevante exigem revisão/autorização."
+    },
+    {
+      "id": 47,
+      "title": "Histórico de aceite",
+      "status": "parcial",
+      "references": [
+        "apps/api/account-consent-service.js",
+        "database/account-consent-repository.js",
+        "tests/account-consents.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Estrutura e testes sintéticos existem; nenhum termo real foi ativado."
+    },
+    {
+      "id": 48,
+      "title": "Separação de escolhas",
+      "status": "concluido",
+      "references": [
+        "apps/api/account-consent-service.js",
+        "database/account-consent-repository.js",
+        "tests/account-consents.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Aceite e publicidade separados; testes não permitem publicidade via aceite."
+    },
+    {
+      "id": 49,
+      "title": "Avisos operacionais",
+      "status": "parcial",
+      "references": [
+        "apps/api/notifications.js",
+        "workers/notifications.js",
+        "tests/notifications.test.mjs",
+        "apps/api/operational-preferences.js",
+        "database/operational-preference-repository.js",
+        "tests/operational-preferences.test.mjs",
+        "docs/operational-preferences-beta.md",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Verificação/recuperação independem de publicidade; preferências e janela silenciosa registráveis; despacho dos demais avisos e exceções do silêncio pendentes."
+    },
+    {
+      "id": 50,
+      "title": "Suporte interno",
+      "status": "parcial",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Protocolo, histórico e acompanhamento implementados; horários e capacidade indefinidos."
+    },
+    {
+      "id": 51,
+      "title": "Suporte externo",
+      "status": "bloqueado",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "E-mail oficial e processo operacional não definidos; não enviar mensagens."
+    },
+    {
+      "id": 52,
+      "title": "Privacidade via suporte",
+      "status": "parcial",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Pedido por protocolo existe; verificação de identidade e atendimento integral pendentes."
+    },
+    {
+      "id": 53,
+      "title": "Acesso administrativo",
+      "status": "parcial",
+      "references": [
+        "apps/api/authorization.js",
+        "database/admin-repository.js",
+        "tests/admin-rbac.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Escopos e auditoria existem; homologação e revisão integral de menor privilégio pendentes."
+    },
+    {
+      "id": 54,
+      "title": "Autenticação administrativa",
+      "status": "parcial",
+      "references": [
+        "apps/api/auth-service.js",
+        "database/auth-repository.js",
+        "tests/identity.test.mjs",
+        "tests/session.test.mjs",
+        "apps/api/authorization.js",
+        "database/admin-repository.js",
+        "tests/admin-rbac.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Contas individuais existem; dois fatores ainda necessários antes da operação real."
+    },
+    {
+      "id": 55,
+      "title": "Revogação administrativa",
+      "status": "parcial",
+      "references": [
+        "apps/api/authorization.js",
+        "database/admin-repository.js",
+        "tests/admin-rbac.test.mjs",
+        "apps/api/auth-service.js",
+        "database/auth-repository.js",
+        "tests/identity.test.mjs",
+        "tests/session.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
+      ],
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Revogação e sessões implementadas; ensaio operacional real pendente."
+    },
+    {
+      "id": 56,
+      "title": "Incidentes",
+      "status": "parcial",
+      "references": [
+        "docs/pilot-run-2026-10-02.md",
+        "config/pilot-session.v1.json",
+        "tests/pilot-session.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Roteiro e controles preparados; responsáveis e exercício real pendentes."
+    },
+    {
+      "id": 57,
+      "title": "Backup",
+      "status": "parcial",
+      "references": [
+        "database/recovery.js",
+        "tests/database-recovery.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Ferramenta e testes de contrato existem; restauração PostgreSQL real não comprovada."
+    },
+    {
+      "id": 58,
+      "title": "Dados fictícios de teste",
+      "status": "concluido",
+      "references": [
+        "docs/pilot-run-2026-10-02.md",
+        "config/pilot-session.v1.json",
+        "tests/pilot-session.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Política de fixtures sintéticas e validação de roteiro; nenhuma exceção real utilizada."
+    },
+    {
+      "id": 59,
+      "title": "Credenciais",
+      "status": "parcial",
+      "references": [
+        "docs/provider-due-diligence.md",
+        "docs/provider-selection.md",
+        "tests/provider-due-diligence.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Cofre e separação previstos; ambiente com identidades/cofre não homologado."
+    },
+    {
+      "id": 60,
+      "title": "Saída de fornecedor",
+      "status": "bloqueado",
+      "references": [
+        "docs/provider-due-diligence.md",
+        "docs/provider-selection.md",
+        "tests/provider-due-diligence.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Diligência preparada; condições contratuais ausentes, sem contratação autorizada."
+    },
+    {
+      "id": 61,
+      "title": "Seguro e garantias",
+      "status": "parcial",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "docs/product-readiness-plan.md"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Glossário e ressalvas existem; revisão integral da cópia ainda necessária."
+    },
+    {
+      "id": 62,
+      "title": "Instituições aprovadas",
+      "status": "parcial",
+      "references": [
+        "apps/api/institution-service.js",
+        "database/institution-repository.js",
+        "tests/institutions.test.mjs",
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Instituição ativa e aceite de pacote aberto verificados; documentos e capacidade real pendentes."
+    },
+    {
+      "id": 63,
+      "title": "Doação aberta",
+      "status": "parcial",
+      "references": [
+        "apps/api/marketplace-service.js",
+        "database/marketplace-repository.js",
+        "tests/approved-business-rules.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Declaração e validação do pacote existem; jornada de recebimento/recusa pendente."
+    },
+    {
+      "id": 64,
+      "title": "Recusa de doação",
+      "status": "pendente",
+      "references": [
+        "database/operation-support-repository.js",
+        "apps/api/marketplace-service.js",
+        "tests/local-cancellation-support.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Motivo, evidência e destino específico da doação não implementados."
+    },
+    {
+      "id": 65,
+      "title": "Capacidade institucional",
+      "status": "parcial",
+      "references": [
+        "apps/api/institution-service.js",
+        "database/institution-repository.js",
+        "tests/institutions.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Estado institucional existe; pausa concorrente de novas doações e preservação das existentes pendentes."
+    },
+    {
+      "id": 66,
+      "title": "Marca institucional",
+      "status": "pendente",
+      "references": [
+        "apps/api/institution-service.js",
+        "database/institution-repository.js",
+        "tests/institutions.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Registro de autorização com finalidade, canais e prazo não demonstrado."
+    },
+    {
+      "id": 67,
+      "title": "Piloto BH",
+      "status": "parcial",
+      "references": [
+        "docs/pilot-run-2026-10-02.md",
+        "config/pilot-session.v1.json",
+        "tests/pilot-session.test.mjs"
+      ],
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Plano e NO-GO registrados; convite e restrição geográfica ainda exigem comprovação."
+    },
+    {
+      "id": 68,
+      "title": "Pausa operacional",
+      "status": "pendente",
+      "references": [],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Pausa global com acompanhamento das transações existentes não demonstrada."
+    },
+    {
+      "id": 69,
+      "title": "Retomada",
+      "status": "pendente",
+      "references": [
+        "docs/pilot-run-2026-10-02.md",
+        "config/pilot-session.v1.json",
+        "tests/pilot-session.test.mjs"
+      ],
+      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
+      "reason": "Autorização registrada da retomada não implementada; não iniciar piloto real."
+    },
+    {
+      "id": 70,
+      "title": "Consolidação de decisões",
+      "status": "concluido",
+      "references": [
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "docs/product-readiness-plan.md"
+      ],
+      "evidence": "PR #62, merge 51a3c51f85770a1e7e8ea7fdb06f2e90f72c9bde; revisão documental e CI.",
+      "reason": "PR #62 integrado em main; item 12 e ressalvas preservados, sem lançamento ou desktop."
+    }
+  ]
+}
