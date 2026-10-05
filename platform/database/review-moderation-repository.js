@@ -39,7 +39,7 @@ export function createReviewModerationRepository(database){return Object.freeze(
     if(previous){if(previous.details!==details)throw fail('review_appeal_conflict',409,'A contestação já foi registrada.');return {id:previous.id,protocol:previous.protocol,reused:true};}
     if(r.visibility==='public'||r.visibility_version!==expectedVersion)throw fail('review_visibility_conflict',409,'Consulte o estado atual da avaliação.');
     const support=await ticket(client,actorId,'Contestação de avaliação',details,'review-visibility-appeal:'+reviewId+':'+expectedVersion,r.transaction_id);
-    const appeal=(await client.query('INSERT INTO review_visibility_appeals(review_id,version,author_id,ticket_id,details) VALUES($1,$2,$3,$4,$5) RETURNING id',[reviewId,expectedVersion,actorId,support.id])).rows[0];
+    const appeal=(await client.query('INSERT INTO review_visibility_appeals(review_id,version,author_id,ticket_id,details) VALUES($1,$2,$3,$4,$5) RETURNING id',[reviewId,expectedVersion,actorId,support.id,details])).rows[0];
     await audit(client,actorId,'review.visibility.appealed',reviewId,{version:expectedVersion});return {id:appeal.id,protocol:support.protocol,reused:false};
   });},
   async decide({actorId,reviewId,expectedVersion,outcome,reason,checkContent}){return database.transaction(async client=>{
