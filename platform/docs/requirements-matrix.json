@@ -70,7 +70,7 @@
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "Fluxos e testes preparados, aguardando PostgreSQL/Chrome no CI; limites em donation-beta.md.",
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
       "reason": "Doador assume frete/comissão logística, duas confirmações e retirada persistidas; cobrança/logística do fornecedor desativadas, processamento do frete item 12 standby."
     },
     {
@@ -262,7 +262,7 @@
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "Fluxos e testes preparados, aguardando PostgreSQL/Chrome no CI; limites em donation-beta.md.",
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
       "reason": "Representante autorizado confirma doação e aprova recebimento; validação independente e consulta operacional existem. Repasse ao entregador, mídia/identidade humana e homologação permanecem pendentes."
     },
     {
@@ -343,7 +343,7 @@
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "Fluxos e testes preparados, aguardando PostgreSQL/Chrome no CI; limites em donation-beta.md.",
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
       "reason": "Venda/doação: confirmação, endereço restrito e alteração pelo suporte com revisões; retirada testável. Troca, transportadora e retenção permanecem pendentes."
     },
     {
@@ -928,7 +928,7 @@
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "Fluxos e testes preparados, aguardando PostgreSQL/Chrome no CI; limites em donation-beta.md.",
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
       "reason": "Estado revalidado sob trava, anúncios novos pausados/publicação e retomada bloqueadas; operações confirmadas/histórico preservados. Capacidade/equipe real e intermediação dos casos pendentes."
     },
     {
