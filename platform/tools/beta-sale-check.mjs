@@ -32,6 +32,7 @@ export async function validateSyntheticSale(database, { user, other, transaction
   await assert.rejects(support.cancelTransaction(other, transaction), error => error.code === 'cancellation_requires_support');
   await assert.rejects(service.approveReceipt(other, shipment.id, { approved: true }), error => error.code === 'receipt_not_ready');
   await service.assign(courier, shipment.id);
+  await assert.rejects(service.sharedAddresses(courier, shipment.id), error => error.status === 404);
   await database.query(`UPDATE shipments SET status='picked_up' WHERE id=$1`, [shipment.id]);
   await database.query(`UPDATE transactions SET status='in_delivery' WHERE id=$1`, [transaction]);
   const proofInput = { mediaKey: 'synthetic/delivery-proof-key', recipientName: 'Recebedor fictício', latitude: 0, longitude: 0 };
