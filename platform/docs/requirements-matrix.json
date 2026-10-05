@@ -71,30 +71,38 @@
     {
       "id": 6,
       "title": "Renovação Premium",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Não há ciclo de assinatura persistido; cobrança externa continua desativada."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local de vigência/cancelamento existe; renovação persistida, aviso e fornecedor ainda não integrados."
     },
     {
       "id": 7,
       "title": "Retorno ao gratuito",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
-        "apps/api/marketplace-service.js",
-        "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Escolha dos três anúncios e pausa de excedentes não implementadas."
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Plano puro escolhe três anúncios e preserva operações; seleção persistida e pausa atômica pendentes."
     },
     {
       "id": 8,
       "title": "Falha de renovação",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Prazo de três dias e regularização ainda não implementados."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local calcula três dias da falha original; aviso, evento persistido e regularização real pendentes."
     },
     {
       "id": 9,
