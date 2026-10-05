@@ -94,3 +94,9 @@ Consulta em 2 de outubro de 2026. Referências para revisão; conferir texto vig
 - [ANPD — Comunicação de Incidente de Segurança](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis): critérios, papéis, procedimento e prazos. Validar regra aplicável, exceções e responsabilidades contratuais no plano de resposta.
 
 Não houve envio a profissionais, contratação, publicação de políticas ou preenchimento de credenciais. Desktop e protótipo raiz preservados.
+
+## Reconciliação em 5 de outubro de 2026
+
+O levantamento acima é histórico. As decisões comerciais do fundador foram registradas no FC-DEC-2026-10-02 (PR #62, integrado); 69 itens aprovados e item 12 em standby. A implementação posterior está documentada em `../approved-rules-implementation.md` e nos PRs #63–#74. Venda desconta 8% do vendedor; troca e logística têm cálculos separados. A homologação em PostgreSQL e Chrome do PR #74 usa somente fixtures e não habilita fornecedores, operação real ou termos jurídicos.
+
+Os pareceres jurídico, contábil e de privacidade, a matriz de retenção, os dados societários e os canais oficiais continuam pendentes. A tabela de aprovações original não deve ser usada para concluir que a decisão comercial ainda aguarda resposta, nem que as revisões profissionais já aconteceram. Não ativar este material como termos. Sem cobrança, repasse, mensagens, contratação, publicação, dados reais/infantis ou desktop.
