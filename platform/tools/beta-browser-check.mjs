@@ -293,7 +293,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.donorSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/donations`});
-    await until(()=>evaluate(`!document.querySelector('#donation-create fieldset')?.disabled`),'donor own listing');
+    await until(()=>evaluate(`document.querySelector('#donation-create fieldset')?.disabled===false && document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor own listing');
     await evaluate(`document.querySelector('#donation-create input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Confirmação do doador registrada')`),'donor confirmation keyboard');
     const browserDonationTransaction=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/donations')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].transaction_id)`);
