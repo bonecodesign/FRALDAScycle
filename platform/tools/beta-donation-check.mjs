@@ -15,7 +15,7 @@ import {createPremiumRepository} from '../database/premium-repository.js';
 import {seedSyntheticInstitution} from './beta-institution-access-check.mjs';
 export async function seedDonationListing(database,donorId,institutionId){
  return (await database.query(`INSERT INTO listings(seller_id,title,description,brand,category,model,package_condition,quantity,kind,price_cents,status,institution_id,published_at)
- VALUES($1,'Pacote fictício de doação','Descrição fictícia para teste interno','Pampers','infant','Confort Sec','sealed',10,'donation',0,'published',$2,now()) RETURNING id`,[donorId,institutionId])).rows[0].id;
+ VALUES($1,'Pacote fictício de doação','Descrição fictícia para teste interno','Pampers','infant','Confort Sec','sealed',10,'donation',NULL,'published',$2,now()) RETURNING id`,[donorId,institutionId])).rows[0].id;
 }
 const consent={confirmed:true,noticeVersion:'FC-DONATION-1',logisticsResponsibility:'donor'};
 export async function validateSyntheticDonation(database,{user,other}){
