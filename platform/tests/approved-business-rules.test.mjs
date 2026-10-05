@@ -48,6 +48,17 @@ test("keeps chat operational and gated by confirmed payment", async () => {
   assert.match(finance, /fc\.paymentConfirmed/);
 });
 
+test("publication price step does not require acceptance of proposals", async () => {
+  const [page, runtime] = await Promise.all([
+    read("../apps/app/publish-5.html"),
+    read("../apps/app/publish.js"),
+  ]);
+  assert.doesNotMatch(page, /Aceito receber propostas/i);
+  assert.match(page, /O preço é fixo/);
+  assert.doesNotMatch(runtime, /confirme se aceita propostas/i);
+  assert.match(runtime, /Informe o valor do anúncio/);
+});
+
 test("central help reflects products donations payments fees and pre-operational limits", async () => {
   const help = await read("../apps/site/help.html");
   for (const text of [

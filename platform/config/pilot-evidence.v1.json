@@ -11,170 +11,170 @@
     {
       "id": "approved-rules",
       "gateId": "product-rules",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Revisão dos contratos e execução de approved-business-rules.test.mjs. Exigência residual de aceitar propostas em publish-5.html/publish.js encontrada e corrigida; novo teste aprovado. Não representa compreensão por usuários."
     },
     {
       "id": "catalog-scope",
       "gateId": "product-rules",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "marketplace.test.mjs executado: somente descartáveis infantis e piscina; venda/troca lacradas e doação atestada. Repositório em memória, sem fornecedor."
     },
     {
       "id": "no-reservation-flow",
       "gateId": "product-rules",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "marketplace.test.mjs executado: início de transação muda anúncio imediatamente para unavailable; regressão confirma ausência de reserva."
     },
     {
       "id": "test-accounts",
       "gateId": "identity-access",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "identity.test.mjs executado: cadastro, login, sessão e logout com identidades fictícias em memória; nenhum cadastro externo."
     },
     {
       "id": "admin-auth",
       "gateId": "identity-access",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "admin-rbac.test.mjs e session.test.mjs executados: endpoints HTTP locais aceitam identidades sintéticas autorizadas e rejeitam acesso sem sessão."
     },
     {
       "id": "role-boundaries",
       "gateId": "identity-access",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "admin-rbac.test.mjs executado: papéis de cliente, moderador e administrador, mudanças e proteção contra rebaixamento próprio."
     },
     {
       "id": "publish-search-negotiate",
       "gateId": "marketplace-journey",
-      "status": "pending",
+      "status": "failed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Falha encontrada por inspeção: publish.js envia priceCents 4200 para toda venda e não salva o preço preenchido na etapa 5. Jornada visual também bloqueada pela ausência de Chromium. Não foram executadas propostas removidas."
     },
     {
       "id": "open-donation-attestation",
       "gateId": "marketplace-journey",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "marketplace.test.mjs executado: doação aberta sem atestado rejeitada e com atestado/instituição fictícia permitida; somente serviço sintético."
     },
     {
       "id": "listing-unavailability",
       "gateId": "marketplace-journey",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "marketplace.test.mjs executado: transação de comprador fictício torna anúncio indisponível e impede novo início; serviço em memória."
     },
     {
       "id": "synthetic-data",
       "gateId": "safety-privacy",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Conferidos fixtures das suítes direcionadas e políticas do manifesto. Somente identidades/contatos fictícios, repositórios simulados e HTTP em loopback; sem mensagens, dados ou transações reais."
     },
     {
       "id": "chat-protection",
       "gateId": "safety-privacy",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "marketplace.test.mjs executado: serviço verifica participação e pagamento confirmado para acesso ao chat. approved-business-rules confirma bloqueio da interface; sem envio externo."
     },
     {
       "id": "audit-trail",
       "gateId": "safety-privacy",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "admin-rbac.test.mjs executado: auditoria de alteração de papel, suspensão, convites e sessões em transações de banco simuladas; nenhuma persistência real foi validada."
     },
     {
       "id": "keyboard-check",
       "gateId": "accessibility-devices",
-      "status": "pending",
+      "status": "skipped",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Não executado: Chromium não instalado e download retornou arquivo inválido. Nenhuma alegação de navegação real por teclado."
     },
     {
       "id": "screen-reader-check",
       "gateId": "accessibility-devices",
-      "status": "pending",
+      "status": "skipped",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Não executado com leitor de tela; navegador indisponível. Contratos estáticos existentes não substituem leitura/ordem percebida."
     },
     {
       "id": "device-matrix",
       "gateId": "accessibility-devices",
-      "status": "pending",
+      "status": "skipped",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Não executado: navegador indisponível para viewports 390, 768, 1024 e 1440. Dispositivos físicos também não usados."
     },
     {
       "id": "support-script",
       "gateId": "support-incidents",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Ensaio de mesa pelo agente: incidente fictício fc-incident-001, comprador não conclui publicação; coleta sem dados pessoais, reprodução por inspeção, classificação alta e encaminhamento para correção. Sem atendimento humano ou mensagem externa."
     },
     {
       "id": "incident-severity",
       "gateId": "support-incidents",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Classificação de mesa: preço divergente alto (integridade da jornada); cobrança/exposição fictícia crítica exige interrupção; desalinhamento visual sem bloqueio baixo. Exemplos apenas sintéticos."
     },
     {
       "id": "rollback-owner",
       "gateId": "support-incidents",
-      "status": "pending",
+      "status": "skipped",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Não confirmado: falta nomeação e aceite de responsável técnico e substituto pelo fundador. Agente não atribui responsabilidade a uma pessoa sem aceite."
     },
     {
       "id": "findings-log",
       "gateId": "pilot-exit",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Achados consolidados em docs/pilot-run-2026-10-02.md e pilot-execution.v1.json, com prioridades, evidências e ações; sem dados pessoais."
     },
     {
       "id": "go-no-go-decision",
       "gateId": "pilot-exit",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Decisão técnica do agente: no-go para encerramento/aprovação do piloto e avanço externo, por preço incorreto, acessibilidade não exercitada e responsável de rollback não confirmado. Não substitui decisão formal do fundador."
     },
     {
       "id": "next-actions",
       "gateId": "pilot-exit",
-      "status": "pending",
+      "status": "passed",
       "source": "synthetic",
-      "checkedAt": null,
-      "notes": null
+      "checkedAt": "2026-10-02T13:22:17.853183Z",
+      "notes": "Ações registradas: corrigir preço e repetir jornada; executar navegador/teclado/leitura/viewports; fundador nomear responsável; realizar sessão humana e decisão formal."
     }
   ]
 }

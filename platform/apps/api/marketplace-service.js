@@ -1,6 +1,7 @@
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
+import { hasScope, requireScope } from "./authorization.js";
 
 export class MarketplaceError extends ServiceError {
   constructor(code, status, message) {
@@ -14,6 +15,36 @@ const PACKAGE_CONDITIONS = new Set(["sealed", "open"]);
 
 export function createMarketplaceService(repository) {
   return Object.freeze({
+    async createSupportTicket(userId, input) {
+      const category = String(input?.category ?? "general");
+      const subject = String(input?.subject ?? "").trim();
+      const details = String(input?.details ?? "").trim();
+      const transactionId = String(input?.transactionId ?? "").trim() || null;
+      const idempotencyKey = String(input?.idempotencyKey ?? "").trim();
+      if (!["general","cancellation","receipt_problem","privacy","account"].includes(category) ||
+          subject.length < 5 || subject.length > 120 || details.length < 10 || details.length > 2000 ||
+          idempotencyKey.length < 16 || idempotencyKey.length > 128 ||
+          (transactionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transactionId)) ||
+          (["cancellation","receipt_problem"].includes(category) && !transactionId)) {
+        throw new MarketplaceError("invalid_support_ticket",422,"Informe categoria, assunto, descrição e operação quando necessária.");
+      }
+      return repository.createSupportTicket({requesterId:userId,transactionId,category,subject,details,idempotencyKey});
+    },
+    async supportTickets(actor) {
+      return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
+    },
+    async supportTicket(actor,ticketId) {
+      return repository.supportTicket({userId:actor.id,ticketId,reviewer:hasScope(actor,"admin:support:write")});
+    },
+    async replySupportTicket(actor,ticketId,input) {
+      requireScope(actor,"admin:support:write");
+      const body=String(input?.body??"").trim();
+      const status=String(input?.status??"under_review");
+      if(body.length<10||body.length>2000||!["open","under_review","resolved"].includes(status)) {
+        throw new MarketplaceError("invalid_support_reply",422,"Informe a resposta e o estado do atendimento.");
+      }
+      return repository.replySupportTicket({actorId:actor.id,ticketId,body,status});
+    },
     async search(params = {}) {
       const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
       const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
@@ -122,4 +153,3 @@ export function createMarketplaceService(repository) {
     },
   });
 }
-

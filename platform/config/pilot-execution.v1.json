@@ -1,20 +1,106 @@
 {
   "schemaVersion": 1,
   "runId": "internal-dry-run-001",
-  "status": "pending",
+  "status": "completed",
   "policy": {
     "syntheticDataOnly": true,
     "externalIntegrationsAllowed": false,
     "realTransactionsAllowed": false,
     "publicAccessAllowed": false
   },
-  "gateResults": [],
-  "findings": [],
+  "gateResults": [
+    {
+      "id": "product-rules",
+      "result": "passed"
+    },
+    {
+      "id": "identity-access",
+      "result": "passed"
+    },
+    {
+      "id": "marketplace-journey",
+      "result": "failed"
+    },
+    {
+      "id": "safety-privacy",
+      "result": "passed"
+    },
+    {
+      "id": "accessibility-devices",
+      "result": "skipped"
+    },
+    {
+      "id": "support-incidents",
+      "result": "skipped"
+    },
+    {
+      "id": "pilot-exit",
+      "result": "passed"
+    }
+  ],
+  "findings": [
+    {
+      "id": "proposal-consent",
+      "status": "resolved",
+      "severity": "high",
+      "owner": "engineering",
+      "evidence": "publish-5.html e publish.js exigiam propostas; removido e teste acrescentado."
+    },
+    {
+      "id": "listing-price",
+      "status": "open",
+      "severity": "high",
+      "owner": "engineering",
+      "evidence": "publish.js envia 4200 independentemente do preço preenchido."
+    },
+    {
+      "id": "browser-accessibility",
+      "status": "open",
+      "severity": "high",
+      "owner": "quality",
+      "evidence": "Chromium ausente e download inválido; teclado, leitura e viewports não executados."
+    },
+    {
+      "id": "rollback-owner",
+      "status": "open",
+      "severity": "high",
+      "owner": "management",
+      "evidence": "Nomeação e aceite não registrados."
+    },
+    {
+      "id": "human-session",
+      "status": "open",
+      "severity": "high",
+      "owner": "management",
+      "evidence": "Execução pelo agente não comprova compreensão de participantes humanos."
+    }
+  ],
   "decision": {
-    "outcome": "pending",
-    "decidedBy": null,
-    "decidedAt": null,
-    "rationale": null
+    "outcome": "no-go",
+    "decidedBy": "codex",
+    "decidedAt": "2026-10-02T13:22:17.853183Z",
+    "rationale": "Execução técnica interna concluída com 16 evidências aprovadas, uma falha e quatro não executadas. Não aprovar encerramento da etapa nem avanço externo; decisão humana do fundador permanece pendente."
   },
-  "nextActions": []
+  "nextActions": [
+    {
+      "id": "correct-listing-price",
+      "owner": "engineering",
+      "action": "Persistir e validar preço informado; testar ida/volta das etapas e payload final."
+    },
+    {
+      "id": "repeat-browser-session",
+      "owner": "quality",
+      "action": "Executar jornada completa, teclado, leitura e quatro viewports em navegador disponível."
+    },
+    {
+      "id": "appoint-rollback-owner",
+      "owner": "management",
+      "action": "Nomear responsável/substituto e registrar aceite."
+    },
+    {
+      "id": "run-human-session",
+      "owner": "management",
+      "action": "Executar sessão com participantes internos e registrar decisão formal."
+    }
+  ]
 }

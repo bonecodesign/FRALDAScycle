@@ -12,14 +12,16 @@ const safePolicy = {
   publicAccessAllowed: false,
 };
 
-test("versioned pilot execution starts safely pending", async () => {
+test("versioned pilot execution preserves its safety policy and documented decision", async () => {
   const report = await inspectPilotExecutionRecord();
   assert.equal(report.valid, true, report.errors.join("\n"));
-  assert.equal(report.record.status, "pending");
-  assert.equal(report.record.decision.outcome, "pending");
+  assert.equal(["pending", "completed"].includes(report.record.status), true);
+  assert.equal(["pending", "go", "no-go"].includes(report.record.decision.outcome), true);
   assert.deepEqual(report.record.policy, safePolicy);
-  assert.deepEqual(report.record.gateResults, []);
-  assert.deepEqual(report.record.findings, []);
+  if (report.record.decision.outcome === "no-go") {
+    assert.equal(report.record.findings.some(item => item.status === "open"), true);
+    assert.equal(report.record.nextActions.length > 0, true);
+  }
 });
 
 test("pilot execution rejects unsafe policy", () => {
@@ -77,3 +79,4 @@ test("pilot execution accepts evidenced go decision", () => {
   });
   assert.equal(report.valid, true, report.errors.join("\n"));
 });
+

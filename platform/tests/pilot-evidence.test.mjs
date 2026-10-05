@@ -53,7 +53,7 @@ test("versioned pilot evidence covers every manifest requirement safely", async 
   const report = await inspectPilotEvidenceRegister();
   assert.equal(report.valid, true, report.errors.join("\n"));
   assert.equal(report.register.evidence.length, 21);
-  assert.equal(report.register.evidence.every((item) => item.status === "pending"), true);
+  assert.equal(report.register.evidence.every((item) => ["pending", "passed", "failed", "skipped"].includes(item.status)), true);
   assert.equal(report.register.evidence.every((item) => item.source === "synthetic"), true);
 });
 
@@ -100,3 +100,4 @@ test("pilot evidence accepts a documented synthetic result", () => {
   const report = validatePilotEvidenceRegister(register, manifest);
   assert.equal(report.valid, true, report.errors.join("\n"));
 });
+
