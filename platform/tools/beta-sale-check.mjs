@@ -53,7 +53,7 @@ export async function validateSyntheticSale(database, { user, other, transaction
   assert.equal(status.payoutAllowed, false);
   assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1', [transaction])).rows[0].status, 'in_delivery');
   const ticket = await support.createSupportTicket(other, { category: 'receipt_problem', subject: 'Ocorrência fictícia de recebimento', details: 'Caso sintético para verificar o bloqueio da consulta, sem dados reais.', transactionId: transaction, idempotencyKey: 'synthetic-native-support-ticket' });
-  assert.match(ticket.ticket.protocol, /^FC-S-/);
+  assert.match(String(ticket.ticket.protocol), /^[1-9]\d*$/);
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).requirementsMet, false);
   await assert.rejects(support.replySupportTicket({ id: other, role: 'customer' }, ticket.ticket.id, { body: 'Resposta fictícia de teste', status: 'resolved' }), error => error.status === 403);
   await support.replySupportTicket({ id: admin, role: 'admin' }, ticket.ticket.id, { body: 'Análise fictícia encerrada sem movimentação financeira.', status: 'resolved' });
