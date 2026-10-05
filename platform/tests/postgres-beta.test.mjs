@@ -108,7 +108,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         assert.deepEqual(result.layouts.map(layout => layout.viewport), [320, 375, 768, 1280]);
         console.log('BETA_BROWSER: ' + JSON.stringify(result));
       } finally {
-        if (surface.exitCode === null) { const stopped = new Promise(resolve => surface.once('exit', resolve)); surface.kill('SIGKILL'); await stopped; }
+        if (surface.exitCode === null && surface.signalCode === null) { const stopped = new Promise(resolve => surface.once('exit', resolve)); surface.kill('SIGKILL'); await stopped; }
         await new Promise(resolve => api.close(resolve));
       }
     } finally { await database.close(); }

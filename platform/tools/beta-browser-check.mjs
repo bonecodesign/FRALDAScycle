@@ -19,8 +19,9 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
-  const chrome = spawn(executable, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run', '--no-default-browser-check', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  const chrome = spawn(executable, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run', '--no-default-browser-check', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { detached: true, stdio: ['ignore', 'ignore', 'pipe'] });
   let socket;
+  let requestClose = null;
   const pending = new Map();
   try {
     const endpoint = await new Promise((resolve, reject) => {
@@ -41,6 +42,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       pending.set(id, { resolve, reject, timer });
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
+    requestClose = () => send('Browser.close');
     socket.addEventListener('message', event => {
       const message = JSON.parse(event.data);
       if (message.id) {
@@ -116,13 +118,16 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.equal(await evaluate(`document.getElementById('terms-accept-form').hidden`), true);
     return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', draftTerms: 'aceite indisponível', layouts, humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
+    if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }
     if (socket) socket.close();
-    if (chrome.exitCode === null) {
+    if (chrome.exitCode === null && chrome.signalCode === null) {
       const stopped = new Promise(resolve => chrome.once('exit', resolve));
-      chrome.kill('SIGKILL'); await stopped;
+      try { process.kill(-chrome.pid, 'SIGTERM'); } catch { /* Grupo já encerrado. */ }
+      await Promise.race([stopped, pause(1000)]);
+      if (chrome.exitCode === null && chrome.signalCode === null) { try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* Grupo já encerrado. */ } await stopped; }
     }
-    await rm(profile, { recursive: true, force: true });
+    await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }
 if (isMainModule(import.meta.url)) {
