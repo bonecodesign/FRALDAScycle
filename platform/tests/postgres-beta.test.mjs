@@ -70,6 +70,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticSale(database, { user, other, transaction });
       const { validateSyntheticPremium, seedBrowserPremium } = await import('../tools/beta-premium-check.mjs');
       await validateSyntheticPremium(database);
+      const { validateSyntheticModeration,seedBrowserCommunication } = await import('../tools/beta-moderation-check.mjs');
+      await validateSyntheticModeration(database,{user,other,transaction});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -81,6 +83,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const session = await authService.login(fixture);
       const currentSession = await authService.session(session.token);
       await seedBrowserPremium(database, currentSession.id);
+      const browserTransaction=await seedBrowserCommunication(database,currentSession.id,user);
       const { createPremiumRepository } = await import('../database/premium-repository.js');
       const { createPremiumService } = await import('../apps/api/premium-service.js');
       const premiumService = createPremiumService(createPremiumRepository(database));
@@ -91,7 +94,17 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.ok(await authService.session(session.token));
       const surfacePort = await freeLocalPort();
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service, premiumService });
+      const { createMarketplaceService } = await import('../apps/api/marketplace-service.js');
+      const { createMarketplaceRepository } = await import('../database/marketplace-repository.js');
+      const { createModerationService } = await import('../apps/api/moderation-service.js');
+      const { createModerationRepository } = await import('../database/moderation-repository.js');
+      const { createCommunicationsService } = await import('../apps/api/communications-service.js');
+      const { createCommunicationsRepository } = await import('../database/communications-repository.js');
+      const moderationRepository=createModerationRepository(database);
+      const moderationService=createModerationService(moderationRepository);
+      const communicationsService=createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
+      const marketplaceService=createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       const premiumUrl = `http://127.0.0.1:${api.address().port}/v1/account/premium`;
       assert.equal((await fetch(premiumUrl)).status, 401);
@@ -114,7 +127,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token }));
+        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserTransaction }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);

@@ -1,3 +1,4 @@
+import { requireNewOperations } from './moderation-repository.js';
 import { createOperationSupportRepository } from "./operation-support-repository.js";
 import { lockPremiumAccount, adjustFreeListings, freePublicationAvailable } from './premium-repository.js';
 export function createMarketplaceRepository(database) {
@@ -57,6 +58,7 @@ export function createMarketplaceRepository(database) {
     async create(input) {
       return database.transaction(async (client) => {
         const premium = await lockPremiumAccount(client, input.sellerId);
+        await requireNewOperations(client,input.sellerId);
         await adjustFreeListings(client, input.sellerId, premium);
         if (!await freePublicationAvailable(client, input.sellerId, premium)) throw Object.assign(new Error('O plano gratuito permite até três anúncios publicados. Pause um anúncio antes de publicar outro.'), { code: 'free_listing_limit', status: 409 });
         const result = await client.query(
@@ -64,12 +66,12 @@ export function createMarketplaceRepository(database) {
             (seller_id, title, description, category, brand, model, package_condition,
              open_package_attested, size, quantity, kind, price_cents, status,
              city, state, latitude, longitude, institution_id, published_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15,$16,$17,now())
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$18::listing_status,$13,$14,$15,$16,$17,CASE WHEN $18::listing_status='published' THEN now() ELSE NULL END)
            RETURNING id, status, published_at`,
           [input.sellerId, input.title, input.description, input.category, input.brand,
            input.model, input.packageCondition, input.openPackageAttested, input.size,
            input.quantity, input.kind, input.priceCents, input.city, input.state,
-           input.latitude, input.longitude, input.institutionId],
+           input.latitude, input.longitude, input.institutionId, (input.mediaKeys?.length ? 'review' : 'published')],
         );
         for (const [position, storageKey] of (input.mediaKeys ?? []).entries()) {
           await client.query(
@@ -116,7 +118,10 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const owner = (await client.query('SELECT seller_id FROM listings WHERE id=$1', [listingId])).rows[0];
         if (!owner) throw Object.assign(new Error('Anúncio não está disponível.'), { code: 'listing_unavailable', status: 409 });
+        await client.query('SELECT id FROM users WHERE id=ANY($1::uuid[]) ORDER BY id FOR NO KEY UPDATE', [[buyerId,owner.seller_id]]);
         const premium = await lockPremiumAccount(client, owner.seller_id);
+        await requireNewOperations(client,buyerId);
+        await requireNewOperations(client,owner.seller_id);
         await adjustFreeListings(client, owner.seller_id, premium);
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()

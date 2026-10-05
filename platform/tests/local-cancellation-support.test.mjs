@@ -13,7 +13,7 @@ function database(answer) {
 }
 const unpaid={id,listing_id:'listing',seller_id:'seller',status:'initiated',address_shared_at:null};
 test('unpaid pre-collection cancellation updates listing and audit atomically',async()=>{
-  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:/FOR NO KEY UPDATE/.test(sql)?[{id:'seller'}]:/checked_at/.test(sql)?[{checked_at:'2026-10-05T12:00:00Z',subscription:null}]:/count\(\*\)/.test(sql)?[{count:2}]:[]);
+  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:/FOR NO KEY UPDATE/.test(sql)?[{id:'seller'}]:/checked_at/.test(sql)?[{checked_at:'2026-10-05T12:00:00Z',subscription:null}]:/AS suspended/.test(sql)?[{suspended:false}]:/count\(\*\)/.test(sql)?[{count:2}]:[]);
   const result=await createOperationSupportRepository(db).cancelTransaction({actorId:'buyer',transactionId:id});
   assert.equal(result.status,'cancelled');
   assert.match(db.calls[0].sql,/FOR UPDATE/);

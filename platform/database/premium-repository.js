@@ -1,3 +1,4 @@
+import { requireNewOperations,newOperationsAllowed } from './moderation-repository.js';
 import { premiumEntitlement, freeListingPlan, FREE_LISTING_LIMIT } from '../packages/contracts/premium-rules.js';
 const fail = (code, message) => Object.assign(new Error(message), { code, status: 409 });
 
@@ -43,6 +44,7 @@ export async function adjustFreeListings(client, userId, context) {
 }
 
 export async function freePublicationAvailable(client, userId, context) {
+  if (!await newOperationsAllowed(client,userId)) return false;
   if (context.entitlement.benefitsActive) return true;
   const result = await client.query("SELECT count(*)::integer AS count FROM listings WHERE seller_id=$1 AND status='published'", [userId]);
   return result.rows[0].count < FREE_LISTING_LIMIT;
@@ -104,6 +106,7 @@ export function createPremiumRepository(database) {
         if (listing.ongoing || !['published','paused'].includes(listing.status)) throw fail('listing_operation_pending', 'Anúncio ligado a operação ou em revisão não pode ser alterado aqui.');
         if (listing.status === status) return { reused: true, listing: { id: listingId, status } };
         if (listing.status !== expectedStatus) throw fail('listing_status_conflict', 'O anúncio mudou. Carregue novamente.');
+        if (status === 'published') await requireNewOperations(client,userId);
         if (status === 'published' && !await freePublicationAvailable(client, userId, context)) throw fail('free_listing_limit', 'O plano gratuito permite até três anúncios publicados.');
         await client.query('UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1', [listingId, status]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)

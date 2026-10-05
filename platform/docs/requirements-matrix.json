@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "fa8a0cd0f0e05cfb2889cc827b31a9e610880490",
+  "baseline": "ec295b33b64198f07341da2877ab2ab9e2aa5a26",
   "denominator": 70,
   "requirements": [
     {
@@ -482,18 +482,32 @@
     {
       "id": 38,
       "title": "Avaliações",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Persistência e autorização de avaliação após finalização não demonstradas."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
+      ],
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Avaliação persistida exige finalização e partes; proteção de conteúdo em padrões testados, ocultação/denúncia específicas e validação real deste lote pendentes."
     },
     {
       "id": 39,
       "title": "Contatos em avaliações",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Moderação persistida de avaliações e denúncia pendentes."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
+      ],
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Contatos identificados bloqueados no servidor; denúncia/ocultação e análise de avaliações pendentes."
     },
     {
       "id": 40,
@@ -502,22 +516,34 @@
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Proteções visuais não comprovam detecção de contatos disfarçados no servidor."
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Chat privado persistido e filtro compartilhado de disfarces; validação nativa do lote e revisão de falsos negativos pendentes."
     },
     {
       "id": 41,
       "title": "Contatos nos anúncios",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Título, descrição e fotos ainda não possuem revisão de contatos completa."
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Título/descrição filtrados na API, fotos encaminhadas a review; conferência real de mídia bloqueada por fornecedor."
     },
     {
       "id": 42,
@@ -526,22 +552,34 @@
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
-        "tests/admin-rbac.test.mjs"
+        "tests/admin-rbac.test.mjs",
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Suspensão administrativa existe; motivo, aviso e contestação específicos pendentes."
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Suspensão temporária com motivo, término e recurso; sem punição automática ou banimento definitivo, revisão/equipe pendentes."
     },
     {
       "id": 43,
       "title": "Contestação",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Suporte genérico existe; recurso vinculado à decisão e revisão independente pendentes."
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Recurso vinculado a protocolo, revisão registrada e independente; aguarda validação PostgreSQL/navegador do lote."
     },
     {
       "id": 44,
@@ -554,10 +592,16 @@
         "apps/api/auth-service.js",
         "database/auth-repository.js",
         "tests/identity.test.mjs",
-        "tests/session.test.mjs"
+        "tests/session.test.mjs",
+        "packages/contracts/content-moderation.js",
+        "database/moderation-repository.js",
+        "apps/api/moderation-service.js",
+        "database/communications-repository.js",
+        "tools/beta-moderation-check.mjs",
+        "docs/moderation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Revogação existe; acesso restrito ao acompanhamento após suspensão pendente."
+      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "reason": "Novas operações bloqueadas por suspensão; acompanhamento/suporte preservados. Validação nativa deste lote pendente."
     },
     {
       "id": 45,
