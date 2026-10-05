@@ -89,3 +89,13 @@ O aplicativo cadastra e consulta endereços próprios sem geocodificação exter
 - Repetição preserva o registro; mudança de endereço já liberado exige suporte. Alteração administrativa, retenção/exclusão dos registros e fluxo de troca/doação permanecem pendentes. O novo cadastro manual não é validação postal nem geográfica; não representa homologação do piloto.
 
 Endpoints: `GET/POST /v1/addresses`, `GET/POST /v1/shipments/:id/addresses`. Sem contratar ou chamar geocodificador, entregador ou fornecedor de mensagens. Testes sintéticos de serviço/repositório e HTTP; PostgreSQL real, navegador real e revisão dos prazos de retenção ainda pendentes. Somente platform/, item 12 em standby, sem desktop ou lançamento.
+
+## Preferências promocionais e estrutura de aceite dos termos
+
+Preferências de publicidade são reais, individuais e separadas para e-mail, SMS e push. Sem registro, todos os canais começam desmarcados. A conta pode salvar ou revogar as escolhas; evento histórico e auditoria são gravados junto com o estado atual. Recusa não bloqueia uso da plataforma e não interfere nos avisos de verificação/recuperação da conta. Nenhuma campanha ou mecanismo de envio promocional foi ativado.
+
+O aplicativo substitui a simulação da tela de preferências por carregamento e gravação pela API. Essa tela cuida de publicidade; preferências opcionais de avisos operacionais/horário silencioso ainda não foram implementadas. Conteúdo dos termos é consultável com versão e hash SHA-256 calculado sobre os dois documentos. O material existente permanece em rascunho pré-operacional e o backend bloqueia qualquer aceite até ativação profissionalmente revisada em mudança separada.
+
+Migração 022 prepara aceite por conta/versão/hash, cópia dos documentos, data/hora do banco e auditoria, sem alterar escolhas promocionais. Repetição conserva o registro original. A gravação foi testada somente com catálogo ativo sintético injetado em testes; nenhum termo real entrou em vigor, nenhum cadastro foi condicionado ao rascunho e não houve aceite automático. Histórico privado preserva as versões registradas.
+
+Endpoints autenticados sem cache: `GET/PUT /v1/account/marketing-preferences`, `GET /v1/account/terms`, `GET /v1/account/terms/history`, `POST /v1/account/terms/accept`. CORS passa a permitir PUT. Imagem da API inclui os contratos e documentos necessários ao runtime. Sem cookies de publicidade, dados de crianças, campanhas, contratação ou mensagens externas. Banco/navegador reais, revisão/ativação dos termos e integração promocional continuam pendentes. Somente platform/, item 12 em standby, sem desktop ou lançamento.

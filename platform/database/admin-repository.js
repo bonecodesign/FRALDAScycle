@@ -145,7 +145,7 @@ export function createAdminRepository(database) {
         );
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
-           VALUES ($1, 'sessions.others.revoked', 'user', $1::text, $2::jsonb)`,
+           VALUES ($1::uuid, 'sessions.others.revoked', 'user', $1::text, $2::jsonb)`,
           [actorUserId, JSON.stringify({ revokedCount: revoked.rowCount })],
         );
         return revoked.rowCount;
