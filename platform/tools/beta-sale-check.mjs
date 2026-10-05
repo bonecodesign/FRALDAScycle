@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {validateSyntheticAddressChange} from './beta-address-change-check.mjs';
 import { createLogisticsRepository } from '../database/logistics-repository.js';
 import { createLogisticsService } from '../apps/api/logistics-service.js';
 import { createMarketplaceRepository } from '../database/marketplace-repository.js';
@@ -43,6 +44,7 @@ export async function validateSyntheticSale(database, { user, other, transaction
   assert.equal((await database.query('SELECT count(*)::integer AS count FROM shipment_address_shares')).rows[0].count, 1);
   await assert.rejects(support.cancelTransaction(other, transaction), error => error.code === 'cancellation_requires_support');
   await assert.rejects(service.approveReceipt(other, shipment.id, { approved: true }), error => error.code === 'receipt_not_ready');
+  await validateSyntheticAddressChange(database,{service,repository,user,other,admin,shipment,address});
   await service.assign(courier, shipment.id);
   await assert.rejects(service.sharedAddresses(courier, shipment.id), error => error.status === 404);
   await database.query(`UPDATE shipments SET status='picked_up' WHERE id=$1`, [shipment.id]);
