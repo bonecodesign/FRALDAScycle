@@ -1,19 +1,27 @@
 import { createReceiptRepository } from "./receipt-repository.js";
 import { createAddressRepository } from "./address-repository.js";
 
+function conflict(code, message) { return Object.assign(new Error(message), { code, status: 409 }); }
+function verifyReplay(row, input) {
+  if (row.buyer_id !== input.buyerId || row.transaction_id !== input.transactionId || row.mode !== input.mode || row.insured !== input.insured) {
+    throw conflict('shipment_idempotency_conflict', 'Chave de idempotência já utilizada para outra solicitação.');
+  }
+  return row;
+}
 export function createLogisticsRepository(database) {
   const shipmentColumns = `s.id, s.transaction_id, s.buyer_id, s.seller_id, s.courier_id,
     s.mode, s.insured, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
   return Object.freeze({
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
-    async context({ buyerId, transactionId, idempotencyKey }) {
+    async context(input) {
+      const { buyerId, transactionId, idempotencyKey } = input;
       return database.transaction(async (client) => {
         const existing = await client.query(
           `SELECT ${shipmentColumns} FROM shipments s WHERE s.idempotency_key = $1`,
           [idempotencyKey],
         );
-        if (existing.rows[0]) return { existing: true, shipment: existing.rows[0] };
+        if (existing.rows[0]) return { existing: true, shipment: verifyReplay(existing.rows[0], input) };
         const transaction = await client.query(
           `SELECT id, buyer_id, seller_id, status FROM transactions
            WHERE id = $1 AND buyer_id = $2 FOR UPDATE`,
@@ -25,15 +33,30 @@ export function createLogisticsRepository(database) {
 
     async createShipment(input) {
       return database.transaction(async (client) => {
+        // Eligibility and idempotency must be checked again under the same lock as insertion.
+        const locked = await client.query(
+          'SELECT id,buyer_id,seller_id,status FROM transactions WHERE id=$1 AND buyer_id=$2 FOR UPDATE',
+          [input.transactionId,input.buyerId],
+        );
+        if (!locked.rows[0]) throw Object.assign(new Error('Transação não encontrada.'), {code:'transaction_not_found',status:404});
+        const replay = await client.query('SELECT * FROM shipments WHERE idempotency_key=$1', [input.idempotencyKey]);
+        if (replay.rows[0]) return {...verifyReplay(replay.rows[0], input), reused:true};
+        if (!['paid','in_delivery'].includes(locked.rows[0].status)) throw conflict('shipment_not_allowed','Esta transação ainda não permite entrega.');
+        if (locked.rows[0].seller_id !== input.sellerId) throw conflict('shipment_not_allowed','A operação foi alterada.');
+        const previous = await client.query('SELECT id FROM shipments WHERE transaction_id=$1', [input.transactionId]);
+        if (previous.rows[0]) throw conflict('shipment_already_exists','A operação já possui uma entrega.');
         const created = await client.query(
           `INSERT INTO shipments
              (transaction_id, buyer_id, seller_id, mode, insured, idempotency_key, status)
            VALUES ($1,$2,$3,$4::shipment_mode,$5,$6,$7::shipment_status)
-           ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
-           RETURNING *`,
-          [input.transactionId, input.buyerId, input.sellerId, input.mode, input.insured,
+           ON CONFLICT (idempotency_key) DO NOTHING RETURNING *`,
+          [input.transactionId, input.buyerId, locked.rows[0].seller_id, input.mode, input.insured,
            input.idempotencyKey, input.mode === "pickup" ? "awaiting_pickup" : "provider_pending"],
         );
+        if (!created.rows[0]) {
+          const winner = await client.query('SELECT * FROM shipments WHERE idempotency_key=$1', [input.idempotencyKey]);
+          return {...verifyReplay(winner.rows[0],input),reused:true};
+        }
         await client.query(
           `INSERT INTO shipment_events (shipment_id, status, description)
            VALUES ($1,$2::shipment_status,$3)`,
@@ -179,3 +202,4 @@ export function createLogisticsRepository(database) {
     },
   });
 }
+

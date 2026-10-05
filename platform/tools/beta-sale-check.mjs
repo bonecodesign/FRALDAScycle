@@ -17,7 +17,19 @@ export async function validateSyntheticSale(database, { user, other, transaction
   await database.query(`UPDATE transactions SET status='paid' WHERE id=$1`, [transaction]);
   await database.query(`INSERT INTO payment_intents(transaction_id,buyer_id,idempotency_key,method,amount_cents,platform_fee_cents,delivery_fee_cents,seller_amount_cents,provider_reference,status)
     VALUES($1,$2,'synthetic-native-paid-intent','pix',10000,800,0,9200,'synthetic-only-paid-reference','paid')`, [transaction, other]);
-  const { shipment } = await service.create(other, { transactionId: transaction, mode: 'pickup', insured: false, idempotencyKey: 'synthetic-native-pickup' });
+  const shipmentInput = { transactionId: transaction, mode: 'pickup', insured: false, idempotencyKey: 'synthetic-native-pickup' };
+  const creations = await Promise.all([service.create(other, shipmentInput), service.create(other, shipmentInput)]);
+  assert.equal(creations.filter(x=>!x.reused).length,1);
+  const { shipment } = creations[0];
+  assert.equal((await database.query('SELECT count(*)::int AS count FROM shipment_events WHERE shipment_id=$1',[shipment.id])).rows[0].count,1);
+  await assert.rejects(service.create(user,shipmentInput),e=>e.code==='shipment_idempotency_conflict');
+  await assert.rejects(service.create(other,{...shipmentInput,insured:true}),e=>e.code==='shipment_idempotency_conflict');
+  await assert.rejects(service.create(other,{...shipmentInput,transactionId:'90000000-0000-4000-8000-000000000099'}),e=>e.code==='shipment_idempotency_conflict');
+  await assert.rejects(service.create(other,{...shipmentInput,idempotencyKey:'synthetic-second-pickup-key'}),e=>e.code==='shipment_already_exists');
+  // Simulate the stale preflight explicitly: final insertion must reject a cancelled transaction.
+  await database.query("UPDATE transactions SET status='cancelled' WHERE id=$1",[transaction]);
+  await assert.rejects(repository.createShipment({...shipmentInput,buyerId:other,sellerId:user,idempotencyKey:'synthetic-cancelled-pickup'}),e=>e.code==='shipment_not_allowed');
+  await database.query("UPDATE transactions SET status='paid' WHERE id=$1",[transaction]);
   const address = await service.createAddress(user, { label: 'Fixture interna', postalCode: '00000000', street: 'Rua fictícia da fixture', number: 'S/N', district: 'Bairro fictício', city: 'Belo Horizonte', state: 'MG' });
   await assert.rejects(service.shareAddress(user, shipment.id, { addressId: address.id, confirmed: false, noticeVersion: 'FC-ADDRESS-1' }), error => error.status === 422);
   await assert.rejects(service.shareAddress(other, shipment.id, { addressId: address.id, confirmed: true, noticeVersion: 'FC-ADDRESS-1' }), error => error.code === 'address_recipient_pending');
