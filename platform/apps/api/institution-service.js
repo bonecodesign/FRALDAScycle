@@ -1,3 +1,4 @@
+import { institutionTransitionAllowed } from "../../packages/contracts/institution-status.js";
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 export class InstitutionError extends ServiceError {
@@ -7,15 +8,7 @@ export class InstitutionError extends ServiceError {
 }
 
 const STATUSES = new Set(["pending", "under_review", "active", "suspended", "documents_expired", "rejected", "closed"]);
-const TRANSITIONS = Object.freeze({
-  pending: new Set(["under_review", "rejected"]),
-  under_review: new Set(["active", "rejected"]),
-  active: new Set(["suspended", "documents_expired", "closed"]),
-  suspended: new Set(["active", "closed"]),
-  documents_expired: new Set(["under_review", "active", "closed"]),
-  rejected: new Set(["under_review", "closed"]),
-  closed: new Set(),
-});
+
 
 const text = (value) => String(value ?? "").trim();
 
@@ -69,9 +62,10 @@ export function createInstitutionService(repository) {
       if (reason.length < 10 || reason.length > 500) throw new InstitutionError("invalid_review_reason", 422, "Registre uma justificativa com pelo menos 10 caracteres.");
       const current = await repository.detailAdmin(institutionId);
       if (!current) throw new InstitutionError("institution_not_found", 404, "Instituição não encontrada.");
-      if (!TRANSITIONS[current.status]?.has(status)) throw new InstitutionError("invalid_status_transition", 409, "Esta mudança de estado institucional não é permitida.");
-      return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason });
+      if (!institutionTransitionAllowed(current.status,status)) throw new InstitutionError("invalid_status_transition", 409, "Esta mudança de estado institucional não é permitida.");
+      return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason, expectedStatus:current.status });
     },
   });
 }
+
 
