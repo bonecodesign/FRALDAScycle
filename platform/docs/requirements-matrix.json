@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "9491eae879284b3dd88f409d1e4e99a62563beef",
+  "baseline": "fa8a0cd0f0e05cfb2889cc827b31a9e610880490",
   "denominator": 70,
   "requirements": [
     {
@@ -75,10 +75,15 @@
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
-        "docs/premium-beta-rules.md"
+        "docs/premium-beta-rules.md",
+        "database/premium-repository.js",
+        "apps/api/premium-service.js",
+        "apps/app/premium.html",
+        "tools/beta-premium-check.mjs",
+        "docs/premium-management-beta.md"
       ],
-      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
-      "reason": "Contrato local de vigência/cancelamento existe; renovação persistida, aviso e fornecedor ainda não integrados."
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
+      "reason": "Cancelamento e período persistidos, com tela da conta; contratação, cobrança e retentativas externas desativadas."
     },
     {
       "id": 7,
@@ -87,10 +92,15 @@
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
-        "docs/premium-beta-rules.md"
+        "docs/premium-beta-rules.md",
+        "database/premium-repository.js",
+        "apps/api/premium-service.js",
+        "apps/app/premium.html",
+        "tools/beta-premium-check.mjs",
+        "docs/premium-management-beta.md"
       ],
-      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
-      "reason": "Plano puro escolhe três anúncios e preserva operações; seleção persistida e pausa atômica pendentes."
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
+      "reason": "Escolha e pausa/retomada persistidas, quota concorrente e proteção das operações; agendamento periódico ainda pendente."
     },
     {
       "id": 8,
@@ -99,10 +109,15 @@
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
-        "docs/premium-beta-rules.md"
+        "docs/premium-beta-rules.md",
+        "database/premium-repository.js",
+        "apps/api/premium-service.js",
+        "apps/app/premium.html",
+        "tools/beta-premium-check.mjs",
+        "docs/premium-management-beta.md"
       ],
-      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
-      "reason": "Contrato local calcula três dias da falha original; aviso, evento persistido e regularização real pendentes."
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
+      "reason": "Graça de 72 horas calculada sobre falha original e benefícios revalidados; aviso externo e retentativas do fornecedor desativados."
     },
     {
       "id": 9,

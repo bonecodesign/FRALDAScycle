@@ -1,10 +1,11 @@
+import { lockPremiumAccount, freePublicationAvailable } from './premium-repository.js';
 const fail = (code, status, message) => Object.assign(new Error(message), { code, status });
 export function createOperationSupportRepository(database) {
   return Object.freeze({
     async cancelTransaction({ actorId, transactionId }) {
       return database.transaction(async client => {
         const found = await client.query(
-          `SELECT id,listing_id,status,address_shared_at FROM transactions
+          `SELECT id,listing_id,status,address_shared_at,seller_id FROM transactions
            WHERE id=$1 AND $2 IN (buyer_id,seller_id) FOR UPDATE`, [transactionId,actorId]);
         const tx = found.rows[0];
         if (!tx) throw fail('transaction_not_found',404,'Transação não encontrada.');
@@ -23,7 +24,9 @@ export function createOperationSupportRepository(database) {
           throw fail('cancellation_requires_support',409,'Solicite o cancelamento pelo suporte. A operação pode envolver coleta, endereço compartilhado ou pagamento.');
         }
         await client.query("UPDATE transactions SET status='cancelled',updated_at=now() WHERE id=$1",[transactionId]);
-        await client.query("UPDATE listings SET status='published',updated_at=now() WHERE id=$1 AND status='unavailable'",[tx.listing_id]);
+        const premium = await lockPremiumAccount(client, tx.seller_id);
+        const nextStatus = await freePublicationAvailable(client, tx.seller_id, premium) ? 'published' : 'paused';
+        await client.query("UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1 AND status='unavailable'",[tx.listing_id,nextStatus]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'transaction.cancelled','transaction',$2,'{}'::jsonb)`,[actorId,transactionId]);
         return { id:tx.id, listing_id:tx.listing_id, status:'cancelled' };
