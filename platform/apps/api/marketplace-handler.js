@@ -24,6 +24,21 @@ export async function handleMarketplace(request, response, {
   }
 
   if (!marketplaceService) return false;
+  if (url.pathname === "/v1/support/tickets" && ["GET","POST"].includes(request.method)) {
+    const actor=await authenticatedUser(request,authService);
+    const result=request.method==="POST"
+      ? await marketplaceService.createSupportTicket(actor.id,await readJson(request))
+      : {items:await marketplaceService.supportTickets(actor)};
+    sendJson(response,request.method==="POST"&&!result.reused?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
+  const support=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})(\/reply)?$/i);
+  if(support && ((request.method==="GET"&&!support[2])||(request.method==="POST"&&support[2]))) {
+    const actor=await authenticatedUser(request,authService);
+    const result=request.method==="GET"
+      ? {ticket:await marketplaceService.supportTicket(actor,support[1])}
+      : await marketplaceService.replySupportTicket(actor,support[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
     const items = await marketplaceService.search(Object.fromEntries(url.searchParams));
@@ -88,4 +103,3 @@ export async function handleMarketplace(request, response, {
 
   return false;
 }
-

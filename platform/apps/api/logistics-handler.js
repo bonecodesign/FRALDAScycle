@@ -10,6 +10,25 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
   }
   if(!logisticsService)return false;
+  if(url.pathname==="/v1/addresses"&&["GET","POST"].includes(request.method)){
+    const actor=await authenticatedUser(request,authService);
+    const result=request.method==="GET"?{items:await logisticsService.ownAddresses(actor.id)}:
+      {address:await logisticsService.createAddress(actor.id,await readJson(request))};
+    sendJson(response,request.method==="POST"?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
+  const address=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/addresses$/i);
+  if(address&&["GET","POST"].includes(request.method)){
+    const actor=await authenticatedUser(request,authService);
+    const result=request.method==="GET"?{items:await logisticsService.sharedAddresses(actor.id,address[1])}:
+      {share:await logisticsService.shareAddress(actor.id,address[1],await readJson(request))};
+    sendJson(response,request.method==="POST"&&!result.share.reused?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
+  const settlement=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/settlement-status$/i);
+  if(settlement && request.method==="GET"){
+    const actor=await authenticatedUser(request,authService);
+    const status=await logisticsService.settlementStatus(actor,settlement[1]);
+    sendJson(response,200,{settlement:status,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
   const photo=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/proof\/photo$/i);
   if(photo && request.method==="GET"){
     const actor=await authenticatedUser(request,authService);

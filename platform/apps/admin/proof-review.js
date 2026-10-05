@@ -8,6 +8,16 @@ const details = document.getElementById('proof-review-details');
 const photo = document.getElementById('proof-review-photo');
 const status = document.getElementById('proof-review-status');
 const submit = document.getElementById('proof-review-submit');
+const settlementSummary = document.getElementById('proof-settlement-summary');
+const blockerLabels = {
+  unsupported_transaction_kind: 'Fluxo de troca ou doação pendente',
+  delivery_proof_pending: 'Entrega ou comprovante pendente',
+  transaction_not_eligible: 'Estado da transação impede repasse',
+  payment_not_confirmed: 'Pagamento não confirmado ou com inconsistência',
+  financial_case_pending: 'Ocorrência financeira requer análise',
+  receiver_approval_pending: 'Aprovação do recebedor pendente',
+  proof_validation_pending: 'Validação do comprovante pendente',
+};
 const controller = createProofReviewController({
   request: apiRequest,
   showPhoto(url) {
@@ -32,6 +42,7 @@ function reset() {
   photo.removeAttribute('src');
   validation.reset();
   validation.hidden = false;
+  settlementSummary.textContent = '';
 }
 search.elements.shipment.addEventListener('input', reset);
 search.addEventListener('submit', async event => {
@@ -46,6 +57,15 @@ search.addEventListener('submit', async event => {
     if (!result) return;
     details.hidden = false;
     const { proof } = result;
+    const settlement = result.settlement;
+    if (settlement) {
+      const blockers = settlement.blockers.map(code => blockerLabels[code] || 'Pendência para análise').join('; ');
+      const deadline = settlement.targetDeadline
+        ? ` Prazo alvo: ${new Date(settlement.targetDeadline).toLocaleString('pt-BR')}, sujeito à homologação do fornecedor.${settlement.targetOverdue ? ' Prazo alvo ultrapassado.' : ''}` : '';
+      settlementSummary.textContent = (settlement.requirementsMet
+        ? 'Requisitos internos do vendedor atendidos nesta consulta.'
+        : `Pendências do repasse ao vendedor: ${blockers}.`) + deadline + ' Transferência não autorizada: integração de repasse pendente.';
+    }
     const created = new Date(proof.createdAt).toLocaleString('pt-BR');
     document.getElementById('proof-review-metadata').textContent = `Comprovante ${proof.id} · Entregador ${proof.courierId} · ${created} · Aprovação do recebedor: ${proof.approvedAt ? 'registrada' : 'pendente'}.`;
     status.textContent = result.alreadyValidated ? 'Comprovante já validado. Nenhum repasse foi liberado.' : 'Foto carregada. Confira os registros antes de validar.';
@@ -69,6 +89,7 @@ validation.addEventListener('submit', async event => {
     await controller.validate(validation.elements.reason.value, validation.elements.verified.checked);
     status.textContent = 'Validação registrada. A aprovação do recebedor permanece independente; o repasse não foi liberado.';
     validation.hidden = true;
+    settlementSummary.textContent = 'Validação registrada. Consulte novamente para atualizar as pendências do vendedor. Transferência não autorizada.';
   } catch (error) {
     reset();
     status.textContent = (error.message || 'Não foi possível registrar.') + ' Consulte a entrega novamente.';
