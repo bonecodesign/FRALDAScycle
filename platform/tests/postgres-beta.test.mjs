@@ -66,6 +66,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.equal((await service.marketingPreferences(user)).email, false);
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM marketing_preference_events')).rows[0].count, 2);
       await assert.rejects(service.acceptTerms(user, { accepted: true }), error => error.code === 'terms_not_active');
+      const { validateSyntheticSale } = await import('../tools/beta-sale-check.mjs');
+      await validateSyntheticSale(database, { user, other, transaction });
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');

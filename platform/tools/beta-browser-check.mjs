@@ -104,9 +104,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const layouts = [];
     for (const width of [320, 375, 768, 1280]) {
       await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
-      const layout = await evaluate(`(() => { const f=document.getElementById('operational-preferences-form'); const controls=[...f.querySelectorAll('input,button')]; return { width:innerWidth, overflow:document.documentElement.scrollWidth>innerWidth+1, missingLabels:controls.filter(c=>c.tagName==='INPUT'&&!c.labels.length).length, visible:controls.every(c=>c.getBoundingClientRect().width>0), formWidth:f.getBoundingClientRect().width }; })()`);
+      const layout = await evaluate(`(() => { const f=document.getElementById('operational-preferences-form'); const controls=[...f.querySelectorAll('input,button')]; return { width:innerWidth, overflow:document.documentElement.scrollWidth>innerWidth+1, missingLabels:controls.filter(c=>c.tagName==='INPUT'&&!c.labels.length).length, visible:controls.every(c=>c.getBoundingClientRect().width>0), bounded:controls.every(c=>{ const r=c.getBoundingClientRect();return r.left>=-1&&r.right<=innerWidth+1; }), formWidth:f.getBoundingClientRect().width }; })()`);
       assert.equal(layout.missingLabels, 0);
       assert.equal(layout.visible, true);
+      assert.equal(layout.bounded, true, `Clipped control at viewport ${width}`);
       assert.equal(layout.overflow, false, `Horizontal overflow at viewport ${width}`);
       layouts.push({ viewport: width, ...layout });
     }
