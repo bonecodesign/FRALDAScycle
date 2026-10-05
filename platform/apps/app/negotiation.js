@@ -29,8 +29,6 @@ async function setupProtectedChat() {
       chatAllowed = false;
     }
   }
-  input.disabled = !chatAllowed;
-  submit.disabled = !chatAllowed;
   if (gate) {
     gate.textContent = chatAllowed
       ? "Pagamento confirmado. Use o chat somente para combinar preparação, coleta ou retirada."
@@ -63,6 +61,7 @@ async function setupProtectedChat() {
     } catch(problem) {error.textContent=problem.message;}
     finally {submit.disabled=false;}
   });
+  input.disabled=!chatAllowed;submit.disabled=!chatAllowed;
 }
 
 function setupSafetyActions() {

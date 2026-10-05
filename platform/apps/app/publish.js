@@ -38,7 +38,27 @@ function setupPublishValidation(){
     }catch(problem){error.textContent=problem.message;document.querySelector('#publish-submit').disabled=true;}
   }
   const upload=content.querySelector('.upload-zone');
-  if(step===3&&upload){const chooser=upload.querySelector('button');chooser.type='button';chooser.addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.addEventListener('change',async()=>{const file=input.files?.[0];if(!file)return;chooser.disabled=true;chooser.textContent='Enviando...';try{const key=await uploadListingMedia(file);sessionStorage.setItem('fc.publishMediaKey',key)}catch(uploadError){chooser.disabled=false;chooser.textContent='Escolher foto';error.textContent=uploadError.message;notify(uploadError.message);return}upload.dataset.ready='true';upload.classList.add('ready');upload.innerHTML='<img src="/source/assets/approved/pampers-approved.png" alt="Foto adicionada do produto"><strong>1 foto adicionada</strong><p>Embalagem e lacre visíveis.</p><button class="button secondary" type="button">Trocar foto</button>';error.textContent='';upload.querySelector('button').addEventListener('click',()=>notify('Seletor de fotos aberto'))});input.click()})}
+  if(step===3&&upload){
+    let busy=false,preview=null;
+    const choosePhoto=()=>{
+      if(busy)return;
+      const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';
+      input.addEventListener('change',async()=>{
+        const file=input.files?.[0];if(!file)return;busy=true;
+        const button=upload.querySelector('button');button.disabled=true;button.textContent='Enviando...';
+        try{
+          const key=await uploadListingMedia(file);sessionStorage.setItem('fc.publishMediaKey',key);
+          if(preview)URL.revokeObjectURL(preview);preview=URL.createObjectURL(file);
+          const image=document.createElement('img');image.src=preview;image.alt='Prévia local da foto selecionada';
+          const label=document.createElement('strong');label.textContent='Foto gravada, aguardando revisão do anúncio';
+          const replace=document.createElement('button');replace.type='button';replace.className='button secondary';replace.textContent='Trocar foto';replace.addEventListener('click',choosePhoto);
+          upload.replaceChildren(image,label,replace);upload.dataset.ready='true';upload.classList.add('ready');error.textContent='';
+        }catch(problem){button.disabled=false;button.textContent='Escolher foto';error.textContent=problem.message;notify(problem.message);}
+        finally{busy=false;}
+      });input.click();
+    };
+    const button=upload.querySelector('button');button.type='button';button.addEventListener('click',choosePhoto);
+  }
   if(!next)return;
   const fail=message=>{error.textContent=message;content.querySelector('.publish-step')?.classList.add('has-error')};
   next.addEventListener('click',()=>{let message='';if(step===2&&(!document.getElementById('app-diaper-model')?.value||!/^\d+$/.test(document.getElementById('app-diaper-quantity')?.value)))message='Escolha o modelo e informe a quantidade de unidades.';if(step===3&&content.querySelector('.upload-zone')?.dataset.ready!=='true')message='Adicione pelo menos uma foto do produto.';if(step===4){const condition=content.querySelector('input[name="condition"]:checked')?.value;const attested=document.querySelector('#app-open-package-attestation input')?.checked;if(!content.querySelector('.form-group input')?.value.trim()||!content.querySelector('textarea')?.value.trim())message='Informe a validade e a descrição do produto.';else if(condition==='open'&&!attested)message='Confirme as condições sanitárias do pacote aberto.'}if(step===5&&(readDraft().kind||'sale')==='sale'&&parsePrice(content.querySelector('.proposal-value')?.value)===null)message='Informe o valor do anúncio.';if(step===7){const inputs=content.querySelectorAll('.form-group input');if((inputs[0]?.value.replace(/\D/g,'').length||0)!==8||!inputs[1]?.value.trim())message='Informe um CEP válido e o bairro.'}if(message)return fail(message);error.textContent='';next.disabled=true;next.innerHTML='<span class="inline-spinner"></span> Salvando...';setTimeout(()=>{location.pathname=`/app/publish-${step+1}`},400)})
