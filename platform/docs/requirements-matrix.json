@@ -82,8 +82,8 @@
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "Testes puros locais aprovados; integração nativa e navegador do novo lote aguardam CI. Evidência anterior em beta-validation-2026-10-05.md.",
-      "reason": "Cancelamento e período persistidos, com tela da conta; contratação, cobrança e retentativas externas desativadas. Validação do lote aguarda CI."
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
+      "reason": "Cancelamento e período persistidos, com tela da conta; contratação, cobrança e retentativas externas desativadas."
     },
     {
       "id": 7,
@@ -99,8 +99,8 @@
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "Testes puros locais aprovados; integração nativa e navegador do novo lote aguardam CI. Evidência anterior em beta-validation-2026-10-05.md.",
-      "reason": "Escolha e pausa/retomada persistidas, quota concorrente e proteção das operações; agendamento periódico e validação do novo lote no CI pendentes."
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
+      "reason": "Escolha e pausa/retomada persistidas, quota concorrente e proteção das operações; agendamento periódico ainda pendente."
     },
     {
       "id": 8,
@@ -116,7 +116,7 @@
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "Testes puros locais aprovados; integração nativa e navegador do novo lote aguardam CI. Evidência anterior em beta-validation-2026-10-05.md.",
+      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
       "reason": "Graça de 72 horas calculada sobre falha original e benefícios revalidados; aviso externo e retentativas do fornecedor desativados."
     },
     {
