@@ -1,4 +1,5 @@
 import { createReceiptRepository } from "./receipt-repository.js";
+import { createAddressChangeRepository } from "./address-change-repository.js";
 import { createAddressRepository } from "./address-repository.js";
 
 function conflict(code, message) { return Object.assign(new Error(message), { code, status: 409 }); }
@@ -14,6 +15,7 @@ export function createLogisticsRepository(database) {
   return Object.freeze({
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
+    addressChanges: createAddressChangeRepository(database),
     async context(input) {
       const { buyerId, transactionId, idempotencyKey } = input;
       return database.transaction(async (client) => {

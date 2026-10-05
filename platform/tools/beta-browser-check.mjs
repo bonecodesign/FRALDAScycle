@@ -15,7 +15,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -165,6 +165,21 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>!c.labels.length).length})`);
       assert.equal(layout.overflow,false,`Moderation overflow ${width}`);assert.equal(layout.missingLabels,0);moderationLayouts.push({viewport:width,...layout});
     }
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
+    await until(()=>evaluate(`document.getElementById('address-change-feedback')?.textContent.includes('Pedidos carregados')`),'address changes load');
+    await evaluate(`document.querySelector('#address-change-load input').value=${JSON.stringify(browserAddress.shipmentId)};document.querySelector('#address-change-load button').focus()`);
+    await key('Enter','Enter',13);
+    await until(()=>evaluate(`!document.querySelector('#address-change-form fieldset').disabled`),'owned shared address');
+    await evaluate(`(()=>{const f=document.getElementById('address-change-form');f.elements.addressId.value=${JSON.stringify(browserAddress.addressId)};f.elements.reason.value='Correção fictícia solicitada pelo titular no navegador.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Pedido registrado — protocolo FC-S-')`),'address request keyboard');
+    const addressRequest=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].id)`);
+    const addressLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      assert.equal(layout.overflow,false,`Address overflow ${width}`);assert.equal(layout.missingLabels,0);addressLayouts.push({viewport:width,...layout});
+    }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${adminOrigin}/admin/moderation`});
     await until(()=>evaluate(`document.getElementById('moderation-admin-feedback')?.textContent.includes('Decisões carregadas')`),'admin moderation load');
@@ -183,7 +198,20 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
       assert.equal(layout.overflow,false,`Admin moderation overflow ${width}`);assert.equal(layout.missingLabels,0);adminLayouts.push({viewport:width,...layout});
     }
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
+    await until(()=>evaluate(`!document.getElementById('address-change-review')?.hidden&&document.querySelector('#address-change-list button')`),'support address list');
+    await evaluate(`document.querySelector('#address-change-list button').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`!document.querySelector('#address-change-review fieldset').disabled`),'authorized address consultation');
+    await evaluate(`(()=>{const f=document.getElementById('address-change-review');f.elements.outcome.value='approved';f.elements.reason.value='Conferência fictícia de consentimento, titular e retirada.';f.elements.confirmed.focus();})()`);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Análise registrada')`),'support address approval keyboard');
+    const addressDecision=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests/')}+${JSON.stringify(addressRequest)},{credentials:'include'}).then(r=>r.json()).then(r=>r.request)`);
+    assert.equal(addressDecision.status,'approved');assert.equal(addressDecision.current_revision,1);
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Support address overflow ${width}`);
+    }
+    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

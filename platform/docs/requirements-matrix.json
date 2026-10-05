@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "ec295b33b64198f07341da2877ab2ab9e2aa5a26",
+  "baseline": "58c130bd5321a1da212c7b615210145533271723",
   "denominator": 70,
   "requirements": [
     {
@@ -316,10 +316,15 @@
         "database/address-repository.js",
         "tests/private-address-sharing.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "database/address-change-repository.js",
+        "apps/api/address-change-service.js",
+        "apps/app/address-changes.html",
+        "tools/beta-address-change-check.mjs",
+        "docs/address-change-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Venda possui acesso restrito; troca, doação e alteração pelo suporte pendentes."
+      "evidence": "Compartilhamento validado em PostgreSQL/Chrome nos lotes anteriores; nova alteração aguarda CI, ver address-change-beta.md.",
+      "reason": "Venda: consentimento, acesso privado e alteração pelo suporte com versões; retirada testável. Troca/doação, rota de fornecedor e retenção continuam pendentes."
     },
     {
       "id": 24,
