@@ -68,6 +68,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await assert.rejects(service.acceptTerms(user, { accepted: true }), error => error.code === 'terms_not_active');
       const { validateSyntheticSale } = await import('../tools/beta-sale-check.mjs');
       await validateSyntheticSale(database, { user, other, transaction });
+      const { validateSyntheticPremium, seedBrowserPremium } = await import('../tools/beta-premium-check.mjs');
+      await validateSyntheticPremium(database);
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -78,6 +80,10 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await authService.register(fixture);
       const session = await authService.login(fixture);
       const currentSession = await authService.session(session.token);
+      await seedBrowserPremium(database, currentSession.id);
+      const { createPremiumRepository } = await import('../database/premium-repository.js');
+      const { createPremiumService } = await import('../apps/api/premium-service.js');
+      const premiumService = createPremiumService(createPremiumRepository(database));
       const extraSession = await authService.login(fixture);
       const { createAdminRepository } = await import('../database/admin-repository.js');
       assert.equal(await createAdminRepository(database).revokeOtherSessions({ actorUserId: currentSession.id, currentSessionId: currentSession.sessionId }), 1);
@@ -85,8 +91,15 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.ok(await authService.session(session.token));
       const surfacePort = await freeLocalPort();
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service });
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service, premiumService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
+      const premiumUrl = `http://127.0.0.1:${api.address().port}/v1/account/premium`;
+      assert.equal((await fetch(premiumUrl)).status, 401);
+      assert.equal((await fetch(premiumUrl + '/cancel-renewal', { method: 'POST', headers: { cookie: `fc_session=${session.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: true, userId: user }) })).status, 422);
+      assert.equal((await fetch(premiumUrl + '/grant', { method: 'POST', headers: { cookie: `fc_session=${session.token}`, 'content-type': 'application/json' }, body: '{}' })).status, 404);
+      const premiumResponse = await fetch(premiumUrl, { headers: { cookie: `fc_session=${session.token}` } });
+      assert.equal(premiumResponse.headers.get('cache-control'), 'no-store');
+      assert.equal((await premiumResponse.json()).premium.billingAllowed, false);
       const surface = spawn(process.execPath, [fileURLToPath(new URL('../tools/dev-server.mjs', import.meta.url)), 'app', String(surfacePort)], { env: { ...process.env, NODE_ENV: 'test', SURFACE_HOST: '127.0.0.1', SURFACE_API_ORIGIN: `http://127.0.0.1:${api.address().port}` }, stdio: ['ignore', 'ignore', 'ignore'] });
       try {
         const deadline = Date.now() + 12000;

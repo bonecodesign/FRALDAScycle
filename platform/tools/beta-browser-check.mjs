@@ -116,7 +116,30 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.getElementById('terms-load').click()`);
     await until(() => evaluate(`document.getElementById('terms-content').textContent.includes('rascunho')`), 'draft terms');
     assert.equal(await evaluate(`document.getElementById('terms-accept-form').hidden`), true);
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', draftTerms: 'aceite indisponível', layouts, humanTest: false, screenReader: false, physicalDevices: false };
+    await call('Page.navigate', { url: `${surfaceOrigin}/app/premium` });
+    await until(() => evaluate(`document.getElementById('premium-feedback')?.textContent.includes('Plano e anúncios carregados')`), 'premium load');
+    await evaluate(`document.querySelector('#premium-choice-form input').focus()`);
+    await key(' ', 'Space', 32);
+    await evaluate(`document.querySelector('#premium-choice-form button[type=submit]').focus()`);
+    await key('Enter', 'Enter', 13);
+    await until(() => evaluate(`document.getElementById('premium-feedback').textContent.includes('Escolha registrada')`), 'premium choice keyboard submit');
+    await evaluate(`document.querySelector('#premium-cancel-form input').focus()`);
+    await key(' ', 'Space', 32);
+    await key('Tab', 'Tab', 9);
+    assert.equal(await evaluate(`document.activeElement.closest('form').id`), 'premium-cancel-form');
+    await key('Enter', 'Enter', 13);
+    await until(() => evaluate(`document.getElementById('premium-feedback').textContent.includes('Próxima renovação cancelada')`), 'premium cancellation');
+    assert.equal(await evaluate(`document.getElementById('premium-cancel-form').hidden`), true);
+    const plan = await evaluate(`fetch(${JSON.stringify(apiOrigin + '/v1/account/premium')},{credentials:'include'}).then(r=>r.json()).then(r=>r.premium)`);
+    assert.equal(plan.state, 'active'); assert.equal(plan.renewalEnabled, false); assert.equal(plan.choice.selectedIds.length, 1); assert.equal(plan.billingAllowed, false);
+    const premiumLayouts = [];
+    for (const width of [320,375,768,1280]) {
+      await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
+      const layout = await evaluate(`(() => { const controls=[...document.querySelectorAll('input,button')].filter(c=>c.getBoundingClientRect().width>0); return { overflow:document.documentElement.scrollWidth>innerWidth+1, bounded:controls.every(c=>{const r=c.getBoundingClientRect();return r.left>=-1&&r.right<=innerWidth+1;}),missingLabels:controls.filter(c=>c.tagName==='INPUT'&&!c.labels.length).length }; })()`);
+      assert.equal(layout.overflow,false,`Premium overflow ${width}`); assert.equal(layout.bounded,true); assert.equal(layout.missingLabels,0);
+      premiumLayouts.push({viewport:width,...layout});
+    }
+    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', draftTerms: 'aceite indisponível', layouts, premiumLayouts, humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

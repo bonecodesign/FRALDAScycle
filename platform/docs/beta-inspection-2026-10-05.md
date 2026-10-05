@@ -55,3 +55,7 @@ Matriz inicial: 6/70 concluídos (8,57%), 32 parciais, 20 pendentes e 12 bloquea
 ## Atualização após investigação no CI
 
 O bloqueio desta máquina foi contornado usando apenas executáveis já disponíveis no runner de CI. PostgreSQL e Chrome reais executaram as verificações descritas em [beta-validation-2026-10-05.md](beta-validation-2026-10-05.md). Essa evidência nova não reescreve a tentativa local falha acima nem o NO-GO histórico. Foram corrigidas tipagem da auditoria, conexão HTTP de loopback e overflow em tablet. Troca/doação, despacho externo, Premium persistido, retenção, moderação e validações humanas continuam pendentes conforme a matriz atualizada.
+
+## Consolidação confirmada
+
+PRs #60–#74 integrados, incluindo #61 com reconciliação do levantamento histórico e #62 com decisões. Cadeia consolidada dos lotes recentes para as bases anteriores, com checks verdes em cada novo head; sem force push, squash, exclusão de branches ou perda de commits. main `fa8a0cd0f0e05cfb2889cc827b31a9e610880490` passou foundation/containers. Comparação com cff67b0: 89 arquivos alterados, todos em platform/. Registros históricos do piloto/NO-GO preservados. Novos lotes partem desta main.

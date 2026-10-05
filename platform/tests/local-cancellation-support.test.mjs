@@ -11,14 +11,14 @@ function database(answer) {
   const client={async query(sql,values){calls.push({sql,values});return {rows:answer(sql,values)||[]};}};
   return {calls,async transaction(operation){return operation(client);},query:client.query};
 }
-const unpaid={id,listing_id:'listing',status:'initiated',address_shared_at:null};
+const unpaid={id,listing_id:'listing',seller_id:'seller',status:'initiated',address_shared_at:null};
 test('unpaid pre-collection cancellation updates listing and audit atomically',async()=>{
-  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:[]);
+  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:/FOR NO KEY UPDATE/.test(sql)?[{id:'seller'}]:/checked_at/.test(sql)?[{checked_at:'2026-10-05T12:00:00Z',subscription:null}]:/count\(\*\)/.test(sql)?[{count:2}]:[]);
   const result=await createOperationSupportRepository(db).cancelTransaction({actorId:'buyer',transactionId:id});
   assert.equal(result.status,'cancelled');
-  assert.equal(db.calls.length,5);
   assert.match(db.calls[0].sql,/FOR UPDATE/);
-  assert.match(db.calls[4].sql,/transaction.cancelled/);
+  assert.match(db.calls.at(-1).sql,/transaction.cancelled/);
+  assert.deepEqual(db.calls.find(call=>/UPDATE listings/.test(call.sql)).values,['listing','published']);
 });
 test('collection history, address release, any payment and disputed state route to support without writes',async()=>{
   for(const [tx,state] of [

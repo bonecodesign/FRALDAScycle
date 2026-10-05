@@ -26,6 +26,8 @@ import { createLogisticsService } from "./logistics-service.js";
 import { createRealtimeService } from "./realtime-service.js";
 import { createAccountConsentService } from "./account-consent-service.js";
 import { createAccountConsentRepository } from "../../database/account-consent-repository.js";
+import { createPremiumService } from './premium-service.js';
+import { createPremiumRepository } from '../../database/premium-repository.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -37,6 +39,7 @@ export async function startRuntime(config = null) {
     notificationService,
   });
   const marketplaceService = createMarketplaceService(createMarketplaceRepository(database));
+  const premiumService = createPremiumService(createPremiumRepository(database));
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
@@ -52,6 +55,7 @@ export async function startRuntime(config = null) {
     readiness: () => database.readiness(),
     authService,
     marketplaceService,
+    premiumService,
     accountConsentService,
     marketplaceProviders,
     institutionService,

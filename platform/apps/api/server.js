@@ -13,6 +13,7 @@ import { createTelemetry } from "./telemetry.js";
 import { handlePayments } from "./payment-handler.js";
 import { handleLogistics } from "./logistics-handler.js";
 import { handleAccountConsent } from "./account-consent-handler.js";
+import { handlePremium } from './premium-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -32,6 +33,7 @@ export function createApiServer({
   logisticsService = null,
   logisticsProvider = null,
   accountConsentService = null,
+  premiumService = null,
   adminService = null,
   realtimeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
@@ -166,6 +168,7 @@ export function createApiServer({
         return;
       }
 
+      if (await handlePremium(request,response,{url,headers,requestId:id,authService,premiumService})) return;
       if (await handleAccountConsent(request,response,{
         url,headers,requestId:id,authService,accountConsentService,
       })) return;

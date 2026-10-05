@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "database/premium-repository.js",
+  "apps/api/premium-service.js",
+  "apps/api/premium-handler.js",
+  "apps/app/premium.js",
+  "workers/premium.js",
+  "tools/beta-premium-check.mjs",
   "packages/contracts/local-api-origin.js",
   "packages/contracts/api-client.js",
   "tools/native-postgres.mjs",

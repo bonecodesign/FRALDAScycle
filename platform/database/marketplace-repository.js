@@ -1,4 +1,5 @@
 import { createOperationSupportRepository } from "./operation-support-repository.js";
+import { lockPremiumAccount, adjustFreeListings, freePublicationAvailable } from './premium-repository.js';
 export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
     l.package_condition, l.size, l.quantity,
@@ -55,6 +56,9 @@ export function createMarketplaceRepository(database) {
 
     async create(input) {
       return database.transaction(async (client) => {
+        const premium = await lockPremiumAccount(client, input.sellerId);
+        await adjustFreeListings(client, input.sellerId, premium);
+        if (!await freePublicationAvailable(client, input.sellerId, premium)) throw Object.assign(new Error('O plano gratuito permite até três anúncios publicados. Pause um anúncio antes de publicar outro.'), { code: 'free_listing_limit', status: 409 });
         const result = await client.query(
           `INSERT INTO listings
             (seller_id, title, description, category, brand, model, package_condition,
@@ -110,6 +114,10 @@ export function createMarketplaceRepository(database) {
 
     async startTransaction({ buyerId, listingId }) {
       return database.transaction(async (client) => {
+        const owner = (await client.query('SELECT seller_id FROM listings WHERE id=$1', [listingId])).rows[0];
+        if (!owner) throw Object.assign(new Error('Anúncio não está disponível.'), { code: 'listing_unavailable', status: 409 });
+        const premium = await lockPremiumAccount(client, owner.seller_id);
+        await adjustFreeListings(client, owner.seller_id, premium);
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()
            WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind <> 'donation'
@@ -150,4 +158,3 @@ export function createMarketplaceRepository(database) {
 
   });
 }
-
