@@ -491,7 +491,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Avaliação persistida exige finalização e partes; proteção de conteúdo em padrões testados, ocultação/denúncia específicas e validação real deste lote pendentes."
     },
     {
@@ -506,7 +506,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Contatos identificados bloqueados no servidor; denúncia/ocultação e análise de avaliações pendentes."
     },
     {
@@ -524,7 +524,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Chat privado persistido e filtro compartilhado de disfarces; validação nativa do lote e revisão de falsos negativos pendentes."
     },
     {
@@ -542,7 +542,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Título/descrição filtrados na API, fotos encaminhadas a review; conferência real de mídia bloqueada por fornecedor."
     },
     {
@@ -560,13 +560,13 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Suspensão temporária com motivo, término e recurso; sem punição automática ou banimento definitivo, revisão/equipe pendentes."
     },
     {
       "id": 43,
       "title": "Contestação",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
@@ -578,8 +578,8 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
-      "reason": "Recurso vinculado a protocolo, revisão registrada e independente; aguarda validação PostgreSQL/navegador do lote."
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
+      "reason": "Contestação vinculada à decisão com protocolo único no suporte, acompanhamento privado e revisão independente; idempotência e jornada em PostgreSQL/Chrome comprovadas. Canal externo e capacidade humana não ativados."
     },
     {
       "id": 44,
@@ -600,7 +600,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Testes puros locais e sintaxe aprovados; integração nativa e navegador do novo lote aguardam CI.",
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
       "reason": "Novas operações bloqueadas por suspensão; acompanhamento/suporte preservados. Validação nativa deste lote pendente."
     },
     {
