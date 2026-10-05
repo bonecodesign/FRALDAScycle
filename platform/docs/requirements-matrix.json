@@ -502,7 +502,7 @@
     {
       "id": 39,
       "title": "Contatos em avaliações",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
@@ -516,8 +516,8 @@
         "tools/beta-review-moderation-check.mjs",
         "docs/review-moderation-beta.md"
       ],
-      "evidence": "Testes preparados; aguardando CI PostgreSQL/Chrome, ver review-moderation-beta.md.",
-      "reason": "Denúncia, ocultação provisória, análise/restauração/remoção pública e recurso versionado implementados; execução nativa pendente. Retenção e capacidade humana continuam externas."
+      "evidence": "PR #80, commit 69b3aee: CI 275 testes, 83 verificações e sintaxe 103; PostgreSQL nativo e Chrome 154 com denúncia/recurso/restauração via teclado e quatro larguras, job 111807355110. Limites em review-moderation-beta.md.",
+      "reason": "Denúncia, ocultação provisória, análise/restauração/remoção pública e recurso com protocolo, versão e revisor independente validados. Remoção preserva registros; retenção/capacidade humana são pendências separadas."
     },
     {
       "id": 40,
