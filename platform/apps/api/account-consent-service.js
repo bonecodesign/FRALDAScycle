@@ -1,7 +1,10 @@
 import { ServiceError } from './service-error.js';
 import { loadLegalTerms } from './legal-terms.js';
+import { validateOperationalPreferences } from './operational-preferences.js';
 export function createAccountConsentService(repository,termsLoader=loadLegalTerms) {
   return Object.freeze({
+    operationalPreferences(userId){return repository.operationalPreferences(userId);},
+    saveOperationalPreferences(userId,input){return repository.saveOperationalPreferences(userId,validateOperationalPreferences(input));},
     marketingPreferences(userId){return repository.marketingPreferences(userId);},
     async saveMarketingPreferences(userId,input){
       if(!input||['email','sms','push'].some(key=>typeof input[key]!=='boolean')||Object.keys(input).some(key=>!['email','sms','push'].includes(key))) {

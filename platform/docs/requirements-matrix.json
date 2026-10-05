@@ -71,30 +71,38 @@
     {
       "id": 6,
       "title": "Renovação Premium",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Não há ciclo de assinatura persistido; cobrança externa continua desativada."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local de vigência/cancelamento existe; renovação persistida, aviso e fornecedor ainda não integrados."
     },
     {
       "id": 7,
       "title": "Retorno ao gratuito",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
-        "apps/api/marketplace-service.js",
-        "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Escolha dos três anúncios e pausa de excedentes não implementadas."
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Plano puro escolhe três anúncios e preserva operações; seleção persistida e pausa atômica pendentes."
     },
     {
       "id": 8,
       "title": "Falha de renovação",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Prazo de três dias e regularização ainda não implementados."
+      "status": "parcial",
+      "references": [
+        "packages/contracts/premium-rules.js",
+        "tests/premium-rules.test.mjs",
+        "docs/premium-beta-rules.md"
+      ],
+      "evidence": "11 testes puros locais aprovados. Sem persistência, ativação, cobrança ou validação de fluxo completo.",
+      "reason": "Contrato local calcula três dias da falha original; aviso, evento persistido e regularização real pendentes."
     },
     {
       "id": 9,
@@ -157,9 +165,11 @@
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
         "packages/contracts/settlement-readiness.js",
-        "tests/settlement-readiness.test.mjs"
+        "tests/settlement-readiness.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Decisões separadas e consulta existem; não autorizam nem executam repasse."
     },
     {
@@ -232,9 +242,11 @@
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "tests/receipt-records.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Vínculo, registro e foto privados existem; fornecedor e jornada real pendentes."
     },
     {
@@ -246,9 +258,11 @@
         "tests/settlement-readiness.test.mjs",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Ocorrências bloqueiam consulta; resolução integral pendente."
     },
     {
@@ -258,9 +272,11 @@
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Proteção antes de endereço/coleta existe; devolução financeira depende de homologação."
     },
     {
@@ -270,9 +286,11 @@
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Cancelamento direto bloqueado; análise de retorno/reembolso ainda pendente."
     },
     {
@@ -281,9 +299,11 @@
       "status": "parcial",
       "references": [
         "database/address-repository.js",
-        "tests/private-address-sharing.test.mjs"
+        "tests/private-address-sharing.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Venda possui acesso restrito; troca, doação e alteração pelo suporte pendentes."
     },
     {
@@ -292,9 +312,11 @@
       "status": "parcial",
       "references": [
         "database/address-repository.js",
-        "tests/private-address-sharing.test.mjs"
+        "tests/private-address-sharing.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Aviso explícito FC-ADDRESS-1 na venda; outras modalidades pendentes."
     },
     {
@@ -304,9 +326,11 @@
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "tests/receipt-records.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Permissão e mídia privada implementadas para venda; prazos de retenção pendentes."
     },
     {
@@ -346,9 +370,11 @@
       "references": [
         "apps/api/account-consent-service.js",
         "database/account-consent-repository.js",
-        "tests/account-consents.test.mjs"
+        "tests/account-consents.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Escolhas separadas, inicialmente falsas, revogáveis; nenhuma campanha ativada."
     },
     {
@@ -564,9 +590,11 @@
       "references": [
         "apps/api/account-consent-service.js",
         "database/account-consent-repository.js",
-        "tests/account-consents.test.mjs"
+        "tests/account-consents.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Aceite e publicidade separados; testes não permitem publicidade via aceite."
     },
     {
@@ -576,10 +604,16 @@
       "references": [
         "apps/api/notifications.js",
         "workers/notifications.js",
-        "tests/notifications.test.mjs"
+        "tests/notifications.test.mjs",
+        "apps/api/operational-preferences.js",
+        "database/operational-preference-repository.js",
+        "tests/operational-preferences.test.mjs",
+        "docs/operational-preferences-beta.md",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Verificação/recuperação independem de publicidade; outros avisos e preferências pendentes."
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Verificação/recuperação independem de publicidade; preferências e janela silenciosa registráveis; despacho dos demais avisos e exceções do silêncio pendentes."
     },
     {
       "id": 50,
@@ -588,9 +622,11 @@
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Protocolo, histórico e acompanhamento implementados; horários e capacidade indefinidos."
     },
     {
@@ -624,9 +660,11 @@
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
-        "tests/admin-rbac.test.mjs"
+        "tests/admin-rbac.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Escopos e auditoria existem; homologação e revisão integral de menor privilégio pendentes."
     },
     {
@@ -656,9 +694,11 @@
         "apps/api/auth-service.js",
         "database/auth-repository.js",
         "tests/identity.test.mjs",
-        "tests/session.test.mjs"
+        "tests/session.test.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
       "reason": "Revogação e sessões implementadas; ensaio operacional real pendente."
     },
     {

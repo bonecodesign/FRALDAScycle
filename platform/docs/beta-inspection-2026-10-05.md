@@ -51,3 +51,7 @@ Os 230 testes e 83 verificações do PR #70 são evidências históricas declara
 4. Manter bloqueados dados infantis, tarifas indefinidas, termos reais, mensagens externas, cobrança/repasse/reembolso, contratação e produção. Retenção automática não pode inventar prazos jurídicos.
 
 Matriz inicial: 6/70 concluídos (8,57%), 32 parciais, 20 pendentes e 12 bloqueados. É percentual dos requisitos delimitados, não do tamanho do trabalho nem da prontidão para produção. Produção continua bloqueada e o NO-GO do piloto permanece.
+
+## Atualização após investigação no CI
+
+O bloqueio desta máquina foi contornado usando apenas executáveis já disponíveis no runner de CI. PostgreSQL e Chrome reais executaram as verificações descritas em [beta-validation-2026-10-05.md](beta-validation-2026-10-05.md). Essa evidência nova não reescreve a tentativa local falha acima nem o NO-GO histórico. Foram corrigidas tipagem da auditoria, conexão HTTP de loopback e overflow em tablet. Troca/doação, despacho externo, Premium persistido, retenção, moderação e validações humanas continuam pendentes conforme a matriz atualizada.
