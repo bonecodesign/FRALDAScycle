@@ -18,7 +18,9 @@ export function createReceiptRepository(database) {
                              OR (pi.status='paid' AND (pi.amount_cents IS DISTINCT FROM t.amount_cents
                                  OR pi.amount_cents <= 0 OR pi.provider_reference IS NULL)))) AS payment_blocked,
                   EXISTS (SELECT 1 FROM payment_cases pc JOIN payment_intents pi ON pi.id=pc.payment_intent_id
-                          WHERE pi.transaction_id=t.id AND pc.status <> 'rejected') AS financial_case_pending
+                          WHERE pi.transaction_id=t.id AND pc.status <> 'rejected') OR
+                  EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
+                          AND st.category IN ('cancellation','receipt_problem') AND st.status <> 'resolved') AS financial_case_pending
            FROM shipments s JOIN transactions t ON t.id=s.transaction_id
            JOIN listings l ON l.id=t.listing_id
            JOIN delivery_proofs p ON p.shipment_id=s.id

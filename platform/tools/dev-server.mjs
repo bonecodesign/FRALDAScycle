@@ -1,11 +1,13 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { stat, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
+import { approvedLocalApiOrigin } from '../packages/contracts/local-api-origin.js';
 
 const [surface = process.env.SURFACE ?? "site", portValue = process.env.PORT ?? "4101"] = process.argv.slice(2);
 const host = process.env.SURFACE_HOST ?? (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 const production = process.env.NODE_ENV === "production";
+const localApiOrigin = production ? null : approvedLocalApiOrigin(process.env.SURFACE_API_ORIGIN);
 if (!["site", "app", "admin"].includes(surface)) throw new TypeError("surface must be site, app, or admin");
 
 const platformRoot = resolve(import.meta.dirname, "..");
@@ -75,17 +77,25 @@ createServer(async (request, response) => {
 
   try {
     if (!(await stat(candidate)).isFile()) throw new Error("not a file");
+    let html = null;
+    if (extname(candidate) === '.html' && localApiOrigin) {
+      html = await readFile(candidate, 'utf8');
+      const attribute = `data-api-origin="${localApiOrigin}"`;
+      html = /\bdata-api-origin\s*=/.test(html)
+        ? html.replace(/data-api-origin\s*=\s*(?:"[^"]*"|'[^']*')/, attribute)
+        : html.replace(/<html\b/i, `<html ${attribute}`);
+    }
     response.writeHead(200, {
       "content-type": types[extname(candidate)] ?? "application/octet-stream",
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
       "referrer-policy": "strict-origin-when-cross-origin",
-      "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:${localApiOrigin ? ' ' + localApiOrigin : ''}; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`,
       "cache-control": extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
       "x-fraldacycle-surface": surface,
       "x-fraldacycle-mode": production ? "production" : "local-demo",
     });
-    createReadStream(candidate).pipe(response);
+    if (html !== null) response.end(html); else createReadStream(candidate).pipe(response);
   } catch {
     response.writeHead(404).end("Not found");
   }

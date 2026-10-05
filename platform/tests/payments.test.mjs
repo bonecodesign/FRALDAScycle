@@ -131,6 +131,7 @@ test("payment persistence updates transaction and audit atomically", async () =>
   const client = {
     async query(text, values) {
       statements.push({ text, values });
+      if (/SELECT id FROM transactions/.test(text)) return { rows: [{ id: transactionId }] };
       if (/INSERT INTO payment_intents/.test(text)) return { rows: [{ id: "intent-1" }] };
       return { rows: [] };
     },
@@ -144,10 +145,11 @@ test("payment persistence updates transaction and audit atomically", async () =>
     method: "pix", amountCents: 10_000, platformFeeCents: 800,
     deliveryFeeCents: 500, sellerAmountCents: 8_700,
   });
-  assert.equal(statements.length, 3);
-  assert.match(statements[0].text, /INSERT INTO payment_intents/);
-  assert.match(statements[1].text, /status = 'payment_pending'/);
-  assert.match(statements[2].text, /payment\.intent\.created/);
+  assert.equal(statements.length, 4);
+  assert.match(statements[0].text, /FOR UPDATE/);
+  assert.match(statements[1].text, /INSERT INTO payment_intents/);
+  assert.match(statements[2].text, /status = 'payment_pending'/);
+  assert.match(statements[3].text, /payment\.intent\.created/);
 });
 
 test("payment HTTP endpoint requires an authenticated buyer", async (context) => {

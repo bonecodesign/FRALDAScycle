@@ -1,4 +1,4 @@
-const DEFAULT_API_ORIGIN = "http://127.0.0.1:4200";
+import { DEFAULT_LOCAL_API_ORIGIN as DEFAULT_API_ORIGIN } from './local-api-origin.js';
 
 export class ApiError extends Error {
   constructor(code, message, status) {
