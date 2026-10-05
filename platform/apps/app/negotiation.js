@@ -6,7 +6,8 @@ import { apiRequest } from "/packages/contracts/api-client.js";
 
 function blockedChatContent(value) {
   const reasons=detectProhibitedContent(value,{chat:true});
-  return reasons.includes('chat_conditions')?'O preço e as condições não podem ser alterados pelo chat.':reasons.length?'Possível contato externo: o servidor registrará o bloqueio para correção ou contestação.':'';
+  const messages={phone:'Telefones não podem ser compartilhados no chat.',email:'E-mails não podem ser compartilhados no chat.',external_link:'Links externos não podem ser compartilhados no chat.',external_contact:'Perfis de redes sociais não podem ser compartilhados no chat.',chat_conditions:'O preço e as condições não podem ser alterados pelo chat.'};
+  return reasons.length?(messages[reasons[0]]||'Possível contato externo.')+' O servidor registrará o bloqueio para correção ou contestação.':'';
 }
 
 async function setupProtectedChat() {

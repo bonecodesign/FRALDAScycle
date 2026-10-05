@@ -86,7 +86,7 @@ publish?.addEventListener("click", async () => {
     sessionStorage.setItem("fc.lastListingId", result.listing.id);
     sessionStorage.removeItem(DRAFT_KEY);
     const state=document.createElement('section');state.className='ui-state success-state';
-    const heading=document.createElement('h1');heading.textContent=result.listing.status==='review'?'Anúncio aguardando moderação':'Anúncio publicado';
+    const heading=document.createElement('h1');heading.textContent=result.listing.status==='review'?'Anúncio aguardando moderação':'Anúncio publicado com sucesso';
     const explanation=document.createElement('p');explanation.textContent=result.listing.status==='review'?'Fotos precisam de revisão antes da publicação. Nenhuma revisão automática ou disponibilidade foi presumida.':'Seu anúncio foi gravado. Consulte os dados na sua conta.';
     const link=document.createElement('a');link.href='/app/premium';link.textContent='Gerenciar meus anúncios';state.append(heading,explanation,link);publishContent.replaceChildren(state);
     notify(heading.textContent);

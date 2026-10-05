@@ -144,11 +144,11 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`sessionStorage.setItem('fc.activeTransactionId',${JSON.stringify(browserTransaction)})`);
     await call('Page.reload');
     await until(()=>evaluate(`document.getElementById('msg')&&!document.getElementById('msg').disabled`),'authorized persisted chat');
-    await evaluate(`document.getElementById('msg').value='O pacote está pronto para coleta.';document.getElementById('msg').focus()`);
+    await evaluate(`document.getElementById('msg').value='O pacote está pronto para coleta.';document.querySelector('#chat-form button[type=submit]').focus()`);
     await key('Enter','Enter',13);
     try { await until(()=>evaluate(`document.getElementById('message-list').textContent.includes('O pacote está pronto para coleta.')`),'chat keyboard persistence'); }
     catch(error) { throw new Error(error.message+': '+JSON.stringify(await evaluate(`({error:document.getElementById('chat-error')?.textContent,gate:document.getElementById('chat-payment-gate')?.textContent,disabled:document.getElementById('msg')?.disabled,route:location.pathname})`))); }
-    await evaluate(`document.getElementById('msg').value='fake@example.test';document.getElementById('msg').focus()`);
+    await evaluate(`document.getElementById('msg').value='fake@example.test';document.querySelector('#chat-form button[type=submit]').focus()`);
     await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('chat-error').textContent.includes('Conteúdo bloqueado')`),'chat contact block');
     await call('Page.navigate',{url:`${surfaceOrigin}/app/moderation`});
