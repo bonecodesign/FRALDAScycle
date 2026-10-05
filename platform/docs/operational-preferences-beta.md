@@ -26,3 +26,5 @@ Não são criados lembretes de pagamento/entrega nem campanhas. Não se altera o
 - PostgreSQL real (migração limpa/incremental, rollback e duas conexões), Chromium, teclado, viewports, dispositivo físico, leitor de tela e usuários continuam pendentes pelos bloqueios de `beta-inspection-2026-10-05.md`. Verificação estática de labels não substitui teclado/navegador.
 
 Somente `platform/`. Sem contratação, credenciais, dados pessoais reais/infantis, mensagens, repasses, cobranças, reembolsos, termos jurídicos ativos, desktop ou lançamento. Item 12 permanece em standby. Matriz continua com 6/70 concluídos (8,57%); prontidão para produção permanece bloqueada.
+
+Atualização no PR #74: persistência, conflito concorrente de duas conexões e retry foram executados em PostgreSQL nativo do CI; a jornada das preferências foi executada em Chrome real com Espaço/Tab/Enter e viewports 320/375/768/1280. A auditoria foi corrigida após erro 42P08, e a conexão local/overflow foram corrigidos após reprodução no navegador. Ver [evidência completa](beta-validation-2026-10-05.md). A configuração de despacho/exceções continua pendente e não foi ativada.

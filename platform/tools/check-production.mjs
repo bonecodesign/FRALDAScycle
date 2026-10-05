@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "packages/contracts/local-api-origin.js",
+  "packages/contracts/api-client.js",
+  "tools/native-postgres.mjs",
+  "tools/beta-browser-check.mjs",
+  "tools/beta-sale-check.mjs",
+  "tools/dev-server.mjs",
   "packages/contracts/premium-rules.js",
   "apps/api/account-consent-handler.js",
   "apps/api/account-consent-service.js",
