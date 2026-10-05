@@ -1,3 +1,4 @@
+import {institutionTransitionAllowed} from "../packages/contracts/institution-status.js";
 const publicColumns = `id, public_name, city, state, open_packages_accepted, activated_at`;
 const adminColumns = `id, submitted_by_user_id, legal_name, public_name, tax_id,
   representative_name, representative_email, city, state, address_line, postal_code,
@@ -60,7 +61,7 @@ export function createInstitutionRepository(database) {
       });
     },
 
-    async changeStatus({ actorUserId, institutionId, status, reason }) {
+    async changeStatus({ actorUserId, institutionId, status, reason, expectedStatus }) {
       return database.transaction(async (client) => {
         const current = await client.query(
           "SELECT id, status FROM institutions WHERE id = $1 FOR UPDATE",
@@ -68,6 +69,7 @@ export function createInstitutionRepository(database) {
         );
         if (!current.rows[0]) return null;
         const previousStatus = current.rows[0].status;
+        if(previousStatus!==expectedStatus||!institutionTransitionAllowed(previousStatus,status))throw Object.assign(new Error("A instituição foi atualizada; consulte novamente antes de analisar."),{code:"institution_status_conflict",status:409});
         const updated = await client.query(
           `UPDATE institutions SET status = $2::institution_status, review_reason = $3,
              verified_at = CASE WHEN $2 IN ('active','suspended','documents_expired') THEN COALESCE(verified_at, now()) ELSE verified_at END,
@@ -95,3 +97,4 @@ export function createInstitutionRepository(database) {
     },
   });
 }
+

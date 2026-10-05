@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "cd08dc212d8a5875f7d1f0782a613a487543abca",
+  "baseline": "71d8b956b2a89ab4e24690996c6f4bf33e6b01cf",
   "denominator": 70,
   "requirements": [
     {
@@ -238,17 +238,22 @@
     {
       "id": 18,
       "title": "Recebimento institucional",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
         "tests/institutions.test.mjs",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "tests/receipt-records.test.mjs",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/app/institution-access.html",
+        "tools/beta-institution-access-check.mjs",
+        "docs/institution-access-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Aprovação pelo representante autorizado não implementada."
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
+      "reason": "Representante explicitamente indicado, aceita e recebe conferência administrativa; confirmação institucional da entrega e repasse ainda não ligados. Homologação documental/identidade humana pendente."
     },
     {
       "id": 19,
@@ -860,10 +865,15 @@
         "tests/institutions.test.mjs",
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/app/institution-access.html",
+        "tools/beta-institution-access-check.mjs",
+        "docs/institution-access-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Instituição ativa e aceite de pacote aberto verificados; documentos e capacidade real pendentes."
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
+      "reason": "Instituição ativa e pacote aberto conferidos; estado revalidado sob trava e autoridade vinculada à conta. Documentos, identidade humana e capacidade real pendentes."
     },
     {
       "id": 63,

@@ -1,0 +1,13 @@
+# Autoridade do representante institucional no beta
+
+Somente platform/. Cadastro institucional e conta do representante são registros separados; submitted_by_user_id não concede autoridade automaticamente. Administrador autorizado indica a conta cujo e-mail verificado corresponde ao representante cadastrado. Indicação fica pendente, o titular aceita na plataforma, e administrador confere explicitamente a autoridade com justificativa. Não é permitido conferir/conceder representação a si próprio. Nenhum e-mail ou documento real é enviado/consultado neste lote.
+
+Vínculo possui versão, histórico privado, aceite e identificação da conferência. Repetição concorrente conserva o registro; versão superada conflita. Revogação remove a elegibilidade. Elegibilidade exige instituição ativa, vínculo verified e correspondência atual da conta/e-mail. Estado institucional suspenso/expirado impede autoridade mesmo se o histórico da conferência permanece. Consultas são auditadas e sem cache; outros usuários não consultam o vínculo.
+
+Mudança de estado institucional agora confere o estado esperado e o grafo permitido dentro da trava do banco. Revisões simultâneas não ativam uma instituição a partir de uma leitura anterior já invalidada por rejeição/suspensão. Grafo existente preservado.
+
+Configurações abre Representação institucional; titular aceita o vínculo. Conta administrativa indica/confere/revoga pela tela, com permissão na API. Fluxo de recebimento e logística de doação ainda não ligados a essa autoridade; não se declara repasse habilitado. O próximo lote pode usar verifiedInstitutionRepresentative para conferir a parte institucional sem presumir autorização pelo cadastro.
+
+Local: três testes novos e quatro institucionais existentes, sintaxe 109 e diff aprovados. CI preparado para migração 029, mudança de estado concorrente, convite/aceite/conferência/revogação/idempotência/permissões em PostgreSQL; Chrome para aceite e conferência via Space/Tab/Enter e quatro larguras. CI do commit b58cadd aprovado: 278 testes, 83 verificações e sintaxe 109. PostgreSQL executou as migrações e os casos de estado/autoridade; Chrome 154 executou aceite e conferência via Space/Tab/Enter em 320/375/768/1280 pixels, sem overflow ou campos sem rótulo nos formulários inspecionados. Evidência: job 111813035041. E-mail verificado, instituição/documento e identidade são fixtures exclusivamente fictícias; não comprovam conferência humana/documental real. Não registram teste humano, leitor de tela/dispositivos.
+
+Matriz 8/70 = 11,43%; item 18 parcial por autoridade preparada, confirmação/repasse institucional pendentes. Retenção/capacidade humana, mídia/fornecedor e produção bloqueados; item 12 standby e termos reais rascunhos.
