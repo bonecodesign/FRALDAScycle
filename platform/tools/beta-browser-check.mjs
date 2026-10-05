@@ -69,7 +69,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await call('Page.navigate', { url: `${surfaceOrigin}/app/notification-settings` });
     await until(() => evaluate(`Boolean(document.querySelector('#operational-preferences-form fieldset:not([disabled])'))`), 'authenticated preferences load');
     const key = async (name, code, virtual) => {
-      await call('Input.dispatchKeyEvent', { type: 'keyDown', key: name, code, windowsVirtualKeyCode: virtual, nativeVirtualKeyCode: virtual });
+      await call('Input.dispatchKeyEvent', { type: 'keyDown', key: name, code, windowsVirtualKeyCode: virtual, nativeVirtualKeyCode: virtual, ...(name === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}) });
       await call('Input.dispatchKeyEvent', { type: 'keyUp', key: name, code, windowsVirtualKeyCode: virtual, nativeVirtualKeyCode: virtual });
     };
     await evaluate(`document.querySelector('#operational-preferences-form input[name=email]').focus()`);
@@ -87,7 +87,12 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.equal(await evaluate('document.activeElement.name'), 'start');
     await evaluate(`(() => { const f=document.getElementById('operational-preferences-form'); f.elements.start.value='22:00'; f.elements.end.value='08:00'; f.elements.timeZone.value='UTC'; f.querySelector('button[type=submit]').focus(); })()`);
     await key('Enter', 'Enter', 13);
-    await until(() => evaluate(`document.getElementById('operational-feedback').textContent.includes('Preferências registradas')`), 'keyboard submit');
+    try {
+      await until(() => evaluate(`document.getElementById('operational-feedback').textContent.includes('Preferências registradas')`), 'keyboard submit');
+    } catch (error) {
+      const diagnostic = await evaluate(`(() => { const f=document.getElementById('operational-preferences-form'); return { feedback:document.getElementById('operational-feedback').textContent, disabled:f.querySelector('fieldset').disabled, invalid:[...f.elements].filter(c=>c.validity&&!c.validity.valid).map(c=>({name:c.name,message:c.validationMessage})), focused:document.activeElement.tagName }; })()`);
+      throw new Error(error.message + ': ' + JSON.stringify(diagnostic));
+    }
     const preferences = await evaluate(`fetch(${JSON.stringify(apiOrigin + '/v1/account/operational-preferences')},{credentials:'include'}).then(r=>r.json()).then(r=>r.preferences)`);
     assert.equal(preferences.version, 1);
     assert.equal(preferences.channels.email, true);

@@ -17,6 +17,14 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
     const database = createDatabase({ databaseUrl, databaseSsl: false });
     try {
       const migrations = await discoverMigrations();
+      await database.query('CREATE DATABASE beta_clean');
+      const cleanUrl = new URL(databaseUrl); cleanUrl.pathname = '/beta_clean';
+      const cleanDatabase = createDatabase({ databaseUrl: cleanUrl.toString(), databaseSsl: false });
+      try {
+        await migrate(cleanDatabase, migrations);
+        assert.equal((await cleanDatabase.query('SELECT count(*)::integer AS count FROM schema_migrations')).rows[0].count, migrations.length);
+      } finally { await cleanDatabase.close(); }
+      console.log('BETA_POSTGRES_CLEAN: migrações aplicadas desde banco vazio.');
       await migrate(database, migrations.filter(migration => migration.name < '014_'));
       const user = '10000000-0000-4000-8000-000000000001';
       const other = '10000000-0000-4000-8000-000000000002';
