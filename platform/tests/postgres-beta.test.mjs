@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nativePostgresTools, withNativeTestPostgres } from '../tools/native-postgres.mjs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { nativePostgresTools, withNativeTestPostgres, freeLocalPort } from '../tools/native-postgres.mjs';
 
 const native = await nativePostgresTools();
 test('native PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
@@ -36,7 +38,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const service = createAccountConsentService(createAccountConsentRepository(database));
       const choices = email => ({ expectedVersion: 0, channels: { email, sms: false, push: false }, quietHours: { enabled: true, start: '22:00', end: '08:00', timeZone: 'UTC' } });
       const outcomes = await Promise.allSettled([service.saveOperationalPreferences(user, choices(true)), service.saveOperationalPreferences(user, choices(false))]);
-      assert.equal(outcomes.filter(outcome => outcome.status === 'fulfilled').length, 1);
+      assert.equal(outcomes.filter(outcome => outcome.status === 'fulfilled').length, 1,
+        outcomes.filter(outcome => outcome.status === 'rejected').map(outcome => `${outcome.reason.code}: ${outcome.reason.message}`).join('; '));
       assert.equal(outcomes.find(outcome => outcome.status === 'rejected').reason.status, 409);
       const current = await service.operationalPreferences(user);
       assert.equal(current.version, 1);
@@ -47,8 +50,51 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM operational_preference_events')).rows[0].count, 1);
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM marketing_preference_events')).rows[0].count, 0);
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM terms_acceptances')).rows[0].count, 0);
+      await assert.rejects(database.transaction(client => client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES($1,'beta.old_audit_reproducer','user',$1,'{}'::jsonb)`, [user])), error => error.code === '42P08');
+      await service.saveMarketingPreferences(user, { email: true, sms: false, push: false });
+      assert.equal((await service.marketingPreferences(user)).email, true);
+      await service.saveMarketingPreferences(user, { email: false, sms: false, push: false });
+      assert.equal((await service.marketingPreferences(user)).email, false);
+      assert.equal((await database.query('SELECT count(*)::integer AS count FROM marketing_preference_events')).rows[0].count, 2);
       await assert.rejects(service.acceptTerms(user, { accepted: true }), error => error.code === 'terms_not_active');
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
+      const { createAuthService } = await import('../apps/api/auth-service.js');
+      const { createAuthRepository } = await import('../database/auth-repository.js');
+      const { createApiServer } = await import('../apps/api/server.js');
+      const { loadConfig } = await import('../apps/api/config.js');
+      const authService = createAuthService(createAuthRepository(database));
+      const fixture = { email: 'browser-fixture@example.test', displayName: 'Pessoa fictícia navegador', password: 'synthetic-only-password-v1' };
+      await authService.register(fixture);
+      const session = await authService.login(fixture);
+      const surfacePort = await freeLocalPort();
+      const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin }), authService, accountConsentService: service });
+      await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
+      const surface = spawn(process.execPath, [fileURLToPath(new URL('../tools/dev-server.mjs', import.meta.url)), 'app', String(surfacePort)], { env: { ...process.env, NODE_ENV: 'test', SURFACE_HOST: '127.0.0.1' }, stdio: ['ignore', 'ignore', 'ignore'] });
+      try {
+        const deadline = Date.now() + 12000;
+        let ready = false;
+        while (Date.now() < deadline) {
+          try { if ((await fetch(surfaceOrigin + '/app/notification-settings')).ok) { ready = true; break; } } catch { /* Aguardando somente servidor local. */ }
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        assert.equal(ready, true, 'Surface server did not start');
+        const args = [...(typeof WebSocket === 'undefined' ? ['--experimental-websocket'] : []), fileURLToPath(new URL('../tools/beta-browser-check.mjs', import.meta.url))];
+        const browser = spawn(process.execPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+        let output = ''; let errors = '';
+        browser.stdout.on('data', chunk => { output += chunk; });
+        browser.stderr.on('data', chunk => { errors += chunk; });
+        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token }));
+        const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
+        assert.equal(code, 0, errors);
+        const result = JSON.parse(output);
+        assert.deepEqual(result.layouts.map(layout => layout.viewport), [320, 375, 768, 1280]);
+        console.log('BETA_BROWSER: ' + JSON.stringify(result));
+      } finally {
+        if (surface.exitCode === null) { const stopped = new Promise(resolve => surface.once('exit', resolve)); surface.kill('SIGKILL'); await stopped; }
+        await new Promise(resolve => api.close(resolve));
+      }
     } finally { await database.close(); }
   });
 });
