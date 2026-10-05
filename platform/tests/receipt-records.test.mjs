@@ -47,14 +47,14 @@ test('only receiver can approve; participants cannot validate their own delivery
   }
 });
 
-test('no approval without proof, delivery or eligible transaction; exchanges and donations remain blocked', async () => {
+test('no approval without proof, delivery or eligible transaction; exchanges remain blocked', async () => {
   for (const patch of [{ proof_id: null }, { status: 'in_transit' }, { transaction_status: 'cancelled' }]) {
     const db = database({ ...row, ...patch });
     await assert.rejects(createReceiptRepository(db).recordReceiptDecision({ actorId: 'buyer', shipmentId }),
       error => error.code === 'receipt_not_ready');
     assert.equal(db.calls.length, 1);
   }
-  for (const kind of ['exchange', 'donation']) {
+  for (const kind of ['exchange']) {
     await assert.rejects(createReceiptRepository(database({ ...row, kind })).recordReceiptDecision({ actorId: 'buyer', shipmentId }),
       error => error.code === 'receipt_flow_not_configured');
   }
@@ -124,3 +124,4 @@ test('HTTP routes authenticate receipt writes and enforce validation scopes', as
   assert.equal(writes[1].validation, true);
   assert.equal((await fetch(root + '/proof', { headers: { cookie: 'fc_session=buyer' } })).status, 404);
 });
+

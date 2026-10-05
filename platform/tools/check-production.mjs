@@ -3,6 +3,14 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "packages/contracts/institution-receipt-readiness.js",
+  "database/institution-publication.js",
+  "database/donation-repository.js",
+  "apps/api/donation-service.js",
+  "apps/api/donation-handler.js",
+  "apps/app/donations.js",
+  "apps/app/collection.js",
+  "tools/beta-donation-check.mjs",
   "packages/contracts/institution-status.js",
   "database/institution-access-repository.js",
   "apps/api/institution-access-service.js",

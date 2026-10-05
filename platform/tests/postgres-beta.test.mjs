@@ -78,6 +78,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticReviewModeration(database,{user,other,transaction});
       const {validateSyntheticInstitutionAccess,seedSyntheticInstitution}=await import('../tools/beta-institution-access-check.mjs');
       await validateSyntheticInstitutionAccess(database,{user,other});
+      const {validateSyntheticDonation,seedDonationListing}=await import('../tools/beta-donation-check.mjs');
+      await validateSyntheticDonation(database,{user,other});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
@@ -148,7 +150,17 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const browserAdmin=await authService.session(adminSession.token);
       await createInstitutionService(createInstitutionRepository(database)).changeStatus(browserAdmin.id,browserInstitution,{status:'active',reason:'Instituição fictícia ativa para o teste de representação.'});
       await institutionAccessService.assign(browserAdmin,browserInstitution,{userId:currentSession.id,expectedVersion:0,confirmed:true,reason:'Conta fictícia indicada para teste do aceite no navegador.'});
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService });
+      const {createDonationService}=await import('../apps/api/donation-service.js');
+      const {createDonationRepository}=await import('../database/donation-repository.js');
+      const donationService=createDonationService(createDonationRepository(database));
+      const donorFixture={email:'browser-donor@example.test',displayName:'Doador fictício navegador',password:'synthetic-only-donor-password-v1'};
+      await authService.register(donorFixture);const donorSession=await authService.login(donorFixture),donorActor=await authService.session(donorSession.token);
+      const browserDonationListing=await seedDonationListing(database,donorActor.id,browserInstitution);
+      await logisticsService.createAddress(donorActor.id,{label:'Coleta fictícia navegador',postalCode:'00000000',street:'Rua fictícia de coleta no navegador',number:'S/N',district:'Bairro fictício',city:'Belo Horizonte',state:'MG'});
+      const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1'};
+      await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
+      const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,donationService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
@@ -174,7 +186,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
+        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);

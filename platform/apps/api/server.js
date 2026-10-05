@@ -11,6 +11,7 @@ import { handleAdmin } from "./admin-handler.js";
 import { createConfiguredRateLimiter, rateLimitHeaders, requestClientKey } from "./rate-limit.js";
 import { createTelemetry } from "./telemetry.js";
 import { handlePayments } from "./payment-handler.js";
+import { handleDonations } from "./donation-handler.js";
 import { handleInstitutionAccess } from "./institution-access-handler.js";
 import { handleReviewModeration } from "./review-moderation-handler.js";
 import { handlePrivacyRequests } from "./privacy-request-handler.js";
@@ -40,6 +41,7 @@ export function createApiServer({
   privacyRequestService = null,
   reviewModerationService = null,
   institutionAccessService = null,
+  donationService = null,
   logisticsProvider = null,
   accountConsentService = null,
   premiumService = null,
@@ -179,6 +181,7 @@ export function createApiServer({
         return;
       }
 
+      if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;
       if (await handleReviewModeration(request,response,{url,headers,requestId:id,authService,reviewModerationService})) return;
       if (await handlePrivacyRequests(request,response,{url,headers,requestId:id,authService,privacyRequestService})) return;

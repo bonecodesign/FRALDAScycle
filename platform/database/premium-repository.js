@@ -1,3 +1,4 @@
+import {institutionPublicationAllowed} from "./institution-publication.js";
 import { requireNewOperations,newOperationsAllowed } from './moderation-repository.js';
 import { premiumEntitlement, freeListingPlan, FREE_LISTING_LIMIT } from '../packages/contracts/premium-rules.js';
 const fail = (code, message) => Object.assign(new Error(message), { code, status: 409 });
@@ -100,6 +101,11 @@ export function createPremiumRepository(database) {
     changeListingStatus(userId, { listingId, status, expectedStatus }) {
       return database.transaction(async client => {
         const context = await lockPremiumAccount(client, userId);
+        if(status==='published'){
+          const reference=(await client.query('SELECT kind,institution_id,package_condition FROM listings WHERE id=$1 AND seller_id=$2',[listingId,userId])).rows[0];
+          if(!reference)throw Object.assign(new Error('Anúncio não encontrado.'),{code:'listing_not_found',status:404});
+          if(!await institutionPublicationAllowed(client,reference))throw fail('donation_institution_unavailable','A instituição não permite novas doações.');
+        }
         const rows = await ownedListings(client, userId);
         const listing = rows.find(row => row.id === listingId);
         if (!listing) throw Object.assign(new Error('Anúncio não encontrado.'), { code: 'listing_not_found', status: 404 });

@@ -26,6 +26,8 @@ import { createLogisticsService } from "./logistics-service.js";
 import { createRealtimeService } from "./realtime-service.js";
 import { createAccountConsentService } from "./account-consent-service.js";
 import { createAccountConsentRepository } from "../../database/account-consent-repository.js";
+import { createDonationService } from "./donation-service.js";
+import { createDonationRepository } from "../../database/donation-repository.js";
 import { createInstitutionAccessService } from "./institution-access-service.js";
 import { createInstitutionAccessRepository } from "../../database/institution-access-repository.js";
 import { createReviewModerationService } from "./review-moderation-service.js";
@@ -50,6 +52,7 @@ export async function startRuntime(config = null) {
     notificationService,
   });
   const moderationRepository = createModerationRepository(database);
+  const donationService = createDonationService(createDonationRepository(database));
   const institutionAccessService = createInstitutionAccessService(createInstitutionAccessRepository(database));
   const reviewModerationService = createReviewModerationService(createReviewModerationRepository(database),moderationRepository);
   const moderationService = createModerationService(moderationRepository);
@@ -87,6 +90,7 @@ export async function startRuntime(config = null) {
     privacyRequestService,
     reviewModerationService,
     institutionAccessService,
+    donationService,
     logisticsProvider,
     adminService,
     realtimeService,

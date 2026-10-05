@@ -1,3 +1,4 @@
+import {verifiedInstitutionRepresentative} from './institution-access-repository.js';
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 const summary=`r.id,r.share_id,r.requester_id,r.expected_revision,r.status,r.created_at,r.reviewed_at,r.review_reason,
   st.protocol,a.shipment_id,COALESCE(v.revision,0) AS current_revision`;
@@ -8,16 +9,20 @@ async function audit(client,actor,action,id,metadata={}) {
 }
 async function lockedShare(client,shareId) {
   const result=await client.query(`SELECT a.*,s.mode,s.status AS shipment_status,s.buyer_id,s.courier_id,t.status AS transaction_status,t.id AS transaction_id,l.kind,
+    COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version,
     EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id) AS collected,
     EXISTS(SELECT 1 FROM payment_intents p WHERE p.transaction_id=t.id AND p.status='paid' AND p.amount_cents=t.amount_cents AND p.provider_reference IS NOT NULL) AS payment_confirmed,
     EXISTS(SELECT 1 FROM payment_cases pc JOIN payment_intents pi ON pi.id=pc.payment_intent_id WHERE pi.transaction_id=t.id AND pc.status<>'rejected') OR
     EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_issue
-    FROM shipment_address_shares a JOIN shipments s ON s.id=a.shipment_id JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
+    FROM shipment_address_shares a JOIN shipments s ON s.id=a.shipment_id JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
     WHERE a.id=$1 FOR UPDATE OF a,s,t`,[shareId]);
-  return result.rows[0];
+  const share=result.rows[0];
+  if(share?.kind==='donation'){await client.query('SELECT id FROM institutions WHERE id=$1 FOR SHARE',[share.donation_institution_id]);share.donation_authorized=share.donation_version===2&&await verifiedInstitutionRepresentative(client,share.donation_institution_id)===share.buyer_id;}
+  return share;
 }
 function eligible(share) {
-  if(share.kind!=='sale'||share.collected!==false||share.payment_confirmed!==true||share.financial_issue!==false||!['paid','in_delivery'].includes(share.transaction_status)||!['awaiting_pickup','assigned'].includes(share.shipment_status)) {
+  const operationAllowed=share.kind==='donation'?share.mode==='pickup'&&share.donation_authorized===true&&['donation_confirmed','in_delivery'].includes(share.transaction_status):share.kind==='sale'&&share.payment_confirmed===true&&['paid','in_delivery'].includes(share.transaction_status);
+  if(!operationAllowed||share.collected!==false||share.financial_issue!==false||!['awaiting_pickup','assigned'].includes(share.shipment_status)) {
     throw fail('address_change_not_allowed',409,'A alteração precisa de análise de ocorrência ou a coleta já foi realizada.');
   }
   const recipient=share.mode==='pickup'?share.buyer_id:share.courier_id;

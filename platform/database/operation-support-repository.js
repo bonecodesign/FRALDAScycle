@@ -1,3 +1,4 @@
+import {institutionPublicationAllowed} from "./institution-publication.js";
 import { lockPremiumAccount, freePublicationAvailable } from './premium-repository.js';
 const fail = (code, status, message) => Object.assign(new Error(message), { code, status });
 export function createOperationSupportRepository(database) {
@@ -5,7 +6,7 @@ export function createOperationSupportRepository(database) {
     async cancelTransaction({ actorId, transactionId }) {
       return database.transaction(async client => {
         const found = await client.query(
-          `SELECT id,listing_id,status,address_shared_at,seller_id FROM transactions
+          `SELECT id,listing_id,status,address_shared_at,seller_id,(SELECT kind FROM listings WHERE id=transactions.listing_id) AS kind FROM transactions
            WHERE id=$1 AND $2 IN (buyer_id,seller_id) FOR UPDATE`, [transactionId,actorId]);
         const tx = found.rows[0];
         if (!tx) throw fail('transaction_not_found',404,'Transação não encontrada.');
@@ -20,12 +21,16 @@ export function createOperationSupportRepository(database) {
            EXISTS (SELECT 1 FROM payment_intents WHERE transaction_id=$1) AS has_payment`, [transactionId]);
         const state = check.rows[0];
         if (!state || state.collected !== false || state.has_payment !== false || tx.address_shared_at ||
-            !['initiated','payment_pending','proposed'].includes(tx.status)) {
+            !['initiated','payment_pending','proposed','donation_confirmed'].includes(tx.status)) {
           throw fail('cancellation_requires_support',409,'Solicite o cancelamento pelo suporte. A operação pode envolver coleta, endereço compartilhado ou pagamento.');
         }
         await client.query("UPDATE transactions SET status='cancelled',updated_at=now() WHERE id=$1",[transactionId]);
         const premium = await lockPremiumAccount(client, tx.seller_id);
-        const nextStatus = await freePublicationAvailable(client, tx.seller_id, premium) ? 'published' : 'paused';
+        let nextStatus = await freePublicationAvailable(client, tx.seller_id, premium) ? 'published' : 'paused';
+        if(tx.kind==='donation'&&nextStatus==='published'){
+          const listing=(await client.query('SELECT kind,institution_id,package_condition FROM listings WHERE id=$1',[tx.listing_id])).rows[0];
+          if(!listing||!await institutionPublicationAllowed(client,listing))nextStatus='paused';
+        }
         await client.query("UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1 AND status='unavailable'",[tx.listing_id,nextStatus]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'transaction.cancelled','transaction',$2,'{}'::jsonb)`,[actorId,transactionId]);

@@ -1,3 +1,4 @@
+import {verifiedInstitutionRepresentative} from './institution-access-repository.js';
 function failure(code, status, message) {
   return Object.assign(new Error(message), { code, status });
 }
@@ -10,6 +11,7 @@ export function createReceiptRepository(database) {
           `SELECT p.id, p.media_key, p.courier_id, p.created_at,
                   a.approved_at, v.validated_at, s.status AS shipment_status,
                   t.status AS transaction_status, l.kind,
+                  COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version,
                   (SELECT count(*)::integer FROM payment_intents pi
                    WHERE pi.transaction_id=t.id AND pi.status='paid') AS paid_count,
                   EXISTS (SELECT 1 FROM payment_intents pi
@@ -22,7 +24,7 @@ export function createReceiptRepository(database) {
                   EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
                           AND st.category IN ('cancellation','receipt_problem') AND st.status <> 'resolved') AS financial_case_pending
            FROM shipments s JOIN transactions t ON t.id=s.transaction_id
-           JOIN listings l ON l.id=t.listing_id
+           JOIN listings l ON l.id=t.listing_id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
            JOIN delivery_proofs p ON p.shipment_id=s.id
            LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id
            LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
@@ -43,9 +45,10 @@ export function createReceiptRepository(database) {
       return database.transaction(async (client) => {
         const context = await client.query(
           `SELECT s.status, s.buyer_id, s.seller_id, s.courier_id,
-                  t.status AS transaction_status, l.kind, p.id AS proof_id
+                  t.status AS transaction_status, l.kind,
+                  COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version, p.id AS proof_id
            FROM shipments s JOIN transactions t ON t.id=s.transaction_id
-           JOIN listings l ON l.id=t.listing_id
+           JOIN listings l ON l.id=t.listing_id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
            LEFT JOIN delivery_proofs p ON p.shipment_id=s.id
            WHERE s.id=$1 FOR UPDATE OF s,t`, [shipmentId],
         );
@@ -56,9 +59,11 @@ export function createReceiptRepository(database) {
         if (validation && [row.buyer_id, row.seller_id, row.courier_id].includes(actorId)) {
           throw failure("independent_validation_required", 403, "A validação deve ser feita por administrador sem participação na entrega.");
         }
-        if (row.kind !== "sale") {
-          throw failure("receipt_flow_not_configured", 503, "A confirmação de troca ou doação ainda não está disponível.");
+        if (!["sale","donation"].includes(row.kind)) {
+          throw failure("receipt_flow_not_configured", 503, "A confirmação de troca ainda não está disponível.");
         }
+        if(row.kind==='donation'){await client.query('SELECT id FROM institutions WHERE id=$1 FOR SHARE',[row.donation_institution_id]);row.donation_authorized=row.donation_version===2&&await verifiedInstitutionRepresentative(client,row.donation_institution_id)===row.buyer_id;}
+        if(row.kind==='donation'&&row.donation_authorized!==true)throw failure("institution_receipt_authority_pending",409,"Aguarde a análise da autoridade institucional pelo suporte.");
         if (row.status !== "delivered" || !row.proof_id || row.transaction_status !== "in_delivery") {
           throw failure("receipt_not_ready", 409, "Aguarde a entrega e o envio do comprovante.");
         }
@@ -89,3 +94,4 @@ export function createReceiptRepository(database) {
     },
   });
 }
+
