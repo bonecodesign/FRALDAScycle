@@ -818,10 +818,13 @@
       "status": "parcial",
       "references": [
         "database/recovery.js",
-        "tests/database-recovery.test.mjs"
+        "tests/database-recovery.test.mjs",
+        "tools/beta-recovery-check.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-recovery-validation.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Ferramenta e testes de contrato existem; restauração PostgreSQL real não comprovada."
+      "evidence": "PR #85, commit da31f94: pg_dump/pg_restore nativos, todas as tabelas/sequências, integridade e repetição comprovadas; CI 283 testes sem skips, 83 verificações, sintaxe 119, Chrome 154 nas jornadas existentes. Job 112041780070; limites em docs/beta-recovery-validation.md.",
+      "reason": "Restauração PostgreSQL nativa, integridade de transações/auditoria/sequências e isolamento comprovados com fixtures; armazenamento protegido, acesso operacional, frequência e recuperação em infraestrutura real ainda não homologados."
     },
     {
       "id": 58,
