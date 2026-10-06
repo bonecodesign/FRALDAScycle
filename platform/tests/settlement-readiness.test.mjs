@@ -75,7 +75,7 @@ test('late payment events cannot regress a paid, disputed or refunded intent', a
     assert.equal(calls.length, 2);
   }
 });
-test('delivery events can only change paid or in-delivery transactions, preserving disputes', async () => {
+test('delivery events only change paid, confirmed donation or in-delivery transactions, preserving disputes', async () => {
   const calls = [];
   const repository = createLogisticsRepository({ async transaction(operation) {
     return operation({ async query(sql, values) {
@@ -86,7 +86,7 @@ test('delivery events can only change paid or in-delivery transactions, preservi
     } });
   } });
   await repository.processWebhook({ id: 'evt', type: 'shipment.delivered' });
-  assert.match(calls.find(({sql}) => /UPDATE transactions/.test(sql)).sql, /status IN \('paid','in_delivery'\)/);
+  assert.match(calls.find(({sql}) => /UPDATE transactions/.test(sql)).sql, /status IN \('paid','donation_confirmed','in_delivery'\)/);
 });
 
 test('settlement endpoint authenticates, disables cache and never authorizes payout', async context => {
@@ -110,3 +110,4 @@ test('settlement endpoint authenticates, disables cache and never authorizes pay
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal((await response.json()).settlement.payoutAllowed, false);
 });
+

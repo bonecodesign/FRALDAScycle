@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-05",
-  "baseline": "71d8b956b2a89ab4e24690996c6f4bf33e6b01cf",
+  "baseline": "2c14f89e59d4f219051378ace2f2b2d6af231018",
   "denominator": 70,
   "requirements": [
     {
@@ -59,14 +59,19 @@
     {
       "id": 5,
       "title": "Entrega de doação",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/app/donations.html",
+        "tools/beta-donation-check.mjs",
+        "docs/donation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Fluxo de doação e pagador logístico específico não implementados."
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
+      "reason": "Doador assume frete/comissão logística, duas confirmações e retirada persistidas; cobrança/logística do fornecedor desativadas, processamento do frete item 12 standby."
     },
     {
       "id": 6,
@@ -250,10 +255,15 @@
         "apps/api/institution-access-service.js",
         "apps/app/institution-access.html",
         "tools/beta-institution-access-check.mjs",
-        "docs/institution-access-beta.md"
+        "docs/institution-access-beta.md",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/app/donations.html",
+        "tools/beta-donation-check.mjs",
+        "docs/donation-beta.md"
       ],
-      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
-      "reason": "Representante explicitamente indicado, aceita e recebe conferência administrativa; confirmação institucional da entrega e repasse ainda não ligados. Homologação documental/identidade humana pendente."
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
+      "reason": "Representante autorizado confirma doação e aprova recebimento; validação independente e consulta operacional existem. Repasse ao entregador, mídia/identidade humana e homologação permanecem pendentes."
     },
     {
       "id": 19,
@@ -326,10 +336,15 @@
         "apps/api/address-change-service.js",
         "apps/app/address-changes.html",
         "tools/beta-address-change-check.mjs",
-        "docs/address-change-beta.md"
+        "docs/address-change-beta.md",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/app/donations.html",
+        "tools/beta-donation-check.mjs",
+        "docs/donation-beta.md"
       ],
-      "evidence": "PR #78, commit 1b0d8c8: CI 271 testes, 83 verificações, sintaxe 93; PostgreSQL e Chrome 154 com pedido/aprovação via teclado e quatro larguras, job 111796766311. Limites em address-change-beta.md.",
-      "reason": "Venda: consentimento, acesso privado e alteração pelo suporte com versões; retirada testável. Troca/doação, rota de fornecedor e retenção continuam pendentes."
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
+      "reason": "Venda/doação: confirmação, endereço restrito e alteração pelo suporte com revisões; retirada testável. Troca, transportadora e retenção permanecem pendentes."
     },
     {
       "id": 24,
@@ -906,10 +921,15 @@
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
-        "tests/institutions.test.mjs"
+        "tests/institutions.test.mjs",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/app/donations.html",
+        "tools/beta-donation-check.mjs",
+        "docs/donation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Estado institucional existe; pausa concorrente de novas doações e preservação das existentes pendentes."
+      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
+      "reason": "Estado revalidado sob trava, anúncios novos pausados/publicação e retomada bloqueadas; operações confirmadas/histórico preservados. Capacidade/equipe real e intermediação dos casos pendentes."
     },
     {
       "id": 66,

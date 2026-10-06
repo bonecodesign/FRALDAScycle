@@ -1,3 +1,4 @@
+import {institutionPublicationAllowed} from './institution-publication.js';
 import { requireNewOperations } from './moderation-repository.js';
 import { createOperationSupportRepository } from "./operation-support-repository.js";
 import { lockPremiumAccount, adjustFreeListings, freePublicationAvailable } from './premium-repository.js';
@@ -27,7 +28,7 @@ export function createMarketplaceRepository(database) {
               )))
             END AS distance_km
           FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
-          WHERE l.status = 'published'
+          WHERE l.status = 'published' AND (l.kind<>'donation' OR i.status='active')
             AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
             AND ($2::transaction_kind IS NULL OR l.kind = $2)
             AND ($3::text IS NULL OR l.size = $3)
@@ -48,7 +49,7 @@ export function createMarketplaceRepository(database) {
             ORDER BY m.position) FILTER (WHERE m.id IS NOT NULL), '[]') AS media
          FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
          LEFT JOIN listing_media m ON m.listing_id = l.id
-         WHERE l.id = $1 AND l.status = 'published'
+         WHERE l.id = $1 AND l.status = 'published' AND (l.kind<>'donation' OR i.status='active')
          GROUP BY l.id, u.id, i.id`,
         [id],
       );
@@ -59,6 +60,7 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const premium = await lockPremiumAccount(client, input.sellerId);
         await requireNewOperations(client,input.sellerId);
+        if(!await institutionPublicationAllowed(client,{kind:input.kind,institution_id:input.institutionId,package_condition:input.packageCondition}))throw Object.assign(new Error('A instituição não permite novas doações neste momento.'),{code:'donation_institution_unavailable',status:409});
         await adjustFreeListings(client, input.sellerId, premium);
         if (!await freePublicationAvailable(client, input.sellerId, premium)) throw Object.assign(new Error('O plano gratuito permite até três anúncios publicados. Pause um anúncio antes de publicar outro.'), { code: 'free_listing_limit', status: 409 });
         const result = await client.query(
@@ -97,7 +99,7 @@ export function createMarketplaceRepository(database) {
         `SELECT ${publicColumns} FROM favorites f
          JOIN listings l ON l.id = f.listing_id JOIN users u ON u.id = l.seller_id
          LEFT JOIN institutions i ON i.id = l.institution_id
-         WHERE f.user_id = $1 AND l.status = 'published' ORDER BY f.created_at DESC`,
+         WHERE f.user_id = $1 AND l.status = 'published' AND (l.kind<>'donation' OR i.status='active') ORDER BY f.created_at DESC`,
         [userId],
       );
       return result.rows;

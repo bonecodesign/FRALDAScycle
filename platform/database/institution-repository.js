@@ -79,6 +79,8 @@ export function createInstitutionRepository(database) {
            WHERE id = $1 RETURNING ${adminColumns}`,
           [institutionId, status, reason],
         );
+        if(status!=='active')await client.query(`UPDATE listings SET status='paused',updated_at=now() WHERE institution_id=$1 AND kind='donation' AND status='published'
+          AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=listings.id AND t.status NOT IN('cancelled','refunded','completed'))`,[institutionId]);
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1, 'institution.status.changed', 'institution', $2, $3::jsonb)`,

@@ -1,3 +1,4 @@
+import {verifiedInstitutionRepresentative} from "./institution-access-repository.js";
 import { createReceiptRepository } from "./receipt-repository.js";
 import { createAddressChangeRepository } from "./address-change-repository.js";
 import { createAddressRepository } from "./address-repository.js";
@@ -128,7 +129,18 @@ export function createLogisticsRepository(database) {
         if(!allowed[shipment.status]?.has(next))return {ignored:true,status:shipment.status};
         await client.query("UPDATE shipments SET status=$2::shipment_status,updated_at=now() WHERE id=$1",[shipment.id,next]);
         const transactionStatus=["picked_up","in_transit","delivered"].includes(next)?"in_delivery":(next==="failed"||next==="cancelled")?"paid":null;
-        if(transactionStatus)await client.query("UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1 AND status IN ('paid','in_delivery')",[shipment.transaction_id,transactionStatus]);
+        // A logistics failure cannot create a paid donation; keep it available for support.
+        // Check the listing kind in the same guarded UPDATE so concurrent state changes
+        // and protected transaction states cannot be overwritten by a stale webhook.
+        if(transactionStatus)await client.query(
+          `UPDATE transactions SET status=$2::transaction_status,updated_at=now()
+           WHERE id=$1 AND status IN ('paid','donation_confirmed','in_delivery')
+             AND ($2::transaction_status <> 'paid' OR EXISTS (
+               SELECT 1 FROM listings l
+               WHERE l.id=transactions.listing_id AND l.kind <> 'donation'
+             ))`,
+          [shipment.transaction_id,transactionStatus],
+        );
         await client.query(
           `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude,occurred_at)
            VALUES ($1,$2::shipment_status,$3,$4,$5,$6)`,
@@ -166,6 +178,30 @@ export function createLogisticsRepository(database) {
       });
     },
 
+    async collect({shipmentId,courierId}) {
+      return database.transaction(async client=>{
+        const shipment=(await client.query('SELECT id,transaction_id,status FROM shipments WHERE id=$1 AND courier_id=$2 FOR UPDATE',[shipmentId,courierId])).rows[0];
+        if(!shipment)throw Object.assign(new Error('Entrega não atribuída.'),{code:'shipment_not_assigned',status:403});
+        const transaction=(await client.query(`SELECT t.id,t.status,l.kind,
+          EXISTS(SELECT 1 FROM payment_intents p WHERE p.transaction_id=t.id AND p.status='paid' AND p.amount_cents=t.amount_cents AND p.provider_reference IS NOT NULL) AS payment_confirmed,
+          EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) OR
+          EXISTS(SELECT 1 FROM payment_cases pc JOIN payment_intents p ON p.id=pc.payment_intent_id WHERE p.transaction_id=t.id AND pc.status<>'rejected') AS financial_issue
+          FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1 FOR UPDATE OF t`,[shipment.transaction_id])).rows[0];
+        if(['picked_up','in_transit','delivered'].includes(shipment.status))return {id:shipmentId,status:shipment.status,reused:true};
+        let allowed=transaction?.kind==='sale'&&transaction.payment_confirmed===true&&['paid','in_delivery'].includes(transaction.status);
+        if(transaction?.kind==='donation'){
+          const operation=(await client.query('SELECT institution_id,representative_id,version FROM donation_operations WHERE transaction_id=$1',[shipment.transaction_id])).rows[0];
+          if(operation){await client.query('SELECT id FROM institutions WHERE id=$1 FOR SHARE',[operation.institution_id]);allowed=operation.version===2&&await verifiedInstitutionRepresentative(client,operation.institution_id)===operation.representative_id&&transaction.status==='donation_confirmed';}
+        }
+        if(shipment.status!=='assigned'||!allowed||transaction.financial_issue!==false)throw Object.assign(new Error('A operação não permite registrar a coleta; solicite análise pelo suporte.'),{code:'shipment_collection_not_allowed',status:409});
+        await client.query("UPDATE shipments SET status='picked_up',updated_at=now() WHERE id=$1",[shipmentId]);
+        await client.query("UPDATE transactions SET status='in_delivery',updated_at=now() WHERE id=$1",[shipment.transaction_id]);
+        await client.query("INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'picked_up','Coleta explicitamente registrada pelo entregador atribuído.')",[shipmentId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'shipment.collection.recorded','shipment',$2,'{}'::jsonb)`,[courierId,shipmentId]);
+        return {id:shipmentId,status:'picked_up',reused:false};
+      });
+    },
+
     async addProof(input) {
       return database.transaction(async (client) => {
         const shipment = await client.query(
@@ -188,7 +224,7 @@ export function createLogisticsRepository(database) {
         );
         if (!proof.rows[0]) return { duplicate: true };
         await client.query("UPDATE shipments SET status='delivered',updated_at=now() WHERE id=$1",[input.shipmentId]);
-        await client.query("UPDATE transactions SET status='in_delivery',updated_at=now() WHERE id=$1 AND status IN ('paid','in_delivery')",[shipment.rows[0].transaction_id]);
+        await client.query("UPDATE transactions SET status='in_delivery',updated_at=now() WHERE id=$1 AND status IN ('paid','donation_confirmed','in_delivery')",[shipment.rows[0].transaction_id]);
         await client.query(
           `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude)
            VALUES ($1,'delivered','Comprovante enviado; aguardando validação e aprovação do recebedor.',$2,$3)`,

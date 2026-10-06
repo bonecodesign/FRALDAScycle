@@ -1,5 +1,6 @@
 import { ServiceError } from "./service-error.js";
 import { hasScope, requireScope } from "./authorization.js";
+import { institutionReceiptReadiness } from "../../packages/contracts/institution-receipt-readiness.js";
 import { sellerSettlementReadiness } from "../../packages/contracts/settlement-readiness.js";
 export class LogisticsError extends ServiceError {
   constructor(code, status, message) {
@@ -40,7 +41,7 @@ export function createLogisticsService(repository,provider,mediaProvider){
       const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
         reviewer: hasScope(actor, "admin:deliveries:validate") });
       if (!proof) throw new LogisticsError("receipt_not_found", 404, "Recebimento não encontrado.");
-      return sellerSettlementReadiness(proof);
+      return proof.kind==='donation'?institutionReceiptReadiness(proof):sellerSettlementReadiness(proof);
     },
     async proofPhoto(actor, shipmentId) {
       const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
@@ -97,6 +98,10 @@ export function createLogisticsService(repository,provider,mediaProvider){
       const remote=await provider.createShipment({shipmentId:created.id,transactionId,mode,insured,idempotencyKey});
       const attached=await repository.attachProvider({shipmentId:created.id,...remote});
       return {shipment:publicShipment(attached),reused:false};
+    },
+    async collect(courierId,shipmentId,input){
+      if(input?.confirmed!==true||input?.noticeVersion!=='FC-COLLECTION-1'||Object.keys(input).some(key=>!['confirmed','noticeVersion'].includes(key)))throw new LogisticsError('explicit_collection_required',422,'Confirme explicitamente a coleta da entrega atribuída.');
+      return repository.collect({courierId,shipmentId});
     },
     async assign(courierId,shipmentId){
       const shipment=await repository.assignCourier({courierId,shipmentId});

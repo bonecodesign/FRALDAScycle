@@ -47,8 +47,8 @@ export async function validateSyntheticSale(database, { user, other, transaction
   await validateSyntheticAddressChange(database,{service,repository,user,other,admin,shipment,address});
   await service.assign(courier, shipment.id);
   await assert.rejects(service.sharedAddresses(courier, shipment.id), error => error.status === 404);
-  await database.query(`UPDATE shipments SET status='picked_up' WHERE id=$1`, [shipment.id]);
-  await database.query(`UPDATE transactions SET status='in_delivery' WHERE id=$1`, [transaction]);
+  const collected=await Promise.all([service.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),service.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'})]);
+  assert.equal(collected.filter(x=>!x.reused).length,1);
   const proofInput = { mediaKey: 'synthetic/delivery-proof-key', recipientName: 'Recebedor fictício', latitude: 0, longitude: 0 };
   await assert.rejects(service.proof(user, shipment.id, proofInput), error => error.status === 403);
   const proof = await service.proof(courier, shipment.id, proofInput);
