@@ -27,6 +27,12 @@ export async function validateSyntheticRecovery(database, databaseUrl, bin) {
       const identifier = '"' + tablename.replaceAll('"', '""') + '"';
       result[tablename] = (await connection.query('SELECT to_jsonb(t)::text AS row FROM public.' + identifier + ' t ORDER BY to_jsonb(t)::text')).rows.map(value => value.row);
     }
+    const sequences = (await connection.query("SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='S' ORDER BY c.relname")).rows;
+    result.__sequences = {};
+    for (const { relname } of sequences) {
+      const identifier = '"' + relname.replaceAll('"', '""') + '"';
+      result.__sequences[relname] = (await connection.query('SELECT last_value::text, is_called FROM public.' + identifier)).rows[0];
+    }
     return result;
   }
   try {
