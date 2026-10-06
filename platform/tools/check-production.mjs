@@ -110,6 +110,7 @@ const files = [
   "tools/production-doctor.mjs",
   "tools/smoke-deployment.mjs",
   "database/recovery.js",
+  "tools/beta-recovery-check.mjs",
   "apps/api/realtime-service.js",
   "database/realtime-repository.js",
   "tools/provider-contract.mjs",

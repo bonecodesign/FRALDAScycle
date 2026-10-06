@@ -818,10 +818,13 @@
       "status": "parcial",
       "references": [
         "database/recovery.js",
-        "tests/database-recovery.test.mjs"
+        "tests/database-recovery.test.mjs",
+        "tools/beta-recovery-check.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/beta-recovery-validation.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Ferramenta e testes de contrato existem; restauração PostgreSQL real não comprovada."
+      "evidence": "Validação nativa deste lote pendente de CI; não declarar restauração executada antes do resultado. docs/beta-recovery-validation.md.",
+      "reason": "Ensaio de restauração PostgreSQL nativa implementado para CI, incluindo integridade e isolamento; armazenamento protegido, acesso operacional, frequência e recuperação em infraestrutura real ainda não homologados."
     },
     {
       "id": 58,
