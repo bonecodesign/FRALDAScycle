@@ -129,7 +129,18 @@ export function createLogisticsRepository(database) {
         if(!allowed[shipment.status]?.has(next))return {ignored:true,status:shipment.status};
         await client.query("UPDATE shipments SET status=$2::shipment_status,updated_at=now() WHERE id=$1",[shipment.id,next]);
         const transactionStatus=["picked_up","in_transit","delivered"].includes(next)?"in_delivery":(next==="failed"||next==="cancelled")?"paid":null;
-        if(transactionStatus)await client.query("UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1 AND status IN ('paid','donation_confirmed','in_delivery')",[shipment.transaction_id,transactionStatus]);
+        // A logistics failure cannot create a paid donation; keep it available for support.
+        // Check the listing kind in the same guarded UPDATE so concurrent state changes
+        // and protected transaction states cannot be overwritten by a stale webhook.
+        if(transactionStatus)await client.query(
+          `UPDATE transactions SET status=$2::transaction_status,updated_at=now()
+           WHERE id=$1 AND status IN ('paid','donation_confirmed','in_delivery')
+             AND ($2::transaction_status <> 'paid' OR EXISTS (
+               SELECT 1 FROM listings l
+               WHERE l.id=transactions.listing_id AND l.kind <> 'donation'
+             ))`,
+          [shipment.transaction_id,transactionStatus],
+        );
         await client.query(
           `INSERT INTO shipment_events (shipment_id,status,description,latitude,longitude,occurred_at)
            VALUES ($1,$2::shipment_status,$3,$4,$5,$6)`,

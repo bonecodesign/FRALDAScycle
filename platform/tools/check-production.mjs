@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "tools/beta-logistics-webhook-check.mjs",
   "packages/contracts/institution-receipt-readiness.js",
   "database/institution-publication.js",
   "database/donation-repository.js",

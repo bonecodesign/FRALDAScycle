@@ -80,6 +80,8 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       await validateSyntheticInstitutionAccess(database,{user,other});
       const {validateSyntheticDonation,seedDonationListing}=await import('../tools/beta-donation-check.mjs');
       await validateSyntheticDonation(database,{user,other});
+      const { validateSyntheticLogisticsWebhooks } = await import('../tools/beta-logistics-webhook-check.mjs');
+      await validateSyntheticLogisticsWebhooks(database,{user,other});
       console.log('BETA_POSTGRES: migrações reais, upgrade reservado, repetição, isolamento e concorrência de preferências executados.');
       const { createAuthService } = await import('../apps/api/auth-service.js');
       const { createAuthRepository } = await import('../database/auth-repository.js');
