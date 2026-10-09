@@ -2,6 +2,13 @@ import {institutionPublicationAllowed} from './institution-publication.js';
 import { requireNewOperations } from './moderation-repository.js';
 import { createOperationSupportRepository } from "./operation-support-repository.js";
 import { lockPremiumAccount, adjustFreeListings, freePublicationAvailable } from './premium-repository.js';
+async function existingCreation(client,input){
+  if(!input.idempotencyKey)return null;
+  const row=(await client.query('SELECT id,status,published_at,creation_fingerprint FROM listings WHERE seller_id=$1 AND creation_key=$2',[input.sellerId,input.idempotencyKey])).rows[0];
+  if(!row)return null;
+  if(row.creation_fingerprint!==input.creationFingerprint)throw Object.assign(new Error('A chave de envio já foi usada com outros dados.'),{code:'listing_creation_conflict',status:409});
+  return {id:row.id,status:row.status,published_at:row.published_at,reused:true};
+}
 export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
     l.package_condition, l.size, l.quantity,
@@ -11,9 +18,57 @@ export function createMarketplaceRepository(database) {
 
   return Object.freeze({
     ...createOperationSupportRepository(database),
+    creationByKey(sellerId,idempotencyKey,creationFingerprint){return existingCreation(database,{sellerId,idempotencyKey,creationFingerprint})},
+    async resubmitListing({ sellerId, listingId, title, description, mediaKeys, expectedUpdatedAt }) {
+      return database.transaction(async client => {
+        await client.query("SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE", [sellerId]);
+        await requireNewOperations(client, sellerId);
+        const listing = (await client.query(
+          "SELECT * FROM listings WHERE id=$1 AND seller_id=$2 FOR UPDATE", [listingId, sellerId],
+        )).rows[0];
+        const fail = (code, status, message) => Object.assign(new Error(message), { code, status });
+        if (!listing) throw fail("listing_not_found", 404, "Anúncio não encontrado.");
+        if (listing.status !== "removed" || new Date(listing.updated_at).getTime() !== Date.parse(expectedUpdatedAt)) {
+          throw fail("listing_resubmission_conflict", 409, "O anúncio mudou. Carregue seus anúncios novamente.");
+        }
+        const decision = (await client.query(
+          "SELECT outcome FROM listing_review_decisions WHERE listing_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1", [listingId],
+        )).rows[0];
+        if (decision?.outcome !== "removed") throw fail("listing_resubmission_unavailable", 409, "Solicite ao suporte a análise desta remoção.");
+        const ongoing = (await client.query(
+          "SELECT id FROM transactions WHERE listing_id=$1 AND status NOT IN ('cancelled','refunded','completed') LIMIT 1", [listingId],
+        )).rows[0];
+        if (ongoing) throw fail("listing_operation_active", 409, "Este anúncio possui uma operação em andamento.");
+        if (!await institutionPublicationAllowed(client, listing)) throw fail("donation_institution_unavailable", 409, "A instituição não permite novas doações neste momento.");
+        const previousMedia = (await client.query(
+          "SELECT storage_key FROM listing_media WHERE listing_id=$1 ORDER BY position", [listingId],
+        )).rows.map(item => item.storage_key);
+        const nextMedia = mediaKeys ?? previousMedia;
+        if (!nextMedia.length) throw fail("listing_media_required", 409, "Envie fotos antes de reenviar o anúncio.");
+        if (title === listing.title && description === listing.description && JSON.stringify(nextMedia) === JSON.stringify(previousMedia)) {
+          throw fail("listing_correction_required", 422, "Corrija o título, a descrição ou as fotos antes de reenviar.");
+        }
+        if (mediaKeys !== undefined) {
+          await client.query("DELETE FROM listing_media WHERE listing_id=$1", [listingId]);
+          for (const [position, key] of nextMedia.entries()) await client.query(
+            "INSERT INTO listing_media(listing_id,storage_key,media_type,position) VALUES($1,$2,'image/webp',$3)", [listingId, key, position],
+          );
+        }
+        const updated = (await client.query(
+          "UPDATE listings SET title=$2,description=$3,status='review',published_at=NULL,updated_at=now() WHERE id=$1 RETURNING id,status,updated_at",
+          [listingId, title, description],
+        )).rows[0];
+        await client.query(
+          "INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'listing.review.resubmitted','listing',$2,$3::jsonb)",
+          [sellerId, listingId, JSON.stringify({ titleChanged: title !== listing.title,
+            descriptionChanged: description !== listing.description, mediaReplaced: mediaKeys !== undefined })],
+        );
+        return updated;
+      });
+    },
     async ownListings(userId) {
       const result = await database.query(
-        `SELECT l.id,l.title,l.brand,l.model,l.size,l.quantity,l.kind,l.price_cents,l.status,
+        `SELECT l.id,l.title,l.description,l.brand,l.model,l.size,l.quantity,l.kind,l.price_cents,l.status,
                 l.created_at,l.updated_at,l.published_at,
                 review.outcome AS review_outcome,review.reason AS review_reason,review.created_at AS reviewed_at
          FROM listings l
@@ -71,8 +126,10 @@ export function createMarketplaceRepository(database) {
     },
 
     async create(input) {
+      if (!input.mediaKeys?.length) throw Object.assign(new Error("Envie pelo menos uma foto do produto."), { code: "listing_media_required", status: 422 });
       return database.transaction(async (client) => {
         const premium = await lockPremiumAccount(client, input.sellerId);
+        const previous=await existingCreation(client,input);if(previous)return previous;
         await requireNewOperations(client,input.sellerId);
         if(!await institutionPublicationAllowed(client,{kind:input.kind,institution_id:input.institutionId,package_condition:input.packageCondition}))throw Object.assign(new Error('A instituição não permite novas doações neste momento.'),{code:'donation_institution_unavailable',status:409});
         await adjustFreeListings(client, input.sellerId, premium);
@@ -87,7 +144,7 @@ export function createMarketplaceRepository(database) {
           [input.sellerId, input.title, input.description, input.category, input.brand,
            input.model, input.packageCondition, input.openPackageAttested, input.size,
            input.quantity, input.kind, input.priceCents, input.city, input.state,
-           input.latitude, input.longitude, input.institutionId, (input.mediaKeys?.length ? 'review' : 'published')],
+           input.latitude, input.longitude, input.institutionId, 'review'],
         );
         for (const [position, storageKey] of (input.mediaKeys ?? []).entries()) {
           await client.query(
@@ -96,6 +153,7 @@ export function createMarketplaceRepository(database) {
             [result.rows[0].id, storageKey, position],
           );
         }
+        if(input.idempotencyKey)await client.query('UPDATE listings SET creation_key=$2,creation_fingerprint=$3 WHERE id=$1',[result.rows[0].id,input.idempotencyKey,input.creationFingerprint]);
         return result.rows[0];
       });
     },

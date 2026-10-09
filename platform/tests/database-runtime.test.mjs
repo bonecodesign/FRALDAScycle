@@ -28,7 +28,7 @@ test("migration checksums are deterministic", () => {
   assert.notEqual(checksum("SELECT 1"), checksum("SELECT 2"));
 });
 
-test("migration runner serializes and atomically applies pending files", async () => {
+test("migration runner serializes each file and commits before the next enum-dependent migration", async () => {
   const database = fakeDatabase();
   const migrations = [
     { name: "001_first.sql", sql: "SELECT 1", checksum: checksum("SELECT 1") },
@@ -36,9 +36,11 @@ test("migration runner serializes and atomically applies pending files", async (
   ];
   assert.deepEqual(await migrate(database, migrations), ["001_first.sql", "002_second.sql"]);
   const transactions = database.events.filter(([type]) => type === "transaction");
-  assert.equal(transactions.length, 1);
-  assert.equal(transactions[0][1][0][0], "SELECT pg_advisory_xact_lock($1)");
-  assert.equal(transactions[0][1].filter(([sql]) => sql.startsWith("INSERT INTO schema_migrations")).length, 2);
+  assert.equal(transactions.length, 2);
+  for(const [,writes] of transactions){
+    assert.equal(writes[0][0], "SELECT pg_advisory_xact_lock($1)");
+    assert.equal(writes.filter(([sql]) => sql.startsWith("INSERT INTO schema_migrations")).length, 1);
+  }
 });
 
 test("migration runner refuses modified history", async () => {

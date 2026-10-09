@@ -13,6 +13,20 @@ const roleScopes = Object.freeze({
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 let selectedUser = null;
 let selectedListing = null;
+let listingReviewSequence = 0;
+let loadedReviewContext = null;
+let reviewMediaExpiresAt = 0;
+
+function canApproveListing() {
+  return Boolean(loadedReviewContext && Date.now() < reviewMediaExpiresAt);
+}
+
+function syncListingReviewSubmit() {
+  const form = document.getElementById("listing-review-form");
+  if (!form) return;
+  form.querySelector('[type="submit"]').disabled = !selectedListing ||
+    (form.elements.outcome.value === "published" && !canApproveListing());
+}
 
 function cell(row, value) { const element = document.createElement("td"); element.textContent = value; row.append(element); }
 function count(value) { return Number(value ?? 0).toLocaleString("pt-BR"); }
@@ -100,34 +114,62 @@ document.getElementById("catalog-filter")?.addEventListener("submit", event => {
 document.getElementById("catalog-refresh")?.addEventListener("click", loadCatalog);
 
 async function openListingReview(listingId) {
+  const sequence = ++listingReviewSequence;
+  selectedListing = null; loadedReviewContext = null; reviewMediaExpiresAt = 0;
+  const form = document.getElementById("listing-review-form"); form.reset(); syncListingReviewSubmit();
   const panel = document.getElementById("listing-review-panel");
   const status = document.getElementById("listing-review-status");
   panel.hidden = false; status.textContent = "Carregando anúncio e mídias protegidas…";
   document.getElementById("listing-review-media").replaceChildren();
   try {
     const result = await apiRequest(`/v1/admin/listings/${encodeURIComponent(listingId)}/review`);
+    if (sequence !== listingReviewSequence) return;
     selectedListing = result.listing;
     document.getElementById("listing-review-title").textContent = result.listing.title;
     document.getElementById("listing-review-description").textContent = result.listing.description;
     document.getElementById("listing-review-identity").textContent = `${result.listing.seller_name} · ${kindLabels[result.listing.kind] ?? result.listing.kind} · ${count(result.listing.quantity)} unidades`;
     const media = document.getElementById("listing-review-media");
-    for (const [index, item] of (result.media ?? []).entries()) {
-      const image = document.createElement("img"); image.src = item.readUrl; image.alt = `Foto ${index + 1} do anúncio em revisão`; image.loading = "lazy"; image.referrerPolicy = "no-referrer"; media.append(image);
-    }
-    status.textContent = result.media?.length ? `${result.media.length} foto(s) autorizada(s) temporariamente.` : "Nenhuma mídia disponível; a aprovação permanecerá bloqueada.";
+    const images = result.media ?? [];
+    reviewMediaExpiresAt = Math.min(...images.map(item => Date.parse(item.expiresAt)));
+    syncListingReviewSubmit();
+    await Promise.all(images.map((item, index) => new Promise((resolve, reject) => {
+      const image = document.createElement("img");
+      const timer = setTimeout(() => { image.onload = null; image.onerror = null; image.removeAttribute("src"); reject(new Error("A foto demorou para carregar. Abra a revisão novamente.")); }, 15_000);
+      image.onload = () => { clearTimeout(timer); if (image.naturalWidth > 0) resolve(); else reject(new Error("Foto inválida.")); };
+      image.onerror = () => { clearTimeout(timer); reject(new Error("Não foi possível carregar todas as fotos. Abra a revisão novamente.")); };
+      image.alt = `Foto ${index + 1} do anúncio em revisão`; image.referrerPolicy = "no-referrer";
+      media.append(image); image.src = item.readUrl;
+    })));
+    if (sequence !== listingReviewSequence) return;
+    if (images.length && result.reviewContext && Number.isFinite(reviewMediaExpiresAt) && Date.now() < reviewMediaExpiresAt) {
+      loadedReviewContext = result.reviewContext;
+      status.textContent = `${images.length} foto(s) carregada(s). Confira o conteúdo antes de decidir.`;
+      setTimeout(() => {
+        if (sequence !== listingReviewSequence) return;
+        loadedReviewContext = null; syncListingReviewSubmit();
+        status.textContent = "O acesso às fotos expirou. Abra a revisão novamente antes de aprovar.";
+      }, Math.max(0, reviewMediaExpiresAt - Date.now()));
+    } else status.textContent = "Fotos ou autorização indisponíveis; a aprovação permanece bloqueada.";
+    syncListingReviewSubmit();
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (error) {
-    selectedListing = null; status.textContent = unavailable(error);
+    if (sequence !== listingReviewSequence) return;
+    loadedReviewContext = null; syncListingReviewSubmit(); status.textContent = unavailable(error);
   }
 }
 
 document.getElementById("listing-review-close")?.addEventListener("click", () => {
+  listingReviewSequence++; loadedReviewContext = null;
   selectedListing = null; document.getElementById("listing-review-panel").hidden = true;
   document.getElementById("listing-review-media").replaceChildren();
 });
+document.getElementById("listing-review-form")?.elements.outcome.addEventListener("change", syncListingReviewSubmit);
 document.getElementById("listing-review-form")?.addEventListener("submit", async event => {
   event.preventDefault(); if (!selectedListing) return;
   const form = event.currentTarget; const status = document.getElementById("listing-review-status");
+  if (form.elements.outcome.value === "published" && !canApproveListing()) {
+    syncListingReviewSubmit(); status.textContent = "Carregue todas as fotos novamente antes de aprovar."; return;
+  }
   const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
   try {
     await apiRequest(`/v1/admin/listings/${encodeURIComponent(selectedListing.id)}/review`, {
@@ -136,13 +178,15 @@ document.getElementById("listing-review-form")?.addEventListener("submit", async
         outcome: form.elements.outcome.value,
         reason: form.elements.reason.value.trim(),
         confirmed: form.elements.confirmed.checked,
+        reviewContext: loadedReviewContext,
       },
     });
     status.textContent = "Decisão persistida e registrada na auditoria.";
-    selectedListing = null; form.reset(); document.getElementById("listing-review-media").replaceChildren();
+    selectedListing = null; loadedReviewContext = null; listingReviewSequence++;
+    form.reset(); document.getElementById("listing-review-media").replaceChildren();
     await loadCatalog();
   } catch (error) { status.textContent = unavailable(error); }
-  finally { submit.disabled = false; }
+  finally { syncListingReviewSubmit(); }
 });
 
 async function loadAccess() {

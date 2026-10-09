@@ -142,6 +142,11 @@ export async function publishListing(input) {
   return apiRequest("/v1/listings", { method: "POST", body: input });
 }
 
+export async function readListingPhoto(storageKey){
+  const {media}=await apiRequest('/v1/media/listing-read',{method:'POST',body:{storageKey}});
+  return media;
+}
+
 export async function uploadListingMedia(file) {
   const { upload } = await apiRequest("/v1/media/uploads", {
     method: "POST",

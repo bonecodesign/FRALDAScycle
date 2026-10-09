@@ -8,6 +8,14 @@ export async function handleMarketplace(request, response, {
 }) {
   if (!url.pathname.startsWith("/v1/")) return false;
 
+  if(request.method==='POST'&&url.pathname==='/v1/media/listing-read'){
+    const user=await authenticatedUser(request,authService);
+    if(!marketplaceProviders)return false;
+    const media=await marketplaceProviders.signedListingRead(user.id,await readJson(request));
+    sendJson(response,200,{media,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
+
   if (request.method === "POST" && url.pathname === "/v1/media/uploads") {
     const user = await authenticatedUser(request, authService);
     if (!marketplaceProviders) return false;
@@ -25,6 +33,14 @@ export async function handleMarketplace(request, response, {
   }
 
   if (!marketplaceService) return false;
+  const resubmit = url.pathname.match(/^\/v1\/account\/listings\/([0-9a-f-]{36})\/resubmit$/i);
+  if (resubmit && request.method === "POST") {
+    const user = await authenticatedUser(request, authService);
+    requireAdultDeclaration(user);
+    const listing = await marketplaceService.resubmitListing(user.id, resubmit[1], await readJson(request));
+    sendJson(response, 200, { listing, requestId }, { ...headers, "cache-control": "no-store" });
+    return true;
+  }
   if (request.method === "GET" && url.pathname === "/v1/account/listings") {
     const user = await authenticatedUser(request, authService);
     sendJson(response, 200, { items: await marketplaceService.ownListings(user.id), requestId }, { ...headers, "cache-control": "no-store" });
@@ -68,7 +84,7 @@ export async function handleMarketplace(request, response, {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
     const listing = await marketplaceService.create(user.id, await readJson(request));
-    sendJson(response, 201, { listing, requestId }, headers);
+    sendJson(response, listing.reused?200:201, { listing, requestId }, {...headers,'cache-control':'no-store'});
     return true;
   }
 

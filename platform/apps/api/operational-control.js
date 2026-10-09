@@ -9,6 +9,7 @@ export class OperationalControlError extends ServiceError {
 
 export function controlledDomain(method, pathname) {
   if (method === "POST" && pathname === "/v1/listings") return "marketplace";
+  if (method === "POST" && /^\/v1\/account\/listings\/[0-9a-f-]{36}\/resubmit$/i.test(pathname)) return "marketplace";
   if (method === "POST" && /^\/v1\/listings\/[0-9a-f-]{36}\/transactions$/i.test(pathname)) return "marketplace";
   if (method === "POST" && (pathname === "/v1/exchanges" || /^\/v1\/exchanges\/[0-9a-f-]{36}\/(accept|refuse|cancel|complete)$/i.test(pathname))) return "marketplace";
   if (method === "POST" && ["/v1/payments/intents", "/v1/payments/tokenization-sessions"].includes(pathname)) return "payments";

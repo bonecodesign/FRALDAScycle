@@ -36,7 +36,8 @@ export async function handleAdmin(request, response, {
     const media = await Promise.all(detail.media.map(async item => ({
       ...item, ...(await marketplaceProviders.signedProofRead(user.id, item.storage_key)), storage_key: undefined,
     })));
-    sendJson(response, 200, { listing: detail.listing, media, requestId }, { ...headers, "cache-control": "no-store" });
+    const reviewContext = adminService.issueReviewContext(user, detail, media);
+    sendJson(response, 200, { listing: detail.listing, media, reviewContext, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
   if (listingReview && request.method === "POST") {

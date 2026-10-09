@@ -67,6 +67,29 @@ test("signed uploads reject foreign keys, unsafe headers and invalid expiration"
   }
 });
 
+test("media verification rejects missing, foreign, mutable and unprocessed images", async () => {
+  const key = "listings/user-1/one.webp";
+  const ready = { storageKey: key, ownerId: "user-1", exists: true, processed: true,
+    immutable: true, contentType: "image/webp", exifRemoved: true, scanStatus: "clean",
+    sizeBytes: 2_048, width: 800, height: 800 };
+  for (const patch of [
+    { exists: false }, { ownerId: "another-user" }, { processed: false },
+    { immutable: false }, { contentType: "text/html" }, { exifRemoved: false },
+    { scanStatus: "pending" }, { sizeBytes: 10_000_001 }, { width: 1_601 }, { height: 0 },
+  ]) {
+    const providers = createMarketplaceProviders(configured, async () => response({ ...ready, ...patch }));
+    await assert.rejects(providers.verifyListingMedia("user-1", [key]), error => error.code === "media_not_ready");
+  }
+  let request;
+  const providers = createMarketplaceProviders(configured, async (_url, options) => {
+    request = JSON.parse(options.body); return response(ready);
+  });
+  assert.deepEqual(await providers.verifyListingMedia("user-1", [key]), { verified: true, count: 1 });
+  assert.equal(request.operation, "verify-listing-media");
+  assert.equal(request.ownerId, "user-1");
+  await assert.rejects(providers.verifyListingMedia("user-1", ["listings/other/one.webp"]), error => error.code === "invalid_media");
+});
+
 test("geocoding returns only approximate validated coordinates", async () => {
   const providers = createMarketplaceProviders(configured, async () => response({
     latitude: -19.9167, longitude: -43.9345, city: "Belo Horizonte", state: "mg",

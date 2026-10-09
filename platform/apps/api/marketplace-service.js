@@ -1,4 +1,5 @@
 import { assertContentAllowed } from './content-guard.js';
+import {createHash} from 'node:crypto';
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
@@ -21,9 +22,38 @@ function validListingId(value) {
   }
 }
 
-export function createMarketplaceService(repository, moderation = null) {
+export function createMarketplaceService(repository, moderation = null, mediaProvider = null) {
+  async function verifyMedia(userId, mediaKeys) {
+    if (!mediaProvider?.verifyListingMedia) throw new MarketplaceError("media_verification_unavailable", 503, "Não foi possível confirmar o processamento das fotos.");
+    await mediaProvider.verifyListingMedia(userId, mediaKeys);
+  }
   return Object.freeze({
     ownListings(userId) { return repository.ownListings(userId); },
+    async resubmitListing(userId, listingId, input) {
+      validListingId(listingId);
+      const allowed = ["title", "description", "mediaKeys", "expectedUpdatedAt", "confirmed"];
+      if (!input || typeof input !== "object" || Array.isArray(input) ||
+          Object.keys(input).some(key => !allowed.includes(key)) || input.confirmed !== true) {
+        throw new MarketplaceError("invalid_resubmission", 422, "Confirme as correções antes de reenviar.");
+      }
+      const title = String(input.title ?? "").trim();
+      const description = String(input.description ?? "").trim();
+      if (title.length < 5 || title.length > 120 || description.length < 20 || description.length > 4_000 ||
+          typeof input.expectedUpdatedAt !== "string" || !Number.isFinite(Date.parse(input.expectedUpdatedAt))) {
+        throw new MarketplaceError("invalid_resubmission", 422, "Revise o título e a descrição e carregue o anúncio novamente.");
+      }
+      const mediaKeys = input.mediaKeys;
+      if (mediaKeys !== undefined && (!Array.isArray(mediaKeys) || mediaKeys.length < 1 || mediaKeys.length > 8 ||
+          new Set(mediaKeys).size !== mediaKeys.length || mediaKeys.some(key =>
+            typeof key !== "string" || !key.startsWith(`listings/${userId}/`) ||
+            !/^[a-zA-Z0-9._/-]{1,512}$/.test(key) || key.includes("..")))) {
+        throw new MarketplaceError("invalid_media", 422, "Envie de uma a oito fotos da sua conta.");
+      }
+      await assertContentAllowed(moderation, userId, "listing", title + "\n" + description);
+      if (mediaKeys !== undefined) await verifyMedia(userId, mediaKeys);
+      return repository.resubmitListing({ sellerId: userId, listingId, title, description,
+        mediaKeys, expectedUpdatedAt: input.expectedUpdatedAt });
+    },
     async createSupportTicket(userId, input) {
       const category = String(input?.category ?? "general");
       const subject = String(input?.subject ?? "").trim();
@@ -94,6 +124,8 @@ export function createMarketplaceService(repository, moderation = null) {
     },
 
     async create(userId, input) {
+      const idempotencyKey=input?.idempotencyKey??null;
+      if(idempotencyKey!==null&&(typeof idempotencyKey!=='string'||!UUID_PATTERN.test(idempotencyKey)))throw new MarketplaceError('invalid_listing_creation_key',422,'Chave de envio inválida.');
       const title = String(input?.title ?? "").trim();
       const description = String(input?.description ?? "").trim();
       const kind = String(input?.kind ?? "");
@@ -126,7 +158,7 @@ export function createMarketplaceService(repository, moderation = null) {
         throw new MarketplaceError("institution_required", 422, "Escolha uma instituição verificada para receber a doação.");
       }
       if (kind !== "donation" && institutionId) throw new MarketplaceError("unexpected_institution", 422, "A instituição é permitida somente em doações.");
-      if (kind === "donation") {
+      if (kind === "donation" && !idempotencyKey) {
         const institution = await repository.activeInstitution(institutionId);
         if (!institution) throw new MarketplaceError("institution_not_active", 409, "A instituição escolhida não está ativa.");
         if (packageCondition === "open" && !institution.open_packages_accepted) {
@@ -146,9 +178,19 @@ export function createMarketplaceService(repository, moderation = null) {
         const value = String(key);
         return !value.startsWith(`listings/${userId}/`) || !/^[a-zA-Z0-9._/-]{1,512}$/.test(value) || value.includes("..");
       })) throw new MarketplaceError("invalid_media", 422, "As fotos do anúncio são inválidas.");
+      if (!mediaKeys.length) throw new MarketplaceError("listing_media_required", 422, "Envie pelo menos uma foto do produto antes de publicar.");
+      const creation={sellerId:userId,title,description,kind,quantity,priceCents,institutionId,category,brand,model,packageCondition,openPackageAttested:packageCondition==='open'&&input.openPackageAttested===true,size,city,state,latitude,longitude,mediaKeys};
+      const creationFingerprint=createHash('sha256').update(JSON.stringify(creation)).digest('hex');
+      if(idempotencyKey&&repository.creationByKey){const existing=await repository.creationByKey(userId,idempotencyKey,creationFingerprint);if(existing)return existing;}
+      if(kind==='donation'&&idempotencyKey){
+        const institution=await repository.activeInstitution(institutionId);
+        if(!institution)throw new MarketplaceError('institution_not_active',409,'A instituição escolhida não está ativa.');
+        if(packageCondition==='open'&&!institution.open_packages_accepted)throw new MarketplaceError('institution_rejects_open_packages',409,'A instituição escolhida não recebe pacotes abertos.');
+      }
       await assertContentAllowed(moderation,userId,'listing',title+'\n'+description);
+      await verifyMedia(userId, mediaKeys);
       return repository.create({
-        sellerId: userId, title, description, kind, quantity, priceCents, institutionId,
+        sellerId: userId, title, description, kind, quantity, priceCents, institutionId,idempotencyKey,creationFingerprint:idempotencyKey?creationFingerprint:null,
         category, brand, model, packageCondition,
         openPackageAttested: packageCondition === "open" && input.openPackageAttested === true,
         size, city, state, latitude, longitude, mediaKeys,

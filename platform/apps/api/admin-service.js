@@ -1,6 +1,6 @@
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { hashPassword } from "./security.js";
 const ROLES = new Set(["customer", "courier", "moderator", "admin"]);
 const USER_STATUSES = new Set(["active", "suspended"]);
@@ -23,8 +23,39 @@ export class AdminError extends ServiceError {
   }
 }
 
-export function createAdminService(repository) {
+function reviewFingerprint(detail) {
+  return createHash("sha256").update(JSON.stringify({ listing: detail.listing,
+    media: detail.media.map(item => item.storage_key) })).digest("hex");
+}
+
+export function createAdminService(repository, mediaProvider = null, { reviewSecret = null } = {}) {
+  function signature(payload) {
+    if (!reviewSecret || reviewSecret.length < 32) throw new AdminError("review_context_unavailable", 503, "A revisão protegida está indisponível.");
+    return createHmac("sha256", reviewSecret).update(payload).digest();
+  }
+  function validateReviewContext(actor, detail, token) {
+    try {
+      const parts = typeof token === "string" && token.length <= 2_048 ? token.split(".") : [];
+      if (parts.length !== 2) throw new Error();
+      const expected = signature(parts[0]);
+      const supplied = Buffer.from(parts[1], "base64url");
+      if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) throw new Error();
+      const payload = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
+      if (payload.actorId !== actor.id || payload.sessionId !== (actor.sessionId ?? null) ||
+          payload.fingerprint !== reviewFingerprint(detail) || !Number.isFinite(payload.expiresAt) || payload.expiresAt <= Date.now()) throw new Error();
+    } catch (error) {
+      if (error?.code === "review_context_unavailable") throw error;
+      throw new AdminError("listing_review_context_expired", 409, "Abra novamente a revisão e confira todas as fotos antes de aprovar.");
+    }
+  }
   return Object.freeze({
+    issueReviewContext(actor, detail, media) {
+      const expiresAt = Math.min(Date.now() + 300_000, ...media.map(item => Date.parse(item.expiresAt)));
+      if (!media.length || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+      const payload = Buffer.from(JSON.stringify({ actorId: actor.id, sessionId: actor.sessionId ?? null,
+        fingerprint: reviewFingerprint(detail), expiresAt })).toString("base64url");
+      return `${payload}.${signature(payload).toString("base64url")}`;
+    },
     async webhookSnapshot(actor, params = {}) {
       const { limit, offset } = pagination(params, { defaultLimit: 50, maxLimit: 100 });
       return repository.webhookSnapshot({ actorUserId: actor.id, limit, offset });
@@ -54,7 +85,18 @@ export function createAdminService(repository) {
       if (input?.confirmed !== true || !["published", "removed"].includes(outcome) || reason.length < 10 || reason.length > 2_000) {
         throw new AdminError("invalid_listing_review", 422, "Confirme a decisão e registre uma justificativa de 10 a 2000 caracteres.");
       }
-      const listing = await repository.reviewListing({ actorUserId: actor.id, listingId, outcome, reason });
+      let expectedUpdatedAt;
+      if (outcome === "published") {
+        if (!mediaProvider?.verifyListingMedia) throw new AdminError("media_verification_unavailable", 503, "A confirmação das fotos está indisponível.");
+        const detail = await repository.listingReviewDetail({ actorUserId: actor.id, listingId });
+        if (!detail) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
+        if (detail.listing.seller_id === actor.id) throw new AdminError("independent_listing_review_required", 403, "O anúncio deve ser revisado por outra pessoa.");
+        if (detail.listing.status !== "review") throw new AdminError("listing_review_conflict", 409, "O anúncio não está mais aguardando revisão.");
+        validateReviewContext(actor, detail, input.reviewContext);
+        expectedUpdatedAt = detail.listing.updated_at;
+        await mediaProvider.verifyListingMedia(detail.listing.seller_id, detail.media.map(item => item.storage_key));
+      }
+      const listing = await repository.reviewListing({ actorUserId: actor.id, listingId, outcome, reason, expectedUpdatedAt });
       if (!listing) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
       return listing;
     },

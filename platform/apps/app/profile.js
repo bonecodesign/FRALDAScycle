@@ -2,6 +2,7 @@ import { setupWalletLogisticsExtras, setupActionStates } from "/apps/app/action-
 import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
+import { uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
 
 async function setupProfile() {
   const name = document.getElementById("profile-name");
@@ -38,6 +39,11 @@ async function setupProfileAds() {
       content.append(title, state);
       if (item.status === "removed" && item.review_reason) {
         const reason = document.createElement("p"); reason.className = "field-error"; reason.textContent = `Motivo: ${item.review_reason}`; content.append(reason);
+        if (item.review_outcome === "removed") {
+          const edit = document.createElement("button"); edit.type = "button"; edit.className = "button secondary small";
+          edit.textContent = "Corrigir e reenviar";
+          edit.addEventListener("click", () => openListingCorrection(item, content)); content.append(edit);
+        }
       }
       card.append(content); list.append(card);
     }
@@ -45,9 +51,64 @@ async function setupProfileAds() {
     status.textContent = items.length ? `${items.length} anúncio(s) registrado(s).` : "Nenhum anúncio registrado.";
   } catch (error) {
     status.textContent = error.message || "Não foi possível consultar seus anúncios.";
-    empty.hidden = false;
+    empty.hidden = true;
     if (error.status === 401) location.pathname = "/app/login";
   }
+}
+
+function openListingCorrection(item, container) {
+  container.querySelector("form")?.remove();
+  const form = document.createElement("form");
+  const field = (label, name, value, multiline = false) => {
+    const wrapper = document.createElement("label"); wrapper.className = "form-group";
+    const caption = document.createElement("span"); caption.textContent = label;
+    const input = document.createElement(multiline ? "textarea" : "input"); input.className = "input";
+    input.name = name; input.value = value; input.required = true;
+    input.minLength = multiline ? 20 : 5; input.maxLength = multiline ? 4_000 : 120;
+    wrapper.append(caption, input); form.append(wrapper); return input;
+  };
+  const title = field("Título corrigido", "title", item.title);
+  const description = field("Descrição corrigida", "description", item.description, true);
+  const photoLabel = document.createElement("label"); photoLabel.className = "form-group";
+  const photoCaption = document.createElement("span"); photoCaption.textContent = "Substituir todas as fotos (opcional, até 8)";
+  const photos = document.createElement("input"); photos.type = "file"; photos.multiple = true;
+  photos.accept = "image/jpeg,image/png,image/webp"; photoLabel.append(photoCaption, photos); form.append(photoLabel);
+  const confirmation = document.createElement("label");
+  const checked = document.createElement("input"); checked.type = "checkbox"; checked.required = true;
+  confirmation.append(checked, document.createTextNode(" Corrigi o anúncio conforme a justificativa e desejo uma nova revisão."));
+  const feedback = document.createElement("p"); feedback.setAttribute("role", "status"); feedback.setAttribute("aria-live", "polite");
+  const submit = document.createElement("button"); submit.type = "submit"; submit.className = "button primary block";
+  submit.textContent = "Enviar correções para revisão";
+  const cancel = document.createElement("button"); cancel.type = "button"; cancel.className = "button text";
+  cancel.textContent = "Cancelar edição"; cancel.addEventListener("click", () => form.remove());
+  form.append(confirmation, feedback, submit, cancel); container.append(form); title.focus();
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const files = Array.from(photos.files ?? []);
+    if (files.length > 8) { feedback.textContent = "Selecione no máximo oito fotos."; return; }
+    if (files.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 10_000_000)) {
+      feedback.textContent = "Envie imagens JPEG, PNG ou WebP de até 10 MB cada."; return;
+    }
+    const body = { title: title.value.trim(), description: description.value.trim(),
+      expectedUpdatedAt: item.updated_at, confirmed: checked.checked };
+    if (!files.length && body.title === item.title && body.description === item.description) {
+      feedback.textContent = "Corrija o título, a descrição ou as fotos antes de reenviar."; return;
+    }
+    submit.disabled = true; cancel.disabled = true;
+    try {
+      if (files.length) {
+        feedback.textContent = "Enviando novas fotos…";
+        body.mediaKeys = [];
+        for (const file of files) body.mediaKeys.push(await uploadListingMedia(file));
+      }
+      feedback.textContent = "Enviando correções…";
+      await apiRequest(`/v1/account/listings/${encodeURIComponent(item.id)}/resubmit`, { method: "POST", body });
+      await setupProfileAds(); notify("Correções enviadas. O anúncio aguarda nova revisão.");
+    } catch (error) {
+      feedback.textContent = error.message || "Não foi possível reenviar o anúncio.";
+      submit.disabled = false; cancel.disabled = false;
+    }
+  });
 }
 
 function setupLocationPermission() {

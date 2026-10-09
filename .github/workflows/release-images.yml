@@ -31,6 +31,9 @@ jobs:
       - name: Install locked dependencies
         working-directory: platform
         run: npm ci
+      - name: Validate listing persistence in PostgreSQL
+        working-directory: platform
+        run: npm run test:listing-postgres
       - name: Run local release gate
         working-directory: platform
         run: npm run release:check-local

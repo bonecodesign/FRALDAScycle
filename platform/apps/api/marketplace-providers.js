@@ -42,9 +42,41 @@ async function providerRequest(endpoint, secret, payload, fetchImpl) {
 
 export function createMarketplaceProviders(config, fetchImpl = fetch) {
   return Object.freeze({
+    async signedListingRead(userId, input) {
+      const storageKey=input?.storageKey;
+      if(typeof storageKey!=='string'||!storageKey.startsWith(`listings/${userId}/`)||
+          !/^[a-zA-Z0-9._/-]{8,512}$/.test(storageKey)||storageKey.includes('..')) {
+        throw new ProviderError('invalid_media',422,'Escolha uma foto enviada pela sua conta.');
+      }
+      await this.verifyListingMedia(userId,[storageKey]);
+      return this.signedProofRead(userId,storageKey);
+    },
+    async verifyListingMedia(ownerId, storageKeys) {
+      configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
+      if (!Array.isArray(storageKeys) || storageKeys.length < 1 || storageKeys.length > 8 ||
+          new Set(storageKeys).size !== storageKeys.length || storageKeys.some(key =>
+            typeof key !== "string" || !key.startsWith(`listings/${ownerId}/`) ||
+            !/^[a-zA-Z0-9._/-]{1,512}$/.test(key) || key.includes(".."))) {
+        throw new ProviderError("invalid_media", 422, "As fotos do anúncio são inválidas.");
+      }
+      for (const storageKey of storageKeys) {
+        const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
+          operation: "verify-listing-media", ownerId, storageKey,
+        }, fetchImpl);
+        if (result?.storageKey !== storageKey || result.ownerId !== ownerId ||
+            result.exists !== true || result.processed !== true || result.immutable !== true ||
+            result.contentType !== "image/webp" || result.exifRemoved !== true || result.scanStatus !== "clean" ||
+            !Number.isInteger(result.sizeBytes) || result.sizeBytes < 1 || result.sizeBytes > 10_000_000 ||
+            !Number.isInteger(result.width) || result.width < 1 || result.width > 1_600 ||
+            !Number.isInteger(result.height) || result.height < 1 || result.height > 1_600) {
+          throw new ProviderError("media_not_ready", 409, "Uma ou mais fotos ainda não foram processadas ou confirmadas. Tente novamente após o processamento.");
+        }
+      }
+      return { verified: true, count: storageKeys.length };
+    },
     async signedProofRead(userId, storageKey) {
       configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
-      if (!/^[a-zA-Z0-9/_-]{8,512}$/.test(storageKey)) {
+      if (!/^[a-zA-Z0-9._/-]{8,512}$/.test(storageKey) || storageKey.includes("..")) {
         throw new ProviderError("invalid_proof_media", 422, "Chave do comprovante inválida.");
       }
       const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {

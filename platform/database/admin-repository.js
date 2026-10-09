@@ -1,3 +1,7 @@
+import { lockPremiumAccount, freePublicationAvailable } from "./premium-repository.js";
+import { requireNewOperations } from "./moderation-repository.js";
+import { institutionPublicationAllowed } from "./institution-publication.js";
+
 export function createAdminRepository(database) {
   return Object.freeze({
     async webhookSnapshot({ actorUserId, limit = 50, offset = 0 }) { return database.transaction(async client => {
@@ -40,7 +44,7 @@ export function createAdminRepository(database) {
     async listingReviewDetail({ actorUserId, listingId }) { return database.transaction(async client => {
       const listing = (await client.query(
         `SELECT l.id,l.seller_id,l.title,l.description,l.brand,l.model,l.size,l.quantity,l.kind,
-                l.price_cents,l.status,l.created_at,u.display_name AS seller_name
+                l.price_cents,l.status,l.created_at,l.updated_at,u.display_name AS seller_name
          FROM listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1`, [listingId],
       )).rows[0];
       if (!listing) return null;
@@ -55,14 +59,37 @@ export function createAdminRepository(database) {
       );
       return { listing, media };
     }); },
-    async reviewListing({ actorUserId, listingId, outcome, reason }) { return database.transaction(async client => {
+    async reviewListing({ actorUserId, listingId, outcome, reason, expectedUpdatedAt }) { return database.transaction(async client => {
+      let premium;
+      if (outcome === "published") {
+        const controls = (await client.query(
+          "SELECT domain,paused FROM operational_controls WHERE domain IN ('global','marketplace','donations') ORDER BY domain FOR SHARE",
+        )).rows;
+        if (controls.some(item => item.paused && item.domain !== "donations")) {
+          throw Object.assign(new Error("A publicação de anúncios está temporariamente pausada."), { code: "operational_paused", status: 503 });
+        }
+        const reference = (await client.query("SELECT seller_id FROM listings WHERE id=$1", [listingId])).rows[0];
+        if (!reference) return null;
+        // Match publication/resubmission lock order: account first, then listing.
+        premium = await lockPremiumAccount(client, reference.seller_id);
+        const seller = (await client.query("SELECT disabled_at FROM users WHERE id=$1", [reference.seller_id])).rows[0];
+        if (!seller || seller.disabled_at) throw Object.assign(new Error("A conta do anunciante está suspensa ou indisponível."), { code: "seller_account_unavailable", status: 403 });
+        await requireNewOperations(client, reference.seller_id);
+        premium.donationsPaused = controls.some(item => item.domain === "donations" && item.paused);
+      }
       const current = (await client.query(
-        "SELECT id,seller_id,status FROM listings WHERE id=$1 FOR UPDATE", [listingId],
+        "SELECT id,seller_id,status,updated_at,kind,institution_id,package_condition FROM listings WHERE id=$1 FOR UPDATE", [listingId],
       )).rows[0];
       if (!current) return null;
       if (current.seller_id === actorUserId) throw Object.assign(new Error("O anúncio deve ser revisado por outra pessoa."), { code: "independent_listing_review_required", status: 403 });
       if (current.status !== "review") throw Object.assign(new Error("O anúncio não está mais aguardando revisão."), { code: "listing_review_conflict", status: 409 });
       if (outcome === "published") {
+        if (current.kind === "donation" && premium.donationsPaused) throw Object.assign(new Error("Novas doações estão temporariamente pausadas."), { code: "operational_paused", status: 503 });
+        if (!await institutionPublicationAllowed(client, current)) throw Object.assign(new Error("A instituição não permite esta doação neste momento."), { code: "donation_institution_unavailable", status: 409 });
+        if (!await freePublicationAvailable(client, current.seller_id, premium)) throw Object.assign(new Error("O plano gratuito permite até três anúncios publicados. O anunciante precisa liberar uma vaga antes da aprovação."), { code: "free_listing_limit", status: 409 });
+        if (!expectedUpdatedAt || new Date(expectedUpdatedAt).getTime() !== new Date(current.updated_at).getTime()) {
+          throw Object.assign(new Error("O anúncio mudou durante a confirmação das fotos. Abra a revisão novamente."), { code: "listing_review_conflict", status: 409 });
+        }
         const mediaCount = Number((await client.query(
           "SELECT count(*)::integer AS count FROM listing_media WHERE listing_id=$1", [listingId],
         )).rows[0]?.count ?? 0);
