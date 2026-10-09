@@ -12,6 +12,7 @@ const adminNavIcons={
   '/admin/reports':'<path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/>',
   '/admin/data':'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
   '/admin/forecast':'<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/><path d="M16 7h4v4"/>',
+  '/admin/architecture':'<circle cx="12" cy="12" r="3"/><circle cx="4" cy="4" r="2"/><circle cx="20" cy="4" r="2"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/><path d="m6 6 4 4m4 4 4 4m-8-4-4 4m8-8 4-4"/>',
   '/admin/infrastructure':'<rect x="3" y="3" width="18" height="6" rx="1"/><rect x="3" y="15" width="18" height="6" rx="1"/><path d="M7 6h.01M7 18h.01"/>',
   '/admin/partnerships':'<path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3M8 11c-1.7 0-3-1.3-3-3s1.3-3 3-3M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0"/>',
   '/admin/innovation':'<path d="M9 18h6M10 22h4"/><path d="M8.5 14.5A7 7 0 1 1 15.5 14.5C14.5 15.4 14 16 14 18h-4c0-2-.5-2.6-1.5-3.5Z"/>',
@@ -29,7 +30,7 @@ const adminNavGroups=[
   {label:'Financeiro',paths:['/admin/finance']},
   {label:'Inteligência',paths:['/admin/reports','/admin/data','/admin/forecast']},
   {label:'Estratégia',paths:['/admin/partnerships','/admin/innovation','/admin/launch']},
-  {label:'Sistema',paths:['/admin/alerts','/admin/moderation','/admin/audit','/admin/infrastructure','/admin/settings','/admin/security']},
+  {label:'Sistema',paths:['/admin/alerts','/admin/moderation','/admin/audit','/admin/infrastructure','/admin/architecture','/admin/settings','/admin/security']},
   {label:'Atalhos',paths:['/site/home']}
 ];
 function setupAdminIconography(){

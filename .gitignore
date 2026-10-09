@@ -1,0 +1,7 @@
+# Pacotes locais reproduzíveis e dependências
+.release/
+node_modules/
+# Configurações reais: manter apenas o contrato demonstrativo
+.env
+.env.*
+!.env.example

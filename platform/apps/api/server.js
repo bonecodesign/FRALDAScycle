@@ -1,3 +1,5 @@
+import { handleArchitecture } from "./architecture-handler.js";
+import { createArchitectureService } from "./architecture-service.js";
 import { createServer } from "node:http";
 import { isMainModule } from "../../packages/contracts/main-module.js";
 import { readJson } from "./body.js";
@@ -48,6 +50,7 @@ export function createApiServer({
   moderationService = null,
   communicationsService = null,
   adminService = null,
+  architectureService = createArchitectureService(),
   realtimeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
@@ -202,6 +205,10 @@ export function createApiServer({
 
       if (await handleInstitutions(request, response, {
         url, headers, requestId: id, authService, institutionService,
+      })) return;
+
+      if (await handleArchitecture(request, response, {
+        url, headers, requestId: id, authService, architectureService,
       })) return;
 
       if (await handleAdmin(request, response, {

@@ -66,3 +66,56 @@ Cada corte vertical deve:
 ## Critério de conclusão
 
 Uma rota somente é considerada migrada quando mantém conteúdo, composição, estados, interações, responsividade e acessibilidade do protótipo e possui a engenharia necessária para funcionar no destino.
+
+## Arquitetura Neural do FraldasCycle — exclusiva do ADM
+
+**Estado em 2026-10-09: pausado.** A implantação e a sincronização com o ADM real foram adiadas por decisão do responsável até a plataforma estar funcionando. O código abaixo descreve a integração preparada, sem comprovar ativação operacional. Consulte [a decisão e o roteiro de retomada](../platform/docs/architecture-neural-pause-2026-10-09.md).
+
+A visualização integra o painel em **ADM → Arquitetura Neural**,
+rota `/admin/architecture`. Mantém rede geométrica, busca, filtros, seleção de
+entradas/saídas, rotação X/Y, expansão das ramificações, animação ilustrativa,
+zoom até 12×, deslocamento e centralização.
+
+O acesso exige uma sessão real com papel `admin`, inclusive no ambiente local.
+O modo demonstrativo das demais telas não libera este módulo. Clientes,
+entregadores, moderadores e visitantes não recebem o mapa. A página e seus
+assets são protegidos pelo servidor do ADM; a API protege separadamente
+`GET /v1/admin/architecture` com `admin:architecture:read`.
+
+### Sincronização
+
+- Em desenvolvimento, a API reconstrói o mapa do código local ao consultar o
+  endpoint. Inclusões, alterações, remoções e imports alteram a revisão SHA-256.
+- Em produção, o mapa é o snapshot privado da versão implantada. CI e publicação
+  de imagens executam `node platform/tools/architecture-network.mjs` antes de
+  empacotar; não há monitoramento de um checkout remoto em produção.
+- O painel confere a versão a cada 60 segundos enquanto está visível, ao voltar
+  para a aba e pelo botão **Sincronizar agora**, preservando a seleção existente.
+- A interface mostra revisão, origem e horários de geração/conferência. Se não
+  conseguir revalidar o acesso, oculta a visualização.
+
+Para gerar o snapshot antes de uma implantação manual, execute
+`npm run architecture:sync` em `platform/`. O resultado fica em
+`platform/apps/api/private/architecture-network.json`, sem rota estática pública.
+O mapa registra hierarquia, imports locais resolvidos e injeções identificadas
+no runtime. Assets binários, dependências instaladas, lockfile e dados gerados
+ficam fora do inventário; chamadas remotas e imports dinâmicos não são inferidos.
+A animação não representa tráfego nem reconexões reais de produção.
+
+### Ambiente e acesso
+
+O servidor do ADM usa `ADMIN_SESSION_API_ORIGIN` para encaminhar login, sessão e
+logout em `/admin/auth/`, verificar a sessão e consultar a API. O compose de produção configura
+`http://api:4200`; em desenvolvimento o padrão é `http://127.0.0.1:4200`.
+Em produção, configuração ausente ou indisponibilidade da autenticação bloqueia
+o módulo. O login utiliza o mesmo domínio do ADM e encaminha o cookie HttpOnly da API;
+a visualização não depende de cookies compartilhados entre subdomínios.
+
+As versões HTML avulsas foram desativadas. Os servidores do protótipo não
+publicam mais a pasta `architecture/viewer` nem os arquivos de `platform`;
+a navegação do protótipo direciona ao módulo protegido do ADM. Downloads já
+obtidos anteriormente não podem ser revogados retroativamente.
+
+Validação específica: `node tests/architecture-admin.test.mjs` em `platform/`.
+Os testes cobrem autorização, aliases de URL, dados privados, falha fechada,
+sincronização de arquivos/imports e snapshots de produção.

@@ -1,3 +1,4 @@
+import { isPrivateArchitectureFile, redirectToAdmin } from "./platform/tools/architecture-public-access.mjs";
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
@@ -8,7 +9,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; cha
 createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+    if (pathname === "/admin/architecture") { redirectToAdmin(response); return; }
     let file = join(root, pathname === "/" ? "index.html" : pathname);
+    if (isPrivateArchitectureFile(root, file)) { response.writeHead(404).end("Disponível somente no painel administrativo."); return; }
     if ((await stat(file)).isDirectory()) file = join(file, "index.html");
     response.writeHead(200, { "Content-Type": mime[extname(file).toLowerCase()] || "application/octet-stream", "Cache-Control": "no-store" });
     response.end(await readFile(file));

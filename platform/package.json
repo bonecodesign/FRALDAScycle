@@ -10,8 +10,8 @@
     "dev:site": "node tools/dev-server.mjs site 4101",
     "dev:app": "node tools/dev-server.mjs app 4102",
     "dev:admin": "node tools/dev-server.mjs admin 4103",
-    "dev:api": "node apps/api/runtime.js",
-    "check:production": "node tools/check-production.mjs",
+    "dev:api": "npm run architecture:sync && node apps/api/runtime.js",
+    "check:production": "npm run architecture:sync && node tools/check-production.mjs",
     "production:doctor": "node tools/production-doctor.mjs",
     "db:migrate": "node database/migrate.js",
     "worker:notifications": "node workers/notifications.js",
@@ -26,7 +26,10 @@
     "pilot:execution:validate": "node tools/pilot-execution.mjs",
     "pilot:evidence:validate": "node tools/pilot-evidence.mjs",
     "pilot:session:validate": "node tools/pilot-session.mjs",
-    "worker:premium:local": "node workers/premium.js --once"
+    "worker:premium:local": "node workers/premium.js --once",
+    "architecture:sync": "node tools/architecture-network.mjs",
+    "architecture:package": "node tools/package-architecture.mjs",
+    "architecture:smoke": "node tools/smoke-architecture.mjs"
   },
   "dependencies": {
     "pg": "8.22.0"

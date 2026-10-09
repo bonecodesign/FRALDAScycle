@@ -3,6 +3,16 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "tools/package-architecture.mjs",
+  "tools/smoke-architecture.mjs",
+  "tools/architecture-network.mjs",
+  "tools/admin-architecture-access.mjs",
+  "tools/admin-session-proxy.mjs",
+  "tools/architecture-public-access.mjs",
+  "apps/api/architecture-service.js",
+  "apps/api/architecture-handler.js",
+  "apps/admin/architecture-network/viewer.js",
+  "apps/admin/architecture-network/controller.js",
   "tools/beta-logistics-webhook-check.mjs",
   "packages/contracts/institution-receipt-readiness.js",
   "database/institution-publication.js",

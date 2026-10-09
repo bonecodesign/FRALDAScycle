@@ -1,3 +1,4 @@
+import { isPrivateArchitectureFile, redirectToAdmin } from "./platform/tools/architecture-public-access.mjs";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,12 +17,14 @@ const types = {
 
 http.createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, `http://${request.headers.host}`).pathname);
+  if (pathname === "/admin/architecture") { redirectToAdmin(response); return; }
   const relative = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const target = path.resolve(root, relative);
   if (!target.startsWith(root + path.sep) && target !== path.join(root, "index.html")) {
     response.writeHead(403).end("Acesso negado");
     return;
   }
+  if (isPrivateArchitectureFile(root, target)) { response.writeHead(404).end("Disponível somente no painel administrativo."); return; }
   fs.readFile(target, (error, content) => {
     if (error) {
       response.writeHead(404).end("Arquivo não encontrado");

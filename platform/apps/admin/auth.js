@@ -1,10 +1,12 @@
 import "/packages/ui/iconography.js";
-import { apiRequest } from "/packages/contracts/api-client.js";
+import { apiRequest as requestApi } from "/packages/contracts/api-client.js";
+
+const apiRequest = (path, options = {}) => requestApi(path.replace('/v1/auth/', '/admin/auth/'), { ...options, ...(options.method === 'POST' && options.body === undefined ? { body: {} } : {}), origin: '' });
 
 const ADMIN_ROLES = new Set(["admin", "moderator"]);
 const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
 const ROLE_NAVIGATION = {
-  admin: ["dashboard", "users", "roles", "ads", "operations", "finance", "logistics", "reports", "data", "forecast", "infrastructure", "partnerships", "innovation", "launch", "alerts", "moderation", "audit", "settings", "security"],
+  admin: ["dashboard", "users", "roles", "ads", "operations", "finance", "logistics", "reports", "data", "forecast", "infrastructure", "architecture", "partnerships", "innovation", "launch", "alerts", "moderation", "audit", "settings", "security"],
   moderator: ["dashboard", "users", "ads", "operations", "logistics", "reports", "alerts", "moderation", "audit"],
 };
 
@@ -70,11 +72,8 @@ async function handleLogin() {
 }
 
 async function requireAdmin() {
-  if (LOCAL_DEMO) {
-    if (location.pathname === "/admin/login") {
-      location.replace("/admin/dashboard");
-      return;
-    }
+  const architecturePage = location.pathname === "/admin/architecture" || location.pathname === "/apps/admin/architecture.html";
+  if (LOCAL_DEMO && !architecturePage && location.pathname !== "/admin/login") {
     document.documentElement.dataset.adminAuth = "ready";
     applyNavigationScope("admin");
     addEnvironmentDisclosure("Modo local demonstrativo: dados sintéticos e acesso aberto apenas no ambiente local. Em produção, este painel exige autenticação e permissões por papel.");
@@ -91,7 +90,7 @@ async function requireAdmin() {
   document.documentElement.dataset.adminAuth = "pending";
   try {
     const result = await apiRequest("/v1/auth/session");
-    if (!ADMIN_ROLES.has(result.user?.role)) throw new Error("forbidden");
+    if (!ADMIN_ROLES.has(result.user?.role) || (architecturePage && result.user.role !== "admin")) throw new Error("forbidden");
     document.documentElement.dataset.adminAuth = "ready";
     applyNavigationScope(result.user.role);
     addEnvironmentDisclosure(`Sessão autenticada · perfil ${result.user.role === "admin" ? "administrador" : "moderação"}. Os módulos visíveis seguem o princípio do menor privilégio.`);

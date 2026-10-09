@@ -49,6 +49,8 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Synchronize private architecture snapshot
+        run: node platform/tools/architecture-network.mjs
       - name: Build immutable image
         env:
           COMPONENT: ${{ matrix.component }}

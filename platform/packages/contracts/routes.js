@@ -9,7 +9,7 @@ export const SURFACES = Object.freeze({
   }),
   admin: Object.freeze({
     basePath: "/admin",
-    routes: ["dashboard", "users", "rbac", "listings", "operations", "finance", "logistics", "security", "audit", "webhooks", "reports", "impact", "infrastructure", "partnerships", "innovation", "launch"],
+    routes: ["dashboard", "users", "rbac", "listings", "operations", "finance", "logistics", "security", "audit", "webhooks", "reports", "impact", "infrastructure", "architecture", "partnerships", "innovation", "launch"],
   }),
 });
 

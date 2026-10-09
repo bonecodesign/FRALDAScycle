@@ -1,7 +1,9 @@
+import { handleAdminSessionProxy } from "./admin-session-proxy.mjs";
+import { handleArchitectureAccess, isArchitecturePath } from "./admin-architecture-access.mjs";
 import { createReadStream } from "node:fs";
 import { stat, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname, resolve, sep } from "node:path";
+import { extname, resolve, sep, posix } from "node:path";
 import { approvedLocalApiOrigin } from '../packages/contracts/local-api-origin.js';
 
 const [surface = process.env.SURFACE ?? "site", portValue = process.env.PORT ?? "4101"] = process.argv.slice(2);
@@ -33,6 +35,7 @@ function resolveRequest(pathname) {
   if (pathname === "/" || pathname === "/site/home") return resolve(appRoot, "index.html");
   if (surface === "app" && (pathname === "/app/splash" || pathname === "/app")) return resolve(appRoot, "index.html");
   if (surface === "admin" && (pathname === "/admin/dashboard" || pathname === "/admin")) return resolve(appRoot, "index.html");
+  if (surface === "admin" && ["/admin/architecture", "/admin/architecture/"].includes(pathname)) return resolve(appRoot, "architecture.html");
   if (surface === "admin" && pathname === "/admin/login") return resolve(appRoot, "login.html");
   if (surface === "admin" && ["/admin/users", "/admin/roles", "/admin/ads", "/admin/operations", "/admin/finance", "/admin/logistics", "/admin/reports", "/admin/data", "/admin/forecast", "/admin/alerts", "/admin/infrastructure", "/admin/security", "/admin/moderation", "/admin/audit", "/admin/settings", "/admin/partnerships", "/admin/innovation", "/admin/launch"].includes(pathname)) {
     return resolve(appRoot, `${pathname.split("/").at(-1)}.html`);
@@ -67,7 +70,13 @@ function resolveRequest(pathname) {
 }
 
 createServer(async (request, response) => {
-  const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+  const pathname = posix.normalize(decodeURIComponent(new URL(request.url, "http://localhost").pathname));
+  if (await handleAdminSessionProxy(request, response, {
+    pathname, surface, production, apiOrigin: process.env.ADMIN_SESSION_API_ORIGIN,
+  })) return;
+  if (await handleArchitectureAccess(request, response, {
+    pathname, surface, production, apiOrigin: process.env.ADMIN_SESSION_API_ORIGIN,
+  })) return;
   const candidate = resolveRequest(pathname);
 
   if (!candidate) {
@@ -91,7 +100,7 @@ createServer(async (request, response) => {
       "x-frame-options": "DENY",
       "referrer-policy": "strict-origin-when-cross-origin",
       "content-security-policy": `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https:${localApiOrigin ? ' ' + localApiOrigin : ''}; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`,
-      "cache-control": extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
+      "cache-control": isArchitecturePath(pathname) ? "private, no-store" : extname(candidate) === ".html" ? "no-cache" : (production ? "public, max-age=3600" : "no-cache"),
       "x-fraldacycle-surface": surface,
       "x-fraldacycle-mode": production ? "production" : "local-demo",
     });

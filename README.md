@@ -28,3 +28,7 @@ Ativos extraídos diretamente das pranchas aprovadas:
 - `assets/approved/onboarding-approved.png`: ilustração do onboarding.
 - `assets/approved/recovery-approved.png`: ilustração de recuperação de senha.
 - `assets/approved/pampers-approved.png`, `huggies-approved.png`, `babysec-approved.png` e `mamypoko-approved.png`: embalagens exibidas no marketplace, preservando a hierarquia e a resolução disponíveis na prancha 48.
+
+## Arquitetura Neural — etapa pausada
+
+A implementação da visualização privada do ADM está preservada. A sincronização com o painel real será retomada quando a plataforma estiver funcionando, conforme a [decisão de 2026-10-09](platform/docs/architecture-neural-pause-2026-10-09.md).

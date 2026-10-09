@@ -3,6 +3,7 @@ name: Platform CI
 on:
   pull_request:
     paths:
+      - "architecture/**"
       - "platform/**"
       - "assets/**"
       - "styles.css"
@@ -16,6 +17,7 @@ on:
       - ".github/workflows/homologation.yml"
   push:
     paths:
+      - "architecture/**"
       - "platform/**"
       - "assets/**"
       - "styles.css"
@@ -68,6 +70,8 @@ jobs:
         env:
           FRALDACYCLE_ENV_FILE: platform/.env.example
         run: docker compose -f compose.production.example.yaml config --quiet
+      - name: Synchronize private architecture snapshot
+        run: node platform/tools/architecture-network.mjs
       - name: Build API image
         run: docker build --file platform/Dockerfile --tag fraldacycle-api:ci platform
       - name: Build approved surfaces

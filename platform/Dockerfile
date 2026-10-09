@@ -3,6 +3,7 @@ WORKDIR /srv/fraldacycle/platform
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
+COPY tools/architecture-network.mjs ./tools/architecture-network.mjs
 COPY apps ./apps
 COPY database ./database
 COPY workers ./workers

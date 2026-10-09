@@ -83,17 +83,23 @@
       "/admin/settings",
       "/admin/partnerships",
       "/admin/innovation",
-      "/admin/launch"
+      "/admin/launch",
+      "/admin/architecture"
     ],
     "behaviorFiles": [
       "platform/apps/admin/core.js",
       "platform/apps/admin/intelligence.js",
       "platform/apps/admin/governance.js",
-      "platform/apps/admin/growth.js"
+      "platform/apps/admin/growth.js",
+      "platform/apps/admin/architecture-network/controller.js",
+      "platform/apps/admin/architecture-network/viewer.js"
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",
-  "modifiedSourceFiles": ["app.js", "qa-regression.mjs"],
+  "modifiedSourceFiles": [
+    "app.js",
+    "qa-regression.mjs"
+  ],
   "architectureNotes": [
     {
       "area": "impact",
@@ -104,6 +110,11 @@
       "area": "webhooks",
       "decision": "preserve approved prototype organization",
       "detail": "No standalone admin webhook route exists; webhook controls remain embedded in audit and settings."
+    },
+    {
+      "area": "architecture",
+      "decision": "ADM-only neural architecture requested by the project owner",
+      "detail": "Authenticated admin-only server gate and API endpoint, synchronized from repository in development and packaged revision in production."
     }
   ]
 }

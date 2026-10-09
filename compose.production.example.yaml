@@ -44,6 +44,8 @@ services:
       dockerfile: platform/Dockerfile.surface
       args:
         SURFACE: admin
+    environment:
+      ADMIN_SESSION_API_ORIGIN: http://api:4200
     ports:
       - "4103:4100"
     restart: unless-stopped

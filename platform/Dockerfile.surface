@@ -9,7 +9,7 @@ ENV NODE_ENV=production \
 
 COPY --chown=node:node styles.css map-safety.css fidelity.css ./
 COPY --chown=node:node assets ./assets
-COPY --chown=node:node platform/apps ./platform/apps
+COPY --chown=node:node platform/apps/${SURFACE} ./platform/apps/${SURFACE}
 COPY --chown=node:node platform/packages ./platform/packages
 COPY --chown=node:node platform/tools ./platform/tools
 
