@@ -41,6 +41,14 @@ import { createModerationRepository } from '../../database/moderation-repository
 import { createCommunicationsRepository } from '../../database/communications-repository.js';
 import { createPremiumService } from './premium-service.js';
 import { createPremiumRepository } from '../../database/premium-repository.js';
+import { createOperationalControlRepository } from '../../database/operational-control-repository.js';
+import { createOperationalControlService } from './operational-control.js';
+import { createAdultDeclarationRepository } from '../../database/adult-declaration-repository.js';
+import { createAdultDeclarationService } from './adult-declaration-service.js';
+import { createChildProfileRepository } from '../../database/child-profile-repository.js';
+import { createChildProfileService } from './child-profile-service.js';
+import { createExchangeRepository } from '../../database/exchange-repository.js';
+import { createExchangeService } from './exchange-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -63,6 +71,10 @@ export async function startRuntime(config = null) {
   const institutionService = createInstitutionService(createInstitutionRepository(database));
   const marketplaceProviders = createMarketplaceProviders(config);
   const adminService = createAdminService(createAdminRepository(database));
+  const operationalControlService = createOperationalControlService(createOperationalControlRepository(database));
+  const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
+  const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
+  const exchangeService = createExchangeService(createExchangeRepository(database));
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
@@ -94,6 +106,10 @@ export async function startRuntime(config = null) {
     logisticsProvider,
     adminService,
     realtimeService,
+    operationalControlService,
+    adultDeclarationService,
+    childProfileService,
+    exchangeService,
     telemetry,
   });
 

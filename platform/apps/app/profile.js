@@ -1,7 +1,71 @@
 import { setupWalletLogisticsExtras, setupActionStates } from "/apps/app/action-states.js";
 import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
-function actionMessage(action){return {favorite:'Adicionado aos favoritos',search:'128 resultados encontrados',send:'Mensagem enviada',pay:'Pagamento aprovado e protegido',receipt:'Comprovante preparado para visualização',delivery:'Recebimento confirmado',publish:'Opção selecionada. Avançando para a próxima etapa',invite:'Convite enviado',export:'Relatório preparado para exportação','read-all':'Todas as notificações foram marcadas como lidas','add-balance':'Opções para adicionar saldo abertas',refund:'Solicitação de reembolso enviada','delivery-problem':'Atendimento de entrega iniciado',rating:'Avaliação enviada com sucesso','publish-complete':'Anúncio publicado com sucesso'}[action]||'Ação concluída'}
+import { apiRequest } from "/packages/contracts/api-client.js";
+
+async function setupProfile() {
+  const name = document.getElementById("profile-name");
+  const role = document.getElementById("profile-role");
+  const avatar = document.getElementById("profile-avatar");
+  const status = document.getElementById("profile-status");
+  if (!name || !role || !avatar || !status) return;
+  try {
+    const { user } = await apiRequest("/v1/auth/session");
+    name.textContent = user.displayName || user.display_name || "Conta FraldaCycle";
+    role.textContent = user.role === "courier" ? "Conta de entregador" : user.role === "admin" ? "Conta administrativa" : "Conta de usuário";
+    avatar.textContent = name.textContent.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+    status.textContent = "Dados da sessão autenticada.";
+  } catch (error) {
+    status.textContent = error.message || "Não foi possível carregar o perfil.";
+    if (error.status === 401) location.pathname = "/app/login";
+  }
+}
+
+async function setupProfileAds() {
+  const list = document.getElementById("profile-ads-list");
+  const status = document.getElementById("profile-ads-status");
+  const empty = document.getElementById("profile-ads-empty");
+  if (!list || !status || !empty) return;
+  const labels = { draft: "Rascunho", review: "Em revisão", published: "Publicado", paused: "Pausado", unavailable: "Em operação", completed: "Concluído", removed: "Removido" };
+  try {
+    const { items } = await apiRequest("/v1/account/listings");
+    list.replaceChildren();
+    for (const item of items) {
+      const card = document.createElement("article"); card.className = "phone-card";
+      const content = document.createElement("div");
+      const title = document.createElement("strong"); title.textContent = item.title;
+      const state = document.createElement("p"); state.textContent = labels[item.status] ?? item.status;
+      content.append(title, state);
+      if (item.status === "removed" && item.review_reason) {
+        const reason = document.createElement("p"); reason.className = "field-error"; reason.textContent = `Motivo: ${item.review_reason}`; content.append(reason);
+      }
+      card.append(content); list.append(card);
+    }
+    empty.hidden = items.length > 0;
+    status.textContent = items.length ? `${items.length} anúncio(s) registrado(s).` : "Nenhum anúncio registrado.";
+  } catch (error) {
+    status.textContent = error.message || "Não foi possível consultar seus anúncios.";
+    empty.hidden = false;
+    if (error.status === 401) location.pathname = "/app/login";
+  }
+}
+
+function setupLocationPermission() {
+  const button = document.querySelector('[data-action="permission"]');
+  if (!button) return;
+  button.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      notify("Localização não é suportada neste dispositivo.");
+      return;
+    }
+    button.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      () => { notify("Localização autorizada para esta sessão."); location.pathname = "/app/search"; },
+      () => { notify("Permissão não concedida. Altere-a nas configurações do navegador ou dispositivo."); button.disabled = false; },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    );
+  });
+}
 function setupNotifications(){
   const list=document.getElementById('notification-list');
   if(!list)return;
@@ -67,12 +131,9 @@ function setupNotificationSettings(){
     submit.disabled=true;
     submit.innerHTML='<span class="inline-spinner"></span> Salvando...';
     status.textContent='';
-    setTimeout(()=>{
-      submit.disabled=false;
-      submit.textContent='Salvar preferências';
-      status.textContent='Preferências salvas com sucesso.';
-      notify('Preferências de notificação atualizadas');
-    },450);
+    submit.disabled=false;
+    submit.textContent='Salvar preferências';
+    status.textContent='Preferências de notificação ainda não estão integradas. Nenhuma alteração foi salva.';
   });
   reset.addEventListener('click',()=>{
     form.reset();
@@ -85,23 +146,17 @@ function setupNotificationSettings(){
   syncQuietHours();
 }
 function setupAuthValidation(){
-  const contactValid=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)||value.replace(/\D/g,'').length>=8;
-  const submitState=(form,label,route)=>{const button=form.querySelector('[type="submit"]');button.disabled=true;button.innerHTML=`<span class="inline-spinner"></span> ${label}`;setTimeout(()=>{location.pathname=route.replace('#','')},650)};
-  const showError=(form,message)=>{const error=form.querySelector('.field-error');if(error)error.textContent=message;form.querySelectorAll('.input').forEach(input=>input.classList.toggle('invalid',!input.checkValidity()));};
-  const login=document.getElementById('login-form');
-  if(login)login.addEventListener('submit',event=>{event.preventDefault();const inputs=login.querySelectorAll('input');if(!contactValid(inputs[0].value.trim()))return showError(login,'Informe um e-mail ou telefone válido.');if(inputs[1].value.length<6)return showError(login,'A senha precisa ter pelo menos 6 caracteres.');showError(login,'');submitState(login,'Entrando...','#/app/home')});
-  const register=document.getElementById('register-form');
-  if(register)register.addEventListener('submit',event=>{event.preventDefault();const inputs=register.querySelectorAll('input');if(inputs[0].value.trim().length<3)return showError(register,'Informe seu nome completo.');if(!contactValid(inputs[1].value.trim()))return showError(register,'Informe um e-mail ou telefone válido.');if(inputs[2].value.length<6)return showError(register,'A senha precisa ter pelo menos 6 caracteres.');if(inputs[2].value!==inputs[3].value)return showError(register,'As senhas precisam ser iguais.');if(!inputs[4].checked)return showError(register,'Aceite os Termos de Uso e a Política de Privacidade.');showError(register,'');submitState(register,'Criando conta...','#/app/verify')});
-  const recovery=document.getElementById('recovery-form');
-  if(recovery)recovery.addEventListener('submit',event=>{event.preventDefault();const input=recovery.querySelector('input');if(!contactValid(input.value.trim()))return showError(recovery,'Informe um e-mail ou telefone válido.');showError(recovery,'');submitState(recovery,'Enviando código...','#/app/verify')});
-  const verify=document.getElementById('verify-form');
-  if(verify){const digits=[...verify.querySelectorAll('.otp input')];digits.forEach((input,index)=>{input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,1);if(input.value&&digits[index+1])digits[index+1].focus()});input.addEventListener('keydown',event=>{if(event.key==='Backspace'&&!input.value&&digits[index-1])digits[index-1].focus()})});verify.addEventListener('submit',event=>{event.preventDefault();if(digits.map(input=>input.value).join('').length!==6)return showError(verify,'Digite os seis números do código.');showError(verify,'');submitState(verify,'Verificando...','#/app/home')});document.getElementById('resend-code')?.addEventListener('click',()=>{digits.forEach(input=>input.value='');digits[0].focus();verify.querySelector('.otp-time').textContent='Novo código enviado · expira em 00:45';notify('Novo código enviado com sucesso')})}
-  document.getElementById('auth-retry')?.addEventListener('click',event=>{const button=event.currentTarget;button.disabled=true;button.innerHTML='<span class="inline-spinner"></span> Verificando conexão...';setTimeout(()=>{notify('Conexão restabelecida');location.pathname='/app/login'},650)});
+  document.getElementById('auth-retry')?.addEventListener('click',async event=>{
+    const button=event.currentTarget;button.disabled=true;button.innerHTML='<span class="inline-spinner"></span> Verificando conexão...';
+    try{await apiRequest('/health');notify('Conexão restabelecida');location.pathname='/app/login'}
+    catch(error){notify(error.message||'Conexão ainda indisponível');button.disabled=false;button.textContent='Tentar novamente'}
+  });
 }
 
 
-document.querySelectorAll(".favorite").forEach(button=>button.addEventListener("click",()=>{button.classList.toggle("active");button.textContent=button.classList.contains("active")?"♥":"♡";notify(button.classList.contains("active")?"Adicionado aos favoritos":"Removido dos favoritos")}));
-document.querySelectorAll("[data-action]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.action!=="export")notify(actionMessage(button.dataset.action))}));
+void setupProfile();
+void setupProfileAds();
+setupLocationPermission();
 setupNotifications();
 setupNotificationSettings();
 setupAuthValidation();

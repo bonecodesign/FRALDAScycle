@@ -16,6 +16,7 @@
       <div class="phone"><div class="phone-top">9:41</div><div class="phone-content">
         <h1>Chat da operação</h1><a href="/app/safety">Segurança e suporte</a><a href="/app/moderation">Decisões e contestação</a>
         <div class="notice" id="chat-payment-gate" role="status">Verificando a confirmação do pagamento...</div>
+        <section class="panel"><h2>Contato da outra parte</h2><p>Disponível após o pagamento processado. A consulta é auditada.</p><button class="button secondary block" id="transaction-contact" type="button" disabled>Exibir contato verificado</button><p id="transaction-contact-result" role="status" aria-live="polite"></p></section>
         <div class="message-list" id="message-list" aria-live="polite"></div>
         <div class="chat-safety">Este chat serve apenas para preparação, coleta, entrega ou retirada. Não altere preço ou condições e não compartilhe telefone, e-mail, links, QR Codes ou redes sociais.</div>
         <form id="chat-form"><div class="form-group"><label for="msg">Mensagem operacional</label><input id="msg" disabled class="input" maxlength="2000" autocomplete="off" placeholder="Escreva sobre coleta ou entrega" aria-describedby="chat-error"><div class="chat-error" id="chat-error" role="alert" aria-live="assertive"></div></div><button class="button primary block" type="submit" disabled>Enviar</button></form>

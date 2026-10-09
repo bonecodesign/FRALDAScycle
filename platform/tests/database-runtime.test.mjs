@@ -14,7 +14,11 @@ function fakeDatabase(applied = []) {
     async transaction(operation) {
       const writes = [];
       events.push(["transaction", writes]);
-      return operation({ query: async (...args) => writes.push(args) });
+      return operation({ query: async (...args) => {
+        writes.push(args);
+        if (args[0].startsWith("SELECT name")) return { rows: applied };
+        return { rows: [] };
+      } });
     },
   };
 }
@@ -24,7 +28,7 @@ test("migration checksums are deterministic", () => {
   assert.notEqual(checksum("SELECT 1"), checksum("SELECT 2"));
 });
 
-test("migration runner applies pending files in transactions", async () => {
+test("migration runner serializes and atomically applies pending files", async () => {
   const database = fakeDatabase();
   const migrations = [
     { name: "001_first.sql", sql: "SELECT 1", checksum: checksum("SELECT 1") },
@@ -32,8 +36,9 @@ test("migration runner applies pending files in transactions", async () => {
   ];
   assert.deepEqual(await migrate(database, migrations), ["001_first.sql", "002_second.sql"]);
   const transactions = database.events.filter(([type]) => type === "transaction");
-  assert.equal(transactions.length, 2);
-  assert.equal(transactions[0][1][1][0], "INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)");
+  assert.equal(transactions.length, 1);
+  assert.equal(transactions[0][1][0][0], "SELECT pg_advisory_xact_lock($1)");
+  assert.equal(transactions[0][1].filter(([sql]) => sql.startsWith("INSERT INTO schema_migrations")).length, 2);
 });
 
 test("migration runner refuses modified history", async () => {
@@ -48,5 +53,5 @@ test("migration runner skips already applied immutable files", async () => {
   const sql = "SELECT 1";
   const database = fakeDatabase([{ name: "001_first.sql", checksum: checksum(sql) }]);
   await migrate(database, [{ name: "001_first.sql", sql, checksum: checksum(sql) }]);
-  assert.equal(database.events.filter(([type]) => type === "transaction").length, 0);
+  assert.equal(database.events.filter(([type]) => type === "transaction").length, 1);
 });

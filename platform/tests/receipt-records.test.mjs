@@ -47,17 +47,14 @@ test('only receiver can approve; participants cannot validate their own delivery
   }
 });
 
-test('no approval without proof, delivery or eligible transaction; exchanges remain blocked', async () => {
+test('no approval without proof, delivery or eligible transaction; exchange leg uses the same receipt safeguards', async () => {
   for (const patch of [{ proof_id: null }, { status: 'in_transit' }, { transaction_status: 'cancelled' }]) {
     const db = database({ ...row, ...patch });
     await assert.rejects(createReceiptRepository(db).recordReceiptDecision({ actorId: 'buyer', shipmentId }),
       error => error.code === 'receipt_not_ready');
     assert.equal(db.calls.length, 1);
   }
-  for (const kind of ['exchange']) {
-    await assert.rejects(createReceiptRepository(database({ ...row, kind })).recordReceiptDecision({ actorId: 'buyer', shipmentId }),
-      error => error.code === 'receipt_flow_not_configured');
-  }
+  assert.equal((await createReceiptRepository(database({ ...row, kind:'exchange' })).recordReceiptDecision({ actorId:'buyer', shipmentId })).reused,false);
 });
 
 test('retries keep original decision timestamp and do not duplicate audit', async () => {

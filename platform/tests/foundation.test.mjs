@@ -20,7 +20,7 @@ test("creates accessible shells synchronized with the approved prototype", async
     assert.match(html, /<meta name="viewport"/);
     if (surface === "site") {
       assert.match(html, /data-source-route="#\/site\/home"/);
-      assert.match(html, /Pequenas escolhas,/);
+      assert.match(html, /Conectamos famílias/);
     } else if (surface === "app") {
       assert.match(html, /data-source-route="#\/app\/splash"/);
       assert.match(html, /Economia circular para famílias e para o planeta/);
@@ -41,17 +41,17 @@ test("uses the exact approved foundation tokens", async () => {
 });
 
 
-test("transfers the approved Site Home without changing its product language", async () => {
+test("keeps the approved Site Home language without fictional operational claims", async () => {
   const html = await readFile(resolve(root, "apps/site/index.html"), "utf8");
   assert.match(html, /data-source-route="#\/site\/home"/);
-  assert.match(html, /Pequenas escolhas,/);
-  assert.match(html, /grandes mudanças\./);
+  assert.match(html, /Conectamos famílias/);
+  assert.match(html, /Reduzimos desperdícios/);
   assert.match(html, /Compre ou troque pacotes fechados/);
   assert.match(html, /Doe pacotes fechados ou abertos/);
-  assert.match(html, /Uma jornada simples e segura/);
-  assert.match(html, /Anúncios em destaque/);
-  assert.match(html, /5\.080 kg/);
-  assert.match(html, /Dados apresentados nesta experiência: simulados/);
+  assert.match(html, /Uma jornada com regras transparentes/);
+  assert.match(html, /Anúncios disponíveis/);
+  assert.match(html, /Indicadores serão publicados após definição de metodologia/);
+  assert.doesNotMatch(html, /7\.420|5\.080 kg|2\.120 kg|R\$ 18\.650|124 famílias/);
 });
 
 test("uses approved source assets through an explicit read-only adapter", async () => {
@@ -61,7 +61,7 @@ test("uses approved source assets through an explicit read-only adapter", async 
   const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
 
   assert.match(html, /\/source\/assets\/approved\/logo-approved\.png/);
-  assert.match(html, /\/source\/assets\/approved\/pampers-approved\.png/);
+  assert.match(html, /id="site-home-listings"/);
   assert.match(adapter, /@import url\("\/source\/styles\.css"\)/);
   assert.match(adapter, /@import url\("\/source\/fidelity\.css"\)/);
   assert.match(server, /approvedSourceFiles/);
@@ -79,13 +79,10 @@ test("transfers approved Site Search and Map as a dedicated route", async () => 
 
   assert.match(html, /data-source-route="#\/site\/search"/);
   assert.match(html, /Encontre o que sua família precisa/);
-  assert.match(html, /128 resultados/);
-  assert.match(html, /Itens encontrados próximos a você/);
-  assert.match(html, /4 de 128 resultados visíveis · Simulado/);
-  assert.equal((html.match(/data-map-product=/g) ?? []).length, 4);
-  assert.equal((html.match(/class="product-card"/g) ?? []).length, 4);
-  assert.match(behavior, /querySelectorAll\("\[data-map-product\]"\)/);
-  assert.match(behavior, /toLocaleLowerCase\("pt-BR"\)/);
+  assert.match(html, /Resultados do marketplace/);
+  assert.match(html, /Consultando anúncios/);
+  assert.doesNotMatch(html, /128 resultados|data-map-product|Pampers Confort|Dados simulados/);
+  assert.match(behavior, /renderSiteSearch/);
   assert.match(server, /pathname === "\/site\/search"/);
   for (const name of ["siteHome", "siteSearch", "resultsMap", "productCards", "setupMap"]) assert.ok(provenance.source.functions.includes(name));
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
@@ -102,17 +99,15 @@ test("transfers detail seller and favorites while documenting missing destinatio
   ]);
   const provenance = JSON.parse(await readFile(resolve(root, "apps/site/source.json"), "utf8"));
 
-  assert.match(detail, /Pampers Confort<br>M · 50 unidades/);
-  assert.match(detail, /Pagamento protegido até a confirmação do recebimento/);
-  assert.match(detail, /href="\/site\/seller"/);
-  assert.match(seller, /Uma família que acredita na economia circular/);
-  assert.match(seller, /Reputação na comunidade/);
-  assert.match(seller, /3 anúncios/);
-  assert.equal((seller.match(/class="product-card"/g) ?? []).length, 3);
+  assert.match(detail, /Consultando anúncio/);
+  assert.match(await readFile(resolve(root, "apps/site/detail.js"), "utf8"), /\/v1\/listings\//);
+  assert.doesNotMatch(detail, /Pampers Confort|Juliana Silva|R\$ 45,00/);
+  assert.match(seller, /Perfil público indisponível/);
+  assert.doesNotMatch(seller, /Juliana Silva|4,9|36 avaliações|3 anúncios/);
   assert.match(favorites, /Seus favoritos/);
   assert.match(favorites, /Carregando seus favoritos/);
-  assert.match(favoriteBehavior, /let saved = \[0, 1, 3\]/);
-  assert.match(favoriteBehavior, /Lista de favoritos limpa/);
+  assert.match(favoriteBehavior, /renderFavorites/);
+  assert.doesNotMatch(favoriteBehavior, /let saved|const products/);
   assert.match(server, /"\/site\/detail", "\/site\/seller", "\/site\/favorites"/);
   for (const name of ["siteDetail", "siteSeller", "siteFavorites", "setupSiteFavorites"]) {
     assert.ok(provenance.source.functions.includes(name));
@@ -138,11 +133,10 @@ test("transfers the approved publish impact and help experiences", async () => {
   assert.match(publishBehavior, /Adicione pelo menos uma foto para continuar/);
   assert.match(publishBehavior, /Anúncio publicado com sucesso/);
   assert.match(publishBehavior, /\/source\/assets\/approved\/pampers-approved\.png/);
-  assert.match(impact, /Resultados que transformam territórios/);
-  assert.equal((impact.match(/data-impact-value=/g) ?? []).length, 6);
-  assert.equal((impact.match(/data-impact-place=/g) ?? []).length, 4);
-  assert.match(impactBehavior, /Metodologia, fontes e governança/);
-  assert.match(impactBehavior, /toLocaleString\('pt-BR'\)/);
+  assert.match(impact, /Metodologia antes dos números/);
+  assert.match(impact, /Indicadores quantitativos ainda não publicados/);
+  assert.doesNotMatch(impact, /data-impact-value|data-impact-place|7\.420|5\.080|2\.120|18\.650/);
+  assert.match(impactBehavior, /iconography/);
   assert.match(help, /Como podemos ajudar\?/);
   assert.match(help, /Compra protegida/);
   assert.match(server, /"\/site\/publish", "\/site\/impact", "\/site\/help"/);
@@ -199,7 +193,7 @@ test("transfers the complete approved App identity journey", async () => {
     ["register", "register", /Criar sua conta/],
     ["recovery", "recovery", /Recuperar senha/],
     ["verify", "verify", /Digite o código de 6 dígitos/],
-    ["home", "home", /Que bom ter você por aqui/],
+    ["home", "home", /Encontre, troque ou doe/],
   ];
   const behavior = await readFile(resolve(root, "apps/app/auth.js"), "utf8");
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
@@ -236,12 +230,14 @@ test("transfers App marketplace filters favorites and all eight publish steps", 
 
   assert.match(search, /Buscar produtos/);
   assert.match(search, /Tipo de negociação/);
-  assert.match(search, /Preço mínimo/);
-  assert.match(searchBehavior, /Buscando itens próximos/);
-  assert.match(searchBehavior, /toLocaleLowerCase\('pt-BR'\)/);
+  assert.match(search, /Os resultados serão consultados diretamente no marketplace/);
+  assert.doesNotMatch(search, /128 resultados|Pampers Confort|0,8 km|data-map-product/);
+  assert.match(searchBehavior, /renderAppSearch/);
+  assert.doesNotMatch(searchBehavior, /const products=|setTimeout/);
   assert.match(favorites, /Itens salvos/);
-  assert.match(favorites, /Anúncios \(3\)/);
-  assert.match(favoritesBehavior, /Nenhum favorito salvo/);
+  assert.match(favorites, /Consultando favoritos/);
+  assert.doesNotMatch(favorites, /Anúncios \(3\)|Pampers Confort|Huggies Natural Care/);
+  assert.match(favoritesBehavior, /renderFavorites/);
 
   for (let step = 1; step <= 8; step += 1) {
     const route = `publish-${step}`;
@@ -323,7 +319,9 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   const actions = await readFile(resolve(root, "apps/app/action-states.js"), "utf8");
   assert.match(behavior, /import \{ setupWalletLogisticsExtras \} from "\/apps\/app\/action-states\.js"/);
   assert.match(behavior, /setupWalletLogisticsExtras\(\);/);
-  assert.match(actions, /Cartão tokenizado com segurança/);
+  assert.match(actions, /Cartões salvos estarão disponíveis após a homologação do provedor de pagamento/);
+  assert.doesNotMatch(actions, /Cartão tokenizado com segurança|Cartão adicionado com segurança/);
+  assert.doesNotMatch(behavior, /Saldo adicionado|PIX-2387-9841-1123/);
   assert.match(behavior, /\/v1\/payments\/tokenization-sessions/);
   assert.match(behavior, /\/v1\/payments\/intents/);
   assert.match(behavior, /FraldaCyclePaymentProvider/);
@@ -332,6 +330,13 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.match(behavior, /'disputes'/);
   assert.match(behavior, /setupRealPaymentCases/);
   assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
+  const wallet = await readFile(resolve(root, "apps/app/wallet.html"), "utf8");
+  const walletCards = await readFile(resolve(root, "apps/app/wallet-cards.html"), "utf8");
+  assert.match(wallet, /Nenhuma movimentação carregada/);
+  assert.doesNotMatch(wallet, /R\$ 32,50|#FC-8F3A2B|#FC-3AB87D/);
+  assert.match(walletCards, /Nenhum cartão carregado/);
+  assert.doesNotMatch(walletCards, /final 4242|final 9012/);
+  assert.doesNotMatch(behavior, /Disponível: R\$ 32,50|faltam R\$ 18,50/);
   const dispute = await readFile(resolve(root, "apps/app/dispute.html"), "utf8");
   assert.match(dispute, /valor permanece protegido em custódia/i);
   for (const name of ["appPayment", "appWallet", "appRefund", "appDispute", "setupPaymentFlow", "setupWallet"]) {
@@ -372,7 +377,9 @@ test("transfers the complete approved App logistics journey", async () => {
   assert.match(behavior, /setupActionStates\(\);/);
   assert.match(actions, /reschedule-submit/);
   assert.match(actions, /delivery-problem-submit/);
-  assert.match(actions, /Avaliação enviada com sucesso/);
+  assert.match(actions, /O reagendamento ainda não está integrado/);
+  assert.doesNotMatch(actions, /Avaliação enviada com sucesso|Entrega reagendada com sucesso/);
+  assert.doesNotMatch(behavior, /entregador a 0,8 km/);
   const options = await readFile(resolve(root, "apps/app/delivery-options.html"), "utf8");
   assert.equal((options.match(/name="delivery-option"/g) ?? []).length, 4);
   for (const name of ["appDeliveryOptions", "appDelivery", "appDeliveryProof", "appDeliveryRate", "setupDeliveryTracking"]) {
@@ -395,18 +402,35 @@ test("closes the remaining approved App route inventory", async () => {
   for (const route of routes) {
     const html = await readFile(resolve(root, `apps/app/${route}.html`), "utf8");
     assert.match(html, new RegExp(`data-source-route="#/app/${route}"`));
-    assert.match(html, /<h1>/);
+    assert.match(html, /<h1(?:\s[^>]*)?>/);
     assert.ok(server.includes(`"/app/${route}"`));
     assert.ok(provenance.destination.routes.includes(`/app/${route}`));
   }
 
   assert.match(await readFile(resolve(root, "apps/app/notifications.html"), "utf8"), /Notificações/);
-  assert.match(await readFile(resolve(root, "apps/app/profile.html"), "utf8"), /Ana Souza/);
+  const profile = await readFile(resolve(root, "apps/app/profile.html"), "utf8");
+  const notifications = await readFile(resolve(root, "apps/app/notifications.html"), "utf8");
+  assert.match(profile, /Carregando perfil/);
+  assert.match(behavior, /\/v1\/auth\/session/);
+  assert.doesNotMatch(profile, /Ana Souza|Membro desde|★ 4,9|<strong>12<\/strong>|<strong>36<\/strong>/);
+  assert.match(notifications, /Nenhuma notificação carregada/);
+  assert.doesNotMatch(notifications, /R\$ 51,00|Juliana|1,2 km|4 notificações|Nova contraproposta/);
+  assert.doesNotMatch(behavior, /128 resultados encontrados|Pagamento aprovado e protegido|Avaliação enviada com sucesso/);
   assert.match(await readFile(resolve(root, "apps/app/my-impact.html"), "utf8"), /Meu impacto/);
+  const impact = await readFile(resolve(root, "apps/app/my-impact.html"), "utf8");
+  const history = await readFile(resolve(root, "apps/app/profile-history.html"), "utf8");
+  const offline = await readFile(resolve(root, "apps/app/state-offline.html"), "utf8");
+  assert.match(impact, /Métricas ainda não disponíveis/);
+  assert.doesNotMatch(impact, /18<\/strong>|12<\/strong>|8,4 kg|19,6 kg|75%|jan–jul/);
+  assert.match(history, /Nenhum histórico carregado/);
+  assert.doesNotMatch(history, /Pampers Confort|Huggies Supreme|#FC-|R\$ 51,00|R\$ 38,00/);
+  assert.doesNotMatch(offline, /Nenhuma ação será perdida/);
+  assert.match(behavior, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(behavior, /setupNotifications\(\)/);
   assert.match(behavior, /setupNotificationSettings\(\)/);
-  assert.match(behavior, /Novo código enviado com sucesso/);
   assert.match(behavior, /Conexão restabelecida/);
+  assert.match(behavior, /apiRequest\('\/health'\)/);
+  assert.doesNotMatch(behavior, /setTimeout/);
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
@@ -431,11 +455,15 @@ test("closes the approved courier journey and the App surface", async () => {
     assert.ok(provenance.destination.routes.includes(`/courier/${route}`));
   }
 
-  assert.match(behavior, /Foto e localização registradas com segurança/);
+  assert.match(behavior, /Foto registrada com segurança/);
   assert.match(behavior, /\/v1\/shipments/);
   assert.match(behavior, /uploadListingMedia/);
   assert.match(behavior, /deliveryProofMediaKey/);
-  assert.match(await readFile(resolve(root, "apps/app/courier-proof.html"), "utf8"), /repasse será liberado em até 24 horas/i);
+  const courierPages = await Promise.all(routes.map(([route]) => readFile(resolve(root, `apps/app/courier-${route}.html`), "utf8")));
+  assert.match(courierPages[0], /Nenhuma entrega carregada/);
+  assert.match(courierPages[4], /Nenhum histórico carregado/);
+  assert.doesNotMatch(courierPages.join("\n"), /Carlos|Ana Souza|#FC-|R\$ 86,50|R\$ 19,00|97,2%|4,9 ★|repasse será liberado em até 24 horas/i);
+  assert.match(behavior, /Selecione uma entrega real antes de enviar o comprovante/);
   for (const name of ["courierHome", "courierJob", "courierRoute", "courierProof", "courierHistory"]) {
     assert.ok(provenance.source.functions.includes(name));
   }
@@ -447,11 +475,11 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
   const routes = [
     ["index", "dashboard", /Painel administrativo/],
     ["users", "users", /Usuários/],
-    ["roles", "roles", /Matriz de permissões/],
-    ["ads", "ads", /Anúncios e produtos/],
+    ["roles", "roles", /Matriz RBAC implementada/],
+    ["ads", "ads", /Catálogo registrado/],
     ["operations", "operations", /Operações/],
   ];
-  const behavior = await readFile(resolve(root, "apps/admin/core.js"), "utf8");
+  const behavior = await readFile(resolve(root, "apps/admin/account-management.js"), "utf8");
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
   const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
 
@@ -463,26 +491,20 @@ test("transfers the approved Admin dashboard users RBAC ads and operations core"
     assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
   }
 
-  assert.match(behavior, /setupAdmin\(\)/);
-  assert.match(behavior, /setupAdminAds\(\)/);
-  assert.match(behavior, /admin-user-search/);
   assert.match(behavior, /\/v1\/admin\/users/);
-  assert.match(behavior, /loadLiveAdminUsers/);
-  assert.match(behavior, /\/v1\/admin\/sessions/);
   assert.match(behavior, /\/v1\/admin\/invitations/);
-  assert.match(behavior, /admin-user-invite-form/);
-  assert.match(behavior, /loadLiveAdminSessions/);
-  assert.match(behavior, /rbac-save/);
-  assert.match(behavior, /admin-ad-search/);
+  assert.match(behavior, /\/v1\/admin\/catalog-snapshot/);
+  assert.match(behavior, /\/v1\/admin\/access-snapshot/);
+  assert.doesNotMatch(behavior, /data-ad-action|rbac-save|rbac-new-role/);
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
 
 test("transfers Admin finance logistics and reports with impact kept in its approved location", async () => {
   const routes = [
-    ["finance", /Financeiro, splits e disputas/],
-    ["logistics", /Logística e entregadores/],
-    ["reports", /Relatórios e inteligência/],
+    ["finance", /Pagamentos registrados/],
+    ["logistics", /Entregas registradas/],
+    ["reports", /Relatório operacional/],
   ];
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
   const provenance = JSON.parse(await readFile(resolve(root, "apps/admin/source.json"), "utf8"));
@@ -496,7 +518,7 @@ test("transfers Admin finance logistics and reports with impact kept in its appr
   }
 
   const reports = await readFile(resolve(root, "apps/admin/reports.html"), "utf8");
-  assert.match(reports, /impact/i);
+  assert.match(reports, /Indicadores ainda indisponíveis/);
   assert.equal(provenance.architectureNotes[0].area, "impact");
   assert.match(provenance.architectureNotes[0].detail, /No standalone admin impact route exists/);
   for (const name of ["adminFinance", "adminLogistics", "adminReports"]) assert.ok(provenance.source.functions.includes(name));
@@ -508,7 +530,7 @@ test("transfers Admin data forecasts alerts and infrastructure", async () => {
   const routes = [
     ["data", /Dados e inteligência/],
     ["forecast", /Previsões e alertas/],
-    ["alerts", /Alertas e observabilidade/],
+    ["alerts", /Pendências operacionais/],
     ["infrastructure", /Infraestrutura e observabilidade/],
   ];
   const behavior = await readFile(resolve(root, "apps/admin/intelligence.js"), "utf8");
@@ -523,10 +545,8 @@ test("transfers Admin data forecasts alerts and infrastructure", async () => {
     assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
   }
 
-  assert.match(behavior, /setupAdminData\(\)/);
-  assert.match(behavior, /setupAdminForecast\(\)/);
-  assert.match(behavior, /setupAdminInfrastructure\(\)/);
-  assert.match(behavior, /data-run-pipeline/);
+  assert.match(behavior, /serviços reais/);
+  assert.doesNotMatch(behavior, /setTimeout|data-run-pipeline|forecast-refresh|infra-load-test/);
   for (const name of ["adminData", "adminForecast", "adminAlerts", "adminInfrastructure"]) assert.ok(provenance.source.functions.includes(name));
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
@@ -534,9 +554,9 @@ test("transfers Admin data forecasts alerts and infrastructure", async () => {
 
 test("transfers Admin security moderation audit webhooks and settings governance", async () => {
   const routes = [
-    ["security", /Segurança e autenticação administrativa/],
-    ["moderation", /Moderação, segurança e antifraude/],
-    ["audit", /Logs, auditoria e webhooks/],
+    ["security", /Segurança administrativa/],
+    ["moderation", /Moderação e recursos/],
+    ["audit", /Auditoria e webhooks recebidos/],
     ["settings", /Configurações e integrações/],
   ];
   const behavior = await readFile(resolve(root, "apps/admin/governance.js"), "utf8");
@@ -551,14 +571,15 @@ test("transfers Admin security moderation audit webhooks and settings governance
     assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
   }
 
-  assert.match(behavior, /setupAdminModeration\(\)/);
-  assert.match(behavior, /setupAdminAudit\(\)/);
   assert.match(behavior, /\/v1\/admin\/audit-events/);
+  assert.match(behavior, /\/v1\/admin\/webhook-events/);
   assert.match(behavior, /audit-events\.csv/);
-  assert.match(behavior, /auditPageSize/);
-  assert.match(behavior, /audit-pagination/);
-  assert.match(behavior, /loadLiveAudit/);
-  assert.match(behavior, /setupAdminSettings\(\)/);
+  assert.match(behavior, /pageSize/);
+  assert.match(behavior, /loadAudit/);
+  const securityBehavior = await readFile(resolve(root, "apps/admin/security-management.js"), "utf8");
+  const moderationBehavior = await readFile(resolve(root, "apps/admin/moderation-management.js"), "utf8");
+  assert.match(securityBehavior, /\/v1\/admin\/sessions/);
+  assert.match(moderationBehavior, /\/v1\/moderation\/decisions/);
   assert.match(await readFile(resolve(root, "apps/admin/audit.html"), "utf8"), /webhook/i);
   assert.equal(provenance.architectureNotes.at(-1).area, "webhooks");
   assert.match(provenance.architectureNotes.at(-1).detail, /No standalone admin webhook route exists/);
@@ -570,7 +591,7 @@ test("closes all nineteen approved Admin routes with growth launch and support",
   const routes = [
     ["partnerships", /Expansão e parcerias/],
     ["innovation", /Inovação e produtos/],
-    ["launch", /Lançamento e suporte/],
+    ["launch", /Piloto interno e suporte/],
   ];
   const behavior = await readFile(resolve(root, "apps/admin/growth.js"), "utf8");
   const server = await readFile(resolve(root, "tools/dev-server.mjs"), "utf8");
@@ -584,9 +605,9 @@ test("closes all nineteen approved Admin routes with growth launch and support",
     assert.ok(provenance.destination.routes.includes(`/admin/${route}`));
   }
 
-  assert.match(behavior, /setupAdminPartnerships\(\)/);
-  assert.match(behavior, /setupAdminInnovation\(\)/);
-  assert.match(behavior, /setupAdminLaunch\(\)/);
+  assert.match(behavior, /nenhuma ação comercial ou experimental é simulada/);
+  assert.doesNotMatch(behavior, /setTimeout|data-partner-review|data-experiment-review|data-launch-evidence/);
+  assert.match(await readFile(resolve(root, "apps/admin/support-management.js"), "utf8"), /\/v1\/support\/tickets/);
   assert.equal(provenance.source.routes.length, 19);
   assert.equal(provenance.destination.routes.length, 19);
   assert.equal(new Set(provenance.destination.routes).size, 19);
@@ -604,6 +625,10 @@ test("protects every Admin module with email and password authentication", async
   assert.match(auth, /\/v1\/auth\/session/);
   assert.match(auth, /ADMIN_ROLES/);
   assert.match(auth, /\/v1\/auth\/logout/);
+  assert.match(auth, /\/v1\/auth\/mfa\/confirm/);
+  assert.doesNotMatch(auth, /LOCAL_DEMO|acesso aberto|autenticação administrativa está dispensada/);
+  assert.match(login, /id="admin-mfa-form"/);
+  assert.match(login, /autocomplete="one-time-code"/);
   assert.match(server, /\/admin\/login/);
   for (const module of ["core.js", "governance.js", "intelligence.js", "growth.js"]) {
     assert.match(await readFile(resolve(root, `apps/admin/${module}`), "utf8"), /\/apps\/admin\/auth\.js/);
@@ -611,12 +636,13 @@ test("protects every Admin module with email and password authentication", async
 });
 
 test("connects approved identity screens to the production API client", async () => {
-  const [appAuth, siteAuth, client, reset, server] = await Promise.all([
+  const [appAuth, siteAuth, client, reset, server, verify] = await Promise.all([
     readFile(resolve(root, "apps/app/auth.js"), "utf8"),
     readFile(resolve(root, "apps/site/login.js"), "utf8"),
     readFile(resolve(root, "packages/contracts/api-client.js"), "utf8"),
     readFile(resolve(root, "apps/app/reset-password.html"), "utf8"),
     readFile(resolve(root, "tools/dev-server.mjs"), "utf8"),
+    readFile(resolve(root, "apps/app/verify.html"), "utf8"),
   ]);
   for (const endpoint of ["/v1/auth/register", "/v1/auth/login", "/v1/auth/verification/confirm", "/v1/auth/password/request", "/v1/auth/password/reset"]) {
     assert.ok(appAuth.includes(endpoint) || siteAuth.includes(endpoint));
@@ -625,6 +651,9 @@ test("connects approved identity screens to the production API client", async ()
   assert.match(client, /class ApiError/);
   assert.match(reset, /data-architecture-route="\/app\/reset-password"/);
   assert.match(server, /"\/app\/reset-password"/);
+  assert.doesNotMatch(appAuth, /LOCAL_DEMO|location\.replace\("\/app\/home"\)/);
+  assert.doesNotMatch(verify, /99900-0000|value="[1-6]"/);
+  assert.match(verify, /o contato informado anteriormente/);
 });
 
 test("connects approved marketplace screens to persistent API contracts", async () => {

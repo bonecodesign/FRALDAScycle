@@ -1,5 +1,143 @@
 export function createAdminRepository(database) {
   return Object.freeze({
+    async webhookSnapshot({ actorUserId, limit = 50, offset = 0 }) { return database.transaction(async client => {
+      const summary = (await client.query(`SELECT
+        (SELECT count(*)::integer FROM payment_webhook_events) AS payment_event_count,
+        (SELECT count(*)::integer FROM logistics_webhook_events) AS logistics_event_count`)).rows[0];
+      const items = (await client.query(`SELECT domain,id,event_type,occurred_at,processed_at FROM (
+        SELECT 'payment'::text AS domain,id,event_type,occurred_at,processed_at FROM payment_webhook_events
+        UNION ALL
+        SELECT 'logistics'::text AS domain,id,event_type,occurred_at,processed_at FROM logistics_webhook_events
+      ) events ORDER BY processed_at DESC,id LIMIT $1 OFFSET $2`, [limit, offset])).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES($1,'admin.webhook_events.read','webhook_event','list',$2::jsonb)`, [actorUserId, JSON.stringify({ count: items.length })]);
+      return { summary, items };
+    }); },
+    async accessSnapshot({ actorUserId }) { return database.transaction(async client => {
+      const items = (await client.query(`SELECT role,count(*)::integer AS user_count,
+        count(*) FILTER(WHERE disabled_at IS NULL)::integer AS active_count,
+        count(*) FILTER(WHERE email_verified_at IS NOT NULL)::integer AS email_verified_count
+        FROM users GROUP BY role ORDER BY role`)).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES($1,'admin.access_snapshot.read','user','roles',$2::jsonb)`, [actorUserId, JSON.stringify({ roleCount: items.length })]);
+      return { items };
+    }); },
+    async catalogSnapshot({ actorUserId, query = null, status = null, limit = 50, offset = 0 }) { return database.transaction(async client => {
+      const summary = (await client.query(`SELECT count(*)::integer AS listing_count,
+        count(*) FILTER(WHERE status='published')::integer AS published_count,
+        count(*) FILTER(WHERE status='review')::integer AS review_count,
+        count(*) FILTER(WHERE status='paused')::integer AS paused_count,
+        COALESCE(sum(quantity),0)::bigint AS unit_count FROM listings`)).rows[0];
+      const items = (await client.query(`SELECT l.id,l.title,l.brand,l.size,l.quantity,l.kind,l.price_cents,l.status,l.created_at,u.display_name AS seller_name
+        FROM listings l JOIN users u ON u.id=l.seller_id
+        WHERE ($1::text IS NULL OR l.title ILIKE '%'||$1||'%' OR l.brand ILIKE '%'||$1||'%' OR u.display_name ILIKE '%'||$1||'%')
+          AND ($2::listing_status IS NULL OR l.status=$2)
+        ORDER BY l.created_at DESC,l.id LIMIT $3 OFFSET $4`, [query, status, limit, offset])).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES($1,'admin.catalog_snapshot.read','listing','list',$2::jsonb)`, [actorUserId, JSON.stringify({ count: items.length, filtered: Boolean(query || status) })]);
+      return { summary, items };
+    }); },
+    async listingReviewDetail({ actorUserId, listingId }) { return database.transaction(async client => {
+      const listing = (await client.query(
+        `SELECT l.id,l.seller_id,l.title,l.description,l.brand,l.model,l.size,l.quantity,l.kind,
+                l.price_cents,l.status,l.created_at,u.display_name AS seller_name
+         FROM listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1`, [listingId],
+      )).rows[0];
+      if (!listing) return null;
+      const media = (await client.query(
+        `SELECT storage_key,media_type,position FROM listing_media
+         WHERE listing_id=$1 ORDER BY position`, [listingId],
+      )).rows;
+      await client.query(
+        `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+         VALUES($1,'listing.review.opened','listing',$2,$3::jsonb)`,
+        [actorUserId, listingId, JSON.stringify({ status: listing.status, mediaCount: media.length })],
+      );
+      return { listing, media };
+    }); },
+    async reviewListing({ actorUserId, listingId, outcome, reason }) { return database.transaction(async client => {
+      const current = (await client.query(
+        "SELECT id,seller_id,status FROM listings WHERE id=$1 FOR UPDATE", [listingId],
+      )).rows[0];
+      if (!current) return null;
+      if (current.seller_id === actorUserId) throw Object.assign(new Error("O anúncio deve ser revisado por outra pessoa."), { code: "independent_listing_review_required", status: 403 });
+      if (current.status !== "review") throw Object.assign(new Error("O anúncio não está mais aguardando revisão."), { code: "listing_review_conflict", status: 409 });
+      if (outcome === "published") {
+        const mediaCount = Number((await client.query(
+          "SELECT count(*)::integer AS count FROM listing_media WHERE listing_id=$1", [listingId],
+        )).rows[0]?.count ?? 0);
+        if (mediaCount < 1) throw Object.assign(new Error("Não é possível aprovar sem mídia registrada."), { code: "listing_media_required", status: 409 });
+      }
+      const listing = (await client.query(
+        `UPDATE listings SET status=$2::listing_status,
+           published_at=CASE WHEN $2='published' THEN now() ELSE NULL END,updated_at=now()
+         WHERE id=$1 RETURNING id,status,published_at,updated_at`, [listingId, outcome],
+      )).rows[0];
+      await client.query(
+        `INSERT INTO listing_review_decisions(listing_id,reviewer_id,outcome,reason)
+         VALUES($1,$2,$3::listing_status,$4)`, [listingId, actorUserId, outcome, reason],
+      );
+      await client.query(
+        `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+         VALUES($1,$2,'listing',$3,$4::jsonb)`,
+        [actorUserId, outcome === "published" ? "listing.review.approved" : "listing.review.rejected",
+          listingId, JSON.stringify({ previousStatus: current.status, outcome, reason })],
+      );
+      return listing;
+    }); },
+    async overviewSnapshot({ actorUserId, limit = 20 }) { return database.transaction(async client => {
+      const summary = (await client.query(`SELECT
+        (SELECT count(*)::integer FROM users WHERE disabled_at IS NULL) AS active_user_count,
+        (SELECT count(*)::integer FROM listings) AS listing_count,
+        (SELECT count(*)::integer FROM transactions) AS transaction_count,
+        (SELECT count(*)::integer FROM transactions WHERE status='completed') AS completed_transaction_count,
+        (SELECT count(*)::integer FROM transactions WHERE status IN('proposed','reserved','payment_pending','paid','in_delivery','donation_confirmed')) AS active_transaction_count,
+        (SELECT count(*)::integer FROM transactions WHERE status IN('cancelled','disputed','refunded')) AS exception_transaction_count,
+        (SELECT COALESCE(sum(amount_cents),0)::bigint FROM payment_intents WHERE status='paid') AS paid_volume_cents,
+        (SELECT count(*)::integer FROM payment_intents WHERE status IN('failed','cancelled','refunded')) AS payment_exception_count,
+        (SELECT count(*)::integer FROM payment_cases WHERE status NOT IN('rejected','completed','failed')) AS open_payment_case_count,
+        (SELECT count(*)::integer FROM shipments) AS shipment_count,
+        (SELECT count(*)::integer FROM shipments WHERE status='delivered') AS delivered_shipment_count,
+        (SELECT count(*)::integer FROM shipments WHERE status IN('failed','cancelled')) AS shipment_exception_count,
+        (SELECT count(*)::integer FROM operational_controls WHERE paused=true) AS paused_domain_count`)).rows[0];
+      const items = (await client.query(`SELECT t.id,l.kind,t.status,t.amount_cents,t.created_at
+        FROM transactions t JOIN listings l ON l.id=t.listing_id
+        ORDER BY t.created_at DESC,t.id LIMIT $1`, [limit])).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES($1,'admin.overview_snapshot.read','operations','summary',$2::jsonb)`, [actorUserId, JSON.stringify({ count: items.length })]);
+      return { summary, items };
+    }); },
+    async financeSnapshot({ actorUserId, limit = 50, offset = 0 }) { return database.transaction(async client => {
+      const summary=(await client.query(`SELECT count(*)::integer AS payment_count,
+        COALESCE(sum(p.amount_cents) FILTER(WHERE p.status='paid'),0)::bigint AS paid_volume_cents,
+        count(*) FILTER(WHERE p.status='paid')::integer AS paid_count,
+        count(*) FILTER(WHERE p.status IN('pending','authorized','provider_pending'))::integer AS pending_count,
+        count(*) FILTER(WHERE p.status IN('failed','cancelled','refunded') OR EXISTS(
+          SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=p.id AND pc.status NOT IN('rejected','completed','failed')
+        ))::integer AS exception_count
+        FROM payment_intents p`)).rows[0];
+      const items=(await client.query(`SELECT p.id,p.transaction_id,p.method,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,p.seller_amount_cents,p.status,p.created_at,
+        (SELECT count(*)::integer FROM payment_cases pc WHERE pc.payment_intent_id=p.id AND pc.status NOT IN('rejected','completed','failed')) AS open_cases,
+        cpo.status AS courier_payout_status,cpo.courier_amount_cents
+        FROM payment_intents p LEFT JOIN courier_payout_obligations cpo ON cpo.payment_intent_id=p.id
+        ORDER BY p.created_at DESC,p.id LIMIT $1 OFFSET $2`,[limit,offset])).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'admin.finance_snapshot.read','payment_intent','list',$2::jsonb)`, [actorUserId, JSON.stringify({ count: items.length })]);
+      return { summary, items };
+    }); },
+    async logisticsSnapshot({ actorUserId, limit = 50, offset = 0 }) { return database.transaction(async client => {
+      const summary=(await client.query(`SELECT count(*)::integer AS shipment_count,
+        count(*) FILTER(WHERE status='awaiting_pickup')::integer AS awaiting_pickup_count,
+        count(*) FILTER(WHERE status='assigned')::integer AS assigned_count,
+        count(*) FILTER(WHERE status IN('picked_up','in_transit'))::integer AS in_transit_count,
+        count(*) FILTER(WHERE status='delivered')::integer AS delivered_count,
+        count(*) FILTER(WHERE status IN('failed','cancelled'))::integer AS exception_count
+        FROM shipments`)).rows[0];
+      const items=(await client.query(`SELECT s.id,s.transaction_id,s.exchange_leg,s.mode,s.status,s.courier_id,u.display_name AS courier_name,s.estimated_delivery_at,s.created_at,
+        EXISTS(SELECT 1 FROM delivery_proofs p WHERE p.shipment_id=s.id) AS proof_recorded
+        FROM shipments s LEFT JOIN users u ON u.id=s.courier_id ORDER BY s.created_at DESC,s.id LIMIT $1 OFFSET $2`,[limit,offset])).rows;
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'admin.logistics_snapshot.read','shipment','list',$2::jsonb)`, [actorUserId, JSON.stringify({ count: items.length })]);
+      return { summary, items };
+    }); },
     async listAuditEvents({ limit = 50, offset = 0 }) {
       const result = await database.query(
         `SELECT a.id, a.actor_user_id, u.display_name AS actor_name, a.action,

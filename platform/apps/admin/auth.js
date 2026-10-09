@@ -2,7 +2,6 @@ import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
 const ADMIN_ROLES = new Set(["admin", "moderator"]);
-const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
 const ROLE_NAVIGATION = {
   admin: ["dashboard", "users", "roles", "ads", "operations", "finance", "logistics", "reports", "data", "forecast", "infrastructure", "partnerships", "innovation", "launch", "alerts", "moderation", "audit", "settings", "security"],
   moderator: ["dashboard", "users", "ads", "operations", "logistics", "reports", "alerts", "moderation", "audit"],
@@ -37,7 +36,9 @@ function showLoginError(message) {
 
 async function handleLogin() {
   const form = document.getElementById("admin-login-form");
-  if (!form) return;
+  const mfaForm = document.getElementById("admin-mfa-form");
+  if (!form || !mfaForm) return;
+  let activeChallenge = null;
 
   try {
     const session = await apiRequest("/v1/auth/session");
@@ -57,6 +58,15 @@ async function handleLogin() {
           password: form.elements.password.value,
         },
       });
+      if (result.mfaRequired) {
+        activeChallenge = result.challenge;
+        form.hidden = true;
+        mfaForm.hidden = false;
+        mfaForm.elements.code.value = "";
+        mfaForm.elements.code.focus();
+        submit.disabled = false;
+        return;
+      }
       if (!ADMIN_ROLES.has(result.user?.role)) {
         await apiRequest("/v1/auth/logout", { method: "POST" });
         throw new Error("Esta conta não possui acesso administrativo.");
@@ -67,26 +77,43 @@ async function handleLogin() {
       submit.disabled = false;
     }
   });
+
+  mfaForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const error = document.getElementById("admin-mfa-error");
+    const submit = mfaForm.querySelector('[type="submit"]');
+    if (error) error.textContent = "";
+    const code = mfaForm.elements.code.value.replace(/\D/g, "");
+    if (!activeChallenge || !/^\d{6}$/.test(code)) {
+      if (error) error.textContent = "Digite os 6 dígitos do código.";
+      return;
+    }
+    submit.disabled = true;
+    try {
+      const result = await apiRequest("/v1/auth/mfa/confirm", {
+        method: "POST", body: { challenge: activeChallenge, code },
+      });
+      if (!ADMIN_ROLES.has(result.user?.role)) {
+        await apiRequest("/v1/auth/logout", { method: "POST" }).catch(() => {});
+        throw new Error("Esta conta não possui acesso administrativo.");
+      }
+      location.replace("/admin/dashboard");
+    } catch (requestError) {
+      if (error) error.textContent = requestError.message || "Não foi possível confirmar o código.";
+      submit.disabled = false;
+    }
+  });
+
+  document.getElementById("admin-mfa-restart")?.addEventListener("click", () => {
+    activeChallenge = null;
+    mfaForm.hidden = true;
+    form.hidden = false;
+    form.elements.password.value = "";
+    form.elements.password.focus();
+  });
 }
 
 async function requireAdmin() {
-  if (LOCAL_DEMO) {
-    if (location.pathname === "/admin/login") {
-      location.replace("/admin/dashboard");
-      return;
-    }
-    document.documentElement.dataset.adminAuth = "ready";
-    applyNavigationScope("admin");
-    addEnvironmentDisclosure("Modo local demonstrativo: dados sintéticos e acesso aberto apenas no ambiente local. Em produção, este painel exige autenticação e permissões por papel.");
-    const head = document.querySelector(".admin-head > div:last-child");
-    if (head) {
-      const badge = document.createElement("span");
-      badge.className = "badge";
-      badge.textContent = "Admin sintético · modo local";
-      head.append(badge);
-    }
-    return;
-  }
   if (location.pathname === "/admin/login") return handleLogin();
   document.documentElement.dataset.adminAuth = "pending";
   try {

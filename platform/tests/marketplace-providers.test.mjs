@@ -22,7 +22,7 @@ test("signed uploads validate media and keep provider credentials server-side", 
     return response({
       uploadUrl: "https://storage.example.com/upload/one",
       storageKey: "listings/user-1/one.webp",
-      expiresAt: "2026-08-03T02:00:00Z",
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
       headers: { "x-storage-token": "opaque" },
     });
   });
@@ -34,6 +34,37 @@ test("signed uploads validate media and keep provider credentials server-side", 
     providers.signedUpload("user-1", { contentType: "text/html", sizeBytes: 10 }),
     (error) => error instanceof ProviderError && error.code === "invalid_media_type",
   );
+});
+
+test("signed uploads reject foreign keys, unsafe headers and invalid expiration", async () => {
+  for (const payload of [
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/another-user/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: {},
+    },
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: { authorization: "secret" },
+    },
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(), headers: {},
+    },
+    {
+      uploadUrl: "https://user:secret@storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: {},
+    },
+  ]) {
+    const providers = createMarketplaceProviders(configured, async () => response(payload));
+    await assert.rejects(
+      providers.signedUpload("user-1", { contentType: "image/webp", sizeBytes: 2_048 }),
+      (error) => error.code === "invalid_provider_response" && error.status === 502,
+    );
+  }
 });
 
 test("geocoding returns only approximate validated coordinates", async () => {

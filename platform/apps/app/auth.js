@@ -2,8 +2,6 @@ import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
 
-const LOCAL_DEMO = new Set(["127.0.0.1", "localhost"]).has(location.hostname);
-
 const APP_ICONS = {
   home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5M9 20v-6h6v6"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
@@ -74,11 +72,6 @@ function setupSyntheticDataDisclosure() {
   contextPanel.append(disclosure);
 }
 
-if (LOCAL_DEMO && location.pathname === "/app/login") {
-  location.replace("/app/home");
-}
-
-
 function setupAuthValidation() {
   const contactValid = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || value.replace(/\D/g, "").length >= 8;
   const showError = (form, message) => {
@@ -101,10 +94,6 @@ function setupAuthValidation() {
   const login = document.getElementById("login-form");
   if (login) login.addEventListener("submit", async event => {
     event.preventDefault();
-    if (LOCAL_DEMO) {
-      location.pathname = "/app/home";
-      return;
-    }
     const inputs = login.querySelectorAll("input");
     const contact = inputs[0].value.trim();
     if (!contactValid(contact)) return showError(login, "Informe um e-mail ou telefone válido.");
@@ -118,7 +107,9 @@ function setupAuthValidation() {
   });
 
   const register = document.getElementById("register-form");
-  if (register) register.addEventListener("submit", async event => {
+  if (register) {
+    register.querySelector('.terms')?.insertAdjacentHTML('beforebegin','<label class="terms" data-adult-declaration><input type="checkbox" required> Confirmo que tenho 18 anos ou mais.</label>');
+    register.addEventListener("submit", async event => {
     event.preventDefault();
     const inputs = register.querySelectorAll("input");
     const contact = inputs[1].value.trim();
@@ -126,19 +117,21 @@ function setupAuthValidation() {
     if (!contactValid(contact)) return showError(register, "Informe um e-mail ou telefone válido.");
     if (inputs[2].value.length < 12) return showError(register, "A senha precisa ter pelo menos 12 caracteres.");
     if (inputs[2].value !== inputs[3].value) return showError(register, "As senhas precisam ser iguais.");
-    if (!inputs[4].checked) return showError(register, "Aceite os Termos de Uso e a Política de Privacidade.");
+    if (!inputs[4].checked) return showError(register, "Confirme que você tem 18 anos ou mais.");
+    if (!inputs[5].checked) return showError(register, "Aceite os Termos de Uso e a Política de Privacidade.");
     const restore = submitState(register, "Criando conta...");
     showError(register, "");
     try {
       await apiRequest("/v1/auth/register", {
         method: "POST",
-        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password: inputs[2].value },
+        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password: inputs[2].value, adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1" },
       });
       sessionStorage.setItem("fc.auth.contact", contact);
       sessionStorage.setItem("fc.auth.mode", "verification");
       location.pathname = "/app/verify";
     } catch (error) { fail(register, error); restore(); }
-  });
+    });
+  }
 
   const recovery = document.getElementById("recovery-form");
   if (recovery) recovery.addEventListener("submit", async event => {

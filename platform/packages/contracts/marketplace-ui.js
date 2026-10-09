@@ -14,13 +14,19 @@ function approvedAsset(item) {
   return "pampers-approved.png";
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character]);
+}
+
 function listingCard(item, surface) {
   const href = surface === "site" ? `/site/detail?id=${item.id}` : `/app/chat?listing=${item.id}`;
   const proximity = item.distance_km == null ? "" : ` · ${Number(item.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
   if (surface === "site") {
-    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
+    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
   }
-  return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${item.title}</h3><p>${item.size ?? "Tamanho não informado"} · ${item.quantity} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
+  return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
 }
 
 export async function loadLiveSearch({ surface, query = "", kind = "", size = "", latitude = null, longitude = null, radiusKm = null }) {
@@ -45,10 +51,11 @@ export async function renderSiteSearch() {
   async function refresh() {
     try {
       const { items, markup } = await loadLiveSearch({ surface: "site", query: input.value.trim() });
-      if (items.length) grid.innerHTML = markup;
+      grid.innerHTML = items.length ? markup : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum anúncio encontrado</h2><p>Tente outro termo de busca.</p></div>';
       document.documentElement.dataset.marketplaceState = items.length ? "live" : "empty";
     } catch (error) {
       document.documentElement.dataset.marketplaceState = error instanceof ApiError && error.code === "network_error" ? "fallback" : "error";
+      grid.innerHTML = '<div class="ui-state error-state"><h2>Não foi possível consultar o marketplace</h2><p>Tente novamente em instantes.</p></div>';
     }
   }
   input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(refresh, 250); });
@@ -127,6 +134,7 @@ export async function renderFavorites({ surface }) {
     bindFavoriteButtons(target);
   } catch (error) {
     if (error.status === 401) location.pathname = surface === "site" ? "/site/login" : "/app/login";
+    else target.innerHTML = '<div class="ui-state error-state"><h2>Não foi possível carregar os favoritos</h2><p>Tente novamente em instantes.</p></div>';
   }
 }
 
@@ -144,7 +152,7 @@ export async function uploadListingMedia(file) {
     headers: { "content-type": file.type, ...upload.headers },
     body: file,
   });
-  if (!response.ok) throw new ApiError("upload_failed", response.status, "Não foi possível enviar a foto.");
+  if (!response.ok) throw new ApiError("upload_failed", "Não foi possível enviar a foto.", response.status);
   return upload.storageKey;
 }
 

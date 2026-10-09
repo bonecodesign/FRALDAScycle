@@ -37,6 +37,54 @@ export function createOperationSupportRepository(database) {
         return { id:tx.id, listing_id:tx.listing_id, status:'cancelled' };
       });
     },
+    async transactionContact({ actorId, transactionId }) {
+      return database.transaction(async client => {
+        const result=await client.query(`SELECT t.id,t.status,l.kind,
+          peer.display_name,peer.email,peer.phone,peer.email_verified_at,peer.phone_verified_at,
+          a.unlocked_at,a.revoked_at
+          FROM transactions t JOIN listings l ON l.id=t.listing_id
+          JOIN transaction_contact_access a ON a.transaction_id=t.id
+          JOIN users peer ON peer.id=CASE WHEN t.buyer_id=$2 THEN t.seller_id ELSE t.buyer_id END
+          WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) AND l.kind='sale'
+            AND a.revoked_at IS NULL AND t.status NOT IN ('cancelled','refunded')
+            AND EXISTS (SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN ('paid','disputed'))`,[transactionId,actorId]);
+        const row=result.rows[0];
+        if(!row)throw fail('contact_not_available',409,'O contato fica disponível somente após a confirmação do pagamento.');
+        const contact={displayName:row.display_name,unlockedAt:row.unlocked_at};
+        if(row.phone_verified_at&&row.phone)contact.phone=row.phone;
+        if(row.email_verified_at&&row.email)contact.email=row.email;
+        if(!contact.phone&&!contact.email)throw fail('verified_contact_unavailable',409,'A outra parte ainda não possui contato verificado disponível.');
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'transaction.contact.read','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({channels:Object.keys(contact).filter(key=>['phone','email'].includes(key))})]);
+        return contact;
+      });
+    },
+    async supportCancellationDecision({ actorId,ticketId,reason }) {
+      return database.transaction(async client => {
+        const found=await client.query(`SELECT st.id AS ticket_id,st.transaction_id,st.category,st.status AS ticket_status,
+          t.status AS transaction_status,p.id AS payment_intent_id,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents
+          FROM support_tickets st JOIN transactions t ON t.id=st.transaction_id
+          JOIN payment_intents p ON p.transaction_id=t.id AND p.status='paid'
+          WHERE st.id=$1 AND st.category='cancellation'
+          ORDER BY p.updated_at DESC LIMIT 1 FOR UPDATE OF st,t,p`,[ticketId]);
+        const row=found.rows[0];
+        if(!row)throw fail('supported_cancellation_not_available',409,'O pedido precisa estar ligado a uma operação com pagamento confirmado.');
+        if(['completed','cancelled','refunded'].includes(row.transaction_status))throw fail('transaction_not_cancellable',409,'A operação já foi encerrada.');
+        const existing=await client.query('SELECT * FROM supported_cancellations WHERE transaction_id=$1',[row.transaction_id]);
+        if(existing.rows[0])return {cancellation:existing.rows[0],reused:true};
+        const refund=row.amount_cents-row.platform_fee_cents-row.delivery_fee_cents;
+        const created=await client.query(`INSERT INTO supported_cancellations
+          (transaction_id,support_ticket_id,payment_intent_id,decided_by,gross_amount_cents,retained_platform_fee_cents,retained_delivery_fee_cents,refund_amount_cents,reason)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[row.transaction_id,ticketId,row.payment_intent_id,actorId,row.amount_cents,row.platform_fee_cents,row.delivery_fee_cents,refund,reason]);
+        await client.query("UPDATE transactions SET status='disputed',updated_at=now() WHERE id=$1",[row.transaction_id]);
+        await client.query("UPDATE support_tickets SET status='under_review',updated_at=now() WHERE id=$1",[ticketId]);
+        await client.query(`UPDATE transaction_contact_access SET revoked_at=now(),revoked_by=$2,revocation_reason='supported_cancellation'
+          WHERE transaction_id=$1 AND revoked_at IS NULL`,[row.transaction_id,actorId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'transaction.supported_cancellation.decided','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({supportTicketId:ticketId,grossAmountCents:row.amount_cents,retainedPlatformFeeCents:row.platform_fee_cents,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:refund})]);
+        return {cancellation:created.rows[0],reused:false};
+      });
+    },
     async createSupportTicket(input) {
       return database.transaction(async client => {
         const existing = await client.query('SELECT * FROM support_tickets WHERE idempotency_key=$1',[input.idempotencyKey]);

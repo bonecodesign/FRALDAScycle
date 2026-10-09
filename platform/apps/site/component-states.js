@@ -4,6 +4,7 @@ import "/apps/site/home.js";
 
 function setupComponentStates(){
   const page=document.querySelector('.component-states-page');if(!page)return;
+  page.querySelectorAll('.state-matrix button, .state-preview-controls button').forEach(button=>button.title='Exemplo visual sem operação persistida');
   const tabs=[...page.querySelectorAll('[data-state-group]')];
   const panels=[...page.querySelectorAll('[data-state-panel]')];
   tabs.forEach(tab=>tab.addEventListener('click',()=>{

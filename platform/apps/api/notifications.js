@@ -19,5 +19,8 @@ export function createNotificationService(repository = null) {
     passwordRecovery(message) {
       return enqueue("password_recovery", message);
     },
+    adminLoginChallenge(message) {
+      return enqueue("admin_login_mfa", message);
+    },
   });
 }

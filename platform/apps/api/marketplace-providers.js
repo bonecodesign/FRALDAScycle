@@ -73,14 +73,36 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
         operation: "signed-upload", ownerId: userId, contentType, sizeBytes,
       }, fetchImpl);
       const storageKey = String(result.storageKey ?? "");
-      if (!/^[a-zA-Z0-9._/-]{1,512}$/.test(storageKey) || storageKey.includes("..")) {
+      if (!storageKey.startsWith(`listings/${userId}/`) ||
+          !/^[a-zA-Z0-9._/-]{1,512}$/.test(storageKey) || storageKey.includes("..")) {
         throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma chave de mídia inválida.");
       }
+      const uploadUrl = new URL(httpsUrl(result.uploadUrl, "uploadUrl"));
+      if (uploadUrl.username || uploadUrl.password) {
+        throw new ProviderError("invalid_provider_response", 502, "Endereço de upload inválido.");
+      }
+      const expiresAt = Date.parse(result.expiresAt);
+      const now = Date.now();
+      if (!Number.isFinite(expiresAt) || expiresAt <= now || expiresAt > now + 15 * 60_000) {
+        throw new ProviderError("invalid_provider_response", 502, "Prazo de upload inválido.");
+      }
+      const headers = {};
+      if (result.headers != null && (typeof result.headers !== "object" || Array.isArray(result.headers))) {
+        throw new ProviderError("invalid_provider_response", 502, "Cabeçalhos de upload inválidos.");
+      }
+      for (const [name, value] of Object.entries(result.headers ?? {})) {
+        const normalized = name.toLowerCase();
+        if (["authorization", "cookie", "host", "origin"].includes(normalized) ||
+            typeof value !== "string" || value.length > 2_048 || /[\r\n]/.test(value)) {
+          throw new ProviderError("invalid_provider_response", 502, "Cabeçalhos de upload inválidos.");
+        }
+        headers[normalized] = value;
+      }
       return {
-        uploadUrl: httpsUrl(result.uploadUrl, "uploadUrl"),
+        uploadUrl: uploadUrl.toString(),
         storageKey,
-        expiresAt: String(result.expiresAt ?? ""),
-        headers: result.headers && typeof result.headers === "object" ? result.headers : {},
+        expiresAt: new Date(expiresAt).toISOString(),
+        headers,
       };
     },
 

@@ -30,24 +30,25 @@ export async function migrate(database, migrations = null) {
       applied_at timestamptz NOT NULL DEFAULT now()
     )
   `);
-  const applied = await database.query("SELECT name, checksum FROM schema_migrations ORDER BY name");
-  const known = new Map(applied.rows.map((row) => [row.name, row.checksum]));
+  await database.transaction(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock($1)", [1_180_162_025]);
+    const applied = await client.query("SELECT name, checksum FROM schema_migrations ORDER BY name");
+    const known = new Map(applied.rows.map((row) => [row.name, row.checksum]));
 
-  for (const migration of migrationList) {
-    if (known.has(migration.name)) {
-      if (known.get(migration.name) !== migration.checksum) {
-        throw new Error(`Applied migration changed: ${migration.name}`);
+    for (const migration of migrationList) {
+      if (known.has(migration.name)) {
+        if (known.get(migration.name) !== migration.checksum) {
+          throw new Error(`Applied migration changed: ${migration.name}`);
+        }
+        continue;
       }
-      continue;
-    }
-    await database.transaction(async (client) => {
       await client.query(migration.sql);
       await client.query(
         "INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)",
         [migration.name, migration.checksum],
       );
-    });
-  }
+    }
+  });
   return migrationList.map(({ name }) => name);
 }
 

@@ -28,7 +28,7 @@
         "tests/payments.test.mjs"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Cálculo de 5% existe; ligação ao repasse do entregador pendente."
+      "reason": "Cálculo de 5% e ligação ao ledger local existem; cobrança de frete, provedor e repasse real permanecem pendentes."
     },
     {
       "id": 3,
@@ -54,7 +54,7 @@
         "tests/payments.test.mjs"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Cálculo de 2,5% por pacote existe; duas partes e cobrança ainda não integradas."
+      "reason": "Cálculo de 2,5% e duas partes estão modelados; cobrança individual e fornecedor permanecem bloqueados."
     },
     {
       "id": 5,
@@ -127,15 +127,16 @@
     {
       "id": 9,
       "title": "Frete na troca",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
-        "packages/contracts/commercial-rules.js",
-        "apps/api/payment-service.js",
-        "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "database/migrations/037_bilateral_exchanges.sql",
+        "database/exchange-repository.js",
+        "apps/api/exchange-service.js",
+        "tests/bilateral-exchange.test.mjs",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Logística por pacote recebido ainda não implementada."
+      "evidence": "Operação bilateral cria duas pernas logísticas identificadas, uma para cada pacote, sem cobrança ou provedor.",
+      "reason": "Duas rotas e endereços privados por perna implementados; preço, cobrança individual, provedor e validação PostgreSQL/HTTP permanecem pendentes."
     },
     {
       "id": 10,
@@ -148,7 +149,7 @@
         "tests/payments.test.mjs"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Fluxo das duas partes pendente; processamento depende de fornecedor."
+      "reason": "Fluxo bilateral local existe, mas definição, cobrança e processamento da diferença dependem de decisão comercial e fornecedor."
     },
     {
       "id": 11,
@@ -206,39 +207,49 @@
     {
       "id": 15,
       "title": "Repasse ao entregador",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
         "packages/contracts/commercial-rules.js",
-        "apps/api/payment-service.js",
-        "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "database/migrations/036_courier_payout_obligations.sql",
+        "database/receipt-repository.js",
+        "apps/api/logistics-service.js",
+        "apps/api/logistics-handler.js",
+        "apps/admin/proof-review.js",
+        "tests/courier-payout-eligibility.test.mjs",
+        "docs/courier-payout-eligibility-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Não há fluxo de elegibilidade e repasse do entregador homologado."
+      "evidence": "Cinco testes locais validam pré-requisitos, split 95/5, idempotência, autorização e bloqueio de transferência real.",
+      "reason": "Ledger e elegibilidade locais implementados; cobrança de frete, KYC, provedor, conciliação e validação PostgreSQL/HTTP permanecem pendentes."
     },
     {
       "id": 16,
       "title": "Conclusão da troca",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
+        "database/migrations/037_bilateral_exchanges.sql",
+        "database/exchange-repository.js",
         "database/receipt-repository.js",
-        "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "apps/api/exchange-service.js",
+        "tests/bilateral-exchange.test.mjs",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Faltam duas entregas e confirmações; conclusão legada bloqueada."
+      "evidence": "Conclusão local exige exatamente duas pernas atribuídas, entregues, com comprovante, aprovação e validação independentes, e ausência financeira.",
+      "reason": "Conclusão, recusa e cancelamento bilateral reversível implementados; operação real e validação PostgreSQL/HTTP permanecem pendentes."
     },
     {
       "id": 17,
       "title": "Entregadores na troca",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
+        "database/migrations/037_bilateral_exchanges.sql",
+        "database/exchange-repository.js",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "tests/bilateral-exchange.test.mjs",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Elegibilidade independente por perna não implementada."
+      "evidence": "Cada perna possui shipment, remetente, recebedor, entregador, comprovante e decisões próprios.",
+      "reason": "Independência estrutural implementada; seleção real, disponibilidade, remuneração e provedor permanecem pendentes."
     },
     {
       "id": 18,
@@ -303,11 +314,15 @@
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "database/migrations/038_exchange_refusal_and_cancellation.sql",
+        "database/exchange-repository.js",
+        "tests/bilateral-exchange.test.mjs",
+        "docs/bilateral-exchange-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
       "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Proteção antes de endereço/coleta existe; devolução financeira depende de homologação."
+      "reason": "Venda e troca reversível possuem cancelamento protegido; devolução financeira e operação real dependem de homologação."
     },
     {
       "id": 22,
@@ -317,11 +332,14 @@
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "database/exchange-repository.js",
+        "tests/bilateral-exchange.test.mjs",
+        "docs/bilateral-exchange-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
       "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Cancelamento direto bloqueado; análise de retorno/reembolso ainda pendente."
+      "reason": "Cancelamento direto é bloqueado após coleta, comprovante ou endereço; análise de retorno/reembolso ainda depende do suporte e fornecedor."
     },
     {
       "id": 23,
@@ -342,9 +360,10 @@
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
+        ,"docs/bilateral-exchange-beta.md"
       ],
       "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Venda/doação: confirmação, endereço restrito e alteração pelo suporte com revisões; retirada testável. Troca, transportadora e retenção permanecem pendentes."
+      "reason": "Venda, doação e cada perna da troca usam confirmação e acesso restrito; transportadora, retenção e validação real permanecem pendentes."
     },
     {
       "id": 24,
@@ -355,9 +374,10 @@
         "tests/private-address-sharing.test.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
+        ,"docs/bilateral-exchange-beta.md"
       ],
       "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Aviso explícito FC-ADDRESS-1 na venda; outras modalidades pendentes."
+      "reason": "Aviso explícito FC-ADDRESS-1 aplicado a venda, doação e troca; validação integral das interfaces e operação real permanecem pendentes."
     },
     {
       "id": 25,
@@ -378,30 +398,37 @@
       "title": "Dados do bebê",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "apps/api/child-profile-service.js",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Revisão de privacidade obrigatória antes de coleta ou uso."
+    "reason": "Fundação técnica permanece desativada; revisão de privacidade obrigatória antes de coleta ou uso."
     },
     {
       "id": 27,
       "title": "Obrigatoriedade do dado infantil",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Não ativar exigência ou bloqueio de cadastro antes da revisão."
+    "reason": "Perfil infantil não é obrigatório; qualquer ativação ou mudança depende de revisão."
     },
     {
       "id": 28,
       "title": "Parceiros e idade",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "packages/contracts/child-age-band.js",
+      "apps/api/child-profile-service.js",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Sem coleta infantil; ofertas por faixa aguardam revisão."
+    "reason": "Faixa derivada preparada sem expor data; coleta, ofertas e parceiros aguardam revisão."
     },
     {
       "id": 29,
@@ -420,45 +447,63 @@
     {
       "id": 30,
       "title": "Maioridade",
-      "status": "pendente",
+    "status": "parcial",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
         "tests/identity.test.mjs",
-        "tests/session.test.mjs"
+      "tests/session.test.mjs",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "packages/contracts/account-age.js",
+      "apps/api/adult-declaration-service.js",
+      "database/adult-declaration-repository.js",
+      "apps/app/auth.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Controle explícito de 18 anos não demonstrado por estes testes de identidade."
+    "evidence": "Declaração FC-AGE-1, persistência, auditoria, bloqueios sensíveis e interface validados localmente sem HTTP.",
+    "reason": "Controle explícito implementado; HTTP real e PostgreSQL nativo permanecem pendentes."
     },
     {
       "id": 31,
       "title": "Perfis distintos",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "apps/api/child-profile-service.js",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Requisito infantil familiar depende de revisão; não coletar nos outros perfis."
+    "reason": "Estrutura separada e inativa preparada; ativação depende de revisão e não altera outros perfis."
     },
     {
       "id": 32,
       "title": "Mais de um bebê",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "apps/api/child-profile-service.js",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Não implementar datas infantis antes da revisão."
+    "reason": "Múltiplos perfis preparados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
       "id": 33,
       "title": "Correção/remoção de datas",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/child-profile-repository.js",
+      "apps/api/child-profile-service.js",
+      "apps/app/family-profile.js",
+      "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Regra de bloqueio após remoção aguarda revisão específica."
+    "reason": "Correção versionada e remoção que desativa personalização preparadas; retenção/purga aguardam revisão."
     },
     {
       "id": 34,
@@ -487,22 +532,32 @@
     {
       "id": 36,
       "title": "Exceção logística de contato",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
-        "database/receipt-repository.js",
+        "database/logistics-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs"
+        "apps/api/logistics-handler.js",
+        "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Acesso específico ao contato necessário não demonstrado."
+      "evidence": "Regra local testada sem HTTP: somente o entregador atribuído recebe telefone verificado durante coleta ou entrega, com auditoria sem o valor do contato.",
+      "reason": "Fluxo local implementado; validação PostgreSQL/HTTP e operação logística real continuam pendentes."
     },
     {
       "id": 37,
       "title": "Autorização de contatos",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Recurso de autorização expressa após conclusão não implementado."
+      "status": "parcial",
+      "references": [
+        "database/migrations/034_paid_contact_and_supported_cancellation.sql",
+        "database/operation-support-repository.js",
+        "database/payment-repository.js",
+        "apps/api/marketplace-service.js",
+        "apps/app/negotiation.js",
+        "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md"
+      ],
+      "evidence": "Pagamento confirmado libera contato estruturado e auditado entre as partes; cancelamento pós-pagamento exige suporte, calcula taxas registradas e revoga o acesso.",
+      "reason": "Fluxo local implementado; estorno no provedor, validação PostgreSQL/HTTP e homologação financeira continuam pendentes."
     },
     {
       "id": 38,
@@ -908,14 +963,23 @@
     {
       "id": 64,
       "title": "Recusa de doação",
-      "status": "pendente",
+    "status": "parcial",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+      "tests/local-cancellation-support.test.mjs",
+      "database/migrations/032_donation_refusal.sql",
+      "database/migrations/039_donor_post_refusal_decision.sql",
+      "database/migrations/040_donation_redirect_institution.sql",
+      "database/donation-repository.js",
+      "apps/api/donation-service.js",
+      "apps/api/donation-handler.js",
+      "apps/app/donations.js",
+      "tests/donation-service.test.mjs",
+      "docs/donation-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Motivo, evidência e destino específico da doação não implementados."
+    "evidence": "Onze testes locais validam recusa, republicação, redirecionamento para instituição verificada, encerramento, idempotência e preservação do histórico original.",
+    "reason": "Recusa e três escolhas posteriores do doador implementadas; HTTP, PostgreSQL nativo e operação institucional real permanecem pendentes."
     },
     {
       "id": 65,
@@ -937,14 +1001,18 @@
     {
       "id": 66,
       "title": "Marca institucional",
-      "status": "pendente",
+      "status": "parcial",
       "references": [
-        "apps/api/institution-service.js",
-        "database/institution-repository.js",
-        "tests/institutions.test.mjs"
+        "database/migrations/035_institution_brand_authorizations.sql",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/api/institution-access-handler.js",
+        "apps/app/institution-access.js",
+        "tests/institution-brand-authorization.test.mjs",
+        "docs/institution-brand-authorization-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Registro de autorização com finalidade, canais e prazo não demonstrado."
+      "evidence": "Cinco testes locais validam autoridade exclusiva do representante, finalidade, canais, materiais, prazo, revogação, auditoria e leitura pública fechada.",
+      "reason": "Fundação local implementada; revisão jurídica, mídia real e validação PostgreSQL/HTTP permanecem pendentes."
     },
     {
       "id": 67,
@@ -961,22 +1029,35 @@
     {
       "id": 68,
       "title": "Pausa operacional",
-      "status": "pendente",
-      "references": [],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Pausa global com acompanhamento das transações existentes não demonstrada."
+    "status": "parcial",
+    "references": [
+      "database/migrations/031_operational_control.sql",
+      "database/operational-control-repository.js",
+      "apps/api/operational-control.js",
+      "apps/admin/operations.html",
+      "tests/operational-control.test.mjs",
+      "docs/operational-control-beta.md"
+    ],
+    "evidence": "Seis contratos específicos sem socket, regressão 83/83, sintaxe e contratos de migração aprovados localmente.",
+    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas; HTTP real e PostgreSQL nativo pendentes."
     },
     {
       "id": 69,
       "title": "Retomada",
-      "status": "pendente",
+    "status": "parcial",
       "references": [
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
-        "tests/pilot-session.test.mjs"
+      "tests/pilot-session.test.mjs",
+      "database/migrations/031_operational_control.sql",
+      "database/operational-control-repository.js",
+      "apps/api/operational-control.js",
+      "apps/admin/operations.html",
+      "tests/operational-control.test.mjs",
+      "docs/operational-control-beta.md"
       ],
-      "evidence": "Ausência identificada por inspeção; nenhuma validação de fluxo completo alegada.",
-      "reason": "Autorização registrada da retomada não implementada; não iniciar piloto real."
+    "evidence": "Autorização administrativa, confirmação, motivo, versão e auditoria validados sem socket; piloto permanece NO-GO.",
+    "reason": "Retomada persistente e auditada implementada; HTTP real e PostgreSQL nativo pendentes, sem autorização de piloto real."
     },
     {
       "id": 70,

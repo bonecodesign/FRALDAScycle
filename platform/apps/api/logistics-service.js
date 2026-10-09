@@ -43,6 +43,13 @@ export function createLogisticsService(repository,provider,mediaProvider){
       if (!proof) throw new LogisticsError("receipt_not_found", 404, "Recebimento não encontrado.");
       return proof.kind==='donation'?institutionReceiptReadiness(proof):sellerSettlementReadiness(proof);
     },
+    async courierPayoutStatus(actor,shipmentId){
+      const row=await repository.courierPayoutStatus({actorId:actor.id,shipmentId,reviewer:hasScope(actor,'admin:deliveries:validate')});
+      if(!row)throw new LogisticsError('courier_payout_not_found',404,'Repasse do entregador não encontrado.');
+      const blockers=[];if(row.kind!=='sale')blockers.push('unsupported_transaction_kind');if(row.shipment_status!=='delivered'||!row.proof_id)blockers.push('delivery_proof_pending');if(row.transaction_status!=='in_delivery')blockers.push('transaction_not_eligible');if(row.paid_count!==1||row.payment_status!=='paid'||!row.payment_provider_reference)blockers.push('payment_not_confirmed');if(!Number.isSafeInteger(row.delivery_fee_cents)||row.delivery_fee_cents<=0)blockers.push('freight_not_charged');if(row.financial_case_pending!==false)blockers.push('financial_case_pending');if(!row.approved_at)blockers.push('receiver_approval_pending');if(!row.validated_at)blockers.push('proof_validation_pending');if(!row.courier_id)blockers.push('courier_not_assigned');
+      return {eligible:blockers.length===0,blockers,status:row.payout_status??'not_prepared',freightCents:row.delivery_fee_cents??null,platformFeeCents:row.platform_fee_cents??null,courierAmountCents:row.courier_amount_cents??null,preparedAt:row.prepared_at??null,payoutAllowed:false};
+    },
+    async prepareCourierPayout(actor,shipmentId,input){requireScope(actor,'admin:deliveries:validate');if(input?.confirmed!==true)throw new LogisticsError('explicit_payout_preparation_required',422,'Confirme a preparação da obrigação de repasse.');return repository.prepareCourierPayout({actorId:actor.id,shipmentId});},
     async proofPhoto(actor, shipmentId) {
       const proof = await repository.receiptEvidence({ userId: actor.id, shipmentId,
         reviewer: hasScope(actor, "admin:deliveries:validate") });
@@ -102,6 +109,10 @@ export function createLogisticsService(repository,provider,mediaProvider){
     async collect(courierId,shipmentId,input){
       if(input?.confirmed!==true||input?.noticeVersion!=='FC-COLLECTION-1'||Object.keys(input).some(key=>!['confirmed','noticeVersion'].includes(key)))throw new LogisticsError('explicit_collection_required',422,'Confirme explicitamente a coleta da entrega atribuída.');
       return repository.collect({courierId,shipmentId});
+    },
+    async courierContact(actor,shipmentId){
+      if(actor?.role!=='courier')throw new LogisticsError('forbidden',403,'Somente o entregador atribuído pode consultar o contato logístico.');
+      return repository.courierContact({courierId:actor.id,shipmentId});
     },
     async assign(courierId,shipmentId){
       const shipment=await repository.assignCourier({courierId,shipmentId});

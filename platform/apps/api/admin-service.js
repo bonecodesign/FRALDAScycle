@@ -4,8 +4,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { hashPassword } from "./security.js";
 const ROLES = new Set(["customer", "courier", "moderator", "admin"]);
 const USER_STATUSES = new Set(["active", "suspended"]);
+const LISTING_STATUSES = new Set(["draft", "review", "published", "completed", "paused", "removed", "unavailable"]);
 const EMAIL_PATTERN = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 const INVITATION_TTL_MS = 72 * 60 * 60 * 1000;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function invitationHash(token) { return createHash("sha256").update(token).digest(); }
 
@@ -23,6 +25,51 @@ export class AdminError extends ServiceError {
 
 export function createAdminService(repository) {
   return Object.freeze({
+    async webhookSnapshot(actor, params = {}) {
+      const { limit, offset } = pagination(params, { defaultLimit: 50, maxLimit: 100 });
+      return repository.webhookSnapshot({ actorUserId: actor.id, limit, offset });
+    },
+    async accessSnapshot(actor) {
+      return repository.accessSnapshot({ actorUserId: actor.id });
+    },
+    async catalogSnapshot(actor, params = {}) {
+      const { limit, offset } = pagination(params, { defaultLimit: 50, maxLimit: 100 });
+      return repository.catalogSnapshot({
+        actorUserId: actor.id,
+        query: String(params.query ?? "").trim().slice(0, 120) || null,
+        status: LISTING_STATUSES.has(params.status) ? params.status : null,
+        limit, offset,
+      });
+    },
+    async listingReviewDetail(actor, listingId) {
+      if (!UUID_PATTERN.test(listingId)) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
+      const detail = await repository.listingReviewDetail({ actorUserId: actor.id, listingId });
+      if (!detail) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
+      return detail;
+    },
+    async reviewListing(actor, listingId, input) {
+      if (!UUID_PATTERN.test(listingId)) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
+      const outcome = String(input?.outcome ?? "");
+      const reason = String(input?.reason ?? "").trim();
+      if (input?.confirmed !== true || !["published", "removed"].includes(outcome) || reason.length < 10 || reason.length > 2_000) {
+        throw new AdminError("invalid_listing_review", 422, "Confirme a decisão e registre uma justificativa de 10 a 2000 caracteres.");
+      }
+      const listing = await repository.reviewListing({ actorUserId: actor.id, listingId, outcome, reason });
+      if (!listing) throw new AdminError("listing_not_found", 404, "Anúncio não encontrado.");
+      return listing;
+    },
+    async overviewSnapshot(actor, params = {}) {
+      const { limit } = pagination(params, { defaultLimit: 20, maxLimit: 50 });
+      return repository.overviewSnapshot({ actorUserId: actor.id, limit });
+    },
+    async financeSnapshot(actor, params = {}) {
+      const { limit, offset } = pagination(params, { defaultLimit: 50, maxLimit: 100 });
+      return repository.financeSnapshot({ actorUserId: actor.id, limit, offset });
+    },
+    async logisticsSnapshot(actor, params = {}) {
+      const { limit, offset } = pagination(params, { defaultLimit: 50, maxLimit: 100 });
+      return repository.logisticsSnapshot({ actorUserId: actor.id, limit, offset });
+    },
     async createInvitation(actor, input) {
       const email = String(input?.email ?? "").trim().toLocaleLowerCase("pt-BR");
       const displayName = String(input?.displayName ?? "").trim();

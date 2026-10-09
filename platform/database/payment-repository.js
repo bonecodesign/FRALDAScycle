@@ -164,6 +164,17 @@ export function createPaymentRepository(database) {
            )`,
           [intent.transaction_id, transactionStatus],
         );
+        if (event.type === "payment.paid") {
+          await client.query(
+            `INSERT INTO transaction_contact_access(transaction_id,payment_intent_id)
+             SELECT t.id,$2 FROM transactions t JOIN listings l ON l.id=t.listing_id
+             WHERE t.id=$1 AND l.kind='sale'
+             ON CONFLICT (transaction_id) DO UPDATE SET
+               payment_intent_id=EXCLUDED.payment_intent_id,unlocked_at=now(),
+               revoked_at=NULL,revoked_by=NULL,revocation_reason=NULL`,
+            [intent.transaction_id,intent.id],
+          );
+        }
         await client.query(
           `INSERT INTO audit_events (action, entity_type, entity_id, metadata)
            VALUES ('payment.webhook.processed', 'payment_intent', $1, $2::jsonb)`,

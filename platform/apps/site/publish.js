@@ -8,6 +8,8 @@ import "/apps/site/home.js";
 function setupSitePublish(){
   const content=document.getElementById('site-publish-content');
   if(!content)return;
+  const draft=document.getElementById('site-publish-draft');if(draft)draft.textContent='Rascunho apenas nesta sessão';
+  const guidance=document.querySelector('.publish-guidance > p');if(guidance)guidance.textContent='Preencha cada etapa. Os dados ainda não publicados permanecem somente nesta aba e podem ser perdidos ao sair.';
   const labels=['Tipo de negociação','Produto','Fotos','Condição','Preço','Entrega','Localização','Revisão'];
   const data={type:'Venda',category:'infant',title:'Pampers Confort Sec M - 50 unidades',brand:'Pampers',model:'Confort Sec',size:'M',quantity:'50',condition:'sealed',openPackageAttested:false,price:'42,00',delivery:'Retirada no local',location:'Bairro Castelo, Belo Horizonte - MG'};
   let step=1;
@@ -53,7 +55,7 @@ function setupSitePublish(){
         const file=input.files?.[0];if(!file)return;
         photo.disabled=true;photo.textContent='Enviando...';
         try{const key=await uploadListingMedia(file);mediaKeys.splice(0,mediaKeys.length,key);photoReady=true;draw();notify('Foto adicionada ao anúncio')}
-        catch(error){if(error.code==='provider_not_configured'){photoReady=true;draw();notify('Foto aprovada mantida até configurar o storage');return}photo.disabled=false;photo.textContent='Adicionar foto';notify(error.status===401?'Entre na sua conta para enviar fotos.':error.message)}
+        catch(error){photo.disabled=false;photo.textContent='Adicionar foto';notify(error.status===401?'Entre na sua conta para enviar fotos.':error.message)}
       });input.click();
     });
     document.getElementById('site-publish-back').addEventListener('click',()=>{if(step>1){step--;draw()}});
@@ -84,17 +86,17 @@ function setupSitePublish(){
           mediaKeys,
         });
         sessionStorage.setItem('fc.lastListingId', result.listing.id);
+        const isActive = result.listing.status === 'active';
+        content.innerHTML=`<div class="ui-state ${isActive?'success-state':'warning-state'}"><div class="state-icon ${isActive?'success':'warning'}">${isActive?'✓':'!'}</div><span class="eyebrow">${isActive?'Anúncio publicado':'Anúncio recebido'}</span><h2>${isActive?'Seu produto já está disponível':'Seu anúncio aguarda análise'}</h2><p>${isActive?'As famílias próximas poderão encontrar e negociar este anúncio.':'A publicação ainda não está visível. Você receberá uma atualização após a análise.'}</p><article class="review-product compact"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><h3>${data.title}</h3>${kind==='sale'?`<strong>R$ ${data.price}</strong>`:''}</div></article><div class="publish-actions action-pair"><a class="button secondary" href="/site/home">Ir para o início</a><a class="button primary" href="/site/detail?id=${result.listing.id}">Ver anúncio</a></div></div>`;
+        document.getElementById('site-publish-title').textContent=isActive?'Publicação concluída':'Publicação em análise';
+        document.getElementById('site-publish-subtitle').textContent=isActive?'Anúncio ativo':'Aguardando análise';
+        document.querySelectorAll('[data-site-publish-step]').forEach(button=>button.classList.add('done'));
+        notify(isActive?'Anúncio publicado com sucesso':'Anúncio enviado para análise');
       } catch (error) {
         notify(error.status === 401 ? 'Entre na sua conta para publicar.' : error.message);
         if (error.status === 401) location.pathname = '/site/login';
         return;
       }
-      content.innerHTML=`<div class="ui-state success-state"><div class="state-icon success">✓</div><span class="eyebrow">Anúncio publicado</span><h2>Seu produto já está disponível</h2><p>As famílias próximas poderão encontrar e negociar este anúncio.</p><article class="review-product compact"><img src="/source/assets/approved/pampers-approved.png" alt=""><div><h3>${data.title}</h3><strong>R$ ${data.price}</strong></div></article><div class="publish-actions action-pair"><a class="button secondary" href="/site/home">Ir para o início</a><a class="button primary" href="/site/detail" id="site-published-detail">Ver anúncio</a></div></div>`;
-      document.getElementById('site-publish-title').textContent='Publicação concluída';
-      document.getElementById('site-publish-subtitle').textContent='Anúncio ativo';
-      document.querySelectorAll('[data-site-publish-step]').forEach(button=>button.classList.add('done'));
-      const publishedDetail=document.getElementById('site-published-detail');if(publishedDetail)publishedDetail.href=`/site/detail?id=${sessionStorage.getItem('fc.lastListingId')}`;
-      notify('Anúncio publicado com sucesso');
     });
   };
   document.querySelectorAll('[data-site-publish-step]').forEach(button=>button.addEventListener('click',()=>{const target=Number(button.dataset.sitePublishStep);if(target<=step){step=target;draw()}}));

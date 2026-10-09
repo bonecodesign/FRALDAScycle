@@ -5,6 +5,7 @@ import { createVerificationCode } from "../apps/api/security.js";
 import { clearSessionCookie, readSessionCookie, sessionCookie } from "../apps/api/cookies.js";
 import { createApiServer } from "../apps/api/server.js";
 import { loadConfig } from "../apps/api/config.js";
+const adultRegistration = { adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1" };
 
 function repository() {
   const users = new Map();
@@ -20,6 +21,7 @@ function repository() {
         id: crypto.randomUUID(), email: input.email, phone: input.phone,
         password_hash: input.passwordHash, display_name: input.displayName,
         role: "customer", email_verified_at: null, disabled_at: null,
+        adult_declaration_version: input.adultDeclarationVersion, adult_declared_at: new Date(),
       };
       users.set(user.email, user);
       return user;
@@ -78,7 +80,7 @@ test("normalizes identity without weakening validation", () => {
 test("register login session and logout form a revocable journey", async () => {
   const auth = createAuthService(repository(), { sessionTtlSeconds: 3600 });
   const registered = await auth.register({
-    email: "ana@example.com", displayName: "Ana Souza", password: "senha-segura-2026",
+    ...adultRegistration, email: "ana@example.com", displayName: "Ana Souza", password: "senha-segura-2026",
   });
   assert.equal(registered.verificationRequired, true);
   assert.equal(registered.user.emailVerified, false);
@@ -93,7 +95,11 @@ test("register login session and logout form a revocable journey", async () => {
 test("authentication errors are explicit without leaking password state", async () => {
   const auth = createAuthService(repository());
   await assert.rejects(
-    auth.register({ email: "inválido", displayName: "A", password: "curta" }),
+    auth.register({ email: "adult@example.com", displayName: "Pessoa Adulta", password: "senha-segura-2026" }),
+    (error) => error instanceof AuthError && error.code === "adult_declaration_required" && error.status === 422,
+  );
+  await assert.rejects(
+    auth.register({ ...adultRegistration, email: "inválido", displayName: "A", password: "curta" }),
     (error) => error instanceof AuthError && error.code === "invalid_email",
   );
   await assert.rejects(
@@ -204,7 +210,7 @@ test("verification and recovery use one-time tokens and revoke sessions", async 
     },
   });
   await auth.register({
-    email: "bia@example.com", displayName: "Bia Lima", password: "senha-segura-2026",
+    ...adultRegistration, email: "bia@example.com", displayName: "Bia Lima", password: "senha-segura-2026",
   });
   assert.equal(sent[0][0], "verification");
   const verificationToken = sent[0][1].token;
@@ -251,7 +257,7 @@ test("phone-only identity preserves the approved email-or-phone contract", async
     },
   });
   const registered = await auth.register({
-    phone: "(31) 99900-0000", displayName: "Caio Lima", password: "senha-segura-2026",
+    ...adultRegistration, phone: "(31) 99900-0000", displayName: "Caio Lima", password: "senha-segura-2026",
   });
   assert.equal(registered.user.phone, "31999000000");
   assert.equal(registered.user.email, null);

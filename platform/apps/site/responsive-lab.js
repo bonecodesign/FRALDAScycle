@@ -15,6 +15,7 @@ function siteResponsiveLab(){
 }
 function setupResponsiveLab(){
   const page=document.querySelector('.responsive-lab-page');if(!page)return;
+  const rulesTitle=page.querySelector('.responsive-rules h2');if(rulesTitle)rulesTitle.textContent='Comportamento previsto para verificação';
   const viewport=page.querySelector('#responsive-viewport'),name=page.querySelector('#responsive-name'),spec=page.querySelector('#responsive-spec');
   page.querySelectorAll('[data-responsive-preset]').forEach(button=>button.addEventListener('click',()=>{
     const key=button.dataset.responsivePreset,preset=responsivePresets[key];

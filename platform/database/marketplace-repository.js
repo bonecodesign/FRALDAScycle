@@ -11,6 +11,20 @@ export function createMarketplaceRepository(database) {
 
   return Object.freeze({
     ...createOperationSupportRepository(database),
+    async ownListings(userId) {
+      const result = await database.query(
+        `SELECT l.id,l.title,l.brand,l.model,l.size,l.quantity,l.kind,l.price_cents,l.status,
+                l.created_at,l.updated_at,l.published_at,
+                review.outcome AS review_outcome,review.reason AS review_reason,review.created_at AS reviewed_at
+         FROM listings l
+         LEFT JOIN LATERAL (
+           SELECT outcome,reason,created_at FROM listing_review_decisions
+           WHERE listing_id=l.id ORDER BY created_at DESC LIMIT 1
+         ) review ON true
+         WHERE l.seller_id=$1 ORDER BY l.updated_at DESC,l.id`, [userId],
+      );
+      return result.rows;
+    },
     async search({
       query = null, kind = null, size = null,
       latitude = null, longitude = null, radiusKm = null,
@@ -127,7 +141,7 @@ export function createMarketplaceRepository(database) {
         await adjustFreeListings(client, owner.seller_id, premium);
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()
-           WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind <> 'donation'
+           WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind = 'sale'
            RETURNING id, seller_id, kind, price_cents`,
           [listingId, buyerId],
         );

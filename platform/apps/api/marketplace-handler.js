@@ -1,6 +1,7 @@
 import { readJson } from "./body.js";
 import { authenticatedUser } from "./session.js";
 import { sendJson } from "./http.js";
+import { requireAdultDeclaration } from "./adult-declaration-service.js";
 
 export async function handleMarketplace(request, response, {
   url, headers, requestId, marketplaceService, marketplaceProviders, authService,
@@ -24,6 +25,11 @@ export async function handleMarketplace(request, response, {
   }
 
   if (!marketplaceService) return false;
+  if (request.method === "GET" && url.pathname === "/v1/account/listings") {
+    const user = await authenticatedUser(request, authService);
+    sendJson(response, 200, { items: await marketplaceService.ownListings(user.id), requestId }, { ...headers, "cache-control": "no-store" });
+    return true;
+  }
   if (url.pathname === "/v1/support/tickets" && ["GET","POST"].includes(request.method)) {
     const actor=await authenticatedUser(request,authService);
     const result=request.method==="POST"
@@ -38,6 +44,12 @@ export async function handleMarketplace(request, response, {
       ? {ticket:await marketplaceService.supportTicket(actor,support[1])}
       : await marketplaceService.replySupportTicket(actor,support[1],await readJson(request));
     sendJson(response,200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
+  const cancellationDecision=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/cancellation-decision$/i);
+  if(cancellationDecision&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.supportCancellationDecision(actor,cancellationDecision[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
@@ -54,6 +66,7 @@ export async function handleMarketplace(request, response, {
 
   if (request.method === "POST" && url.pathname === "/v1/listings") {
     const user = await authenticatedUser(request, authService);
+    requireAdultDeclaration(user);
     const listing = await marketplaceService.create(user.id, await readJson(request));
     sendJson(response, 201, { listing, requestId }, headers);
     return true;
@@ -78,6 +91,7 @@ export async function handleMarketplace(request, response, {
   const startTransaction = url.pathname.match(/^\/v1\/listings\/([0-9a-f-]{36})\/transactions$/i);
   if (request.method === "POST" && startTransaction) {
     const user = await authenticatedUser(request, authService);
+    requireAdultDeclaration(user);
     const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1]);
     sendJson(response, 201, { transaction, requestId }, headers);
     return true;
@@ -89,6 +103,12 @@ export async function handleMarketplace(request, response, {
     const access = await marketplaceService.chatAccess(user.id, chatAccess[1]);
     sendJson(response, 200, { ...access, requestId }, headers);
     return true;
+  }
+  const contactAccess=url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/contact$/i);
+  if(request.method==='GET'&&contactAccess){
+    const user=await authenticatedUser(request,authService);
+    const contact=await marketplaceService.transactionContact(user.id,contactAccess[1]);
+    sendJson(response,200,{contact,requestId},{...headers,'cache-control':'no-store'});return true;
   }
 
   const transactionAction = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/(cancel|complete)$/i);

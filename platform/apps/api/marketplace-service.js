@@ -13,9 +13,17 @@ export class MarketplaceError extends ServiceError {
 const KINDS = new Set(["sale", "exchange", "donation"]);
 const CATEGORIES = new Set(["infant", "swim"]);
 const PACKAGE_CONDITIONS = new Set(["sealed", "open"]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function validListingId(value) {
+  if (!UUID_PATTERN.test(String(value ?? ""))) {
+    throw new MarketplaceError("listing_not_found", 404, "Anúncio não encontrado.");
+  }
+}
 
 export function createMarketplaceService(repository, moderation = null) {
   return Object.freeze({
+    ownListings(userId) { return repository.ownListings(userId); },
     async createSupportTicket(userId, input) {
       const category = String(input?.category ?? "general");
       const subject = String(input?.subject ?? "").trim();
@@ -46,6 +54,12 @@ export function createMarketplaceService(repository, moderation = null) {
       }
       return repository.replySupportTicket({actorId:actor.id,ticketId,body,status});
     },
+    async supportCancellationDecision(actor,ticketId,input) {
+      requireScope(actor,"admin:support:write");
+      const reason=String(input?.reason??"").trim();
+      if(input?.confirmed!==true||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_cancellation_decision',422,'Confirme a decisão e informe uma justificativa de 10 a 1000 caracteres.');
+      return repository.supportCancellationDecision({actorId:actor.id,ticketId,reason});
+    },
     async search(params = {}) {
       const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
       const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
@@ -61,9 +75,14 @@ export function createMarketplaceService(repository, moderation = null) {
         throw new MarketplaceError("invalid_location", 422, "Informe coordenadas válidas.");
       }
       const radiusKm = latitude == null ? null : Math.min(200, Math.max(1, Number(params.radiusKm) || 25));
+      const query = String(params.query ?? "").trim();
+      const size = String(params.size ?? "").trim();
+      if (query.length > 120 || size.length > 40) {
+        throw new MarketplaceError("invalid_search", 422, "Revise os filtros informados.");
+      }
       return repository.search({
-        query: String(params.query ?? "").trim() || null,
-        size: String(params.size ?? "").trim() || null,
+        query: query || null,
+        size: size || null,
         kind, latitude, longitude, radiusKm, limit, offset,
       });
     },
@@ -85,10 +104,18 @@ export function createMarketplaceService(repository, moderation = null) {
       const brand = String(input?.brand ?? "").trim();
       const model = String(input?.model ?? "").trim();
       const institutionId = String(input?.institutionId ?? "").trim() || null;
+      const size = String(input?.size ?? "").trim() || null;
+      const city = String(input?.city ?? "").trim() || null;
+      const state = String(input?.state ?? "").trim().toUpperCase() || null;
+      const hasLatitude = input?.latitude != null && input.latitude !== "";
+      const hasLongitude = input?.longitude != null && input.longitude !== "";
+      const latitude = hasLatitude ? Number(input.latitude) : null;
+      const longitude = hasLongitude ? Number(input.longitude) : null;
+      const mediaKeys = Array.isArray(input?.mediaKeys) ? input.mediaKeys : [];
       if (title.length < 5 || title.length > 120) throw new MarketplaceError("invalid_title", 422, "Informe o título do anúncio.");
       if (description.length < 20 || description.length > 4000) throw new MarketplaceError("invalid_description", 422, "Descreva o produto com mais detalhes.");
       if (!KINDS.has(kind)) throw new MarketplaceError("invalid_kind", 422, "Escolha venda, troca ou doação.");
-      if (!Number.isInteger(quantity) || quantity < 1) throw new MarketplaceError("invalid_quantity", 422, "Informe uma quantidade válida.");
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100_000) throw new MarketplaceError("invalid_quantity", 422, "Informe uma quantidade válida.");
       if (kind === "sale" && (!Number.isInteger(priceCents) || priceCents < 0)) throw new MarketplaceError("invalid_price", 422, "Informe um valor válido.");
       if (kind !== "sale" && priceCents !== null) throw new MarketplaceError("unexpected_price", 422, "Trocas e doações não possuem preço.");
       if (!CATEGORIES.has(category)) throw new MarketplaceError("invalid_category", 422, "Escolha fralda infantil descartável ou descartável para piscina.");
@@ -108,24 +135,34 @@ export function createMarketplaceService(repository, moderation = null) {
       }
       if (!brand || !model) throw new MarketplaceError("invalid_model", 422, "Informe a marca e o modelo da fralda.");
       if (!catalogHasModel(category, brand, model)) throw new MarketplaceError("unsupported_model", 422, "Escolha um modelo disponível no catálogo brasileiro.");
+      if (size && size.length > 40) throw new MarketplaceError("invalid_size", 422, "Informe um tamanho válido.");
+      if (city && (city.length < 2 || city.length > 120)) throw new MarketplaceError("invalid_city", 422, "Informe uma cidade válida.");
+      if (state && !/^[A-Z]{2}$/.test(state)) throw new MarketplaceError("invalid_state", 422, "Informe uma UF válida.");
+      if (hasLatitude !== hasLongitude || (hasLatitude && (
+        !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+        !Number.isFinite(longitude) || longitude < -180 || longitude > 180
+      ))) throw new MarketplaceError("invalid_location", 422, "Informe coordenadas válidas.");
+      if (mediaKeys.length > 8 || new Set(mediaKeys).size !== mediaKeys.length || mediaKeys.some((key) => {
+        const value = String(key);
+        return !value.startsWith(`listings/${userId}/`) || !/^[a-zA-Z0-9._/-]{1,512}$/.test(value) || value.includes("..");
+      })) throw new MarketplaceError("invalid_media", 422, "As fotos do anúncio são inválidas.");
       await assertContentAllowed(moderation,userId,'listing',title+'\n'+description);
       return repository.create({
         sellerId: userId, title, description, kind, quantity, priceCents, institutionId,
         category, brand, model, packageCondition,
         openPackageAttested: packageCondition === "open" && input.openPackageAttested === true,
-        size: String(input?.size ?? "").trim() || null,
-        city: String(input?.city ?? "").trim() || null,
-        state: String(input?.state ?? "").trim().toUpperCase() || null,
-        latitude: input?.latitude ?? null, longitude: input?.longitude ?? null,
-        mediaKeys: Array.isArray(input?.mediaKeys) ? input.mediaKeys.slice(0, 8) : [],
+        size, city, state, latitude, longitude, mediaKeys,
       });
     },
 
     favorites(userId) { return repository.favorites(userId); },
-    async addFavorite(userId, listingId) { await repository.addFavorite(userId, listingId); return { saved: true }; },
-    async removeFavorite(userId, listingId) { await repository.removeFavorite(userId, listingId); return { saved: false }; },
+    async addFavorite(userId, listingId) { validListingId(listingId); await repository.addFavorite(userId, listingId); return { saved: true }; },
+    async removeFavorite(userId, listingId) { validListingId(listingId); await repository.removeFavorite(userId, listingId); return { saved: false }; },
 
     async startTransaction(userId, listingId) {
+      validListingId(listingId);
+      const listing=await repository.detail(listingId);
+      if(listing?.kind==='exchange')throw new MarketplaceError('exchange_offer_required',409,'Escolha o anúncio que você oferece e use o fluxo bilateral de troca.');
       return repository.startTransaction({ buyerId: userId, listingId });
     },
 
@@ -152,6 +189,10 @@ export function createMarketplaceService(repository, moderation = null) {
           : terminal.has(access.status) ? "transaction_closed"
           : "payment_not_confirmed",
       };
+    },
+    async transactionContact(userId,transactionId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
+      return repository.transactionContact({actorId:userId,transactionId});
     },
   });
 }

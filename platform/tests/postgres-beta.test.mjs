@@ -90,7 +90,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const { createApiServer } = await import('../apps/api/server.js');
       const { loadConfig } = await import('../apps/api/config.js');
       const authService = createAuthService(createAuthRepository(database));
-      const fixture = { email: 'browser-fixture@example.test', displayName: 'Pessoa fictícia navegador', password: 'synthetic-only-password-v1' };
+      const fixture = { email: 'browser-fixture@example.test', displayName: 'Pessoa fictícia navegador', password: 'synthetic-only-password-v1', adultConfirmed:true, adultDeclarationVersion:'FC-AGE-1' };
       await authService.register(fixture);
       const session = await authService.login(fixture);
       const currentSession = await authService.session(session.token);
@@ -107,7 +107,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const surfacePort = await freeLocalPort();
       const surfaceOrigin = `http://127.0.0.1:${surfacePort}`;
       const adminPort=await freeLocalPort(),adminOrigin=`http://127.0.0.1:${adminPort}`;
-      const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1'};
+      const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(adminFixture);
       await database.query("UPDATE users SET role='admin' WHERE email=$1",[adminFixture.email]);
       const adminSession=await authService.login(adminFixture);
@@ -157,11 +157,11 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const {createDonationService}=await import('../apps/api/donation-service.js');
       const {createDonationRepository}=await import('../database/donation-repository.js');
       const donationService=createDonationService(createDonationRepository(database));
-      const donorFixture={email:'browser-donor@example.test',displayName:'Doador fictício navegador',password:'synthetic-only-donor-password-v1'};
+      const donorFixture={email:'browser-donor@example.test',displayName:'Doador fictício navegador',password:'synthetic-only-donor-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(donorFixture);const donorSession=await authService.login(donorFixture),donorActor=await authService.session(donorSession.token);
       const browserDonationListing=await seedDonationListing(database,donorActor.id,browserInstitution);
       await logisticsService.createAddress(donorActor.id,{label:'Coleta fictícia navegador',postalCode:'00000000',street:'Rua fictícia de coleta no navegador',number:'S/N',district:'Bairro fictício',city:'Belo Horizonte',state:'MG'});
-      const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1'};
+      const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
       const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
       const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,donationService });

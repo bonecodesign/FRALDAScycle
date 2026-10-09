@@ -47,3 +47,13 @@ test("production doctor reports missing bundles without exposing secrets", () =>
   assert.equal(serialized.includes("notify-secret"), false);
   assert.equal(serialized.includes("vault-token"), false);
 });
+
+test("production doctor rejects an invalid external secrets contract", () => {
+  const report = inspectProductionReadiness({
+    ...complete,
+    SECRETS_PROVIDER_URL: "https://user:password@vault.vendor.dev/v1",
+  });
+  assert.equal(report.ready, false);
+  assert.match(report.blockers.join("\n"), /must not contain credentials/);
+  assert.equal(JSON.stringify(report).includes("password"), false);
+});

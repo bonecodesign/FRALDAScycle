@@ -1,0 +1,129 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFile } from "node:fs/promises";
+import { adultDeclaration, ADULT_DECLARATION_VERSION } from "../packages/contracts/account-age.js";
+import { childAgeBand, CHILD_PROFILE_CONSENT_VERSION } from "../packages/contracts/child-age-band.js";
+import { loadConfig } from "../apps/api/config.js";
+import { createAdultDeclarationService, requireAdultDeclaration } from "../apps/api/adult-declaration-service.js";
+import { createAdultDeclarationRepository } from "../database/adult-declaration-repository.js";
+import { createChildProfileService } from "../apps/api/child-profile-service.js";
+
+test("adult declaration is explicit, versioned and accepts no injected identity", () => {
+  assert.deepEqual(adultDeclaration({ confirmed: true, version: ADULT_DECLARATION_VERSION }), { confirmed: true, version: "FC-AGE-1" });
+  for (const input of [null, {}, { confirmed: false, version: "FC-AGE-1" }, { confirmed: true, version: "old" }, { confirmed: true, version: "FC-AGE-1", userId: "other" }]) {
+    assert.throws(() => adultDeclaration(input));
+  }
+});
+
+test("child age derivation returns only a band and rejects future or adult dates", () => {
+  const reference = new Date("2026-10-07T12:00:00Z");
+  assert.equal(childAgeBand("2026-09-07", reference), "newborn_0_2");
+  assert.equal(childAgeBand("2026-04-07", reference), "infant_6_11");
+  assert.equal(childAgeBand("2025-04-07", reference), "toddler_12_23");
+  assert.equal(childAgeBand("2023-01-01", reference), "child_36_plus");
+  assert.throws(() => childAgeBand("2027-01-01", reference));
+  assert.throws(() => childAgeBand("2008-10-07", reference));
+});
+
+test("child profiles remain disabled unless explicitly enabled", () => {
+  assert.equal(loadConfig({ NODE_ENV: "test" }).childProfilesEnabled, false);
+  assert.equal(loadConfig({ NODE_ENV: "test", CHILD_PROFILES_ENABLED: "false" }).childProfilesEnabled, false);
+  assert.equal(loadConfig({ NODE_ENV: "test", CHILD_PROFILES_ENABLED: "true" }).childProfilesEnabled, true);
+});
+
+test("schema keeps adult and child consent separate and exact birth date private", async () => {
+  const migration = await readFile(new URL("../database/migrations/033_age_and_child_profile_foundation.sql", import.meta.url), "utf8");
+  assert.match(migration, /adult_declaration_version = 'FC-AGE-1'/);
+  assert.match(migration, /CREATE TABLE child_profiles/);
+  assert.match(migration, new RegExp(CHILD_PROFILE_CONSENT_VERSION));
+  assert.match(migration, /personalization_enabled boolean NOT NULL DEFAULT false/);
+  assert.match(migration, /birth_date.*Dado privado/);
+  assert.doesNotMatch(migration, /partner|advertis/i);
+});
+
+test("existing account can declare adulthood only for itself with idempotent audit", async () => {
+  const changes = [];
+  const service = createAdultDeclarationService({
+    async status() { return { adult_declaration_version: null, adult_declared_at: null }; },
+    async declare(input) { changes.push(input); return { adult_declaration_version: input.version, adult_declared_at: new Date("2026-10-07T12:00:00Z"), reused: false }; },
+  });
+  assert.deepEqual(await service.status({ id: "account-1" }), { declared: false, version: null, declaredAt: null });
+  const result = await service.declare({ id: "account-1" }, { confirmed: true, version: "FC-AGE-1" });
+  assert.equal(result.declared, true);
+  assert.deepEqual(changes[0], { actorUserId: "account-1", version: "FC-AGE-1" });
+  await assert.rejects(service.declare({ id: "account-1" }, { confirmed: true, version: "FC-AGE-1", userId: "other" }));
+});
+
+test("sensitive operation requires declaration while account access remains separate", () => {
+  assert.throws(() => requireAdultDeclaration({ id: "account-1", adultDeclared: false }), error => error.code === "adult_declaration_required" && error.status === 403);
+  assert.equal(requireAdultDeclaration({ id: "account-1", adultDeclared: true }).id, "account-1");
+});
+
+test("adult declaration repository updates user and audit atomically", async () => {
+  const statements = [];
+  const client = { async query(text, values) {
+    statements.push({ text, values });
+    if (/SELECT adult_declaration_version/.test(text)) return { rows: [{ adult_declaration_version: null, adult_declared_at: null }] };
+    if (/UPDATE users/.test(text)) return { rows: [{ adult_declaration_version: "FC-AGE-1", adult_declared_at: new Date() }] };
+    return { rows: [] };
+  } };
+  const repository = createAdultDeclarationRepository({ async transaction(work) { return work(client); } });
+  const state = await repository.declare({ actorUserId: "11111111-1111-4111-8111-111111111111", version: "FC-AGE-1" });
+  assert.equal(state.reused, false);
+  assert.equal(statements.length, 3);
+  assert.match(statements[0].text, /FOR UPDATE/);
+  assert.match(statements[2].text, /account\.adult\.declared/);
+});
+
+test("child profile service stays hidden while feature flag is disabled", async () => {
+  const service = createChildProfileService({ async list() { throw new Error("must not read"); } });
+  await assert.rejects(service.list({ id: "account-1", adultDeclared: true }), error => error.code === "child_profiles_disabled" && error.status === 404);
+});
+
+test("owner can manage multiple private profiles with explicit consent and versioning", async () => {
+  const rows = [];
+  const reference = new Date("2026-10-07T12:00:00Z");
+  const repository = {
+    async list() { return rows; },
+    async create(input) { const row = { id: crypto.randomUUID(), label: input.label, birth_date: input.birthDate, consent_version: input.consentVersion, personalization_enabled: true, version: 1, created_at: reference, updated_at: reference }; rows.push(row); return row; },
+    async update(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; Object.assign(row, { label: input.label, birth_date: input.birthDate, version: row.version + 1, updated_at: reference }); return row; },
+    async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
+  };
+  const service = createChildProfileService(repository, { featureEnabled: true, now: () => reference });
+  const actor = { id: "account-1", adultDeclared: true };
+  const first = await service.create(actor, { label: "Bebê A", birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
+  const second = await service.create(actor, { label: "Bebê B", birthDate: "2025-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
+  assert.equal((await service.list(actor)).length, 2);
+  assert.deepEqual(await service.personalizationSignals(actor), [{ profileId: first.id, ageBand: "infant_6_11" }, { profileId: second.id, ageBand: "toddler_12_23" }]);
+  assert.equal("birthDate" in (await service.personalizationSignals(actor))[0], false);
+  const corrected = await service.update(actor, first.id, { label: "Bebê A", birthDate: "2026-05-07", expectedVersion: 1 });
+  assert.equal(corrected.version, 2);
+  await assert.rejects(service.update(actor, first.id, { label: "Bebê A", birthDate: "2026-05-07", expectedVersion: 1 }), error => error.code === "child_profile_version_conflict");
+  assert.deepEqual(await service.remove(actor, second.id, { confirmed: true, expectedVersion: 1 }), { id: second.id, removed: true, personalizationEnabled: false, version: 2 });
+});
+
+test("child profile rejects missing consent, injected account and non-child date", async () => {
+  const service = createChildProfileService({ async create() { throw new Error("must not write"); } }, { featureEnabled: true, now: () => new Date("2026-10-07T12:00:00Z") });
+  const actor = { id: "account-1", adultDeclared: true };
+  const base = { label: "Bebê", birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true };
+  await assert.rejects(service.create(actor, { ...base, consentConfirmed: false }), error => error.code === "child_profile_consent_required");
+  await assert.rejects(service.create(actor, { ...base, accountId: "other" }), error => error.code === "invalid_child_profile");
+  await assert.rejects(service.create(actor, { ...base, birthDate: "2000-01-01" }), error => error.code === "invalid_child_birth_date");
+});
+
+test("account interface requires adulthood and keeps child UI hidden on disabled feature", async () => {
+  const [auth, settings, controller, handler] = await Promise.all([
+    readFile(new URL('../apps/app/auth.js', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/app/settings.html', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/app/family-profile.js', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/api/child-profile-handler.js', import.meta.url), 'utf8'),
+  ]);
+  assert.match(auth, /Confirmo que tenho 18 anos ou mais/);
+  assert.match(auth, /adultDeclarationVersion: "FC-AGE-1"/);
+  assert.match(settings, /\/apps\/app\/family-profile\.js/);
+  assert.match(controller, /if \(error\.status === 404\) return/);
+  assert.match(controller, /A data fica privada/);
+  assert.match(controller, /FC-CHILD-PROFILE-1/);
+  assert.match(controller, /Remover e parar personalização/);
+  assert.doesNotMatch(handler, /personalizationSignals/);
+});
