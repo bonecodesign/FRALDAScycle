@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { createSessionToken, createVerificationCode, hashPassword, verifyPassword } from "./security.js";
-import { createNotificationService } from "./notifications.js";
 import { adultDeclaration } from "../../packages/contracts/account-age.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -67,7 +66,6 @@ function publicUser(user) {
 
 export function createAuthService(repository, {
   sessionTtlSeconds = 2_592_000,
-  notificationService = createNotificationService(),
   maxLoginAttempts = 5,
 } = {}) {
   async function createSession(user, context) {
@@ -78,21 +76,6 @@ export function createAuthService(repository, {
       userAgent: context.userAgent ?? null,
     });
     return { token, expiresAt, user: publicUser(user) };
-  }
-
-  async function issueToken(user, kind) {
-    const token = createVerificationCode();
-    await repository.createAuthToken({
-      userId: user.id,
-      kind,
-      tokenHash: hashSessionToken(token),
-      expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
-    });
-    if (kind === "email_verification") {
-      await notificationService.verification({ email: user.email, phone: user.phone, token });
-    } else {
-      await notificationService.passwordRecovery({ email: user.email, phone: user.phone, token });
-    }
   }
 
   return Object.freeze({
@@ -106,13 +89,20 @@ export function createAuthService(repository, {
       if (displayName.length < 2 || displayName.length > 100) throw new AuthError("invalid_display_name", 422, "Informe seu nome.");
 
       try {
-        const user = await repository.createUser({
+        const token = createVerificationCode();
+        const challenge = createSessionToken();
+        const user = await repository.createUserWithVerification({
           email, phone, displayName, passwordHash: await hashPassword(password), adultDeclarationVersion: age.version,
+          verification: { token, tokenHash: hashSessionToken(`account-verification:${challenge}.${token}`),
+            identityHash: hashIdentifier(`account-verification-request:${email ? 'email' : 'phone'}:${email ?? phone}`),
+            expiresAt: new Date(Date.now() + TOKEN_TTL_MS) },
         });
-        await issueToken(user, "email_verification");
-        return { user: publicUser(user), verificationRequired: true };
+        return { user: publicUser(user), verificationRequired: true, challenge };
       } catch (error) {
-        if (error?.code === "23505") throw new AuthError("account_exists", 409, "Já existe uma conta com esses dados.");
+        if (error?.code === 'verification_request_limited') throw new AuthError('verification_request_limited', 429, 'Muitas solicitações de verificação. Aguarde antes de solicitar outro código.');
+        if (error?.code === "23505" && ['users_email_unique', 'users_phone_unique'].includes(error.constraint)) {
+          throw new AuthError("account_exists", 409, "Já existe uma conta com esses dados.");
+        }
         throw error;
       }
     },
@@ -132,13 +122,14 @@ export function createAuthService(repository, {
       if (ELEVATED_ROLES.has(user.role)) {
         const challenge = createSessionToken();
         const code = createVerificationCode();
-        await repository.createAuthToken({
+        const issued = await repository.createAuthToken({
           userId: user.id,
           kind: "admin_login_mfa",
           tokenHash: hashSessionToken(`${challenge}.${code}`),
           expiresAt: new Date(Date.now() + ADMIN_MFA_TTL_MS),
+          notification: { token: code },
         });
-        await notificationService.adminLoginChallenge({ email: user.email, phone: user.phone, token: code });
+        if (!issued) throw new AuthError("invalid_credentials", 401, "Não foi possível iniciar o acesso administrativo.");
         return { mfaRequired: true, challenge, expiresAt: new Date(Date.now() + ADMIN_MFA_TTL_MS) };
       }
       return createSession(user, context);
@@ -147,23 +138,19 @@ export function createAuthService(repository, {
     async confirmAdminMfa(input, context = {}) {
       const challenge = String(input?.challenge ?? "");
       const code = String(input?.code ?? "");
-      if (challenge.length < 43 || !/^\d{6}$/.test(code)) {
+      if (!/^[A-Za-z0-9_-]{43}$/.test(challenge) || !/^\d{6}$/.test(code)) {
         throw new AuthError("invalid_mfa_code", 422, "Código de segurança inválido ou expirado.");
       }
       const attemptHash = hashIdentifier(`admin-mfa:${challenge}`);
-      if (await repository.countRecentFailedAttempts(attemptHash) >= maxLoginAttempts) {
+      const token=createSessionToken(),expiresAt=new Date(Date.now()+sessionTtlSeconds*1000);
+      const result=await repository.confirmAdminMfaSession({tokenHash:hashSessionToken(`${challenge}.${code}`),attemptHash,maxAttempts:maxLoginAttempts,sessionTokenHash:hashSessionToken(token),expiresAt,userAgent:context.userAgent??null});
+      if (result.limited) {
         throw new AuthError("too_many_attempts", 429, "Muitas tentativas. Inicie o acesso novamente.");
       }
-      const userId = await repository.consumeAuthToken({
-        tokenHash: hashSessionToken(`${challenge}.${code}`), kind: "admin_login_mfa",
-      });
-      await repository.recordLoginAttempt({ emailHash: attemptHash, succeeded: Boolean(userId) });
-      if (!userId) throw new AuthError("invalid_mfa_code", 422, "Código de segurança inválido ou expirado.");
-      const user = await repository.findUserById(userId);
-      if (!user || user.disabled_at || !ELEVATED_ROLES.has(user.role)) {
+      if (!result.user) {
         throw new AuthError("invalid_mfa_code", 422, "Código de segurança inválido ou expirado.");
       }
-      return createSession(user, context);
+      return {token,expiresAt,user:publicUser(result.user)};
     },
 
     async session(token) {
@@ -178,34 +165,66 @@ export function createAuthService(repository, {
     },
 
     async requestVerification(input) {
-      const user = await repository.findUserByContact(contactFromInput(input));
-      if (user && !user.email_verified_at && !user.disabled_at) await issueToken(user, "email_verification");
-      return { accepted: true };
+      const supplied = contactFromInput(input);
+      const contact = supplied.email ? { email: supplied.email, phone: null } : supplied;
+      const identityHash = hashIdentifier(`account-verification-request:${contact.email ? 'email' : 'phone'}:${contact.email ?? contact.phone}`);
+      if (!await repository.reserveVerificationRequest(identityHash)) throw new AuthError('verification_request_limited', 429, 'Muitas solicitações de verificação. Aguarde antes de solicitar outro código.');
+      const challenge = createSessionToken();
+      const user = await repository.findUserByContact(contact);
+      if (user && !user.email_verified_at && !user.disabled_at) {
+        const token = createVerificationCode();
+        await repository.createAuthToken({ userId: user.id, kind: 'email_verification',
+          tokenHash: hashSessionToken(`account-verification:${challenge}.${token}`),
+          expiresAt: new Date(Date.now() + TOKEN_TTL_MS), notification: { token } });
+      }
+      return { accepted: true, challenge };
     },
 
     async verifyEmail(input) {
       const token = String(input?.token ?? "");
-      const userId = token && await repository.consumeAuthToken({
-        tokenHash: hashSessionToken(token), kind: "email_verification",
+      const challenge = String(input?.challenge ?? '');
+      if (!/^[A-Za-z0-9_-]{43}$/.test(challenge) || !/^\d{6}$/.test(token)) throw new AuthError('invalid_or_expired_token', 422, 'Código inválido ou expirado. Solicite um novo código se necessário.');
+      const result = await repository.confirmVerificationToken({
+        tokenHash: hashSessionToken(`account-verification:${challenge}.${token}`),
+        attemptHash: hashIdentifier(`account-verification:${challenge}`), maxAttempts: maxLoginAttempts,
       });
-      if (!userId) throw new AuthError("invalid_or_expired_token", 422, "Código inválido ou expirado.");
-      return { user: publicUser(await repository.markEmailVerified(userId)) };
+      if (result.limited) throw new AuthError('too_many_attempts', 429, 'Muitas tentativas. Solicite um novo código de verificação.');
+      if (!result.user) throw new AuthError("invalid_or_expired_token", 422, "Código inválido ou expirado.");
+      return { user: publicUser(result.user) };
     },
 
     async requestPasswordRecovery(input) {
-      const user = await repository.findUserByContact(contactFromInput(input));
-      if (user && !user.disabled_at) await issueToken(user, "password_recovery");
-      return { accepted: true };
+      const suppliedContact = contactFromInput(input);
+      const contact = suppliedContact.email ? { email: suppliedContact.email, phone: null } : suppliedContact;
+      const identityHash = hashIdentifier(`password-recovery-request:${contact.email ? 'email' : 'phone'}:${contact.email ?? contact.phone}`);
+      if (!await repository.reservePasswordRecoveryRequest(identityHash)) {
+        throw new AuthError("recovery_request_limited", 429, "Muitas solicitações de recuperação. Aguarde antes de solicitar outro código.");
+      }
+      const challenge = createSessionToken();
+      const user = await repository.findUserByContact(contact);
+      if (user && !user.disabled_at) {
+        const token = createVerificationCode();
+        await repository.createAuthToken({ userId: user.id, kind: "password_recovery",
+          tokenHash: hashSessionToken(`password-recovery:${challenge}.${token}`),
+          expiresAt: new Date(Date.now() + TOKEN_TTL_MS), notification: { token } });
+      }
+      return { accepted: true, challenge };
     },
 
     async resetPassword(input) {
       const password = passwordFromInput(input?.password);
       const token = String(input?.token ?? "");
-      const userId = token && await repository.consumeAuthToken({
-        tokenHash: hashSessionToken(token), kind: "password_recovery",
+      const challenge = String(input?.challenge ?? "");
+      if (!/^[A-Za-z0-9_-]{43}$/.test(challenge) || !/^\d{6}$/.test(token)) {
+        throw new AuthError("invalid_or_expired_token", 422, "Código inválido ou expirado. Solicite um novo código se necessário.");
+      }
+      const userId = await repository.resetPasswordWithToken({
+        tokenHash: hashSessionToken(`password-recovery:${challenge}.${token}`),
+        attemptHash: hashIdentifier(`password-recovery:${challenge}`), maxAttempts: maxLoginAttempts,
+        passwordHash: await hashPassword(password),
       });
+      if (userId?.limited) throw new AuthError("too_many_attempts", 429, "Muitas tentativas. Solicite um novo código de recuperação.");
       if (!userId) throw new AuthError("invalid_or_expired_token", 422, "Código inválido ou expirado.");
-      await repository.replacePasswordAndRevokeSessions(userId, await hashPassword(password));
       return { success: true };
     },
   });

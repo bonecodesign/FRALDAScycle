@@ -3,7 +3,6 @@ import { isMainModule } from "../../packages/contracts/main-module.js";
 import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
-import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
 import { createInstitutionRepository } from "../../database/institution-repository.js";
 import { createAdminRepository } from "../../database/admin-repository.js";
@@ -11,7 +10,6 @@ import { createPaymentRepository } from "../../database/payment-repository.js";
 import { createLogisticsRepository } from "../../database/logistics-repository.js";
 import { createRealtimeRepository } from "../../database/realtime-repository.js";
 import { createAuthService } from "./auth-service.js";
-import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
 import { createInstitutionService } from "./institution-service.js";
 import { createAdminService } from "./admin-service.js";
@@ -54,10 +52,8 @@ export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
   const database = createDatabase(config);
   await migrate(database);
-  const notificationService = createNotificationService(createNotificationRepository(database));
   const authService = createAuthService(createAuthRepository(database), {
     sessionTtlSeconds: config.sessionTtlSeconds,
-    notificationService,
   });
   const moderationRepository = createModerationRepository(database);
   const donationService = createDonationService(createDonationRepository(database));

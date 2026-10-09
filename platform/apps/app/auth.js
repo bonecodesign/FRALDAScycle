@@ -73,18 +73,27 @@ function setupSyntheticDataDisclosure() {
 }
 
 function setupAuthValidation() {
-  const contactValid = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || value.replace(/\D/g, "").length >= 8;
+  const busyForms = new WeakSet();
+  const contactValid = value => value.includes('@') ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) : /^\d{8,15}$/.test(value.replace(/\D/g, ''));
+  const validPassword = value => value.length >= 12 && value.length <= 1024 && value.trim().length >= 12;
+  const checkedChallenge = result => {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(result?.challenge ?? '')) throw new ApiError('invalid_auth_response', 'Não foi possível obter o código. Tente novamente.', 502);
+    return result.challenge;
+  };
   const showError = (form, message) => {
     const error = form.querySelector(".field-error");
     if (error) error.textContent = message;
     form.querySelectorAll(".input").forEach(input => input.classList.toggle("invalid", !input.checkValidity()));
   };
   const submitState = (form, label) => {
+    busyForms.add(form);
     const button = form.querySelector('[type="submit"]');
     const original = button.textContent;
     button.disabled = true;
     button.innerHTML = `<span class="inline-spinner"></span> ${label}`;
-    return () => { button.disabled = false; button.textContent = original; };
+    const resend = form.id === 'verify-form' ? document.getElementById('resend-code') : null;
+    if (resend) resend.disabled = true;
+    return () => { busyForms.delete(form); button.disabled = false; button.textContent = original; if (resend) resend.disabled = false; };
   };
   const fail = (form, error) => {
     showError(form, error instanceof ApiError ? error.message : "Não foi possível concluir. Tente novamente.");
@@ -94,6 +103,7 @@ function setupAuthValidation() {
   const login = document.getElementById("login-form");
   if (login) login.addEventListener("submit", async event => {
     event.preventDefault();
+    if (busyForms.has(login)) return;
     const inputs = login.querySelectorAll("input");
     const contact = inputs[0].value.trim();
     if (!contactValid(contact)) return showError(login, "Informe um e-mail ou telefone válido.");
@@ -101,7 +111,13 @@ function setupAuthValidation() {
     const restore = submitState(login, "Entrando...");
     showError(login, "");
     try {
-      await apiRequest("/v1/auth/login", { method: "POST", body: { ...contactPayload(contact), password: inputs[1].value } });
+      const body = { ...contactPayload(contact), password: inputs[1].value };
+      inputs[1].value = '';
+      const result = await apiRequest("/v1/auth/login", { method: "POST", body });
+      if (result.mfaRequired === true || ['admin','moderator'].includes(result.user?.role)) {
+        location.pathname = '/admin/login'; return;
+      }
+      if (!result.user?.id) throw new ApiError('invalid_auth_response', 'Não foi possível confirmar o acesso. Tente novamente.', 502);
       location.pathname = "/app/home";
     } catch (error) { fail(login, error); restore(); }
   });
@@ -111,21 +127,25 @@ function setupAuthValidation() {
     register.querySelector('.terms')?.insertAdjacentHTML('beforebegin','<label class="terms" data-adult-declaration><input type="checkbox" required> Confirmo que tenho 18 anos ou mais.</label>');
     register.addEventListener("submit", async event => {
     event.preventDefault();
+    if (busyForms.has(register)) return;
     const inputs = register.querySelectorAll("input");
     const contact = inputs[1].value.trim();
     if (inputs[0].value.trim().length < 3) return showError(register, "Informe seu nome completo.");
     if (!contactValid(contact)) return showError(register, "Informe um e-mail ou telefone válido.");
-    if (inputs[2].value.length < 12) return showError(register, "A senha precisa ter pelo menos 12 caracteres.");
+    if (!validPassword(inputs[2].value)) return showError(register, "A senha precisa ter entre 12 e 1024 caracteres e não pode conter apenas espaços.");
     if (inputs[2].value !== inputs[3].value) return showError(register, "As senhas precisam ser iguais.");
     if (!inputs[4].checked) return showError(register, "Confirme que você tem 18 anos ou mais.");
     if (!inputs[5].checked) return showError(register, "Aceite os Termos de Uso e a Política de Privacidade.");
     const restore = submitState(register, "Criando conta...");
     showError(register, "");
     try {
-      await apiRequest("/v1/auth/register", {
+      const password = inputs[2].value;
+      inputs[2].value = ''; inputs[3].value = '';
+      const result = await apiRequest("/v1/auth/register", {
         method: "POST",
-        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password: inputs[2].value, adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1" },
+        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password, adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1" },
       });
+      sessionStorage.setItem('fc.auth.verificationChallenge', checkedChallenge(result));
       sessionStorage.setItem("fc.auth.contact", contact);
       sessionStorage.setItem("fc.auth.mode", "verification");
       location.pathname = "/app/verify";
@@ -136,13 +156,16 @@ function setupAuthValidation() {
   const recovery = document.getElementById("recovery-form");
   if (recovery) recovery.addEventListener("submit", async event => {
     event.preventDefault();
+    if (busyForms.has(recovery)) return;
     const input = recovery.querySelector("input");
     const contact = input.value.trim();
     if (!contactValid(contact)) return showError(recovery, "Informe um e-mail ou telefone válido.");
     const restore = submitState(recovery, "Enviando código...");
     showError(recovery, "");
     try {
-      await apiRequest("/v1/auth/password/request", { method: "POST", body: contactPayload(contact) });
+      const result = await apiRequest("/v1/auth/password/request", { method: "POST", body: contactPayload(contact) });
+      sessionStorage.setItem("fc.auth.recoveryChallenge", checkedChallenge(result));
+      sessionStorage.removeItem("fc.auth.recoveryToken");
       sessionStorage.setItem("fc.auth.contact", contact);
       sessionStorage.setItem("fc.auth.mode", "recovery");
       location.pathname = "/app/verify";
@@ -167,47 +190,90 @@ function setupAuthValidation() {
     });
     verify.addEventListener("submit", async event => {
       event.preventDefault();
+      if (busyForms.has(verify)) return;
       const token = digits.map(input => input.value).join("");
       if (token.length !== 6) return showError(verify, "Digite os seis números do código.");
       const restore = submitState(verify, "Verificando...");
+      showError(verify, '');
       try {
         if (sessionStorage.getItem("fc.auth.mode") === "recovery") {
+          if (!/^[A-Za-z0-9_-]{43}$/.test(sessionStorage.getItem("fc.auth.recoveryChallenge") ?? "")) {
+            showError(verify, "Solicite um novo código de recuperação."); restore(); return;
+          }
           sessionStorage.setItem("fc.auth.recoveryToken", token);
           location.pathname = "/app/reset-password";
         } else {
-          await apiRequest("/v1/auth/verification/confirm", { method: "POST", body: { token } });
+          const challenge = sessionStorage.getItem('fc.auth.verificationChallenge');
+          if (!/^[A-Za-z0-9_-]{43}$/.test(challenge ?? '')) { showError(verify, 'Solicite um novo código de verificação.'); restore(); return; }
+          const result = await apiRequest("/v1/auth/verification/confirm", { method: "POST", body: { token, challenge } });
+          if (!result.user?.id || result.user.emailVerified !== true) throw new ApiError('invalid_auth_response', 'Não foi possível confirmar a conta. Tente novamente.', 502);
+          sessionStorage.removeItem('fc.auth.verificationChallenge');
           location.pathname = "/app/login";
         }
-      } catch (error) { fail(verify, error); restore(); }
+      } catch (error) {
+        if (error.code === 'too_many_attempts') {
+          sessionStorage.removeItem('fc.auth.verificationChallenge');
+          digits.forEach(input => { input.value = ''; });
+        }
+        fail(verify, error); restore();
+      }
     });
-    document.getElementById("resend-code")?.addEventListener("click", async () => {
+    document.getElementById("resend-code")?.addEventListener("click", async event => {
+      const button = event.currentTarget;
+      if (button.disabled || busyForms.has(verify)) return;
+      busyForms.add(verify);
+      const submit = verify.querySelector('[type="submit"]');
+      const wasDisabled = submit.disabled;
+      submit.disabled = true;
+      button.disabled = true;
       const mode = sessionStorage.getItem("fc.auth.mode");
       const path = mode === "recovery" ? "/v1/auth/password/request" : "/v1/auth/verification/request";
       try {
-        await apiRequest(path, { method: "POST", body: contactPayload(contact ?? "") });
+        const result = await apiRequest(path, { method: "POST", body: contactPayload(contact ?? "") });
+        if (mode === "recovery") {
+          sessionStorage.setItem("fc.auth.recoveryChallenge", checkedChallenge(result));
+          sessionStorage.removeItem("fc.auth.recoveryToken");
+        } else {
+          sessionStorage.setItem('fc.auth.verificationChallenge', checkedChallenge(result));
+        }
         digits.forEach(input => { input.value = ""; });
         digits[0].focus();
-        verify.querySelector(".otp-time").textContent = "Novo código enviado · expira em 10:00";
-        notify("Novo código enviado com sucesso", 2400);
+        verify.querySelector(".otp-time").textContent = "Se houver uma conta ativa, o código será enviado. Use o código mais recente.";
+        notify("Solicitação de novo código recebida", 2400);
       } catch (error) { fail(verify, error); }
+      finally { busyForms.delete(verify); button.disabled = false; submit.disabled = wasDisabled; }
     });
   }
 
   const reset = document.getElementById("reset-password-form");
   if (reset) reset.addEventListener("submit", async event => {
     event.preventDefault();
+    if (busyForms.has(reset)) return;
     const [password, confirmation] = reset.querySelectorAll("input");
-    if (password.value.length < 12) return showError(reset, "A senha precisa ter pelo menos 12 caracteres.");
+    if (!validPassword(password.value)) return showError(reset, "A senha precisa ter entre 12 e 1024 caracteres e não pode conter apenas espaços.");
     if (password.value !== confirmation.value) return showError(reset, "As senhas precisam ser iguais.");
     const token = sessionStorage.getItem("fc.auth.recoveryToken");
-    if (!token) return showError(reset, "Solicite um novo código de recuperação.");
+    const challenge = sessionStorage.getItem("fc.auth.recoveryChallenge");
+    if (!token || !/^[A-Za-z0-9_-]{43}$/.test(challenge ?? "")) return showError(reset, "Solicite um novo código de recuperação.");
     const restore = submitState(reset, "Salvando...");
+    showError(reset, '');
     try {
-      await apiRequest("/v1/auth/password/reset", { method: "POST", body: { token, password: password.value } });
+      const nextPassword = password.value;
+      password.value = ''; confirmation.value = '';
+      const result = await apiRequest("/v1/auth/password/reset", { method: "POST", body: { token, challenge, password: nextPassword } });
+      if (result.success !== true) throw new ApiError('invalid_auth_response', 'Não foi possível confirmar a alteração da senha. Tente novamente.', 502);
       sessionStorage.removeItem("fc.auth.recoveryToken");
+      sessionStorage.removeItem("fc.auth.recoveryChallenge");
       notify("Senha atualizada com sucesso", 2400);
       location.pathname = "/app/login";
-    } catch (error) { fail(reset, error); restore(); }
+    } catch (error) {
+      if (error.code === 'too_many_attempts') {
+        sessionStorage.removeItem('fc.auth.recoveryToken'); sessionStorage.removeItem('fc.auth.recoveryChallenge');
+      } else if (error.code === 'invalid_or_expired_token') {
+        sessionStorage.removeItem('fc.auth.recoveryToken');
+      }
+      fail(reset, error); restore();
+    }
   });
 
   document.getElementById("auth-retry")?.addEventListener("click", async event => {

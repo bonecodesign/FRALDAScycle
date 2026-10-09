@@ -23,7 +23,11 @@ test("elevated accounts require a short-lived second factor before session creat
     async recordLoginAttempt({ emailHash, succeeded }) {
       attempts.push({ key: emailHash.toString("hex"), succeeded });
     },
-    async createAuthToken(value) { tokens.set(value.tokenHash.toString("hex"), value); },
+    async createAuthToken(value) {
+      tokens.set(value.tokenHash.toString("hex"), value);
+      deliveredCode = value.notification.token;
+      return 'token-id';
+    },
     async consumeAuthToken({ tokenHash, kind }) {
       const key = tokenHash.toString("hex");
       const value = tokens.get(key);
@@ -32,12 +36,16 @@ test("elevated accounts require a short-lived second factor before session creat
       return value.userId;
     },
     async createSession(value) { sessions.push(value); return value; },
-  };
-  const service = createAuthService(repository, {
-    notificationService: {
-      async adminLoginChallenge(message) { deliveredCode = message.token; },
+    async confirmAdminMfaSession({tokenHash,attemptHash,maxAttempts,sessionTokenHash,expiresAt}){
+      if(await this.countRecentFailedAttempts(attemptHash)>=maxAttempts)return {limited:true};
+      const id=await this.consumeAuthToken({tokenHash,kind:'admin_login_mfa'});
+      await this.recordLoginAttempt({emailHash:attemptHash,succeeded:Boolean(id)});
+      if(!id)return {user:null};
+      await this.createSession({userId:id,tokenHash:sessionTokenHash,expiresAt});
+      return {user};
     },
-  });
+  };
+  const service = createAuthService(repository);
 
   const challenge = await service.login({ email: user.email, password: "senha-administrativa-2026" });
   assert.equal(challenge.mfaRequired, true);
@@ -57,4 +65,19 @@ test("elevated accounts require a short-lived second factor before session creat
     service.confirmAdminMfa({ challenge: challenge.challenge, code: deliveredCode }),
     (error) => error.code === "invalid_mfa_code",
   );
+});
+
+test('admin login returns no challenge or session when atomic issuance is rejected or fails', async () => {
+  const user = { id: 'admin-atomic', email: 'atomic@example.test', role: 'admin', password_hash: await hashPassword('senha-administrativa-2026') };
+  const repository = {
+    async findUserByContact() { return user; },
+    async countRecentFailedAttempts() { return 0; },
+    async recordLoginAttempt() {},
+    async createAuthToken() { return null; },
+    async createSession() { assert.fail('session must require a completed challenge'); },
+  };
+  const service = createAuthService(repository);
+  await assert.rejects(service.login({ email: user.email, password: 'senha-administrativa-2026' }), error => error.code === 'invalid_credentials');
+  repository.createAuthToken = async () => { throw new Error('synthetic queue failure'); };
+  await assert.rejects(service.login({ email: user.email, password: 'senha-administrativa-2026' }), /synthetic queue failure/);
 });

@@ -15,6 +15,7 @@ function repository() {
       if (users.has(input.email)) {
         const error = new Error("duplicate");
         error.code = "23505";
+        error.constraint = "users_email_unique";
         throw error;
       }
       const user = {
@@ -24,6 +25,13 @@ function repository() {
         adult_declaration_version: input.adultDeclarationVersion, adult_declared_at: new Date(),
       };
       users.set(user.email, user);
+      return user;
+    },
+    async createUserWithVerification(input) {
+      const user = await this.createUser(input);
+      await this.createAuthToken({ userId: user.id, kind: 'email_verification',
+        tokenHash: input.verification.tokenHash, expiresAt: input.verification.expiresAt,
+        notification: { token: input.verification.token } });
       return user;
     },
     findUserByContact({ email, phone }) {
@@ -41,8 +49,19 @@ function repository() {
     },
     async revokeSession(tokenHash) { return sessions.delete(tokenHash.toString("hex")); },
     tokens: new Map(),
+    queued: [],
     attempts: new Map(),
-    async createAuthToken(input) { this.tokens.set(input.tokenHash.toString("hex"), input); },
+    async reservePasswordRecoveryRequest() { return true; },
+    async reserveVerificationRequest() { return true; },
+    async confirmVerificationToken({ tokenHash }) {
+      const id = await this.consumeAuthToken({ tokenHash, kind: 'email_verification' });
+      return { user: id ? await this.markEmailVerified(id) : null };
+    },
+    async createAuthToken(input) {
+      this.tokens.set(input.tokenHash.toString("hex"), input);
+      if (input.notification) this.queued.push({ kind: input.kind, ...input.notification });
+      return 'token-id';
+    },
     async consumeAuthToken({ tokenHash, kind }) {
       const key = tokenHash.toString("hex");
       const value = this.tokens.get(key);
@@ -55,10 +74,13 @@ function repository() {
       user.email_verified_at = new Date();
       return user;
     },
-    async replacePasswordAndRevokeSessions(userId, passwordHash) {
+    async resetPasswordWithToken({ tokenHash, passwordHash }) {
+      const userId = await this.consumeAuthToken({ tokenHash, kind: "password_recovery" });
+      if (!userId) return null;
       const user = [...users.values()].find(({ id }) => id === userId);
       user.password_hash = passwordHash;
       for (const [key, value] of sessions) if (value.userId === userId) sessions.delete(key);
+      return userId;
     },
     async recordLoginAttempt({ emailHash, succeeded }) {
       const key = emailHash.toString("hex");
@@ -202,25 +224,20 @@ test("HTTP identity rejects malformed and oversized payloads safely", async (con
 });
 
 test("verification and recovery use one-time tokens and revoke sessions", async () => {
-  const sent = [];
-  const auth = createAuthService(repository(), {
-    notificationService: {
-      async verification(message) { sent.push(["verification", message]); },
-      async passwordRecovery(message) { sent.push(["recovery", message]); },
-    },
-  });
-  await auth.register({
+  const data = repository();
+  const auth = createAuthService(data);
+  const registered = await auth.register({
     ...adultRegistration, email: "bia@example.com", displayName: "Bia Lima", password: "senha-segura-2026",
   });
-  assert.equal(sent[0][0], "verification");
-  const verificationToken = sent[0][1].token;
-  assert.equal((await auth.verifyEmail({ token: verificationToken })).user.emailVerified, true);
-  await assert.rejects(auth.verifyEmail({ token: verificationToken }), /inválido ou expirado/i);
+  assert.equal(data.queued[0].kind, "email_verification");
+  const verificationToken = data.queued[0].token;
+  assert.equal((await auth.verifyEmail({ token: verificationToken, challenge: registered.challenge })).user.emailVerified, true);
+  await assert.rejects(auth.verifyEmail({ token: verificationToken, challenge: registered.challenge }), /inválido ou expirado/i);
 
   const login = await auth.login({ email: "bia@example.com", password: "senha-segura-2026" });
-  await auth.requestPasswordRecovery({ email: "bia@example.com" });
-  const recoveryToken = sent.at(-1)[1].token;
-  assert.deepEqual(await auth.resetPassword({ token: recoveryToken, password: "nova-senha-segura-2026" }), { success: true });
+  const { challenge } = await auth.requestPasswordRecovery({ email: "bia@example.com" });
+  const recoveryToken = data.queued.at(-1).token;
+  assert.deepEqual(await auth.resetPassword({ token: recoveryToken, challenge, password: "nova-senha-segura-2026" }), { success: true });
   assert.equal(await auth.session(login.token), null);
   await assert.rejects(
     auth.login({ email: "bia@example.com", password: "senha-segura-2026" }),
@@ -231,8 +248,11 @@ test("verification and recovery use one-time tokens and revoke sessions", async 
 
 test("recovery requests do not reveal whether an account exists", async () => {
   const auth = createAuthService(repository());
-  assert.deepEqual(await auth.requestPasswordRecovery({ email: "nobody@example.com" }), { accepted: true });
-  assert.deepEqual(await auth.requestVerification({ email: "nobody@example.com" }), { accepted: true });
+  const result = await auth.requestPasswordRecovery({ email: "nobody@example.com" });
+  assert.equal(result.accepted, true);
+  assert.match(result.challenge, /^[A-Za-z0-9_-]{43}$/);
+  const verification = await auth.requestVerification({ email: 'nobody@example.com' });
+  assert.equal(verification.accepted, true); assert.match(verification.challenge, /^[A-Za-z0-9_-]{43}$/);
 });
 
 test("login attempts are limited per normalized identity", async () => {
@@ -250,12 +270,7 @@ test("login attempts are limited per normalized identity", async () => {
 });
 
 test("phone-only identity preserves the approved email-or-phone contract", async () => {
-  const auth = createAuthService(repository(), {
-    notificationService: {
-      async verification() {},
-      async passwordRecovery() {},
-    },
-  });
+  const auth = createAuthService(repository());
   const registered = await auth.register({
     ...adultRegistration, phone: "(31) 99900-0000", displayName: "Caio Lima", password: "senha-segura-2026",
   });
@@ -267,4 +282,13 @@ test("phone-only identity preserves the approved email-or-phone contract", async
 
 test("approved verification codes contain exactly six numeric digits", () => {
   for (let index = 0; index < 20; index += 1) assert.match(createVerificationCode(), /^\d{6}$/);
+});
+
+test('registration distinguishes contact conflicts from verification collisions', async () => {
+  for (const constraint of ['users_email_unique', 'users_phone_unique', 'auth_tokens_token_hash_key']) {
+    const collision = Object.assign(new Error('synthetic uniqueness conflict'), { code: '23505', constraint });
+    const auth = createAuthService({ async createUserWithVerification() { throw collision; } });
+    await assert.rejects(auth.register({ ...adultRegistration, email: 'collision@example.test', displayName: 'Pessoa fictícia', password: 'senha-segura-2026' }),
+      error => constraint === 'auth_tokens_token_hash_key' ? error === collision : error.code === 'account_exists' && error.status === 409);
+  }
 });
