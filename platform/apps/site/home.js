@@ -1,4 +1,5 @@
 import "/packages/ui/iconography.js";
+import { bindFavoriteButtons, loadLiveSearch } from "/packages/contracts/marketplace-ui.js";
 const themeToggle = document.querySelector("#theme-toggle");
 const storedTheme = localStorage.getItem("fraldacycle-theme") === "dark" ? "dark" : "light";
 
@@ -8,6 +9,15 @@ function applyTheme(theme) {
 }
 
 applyTheme(storedTheme);
+
+const documentationPage = document.querySelector('.component-states-page, .advanced-components-page, .accessibility-lab-page, .responsive-lab-page, .motion-lab-page, .design-tokens-page');
+if (documentationPage) {
+  const disclosure = document.createElement('div');
+  disclosure.className = 'notice';
+  disclosure.setAttribute('role', 'note');
+  disclosure.textContent = 'Documentação visual interativa. Dados, mensagens, arquivos e ações abaixo são exemplos de componentes; não representam operações realizadas nem certificação do produto.';
+  documentationPage.prepend(disclosure);
+}
 
 const hero = document.querySelector(".hero");
 const heroTitle = hero?.querySelector("h1");
@@ -64,3 +74,13 @@ document.querySelectorAll(".favorite").forEach((button) => {
     button.setAttribute("aria-label", active ? "Remover dos favoritos" : "Adicionar aos favoritos");
   });
 });
+
+const homeListings = document.getElementById("site-home-listings");
+if (homeListings) {
+  void loadLiveSearch({ surface: "site" }).then(({ items, markup }) => {
+    homeListings.innerHTML = items.length ? markup : '<div class="ui-state empty-state"><h2>Nenhum anúncio disponível</h2><p>Novos anúncios publicados aparecerão aqui.</p></div>';
+    bindFavoriteButtons(homeListings);
+  }).catch(() => {
+    homeListings.innerHTML = '<div class="ui-state error-state"><h2>Não foi possível carregar os anúncios</h2><p>Acesse a busca para tentar novamente.</p></div>';
+  });
+}

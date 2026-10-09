@@ -1,12 +1,53 @@
 const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
 
-function integer(value, fallback) {
+function integer(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
   const parsed = Number.parseInt(value ?? "", 10);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= maximum ? parsed : fallback;
+}
+
+function httpsProviderPair(env, urlKey, secretKey) {
+  const url = env[urlKey] ?? null;
+  const secret = env[secretKey] ?? null;
+  if (Boolean(url) !== Boolean(secret)) {
+    throw new Error(`${urlKey} and ${secretKey} must be configured together`);
+  }
+  if (url && !url.startsWith("https://")) {
+    throw new Error(`${urlKey} must use HTTPS`);
+  }
+  return { url, secret };
+}
+
+function corsOrigins(value, nodeEnv) {
+  const origins = String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+  if (new Set(origins).size !== origins.length) {
+    throw new Error("CORS_ORIGINS must not contain duplicate origins");
+  }
+  for (const origin of origins) {
+    let parsed;
+    try { parsed = new URL(origin); } catch { throw new Error("CORS_ORIGINS contains an invalid origin"); }
+    if (parsed.origin !== origin || parsed.username || parsed.password) {
+      throw new Error("CORS_ORIGINS must contain origins only, without paths or credentials");
+    }
+    if (nodeEnv === "production" && parsed.protocol !== "https:") {
+      throw new Error("CORS_ORIGINS must use HTTPS in production");
+    }
+    if (!["https:", "http:"].includes(parsed.protocol)) {
+      throw new Error("CORS_ORIGINS must use HTTP or HTTPS");
+    }
+  }
+  return Object.freeze(origins);
 }
 
 export function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV ?? "development";
+  const allowedCorsOrigins = corsOrigins(env.CORS_ORIGINS, nodeEnv);
+  const notification = httpsProviderPair(
+    env, "NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET",
+  );
+  const media = httpsProviderPair(env, "MEDIA_PROVIDER_URL", "MEDIA_PROVIDER_SECRET");
+  const geocoding = httpsProviderPair(
+    env, "GEOCODING_PROVIDER_URL", "GEOCODING_PROVIDER_SECRET",
+  );
   const logisticsProviderUrl = env.LOGISTICS_PROVIDER_URL ?? null;
   const logisticsProviderSecret = env.LOGISTICS_PROVIDER_SECRET ?? null;
   const logisticsWebhookSecret = env.LOGISTICS_WEBHOOK_SECRET ?? null;
@@ -73,13 +114,13 @@ export function loadConfig(env = process.env) {
   return Object.freeze({
     nodeEnv,
     host: env.API_HOST ?? "127.0.0.1",
-    port: integer(env.API_PORT, 4200),
+    port: integer(env.API_PORT, 4200, 65_535),
     databaseUrl: env.DATABASE_URL ?? null,
     databaseSsl: env.DATABASE_SSL === "true",
     sessionSecret: env.SESSION_SECRET ?? "development-only-session-secret",
-    sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000),
-    rateLimitMax: integer(env.RATE_LIMIT_MAX, 120),
-    rateLimitWindowSeconds: integer(env.RATE_LIMIT_WINDOW_SECONDS, 60),
+    sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000, 2_592_000),
+    rateLimitMax: integer(env.RATE_LIMIT_MAX, 120, 10_000),
+    rateLimitWindowSeconds: integer(env.RATE_LIMIT_WINDOW_SECONDS, 60, 3_600),
     rateLimitProviderUrl,
     rateLimitProviderSecret,
     telemetryProviderUrl,
@@ -92,13 +133,13 @@ export function loadConfig(env = process.env) {
     paymentWebhookSecret,
     paymentProviderSdkUrl,
     paymentProviderSdkIntegrity,
-    notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL ?? null,
-    notificationWebhookSecret: env.NOTIFICATION_WEBHOOK_SECRET ?? null,
-    mediaProviderUrl: env.MEDIA_PROVIDER_URL ?? null,
-    mediaProviderSecret: env.MEDIA_PROVIDER_SECRET ?? null,
-    geocodingProviderUrl: env.GEOCODING_PROVIDER_URL ?? null,
-    geocodingProviderSecret: env.GEOCODING_PROVIDER_SECRET ?? null,
-    corsOrigins: Object.freeze((env.CORS_ORIGINS ?? "")
-      .split(",").map((value) => value.trim()).filter(Boolean)),
+    notificationWebhookUrl: notification.url,
+    notificationWebhookSecret: notification.secret,
+    mediaProviderUrl: media.url,
+    mediaProviderSecret: media.secret,
+    geocodingProviderUrl: geocoding.url,
+    geocodingProviderSecret: geocoding.secret,
+    childProfilesEnabled: env.CHILD_PROFILES_ENABLED === "true",
+    corsOrigins: allowedCorsOrigins,
   });
 }

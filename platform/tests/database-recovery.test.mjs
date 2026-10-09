@@ -26,6 +26,25 @@ test("restore requires explicit authorization and targets a separate database", 
   });
   assert.equal(plan.command, "pg_restore");
   assert.ok(plan.args.includes("--exit-on-error"));
+  assert.ok(plan.args.includes("--single-transaction"));
   assert.ok(plan.args.includes("restore"));
   assert.equal(plan.args.join(" ").includes("secret"), false);
+});
+
+test("restore refuses to overwrite the configured source database", () => {
+  assert.throws(() => createRestorePlan({
+    CONFIRM_DATABASE_RESTORE: "RESTORE",
+    DATABASE_URL: "postgresql://source:one@db.internal:5432/fraldacycle",
+    RESTORE_DATABASE_URL: "postgresql://restore:two@db.internal/fraldacycle",
+    DATABASE_DUMP_PATH: "./backup.dump",
+  }), /different from DATABASE_URL/);
+});
+
+test("backup and restore require a valid PostgreSQL database address", () => {
+  assert.throws(() => createBackupPlan({
+    DATABASE_URL: "not-a-url", DATABASE_DUMP_PATH: "./backup.dump",
+  }), /invalid/);
+  assert.throws(() => createBackupPlan({
+    DATABASE_URL: "postgresql://db.internal", DATABASE_DUMP_PATH: "./backup.dump",
+  }), /database name/);
 });

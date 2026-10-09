@@ -1,5 +1,5 @@
 export function createNotificationService(repository = null) {
-  async function enqueue(kind, { email, phone, token }) {
+  async function enqueue(kind, { email, phone, token, authTokenHash }) {
     if (!repository) return { queued: false };
     const recipient = email ?? phone;
     if (!recipient) throw new Error("Notification recipient is required");
@@ -7,8 +7,9 @@ export function createNotificationService(repository = null) {
       kind,
       recipient,
       payload: { token, channel: email ? "email" : "sms" },
+      ...(authTokenHash ? { authTokenHash } : {}),
     });
-    return { queued: true, id };
+    return id ? { queued: true, id } : { queued: false };
   }
 
   return Object.freeze({
@@ -18,6 +19,9 @@ export function createNotificationService(repository = null) {
     },
     passwordRecovery(message) {
       return enqueue("password_recovery", message);
+    },
+    adminLoginChallenge(message) {
+      return enqueue("admin_login_mfa", message);
     },
   });
 }

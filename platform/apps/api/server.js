@@ -20,6 +20,10 @@ import { handleLogistics } from "./logistics-handler.js";
 import { handleAccountConsent } from "./account-consent-handler.js";
 import { handlePremium } from './premium-handler.js';
 import { handleModeration } from './moderation-handler.js';
+import { controlledDomain } from './operational-control.js';
+import { handleAdultDeclaration } from './adult-declaration-handler.js';
+import { handleChildProfiles } from './child-profile-handler.js';
+import { handleExchanges } from './exchange-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -49,6 +53,10 @@ export function createApiServer({
   communicationsService = null,
   adminService = null,
   realtimeService = null,
+  operationalControlService = null,
+  adultDeclarationService = null,
+  childProfileService = null,
+  exchangeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -129,6 +137,24 @@ export function createApiServer({
         const result = await authService.login(await readJson(request), {
           userAgent: request.headers["user-agent"],
         });
+        if (result.mfaRequired) {
+          sendJson(response, 202, { ...result, requestId: id }, headers);
+          return;
+        }
+        sendJson(response, 200, { user: result.user, expiresAt: result.expiresAt, requestId: id }, {
+          ...headers,
+          "set-cookie": sessionCookie(result.token, {
+            secure: config.nodeEnv === "production",
+            maxAge: config.sessionTtlSeconds,
+          }),
+        });
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/auth/mfa/confirm") {
+        const result = await authService.confirmAdminMfa(await readJson(request), {
+          userAgent: request.headers["user-agent"],
+        });
         sendJson(response, 200, { user: result.user, expiresAt: result.expiresAt, requestId: id }, {
           ...headers,
           "set-cookie": sessionCookie(result.token, {
@@ -181,6 +207,18 @@ export function createApiServer({
         return;
       }
 
+      const operationalDomain = controlledDomain(request.method, url.pathname);
+      if (operationalDomain && operationalControlService) {
+        await operationalControlService.assertAvailable(operationalDomain);
+      }
+
+      if (await handleAdultDeclaration(request, response, {
+        url, headers, requestId: id, authService, adultDeclarationService,
+      })) return;
+      if (await handleChildProfiles(request, response, {
+        url, headers, requestId: id, authService, childProfileService,
+      })) return;
+
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;
       if (await handleReviewModeration(request,response,{url,headers,requestId:id,authService,reviewModerationService})) return;
@@ -205,8 +243,10 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, marketplaceProviders,
       })) return;
+
+      if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
 
       if (await handleMarketplace(request, response, {
         url, headers, requestId: id, marketplaceService, marketplaceProviders, authService,

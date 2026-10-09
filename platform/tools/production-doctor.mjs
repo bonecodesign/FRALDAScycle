@@ -1,4 +1,5 @@
 import { loadConfig } from "../apps/api/config.js";
+import { validateSecretsProviderConfig } from "../apps/api/secrets.js";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
 const PLACEHOLDER = /(example\.(com|test)|change-me|replace-with)/i;
@@ -28,6 +29,11 @@ export function inspectProductionReadiness(env = process.env) {
   const blockers = [];
   try {
     loadConfig({ ...env, NODE_ENV: "production" });
+  } catch (error) {
+    blockers.push(error.message);
+  }
+  try {
+    validateSecretsProviderConfig(env);
   } catch (error) {
     blockers.push(error.message);
   }

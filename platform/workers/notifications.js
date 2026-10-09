@@ -34,10 +34,14 @@ export async function runNotificationBatch(repository, config, fetchImpl = fetch
   const jobs = await repository.claimBatch(20);
   for (const job of jobs) {
     try {
+      if (!await repository.canDeliver(job.id, job.claim_token)) {
+        await repository.cancelled(job.id, job.claim_token);
+        continue;
+      }
       await deliverNotification(job, config, fetchImpl);
-      await repository.delivered(job.id);
+      await repository.delivered(job.id, job.claim_token);
     } catch (error) {
-      await repository.failed(job.id, error.message, backoffSeconds(job.attempts));
+      await repository.failed(job.id, error.message, backoffSeconds(job.attempts), job.claim_token);
     }
   }
   return jobs.length;

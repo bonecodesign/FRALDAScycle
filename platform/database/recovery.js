@@ -9,8 +9,12 @@ function dumpPath(value) {
 }
 
 function databaseEnvironment(value) {
-  const url = new URL(value);
+  let url;
+  try { url = new URL(value); } catch { throw new Error("Database URL is invalid"); }
   if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") throw new Error("Database URL must use PostgreSQL");
+  if (!url.hostname || !url.pathname || url.pathname === "/") {
+    throw new Error("Database URL must include host and database name");
+  }
   return {
     PGHOST: url.hostname,
     PGPORT: url.port || "5432",
@@ -19,6 +23,11 @@ function databaseEnvironment(value) {
     PGDATABASE: decodeURIComponent(url.pathname.slice(1)),
     ...(url.searchParams.get("sslmode") ? { PGSSLMODE: url.searchParams.get("sslmode") } : {}),
   };
+}
+
+function databaseIdentity(value) {
+  const environment = databaseEnvironment(value);
+  return `${environment.PGHOST.toLowerCase()}:${environment.PGPORT}/${environment.PGDATABASE}`;
 }
 
 export function createBackupPlan(env = process.env) {
@@ -33,9 +42,12 @@ export function createBackupPlan(env = process.env) {
 export function createRestorePlan(env = process.env) {
   if (env.CONFIRM_DATABASE_RESTORE !== "RESTORE") throw new Error("Set CONFIRM_DATABASE_RESTORE=RESTORE to authorize restoration");
   if (!env.RESTORE_DATABASE_URL) throw new Error("RESTORE_DATABASE_URL is required");
+  if (env.DATABASE_URL && databaseIdentity(env.DATABASE_URL) === databaseIdentity(env.RESTORE_DATABASE_URL)) {
+    throw new Error("RESTORE_DATABASE_URL must target a database different from DATABASE_URL");
+  }
   return Object.freeze({
     command: "pg_restore",
-    args: ["--clean", "--if-exists", "--exit-on-error", "--no-owner", "--no-privileges", "--dbname", databaseEnvironment(env.RESTORE_DATABASE_URL).PGDATABASE, dumpPath(env.DATABASE_DUMP_PATH)],
+    args: ["--clean", "--if-exists", "--exit-on-error", "--single-transaction", "--no-owner", "--no-privileges", "--dbname", databaseEnvironment(env.RESTORE_DATABASE_URL).PGDATABASE, dumpPath(env.DATABASE_DUMP_PATH)],
     env: databaseEnvironment(env.RESTORE_DATABASE_URL),
   });
 }

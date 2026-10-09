@@ -23,7 +23,7 @@ function setupDeliveryTracking(){
   const tracking=document.getElementById('delivery-tracking');if(!tracking)return;
   const refresh=document.getElementById('delivery-refresh');const driver=document.getElementById('tracking-driver');const eta=document.getElementById('delivery-eta');const contact=document.getElementById('delivery-contact');
   if(contact)contact.addEventListener('click',()=>{notify('Chat protegido aberto com o entregador');location.pathname='/app/chat'});
-  if(refresh)refresh.addEventListener('click',()=>{refresh.disabled=true;refresh.innerHTML='<span class="inline-spinner dark"></span> Atualizando...';driver?.classList.add('updating');setTimeout(()=>{driver?.classList.remove('updating');driver?.classList.add('advanced');eta.textContent='Atualizado agora · entregador a 0,8 km · previsão mantida';refresh.disabled=false;refresh.textContent='Rastreamento atualizado';notify('Localização da entrega atualizada')},650)});
+  if(refresh)refresh.addEventListener('click',()=>{if(sessionStorage.getItem('fc.activeShipmentId'))return;notify('Nenhuma entrega real foi selecionada para rastreamento.')});
 }
 
 setupRealLogistics();

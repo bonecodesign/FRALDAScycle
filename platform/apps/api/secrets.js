@@ -1,20 +1,29 @@
 const SECRET_KEY_PATTERN = /^[A-Z][A-Z0-9_]{1,127}$/;
 
-export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch } = {}) {
+export function validateSecretsProviderConfig(env = process.env) {
   const endpoint = env.SECRETS_PROVIDER_URL;
   const token = env.SECRETS_PROVIDER_TOKEN;
   const keys = String(env.SECRETS_PROVIDER_KEYS ?? "")
     .split(",").map((key) => key.trim()).filter(Boolean);
 
-  if (!endpoint && !token && keys.length === 0) return env;
+  if (!endpoint && !token && keys.length === 0) return null;
   if (!endpoint || !token || keys.length === 0) {
     throw new Error("SECRETS_PROVIDER_URL, SECRETS_PROVIDER_TOKEN and SECRETS_PROVIDER_KEYS must be configured together");
   }
-  const url = new URL(endpoint);
+  let url;
+  try { url = new URL(endpoint); } catch { throw new Error("SECRETS_PROVIDER_URL must be a valid URL"); }
   if (url.protocol !== "https:") throw new Error("SECRETS_PROVIDER_URL must use HTTPS");
+  if (url.username || url.password) throw new Error("SECRETS_PROVIDER_URL must not contain credentials");
   if (keys.some((key) => !SECRET_KEY_PATTERN.test(key)) || new Set(keys).size !== keys.length) {
     throw new Error("SECRETS_PROVIDER_KEYS contains an invalid or duplicate key");
   }
+  return Object.freeze({ url, token, keys: Object.freeze(keys) });
+}
+
+export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch } = {}) {
+  const provider = validateSecretsProviderConfig(env);
+  if (!provider) return env;
+  const { url, token, keys } = provider;
 
   let response;
   try {

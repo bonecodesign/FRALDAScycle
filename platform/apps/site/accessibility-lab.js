@@ -17,6 +17,10 @@ function siteAccessibilityLab(){
 }
 function setupAccessibilityLab(){
   const page=document.querySelector('.accessibility-lab-page');if(!page)return;
+  const score=page.querySelector('.a11y-ring strong');if(score)score.textContent='Não auditado';
+  const scoreDetail=page.querySelector('.a11y-ring small');if(scoreDetail)scoreDetail.textContent='checklist visual';
+  const conformity=page.querySelector('.a11y-score h2');if(conformity)conformity.textContent='Referência para avaliação';
+  page.querySelectorAll('[data-a11y-check] > strong').forEach(status=>status.textContent='A verificar');
   const demo=page.querySelector('.a11y-demo'),live=page.querySelector('#a11y-live');
   const toggles=[
     ['#a11y-focus-toggle','show-focus'],
@@ -26,9 +30,9 @@ function setupAccessibilityLab(){
   toggles.forEach(([selector,className])=>page.querySelector(selector).addEventListener('click',event=>{
     const active=demo.classList.toggle(className);event.currentTarget.setAttribute('aria-pressed',String(active));
   }));
-  page.querySelector('#a11y-submit').addEventListener('click',()=>{live.textContent='Etapa validada. Você pode continuar com segurança.'});
+  page.querySelector('#a11y-submit').addEventListener('click',()=>{live.textContent='Exemplo de anúncio em região dinâmica; nenhum formulário foi enviado.'});
   page.querySelector('#a11y-read-summary').addEventListener('click',()=>{
-    const message='Auditoria de acessibilidade aprovada. Contraste, teclado, foco, leitor de tela, toque e texto escalável estão conformes.';
+    const message='Demonstração de recursos de acessibilidade. A conformidade do produto completo ainda requer auditoria independente.';
     live.textContent=message;
     if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(message))}
   });

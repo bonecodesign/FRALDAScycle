@@ -9,6 +9,8 @@ const photo = document.getElementById('proof-review-photo');
 const status = document.getElementById('proof-review-status');
 const submit = document.getElementById('proof-review-submit');
 const settlementSummary = document.getElementById('proof-settlement-summary');
+settlementSummary.insertAdjacentHTML('afterend','<p id="courier-payout-summary" role="status" aria-live="polite"></p><button class="button secondary" id="courier-payout-prepare" type="button" hidden>Preparar obrigação do entregador</button>');
+const courierPayoutSummary=document.getElementById('courier-payout-summary'),courierPayoutPrepare=document.getElementById('courier-payout-prepare');
 const blockerLabels = {
   unsupported_transaction_kind: 'Fluxo de troca ou doação pendente',
   delivery_proof_pending: 'Entrega ou comprovante pendente',
@@ -43,7 +45,10 @@ function reset() {
   validation.reset();
   validation.hidden = false;
   settlementSummary.textContent = '';
+  courierPayoutSummary.textContent='';courierPayoutPrepare.hidden=true;courierPayoutPrepare.disabled=false;
 }
+async function loadCourierPayout(shipmentId){try{const result=await apiRequest(`/v1/shipments/${encodeURIComponent(shipmentId)}/courier-payout`),p=result.payout;courierPayoutSummary.textContent=p.eligible?`Entregador elegível. Estado: ${p.status}. A transferência continua bloqueada até o provedor.`:`Repasse do entregador bloqueado: ${p.blockers.map(code=>blockerLabels[code]||({freight_not_charged:'Frete não cobrado',courier_not_assigned:'Entregador não atribuído'}[code]||'Pendência operacional')).join('; ')}.`;courierPayoutPrepare.hidden=!p.eligible||p.status!=='not_prepared';}catch(error){courierPayoutSummary.textContent=error.message;courierPayoutPrepare.hidden=true;}}
+courierPayoutPrepare.addEventListener('click',async()=>{const shipment=search.elements.shipment.value.trim();courierPayoutPrepare.disabled=true;try{const result=await apiRequest(`/v1/shipments/${encodeURIComponent(shipment)}/courier-payout`,{method:'POST',body:{confirmed:true}}),p=result.payout;courierPayoutSummary.textContent=`Obrigação preparada: R$ ${(p.courier_amount_cents/100).toFixed(2).replace('.',',')} ao entregador; estado provider_pending. Nenhuma transferência executada.`;courierPayoutPrepare.hidden=true;}catch(error){courierPayoutSummary.textContent=error.message;courierPayoutPrepare.disabled=false;}});
 search.elements.shipment.addEventListener('input', reset);
 search.addEventListener('submit', async event => {
   event.preventDefault();
@@ -55,6 +60,7 @@ search.addEventListener('submit', async event => {
   try {
     const result = await controller.load(search.elements.shipment.value.trim());
     if (!result) return;
+    await loadCourierPayout(search.elements.shipment.value.trim());
     details.hidden = false;
     const { proof } = result;
     const settlement = result.settlement;

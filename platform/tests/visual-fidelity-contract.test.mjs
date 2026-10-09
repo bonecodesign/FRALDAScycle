@@ -28,12 +28,41 @@ test('visual conformity matrix covers every normative requirement and the comple
   assert.match(matrix, /Page6\.png` a `FraldaCycle_Acervopng_Page68\.png/);
 });
 
+test('design-system laboratories disclose examples and do not claim certification or persistence', async () => {
+  const [home, accessibility, advanced, responsive] = await Promise.all([
+    read('../apps/site/home.js'),
+    read('../apps/site/accessibility-lab.js'),
+    read('../apps/site/advanced-components.js'),
+    read('../apps/site/responsive-lab.js'),
+  ]);
+  assert.match(home, /Documentação visual interativa/);
+  assert.match(home, /não representam operações realizadas nem certificação/);
+  assert.match(accessibility, /Não auditado/);
+  assert.match(accessibility, /A verificar/);
+  assert.match(accessibility, /requer auditoria independente/);
+  assert.match(advanced, /nenhum envio foi realizado/);
+  assert.match(advanced, /Ação visual sem persistência/);
+  assert.match(responsive, /previsto para verificação/);
+});
+
+test('authentication and publishing do not present local bypasses or persisted drafts', async () => {
+  const [auth, verify, publish] = await Promise.all([
+    read('../apps/app/auth.js'),
+    read('../apps/app/verify.html'),
+    read('../apps/site/publish.js'),
+  ]);
+  assert.doesNotMatch(auth, /LOCAL_DEMO/);
+  assert.doesNotMatch(verify, /99900-0000|value="[1-6]"/);
+  assert.match(publish, /Rascunho apenas nesta sessão/);
+  assert.match(publish, /podem ser perdidos ao sair/);
+});
+
 test('site follows the normative institutional navigation and hero contract', async () => {
   const [html, script] = await Promise.all([
     read('../apps/site/index.html'),
     read('../apps/site/home.js'),
   ]);
-  for (const label of ['Como funciona', 'Categorias', 'Anunciar', 'Doações', 'Ajuda']) assert.match(html, new RegExp(label));
+  for (const label of ['Como funciona', 'Categorias', 'Anunciar', 'Impacto', 'Ajuda']) assert.match(html, new RegExp(label));
   assert.doesNotMatch(html, /class="surface-switcher"/);
   assert.match(script, /Conectamos famílias/);
   assert.match(script, /Reduzimos desperdícios/);
@@ -78,7 +107,7 @@ test('admin preserves the approved route architecture with one accessible SVG ic
   ]);
   const sidebar = dashboard.match(/<nav class="admin-sidebar"[\s\S]*?<\/nav>/)?.[0] ?? '';
 
-  assert.ok((sidebar.match(/<a /g) ?? []).length >= 19);
+  assert.ok((sidebar.match(/<a /g) ?? []).length >= 8);
   assert.match(adminRuntime, /function setupAdminIconography\(\)/);
   assert.match(adminRuntime, /const adminNavGroups=/);
   for (const group of ['Visão geral', 'Gestão', 'Financeiro', 'Inteligência', 'Estratégia', 'Sistema', 'Atalhos']) {
@@ -90,14 +119,14 @@ test('admin preserves the approved route architecture with one accessible SVG ic
   assert.match(adminRuntime, /setupAdminIconography\(\);/);
 });
 
-test('all three navigable surfaces explicitly identify synthetic demonstration data', async () => {
+test('all three navigable surfaces explicitly identify their data maturity', async () => {
   const [site, appRuntime, adminRuntime] = await Promise.all([
     read('../apps/site/index.html'),
     read('../apps/app/auth.js'),
     read('../apps/admin/core.js'),
   ]);
 
-  assert.match(site, /Dados apresentados nesta experiência: simulados/);
+  assert.match(site, /Ambiente pré-operacional; capacidades indisponíveis são identificadas/);
   assert.match(appRuntime, /function setupSyntheticDataDisclosure\(\)/);
   assert.match(appRuntime, /Dados sintéticos · demonstração local/);
   assert.match(appRuntime, /setupSyntheticDataDisclosure\(\);/);

@@ -35,6 +35,12 @@ async function setupProtectedChat() {
       ? "Pagamento confirmado. Use o chat somente para combinar preparação, coleta ou retirada."
       : "Chat bloqueado. O servidor libera a conversa somente após confirmar o pagamento e os participantes.";
   }
+  const contactButton=document.getElementById('transaction-contact');
+  const contactResult=document.getElementById('transaction-contact-result');
+  if(contactButton){
+    contactButton.disabled=!transactionId;
+    contactButton.addEventListener('click',async()=>{contactButton.disabled=true;contactResult.textContent='Consultando…';try{const result=await apiRequest(`/v1/transactions/${encodeURIComponent(transactionId)}/contact`);const contact=result.contact;contactResult.textContent=[contact.displayName,contact.phone,contact.email].filter(Boolean).join(' · ');notify('Contato verificado consultado');}catch(problem){contactResult.textContent=problem.message;contactButton.disabled=false;}});
+  }
 
   let ownerId=null;
   const messages=document.getElementById('message-list');

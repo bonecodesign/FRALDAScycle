@@ -29,6 +29,11 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const status=await logisticsService.settlementStatus(actor,settlement[1]);
     sendJson(response,200,{settlement:status,requestId},{...headers,"cache-control":"no-store"});return true;
   }
+  const courierPayout=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/courier-payout$/i);
+  if(courierPayout&&['GET','POST'].includes(request.method)){
+    const actor=await authenticatedUser(request,authService);const result=request.method==='GET'?await logisticsService.courierPayoutStatus(actor,courierPayout[1]):await logisticsService.prepareCourierPayout(actor,courierPayout[1],await readJson(request));
+    sendJson(response,request.method==='POST'&&!result.reused?201:200,{payout:result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const photo=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/proof\/photo$/i);
   if(photo && request.method==="GET"){
     const actor=await authenticatedUser(request,authService);
@@ -57,6 +62,8 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
   if(request.method==="GET"&&detail){const actor=await authenticatedUser(request,authService);const shipment=await logisticsService.detail(actor.id,detail[1]);sendJson(response,200,{shipment,requestId},headers);return true}
   const collection=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/collection$/i);
   if(request.method==='POST'&&collection){const actor=await authenticatedUser(request,authService);if(actor.role!=='courier'&&actor.role!=='admin')throw new AuthError('forbidden',403,'Acesso não autorizado.');const result=await logisticsService.collect(actor.id,collection[1],await readJson(request));sendJson(response,result.reused?200:201,{collection:result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  const courierContact=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/contact$/i);
+  if(request.method==='GET'&&courierContact){const actor=await authenticatedUser(request,authService);const contact=await logisticsService.courierContact(actor,courierContact[1]);sendJson(response,200,{contact,requestId},{...headers,'cache-control':'no-store'});return true;}
   const assign=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/assign$/i);
   if(request.method==="POST"&&assign){const actor=await authenticatedUser(request,authService);if(actor.role!=="courier"&&actor.role!=="admin")throw new AuthError("forbidden",403,"Acesso não autorizado.");const shipment=await logisticsService.assign(actor.id,assign[1]);sendJson(response,200,{shipment,requestId},headers);return true}
   const proof=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/proof$/i);

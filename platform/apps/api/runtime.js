@@ -3,7 +3,6 @@ import { isMainModule } from "../../packages/contracts/main-module.js";
 import { createApiServer } from "./server.js";
 import { createDatabase } from "../../database/client.js";
 import { createAuthRepository } from "../../database/auth-repository.js";
-import { createNotificationRepository } from "../../database/notification-repository.js";
 import { createMarketplaceRepository } from "../../database/marketplace-repository.js";
 import { createInstitutionRepository } from "../../database/institution-repository.js";
 import { createAdminRepository } from "../../database/admin-repository.js";
@@ -11,7 +10,6 @@ import { createPaymentRepository } from "../../database/payment-repository.js";
 import { createLogisticsRepository } from "../../database/logistics-repository.js";
 import { createRealtimeRepository } from "../../database/realtime-repository.js";
 import { createAuthService } from "./auth-service.js";
-import { createNotificationService } from "./notifications.js";
 import { createMarketplaceService } from "./marketplace-service.js";
 import { createInstitutionService } from "./institution-service.js";
 import { createAdminService } from "./admin-service.js";
@@ -41,15 +39,21 @@ import { createModerationRepository } from '../../database/moderation-repository
 import { createCommunicationsRepository } from '../../database/communications-repository.js';
 import { createPremiumService } from './premium-service.js';
 import { createPremiumRepository } from '../../database/premium-repository.js';
+import { createOperationalControlRepository } from '../../database/operational-control-repository.js';
+import { createOperationalControlService } from './operational-control.js';
+import { createAdultDeclarationRepository } from '../../database/adult-declaration-repository.js';
+import { createAdultDeclarationService } from './adult-declaration-service.js';
+import { createChildProfileRepository } from '../../database/child-profile-repository.js';
+import { createChildProfileService } from './child-profile-service.js';
+import { createExchangeRepository } from '../../database/exchange-repository.js';
+import { createExchangeService } from './exchange-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
   const database = createDatabase(config);
   await migrate(database);
-  const notificationService = createNotificationService(createNotificationRepository(database));
   const authService = createAuthService(createAuthRepository(database), {
     sessionTtlSeconds: config.sessionTtlSeconds,
-    notificationService,
   });
   const moderationRepository = createModerationRepository(database);
   const donationService = createDonationService(createDonationRepository(database));
@@ -57,12 +61,16 @@ export async function startRuntime(config = null) {
   const reviewModerationService = createReviewModerationService(createReviewModerationRepository(database),moderationRepository);
   const moderationService = createModerationService(moderationRepository);
   const communicationsService = createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
-  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
+  const marketplaceProviders = createMarketplaceProviders(config);
+  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository,marketplaceProviders);
   const premiumService = createPremiumService(createPremiumRepository(database));
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database));
-  const marketplaceProviders = createMarketplaceProviders(config);
-  const adminService = createAdminService(createAdminRepository(database));
+  const adminService = createAdminService(createAdminRepository(database),marketplaceProviders, { reviewSecret: config.sessionSecret });
+  const operationalControlService = createOperationalControlService(createOperationalControlRepository(database));
+  const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
+  const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
+  const exchangeService = createExchangeService(createExchangeRepository(database));
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
@@ -94,6 +102,10 @@ export async function startRuntime(config = null) {
     logisticsProvider,
     adminService,
     realtimeService,
+    operationalControlService,
+    adultDeclarationService,
+    childProfileService,
+    exchangeService,
     telemetry,
   });
 

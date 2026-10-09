@@ -202,6 +202,26 @@ export function createLogisticsRepository(database) {
       });
     },
 
+    async courierContact({shipmentId,courierId}) {
+      return database.transaction(async client=>{
+        const result=await client.query(`SELECT s.id,s.status,
+          u.display_name,u.phone,u.phone_verified_at,
+          CASE WHEN s.status IN ('assigned','awaiting_pickup') THEN 'pickup' ELSE 'delivery' END AS purpose
+          FROM shipments s
+          JOIN users u ON u.id=CASE WHEN s.status IN ('assigned','awaiting_pickup') THEN s.seller_id ELSE s.buyer_id END
+          JOIN transactions t ON t.id=s.transaction_id
+          WHERE s.id=$1 AND s.courier_id=$2
+            AND s.status IN ('assigned','picked_up','in_transit')
+            AND t.status IN ('paid','in_delivery')
+            AND u.phone IS NOT NULL AND u.phone_verified_at IS NOT NULL`,[shipmentId,courierId]);
+        const row=result.rows[0];
+        if(!row)throw Object.assign(new Error('Contato logístico indisponível para esta etapa.'),{code:'logistics_contact_not_available',status:409});
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'shipment.contact.read','shipment',$2,$3::jsonb)`,[courierId,shipmentId,JSON.stringify({channel:'phone',purpose:row.purpose})]);
+        return {displayName:row.display_name,phone:row.phone,purpose:row.purpose};
+      });
+    },
+
     async addProof(input) {
       return database.transaction(async (client) => {
         const shipment = await client.query(

@@ -14,6 +14,16 @@ Instituição fora de active pausa anúncios de doação ainda sem operação, f
 
 Tela Doações permite confirmar, acompanhar, registrar retirada, compartilhar/consultar endereço e aprovar recebimento. Entregador usa Registrar coleta da entrega atribuída. Sem chat de doação ou mensagem externa. Responsabilidade pela logística não inventa preço nem tarifa de processamento.
 
+## Recusa institucional antes da coleta
+
+O representante atualmente autorizado pode recusar uma doação nas versões 1 ou 2, antes da coleta. A decisão exige confirmação expressa, chave idempotente e um motivo classificado: condição sanitária, produto fora do escopo, validade insuficiente, capacidade institucional, divergência no anúncio ou outro motivo justificado. Uma referência privada de evidência é opcional; URL pública e travessia de caminho são rejeitadas.
+
+A recusa usa trava concorrente, revalida instituição/representante, cancela transação e eventual remessa ainda em `awaiting_pickup` ou `assigned`, registra evento e auditoria na mesma transação e preserva o anúncio como indisponível. Não há republicação automática, cobrança, reembolso, mensagem ou ação externa. Depois de `picked_up`, o fluxo falha sem escrita e orienta suporte.
+
+Após a recusa, somente o doador escolhe `republicar`, `redirecionar` ou `encerrar`. Republicar revalida a instituição original. Redirecionar exige outra instituição ativa, compatível com o pacote e com representante verificado diferente do doador; a operação recusada continua vinculada à instituição original, enquanto somente o anúncio muda de destino. Os dois caminhos de publicação também revalidam moderação e limite do plano. Encerrar marca o anúncio como removido. A decisão é versionada e idempotente. A transação permanece cancelada e motivo, nota e referência privada da recusa permanecem preservados.
+
+Evidência local: migrações 032, 039 e 040, serviço, repositório, handler e interface implementados; 11/11 testes específicos aprovados. Aplicação em PostgreSQL nativo e contrato HTTP real permanecem pendentes, portanto o item 64 é parcial.
+
 Local: cinco testes novos de consentimento/permissões/readiness, sintaxe 117 e diff aprovados. CI do commit 14461d39: 283/283 testes e 83/83 verificações; sintaxe 117 arquivos. Migração 030, concorrência/idempotência/isolamento/autoridade/revogação/endereço/coleta/aprovação/validação/pausa executados em PostgreSQL nativo. Chrome 154 executou doador, representante e entregador com Space, Tab e Enter; tela de doação verificada nas larguras 320, 375, 768 e 1280 sem overflow e sem controles sem rótulo. Execuções push e PR verdes: [job PostgreSQL/Chrome](https://github.com/bonecodesign/FRALDAScycle/actions/runs/37330286596/job/111831351503). Antes disso, CI detectou preço inválido na fixture, teste de estado desatualizado e espera prematura da automação, corrigidos sem esconder as falhas. Não registrar dispositivo, teste humano, leitor de tela, pagamento, foto real ou entrega física como executados.
 
 Matriz: 8/70 = 11,43%; doação/parcela logística e institucional continuam parciais pelas dependências financeiras, mídia/homologação e equipe. Produção bloqueada; termos reais rascunhos e dados de crianças não coletados. Troca aguarda definição documentada da seleção do segundo pacote, sem reintroduzir propostas ou supor uma decisão do fundador.

@@ -6,6 +6,8 @@ function siteAdvancedComponents(){
 }
 function setupAdvancedComponents(){
   const page=document.querySelector('.advanced-components-page');if(!page)return;
+  const uploadStatus=page.querySelector('#upload-result small');if(uploadStatus)uploadStatus.textContent='Selecionado apenas neste exemplo; nenhum envio foi realizado';
+  page.querySelectorAll('.icon-action').forEach(button=>{button.type='button';button.title='Ação visual sem persistência';});
   const date=page.querySelector('#advanced-date'),dateStatus=page.querySelector('#advanced-date-status');
   page.querySelectorAll('[data-calendar-day]').forEach(day=>day.addEventListener('click',()=>{page.querySelectorAll('[data-calendar-day]').forEach(item=>item.classList.remove('selected'));day.classList.add('selected');date.value=`2026-07-${String(day.dataset.calendarDay).padStart(2,'0')}`;dateStatus.textContent=`Selecionado: ${String(day.dataset.calendarDay).padStart(2,'0')}/07/2026`}));
   date.addEventListener('change',()=>dateStatus.textContent=`Selecionado: ${date.value.split('-').reverse().join('/')}`);

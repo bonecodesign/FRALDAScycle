@@ -24,7 +24,7 @@ export function createAddressRepository(database) {
     async shareAddress({actorId,shipmentId,addressId}) {
       return database.transaction(async client=>{
         const found=await client.query(`SELECT s.id,s.transaction_id,s.buyer_id,s.seller_id,s.courier_id,s.mode,s.status,
-          t.status AS transaction_status,l.kind,
+          t.status AS transaction_status,l.kind,e.status AS exchange_status,
           COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version,
           EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id) AS collected,
           EXISTS(SELECT 1 FROM payment_intents pi WHERE pi.transaction_id=t.id AND pi.status='paid'
@@ -33,13 +33,13 @@ export function createAddressRepository(database) {
             WHERE pi.transaction_id=t.id AND pc.status<>'rejected') OR
           EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved'
             AND st.category IN('cancellation','receipt_problem')) AS financial_issue
-          FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
+          FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id LEFT JOIN exchange_operations e ON e.transaction_id=t.id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
           WHERE s.id=$1 AND $2 IN(s.buyer_id,s.seller_id) FOR UPDATE OF s,t`,[shipmentId,actorId]);
         const shipment=found.rows[0];
         if(!shipment)throw fail('shipment_not_found',404,'Entrega não encontrada.');
         if(shipment.kind==='donation'){await client.query('SELECT id FROM institutions WHERE id=$1 FOR SHARE',[shipment.donation_institution_id]);shipment.donation_authorized=shipment.donation_version===2&&await verifiedInstitutionRepresentative(client,shipment.donation_institution_id)===shipment.buyer_id;}
-        if(!['sale','donation'].includes(shipment.kind))throw fail('address_flow_not_configured',503,'Compartilhamento de troca ainda pendente.');
-        const operationAllowed=shipment.kind==='donation'?shipment.mode==='pickup'&&shipment.donation_authorized===true&&['donation_confirmed','in_delivery'].includes(shipment.transaction_status):shipment.payment_confirmed===true&&['paid','in_delivery'].includes(shipment.transaction_status);
+        if(!['sale','donation','exchange'].includes(shipment.kind))throw fail('address_flow_not_configured',503,'Compartilhamento de endereço indisponível.');
+        const operationAllowed=shipment.kind==='donation'?shipment.mode==='pickup'&&shipment.donation_authorized===true&&['donation_confirmed','in_delivery'].includes(shipment.transaction_status):shipment.kind==='exchange'?shipment.exchange_status==='accepted'&&shipment.transaction_status==='in_delivery'&&shipment.buyer_id===actorId:shipment.payment_confirmed===true&&['paid','in_delivery'].includes(shipment.transaction_status);
         if(shipment.collected!==false||!operationAllowed||shipment.financial_issue!==false||!['awaiting_pickup','assigned'].includes(shipment.status)) {
           throw fail('address_share_not_allowed',409,'A entrega ainda não permite compartilhar o endereço, ou já passou da coleta.');
         }

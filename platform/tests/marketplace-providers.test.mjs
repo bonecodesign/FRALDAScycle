@@ -22,7 +22,7 @@ test("signed uploads validate media and keep provider credentials server-side", 
     return response({
       uploadUrl: "https://storage.example.com/upload/one",
       storageKey: "listings/user-1/one.webp",
-      expiresAt: "2026-08-03T02:00:00Z",
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
       headers: { "x-storage-token": "opaque" },
     });
   });
@@ -34,6 +34,60 @@ test("signed uploads validate media and keep provider credentials server-side", 
     providers.signedUpload("user-1", { contentType: "text/html", sizeBytes: 10 }),
     (error) => error instanceof ProviderError && error.code === "invalid_media_type",
   );
+});
+
+test("signed uploads reject foreign keys, unsafe headers and invalid expiration", async () => {
+  for (const payload of [
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/another-user/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: {},
+    },
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: { authorization: "secret" },
+    },
+    {
+      uploadUrl: "https://storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(), headers: {},
+    },
+    {
+      uploadUrl: "https://user:secret@storage.example.com/upload/one",
+      storageKey: "listings/user-1/one.webp",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), headers: {},
+    },
+  ]) {
+    const providers = createMarketplaceProviders(configured, async () => response(payload));
+    await assert.rejects(
+      providers.signedUpload("user-1", { contentType: "image/webp", sizeBytes: 2_048 }),
+      (error) => error.code === "invalid_provider_response" && error.status === 502,
+    );
+  }
+});
+
+test("media verification rejects missing, foreign, mutable and unprocessed images", async () => {
+  const key = "listings/user-1/one.webp";
+  const ready = { storageKey: key, ownerId: "user-1", exists: true, processed: true,
+    immutable: true, contentType: "image/webp", exifRemoved: true, scanStatus: "clean",
+    sizeBytes: 2_048, width: 800, height: 800 };
+  for (const patch of [
+    { exists: false }, { ownerId: "another-user" }, { processed: false },
+    { immutable: false }, { contentType: "text/html" }, { exifRemoved: false },
+    { scanStatus: "pending" }, { sizeBytes: 10_000_001 }, { width: 1_601 }, { height: 0 },
+  ]) {
+    const providers = createMarketplaceProviders(configured, async () => response({ ...ready, ...patch }));
+    await assert.rejects(providers.verifyListingMedia("user-1", [key]), error => error.code === "media_not_ready");
+  }
+  let request;
+  const providers = createMarketplaceProviders(configured, async (_url, options) => {
+    request = JSON.parse(options.body); return response(ready);
+  });
+  assert.deepEqual(await providers.verifyListingMedia("user-1", [key]), { verified: true, count: 1 });
+  assert.equal(request.operation, "verify-listing-media");
+  assert.equal(request.ownerId, "user-1");
+  await assert.rejects(providers.verifyListingMedia("user-1", ["listings/other/one.webp"]), error => error.code === "invalid_media");
 });
 
 test("geocoding returns only approximate validated coordinates", async () => {

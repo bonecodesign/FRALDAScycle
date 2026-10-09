@@ -1,6 +1,7 @@
 import { authenticatedUser } from './session.js';
 import { readJson } from './body.js';
 import { sendJson } from './http.js';
+import { requireAdultDeclaration } from './adult-declaration-service.js';
 export async function handlePremium(request, response, { url, headers, requestId, authService, premiumService }) {
   if (!premiumService) return false;
   const action = new Map([
@@ -10,6 +11,7 @@ export async function handlePremium(request, response, { url, headers, requestId
   ]).get(`${request.method} ${url.pathname}`);
   if (!action) return false;
   const user = await authenticatedUser(request, authService);
+  if (action !== 'status') requireAdultDeclaration(user);
   const result = await premiumService[action](user.id, action === 'status' ? undefined : await readJson(request));
   sendJson(response, 200, action === 'status' ? { premium: result, requestId } : { ...result, requestId }, { ...headers, 'cache-control': 'no-store' });
   return true;
