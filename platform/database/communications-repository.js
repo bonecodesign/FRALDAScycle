@@ -1,7 +1,8 @@
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 async function access(client,userId,transactionId,{completed=false}={}) {
   const row=(await client.query(`SELECT t.id,t.status,t.buyer_id,t.seller_id,l.kind,
-    EXISTS(SELECT 1 FROM payment_intents p WHERE p.transaction_id=t.id AND p.status IN ('authorized','paid')) AS payment_confirmed
+    EXISTS(SELECT 1 FROM payment_intents p WHERE p.transaction_id=t.id AND p.status='paid'
+      AND p.amount_cents=t.amount_cents AND p.provider_reference IS NOT NULL) AS payment_confirmed
     FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) FOR UPDATE OF t`,[transactionId,userId])).rows[0];
   if(!row)throw fail('transaction_not_found',404,'Operação não encontrada.');
   if(completed ? row.status!=='completed' : row.kind==='donation'||!row.payment_confirmed||['cancelled','refunded'].includes(row.status)) {

@@ -6,6 +6,7 @@ import { loadConfig } from "../apps/api/config.js";
 import { createMarketplaceRepository } from "../database/marketplace-repository.js";
 
 const INSTITUTION_ID = "11111111-1111-4111-8111-111111111111";
+const syntheticMediaProvider = { async verifyListingMedia() {} };
 
 function repository() {
   const items = [];
@@ -39,11 +40,12 @@ function repository() {
 }
 
 test("marketplace publishes sale exchange and donation with product invariants", async () => {
-  const service = createMarketplaceService(repository());
+  const service = createMarketplaceService(repository(), null, syntheticMediaProvider);
   const sale = await service.create("seller-1", {
     title: "Pampers Confort M", description: "Pacote fechado com cinquenta unidades.", kind: "sale",
     quantity: 50, priceCents: 4500, size: "M", category: "infant",
     brand: "Pampers", model: "Confort Sec", packageCondition: "sealed",
+    mediaKeys: ["listings/seller-1/synthetic.webp"],
   });
   assert.equal(sale.status, "published");
   await assert.rejects(
@@ -58,11 +60,12 @@ test("marketplace publishes sale exchange and donation with product invariants",
 
 test("marketplace search detail and favorites preserve ownership boundaries", async () => {
   const store = repository();
-  const service = createMarketplaceService(store);
+  const service = createMarketplaceService(store, null, syntheticMediaProvider);
   const item = await service.create("seller-1", {
     title: "Huggies Supreme G", description: "Pacote lacrado com quarenta unidades.", kind: "sale",
     quantity: 40, priceCents: 4000, category: "infant", brand: "Huggies",
     model: "Máxima Proteção", packageCondition: "sealed",
+    mediaKeys: ["listings/seller-1/synthetic.webp"],
   });
   assert.equal((await service.search({ kind: "sale" })).length, 1);
   assert.equal((await service.detail(item.id)).title, "Huggies Supreme G");
@@ -74,11 +77,12 @@ test("marketplace search detail and favorites preserve ownership boundaries", as
 });
 
 test("marketplace accepts open packages only for attested donations", async () => {
-  const service = createMarketplaceService(repository());
+  const service = createMarketplaceService(repository(), null, syntheticMediaProvider);
   const base = {
     title: "Pampers Confort Sec M", description: "Pacote aberto, limpo, seco e armazenado corretamente.",
     quantity: 18, category: "infant", brand: "Pampers", model: "Confort Sec", packageCondition: "open",
     institutionId: INSTITUTION_ID,
+    mediaKeys: ["listings/seller-1/synthetic.webp"],
   };
   await assert.rejects(
     service.create("seller-1", { ...base, kind: "sale", priceCents: 2500, openPackageAttested: true }),
@@ -94,10 +98,11 @@ test("marketplace accepts open packages only for attested donations", async () =
 });
 
 test("marketplace permits only disposable infant and swim catalog models", async () => {
-  const service = createMarketplaceService(repository());
+  const service = createMarketplaceService(repository(), null, syntheticMediaProvider);
   const base = {
     title: "Fralda descartável", description: "Pacote fechado e armazenado em ambiente limpo e seco.",
     kind: "donation", quantity: 12, packageCondition: "sealed", institutionId: INSTITUTION_ID,
+    mediaKeys: ["listings/seller-1/synthetic.webp"],
   };
   await assert.rejects(
     service.create("seller-1", { ...base, category: "adult", brand: "Outro", model: "Geriátrica" }),
@@ -115,11 +120,12 @@ test("marketplace permits only disposable infant and swim catalog models", async
 
 test("starting a transaction makes its listing immediately unavailable", async () => {
   const store = repository();
-  const service = createMarketplaceService(store);
+  const service = createMarketplaceService(store, null, syntheticMediaProvider);
   const listing = await service.create("seller-1", {
     title: "Huggies Natural Care M", description: "Pacote fechado com vinte e quatro unidades.",
     kind: "sale", quantity: 24, priceCents: 3000, category: "infant", brand: "Huggies",
     model: "Natural Care", packageCondition: "sealed",
+    mediaKeys: ["listings/seller-1/synthetic.webp"],
   });
   const transaction = await service.startTransaction("buyer-1", listing.id);
   assert.equal(transaction.status, "initiated");

@@ -219,7 +219,8 @@ export function createMarketplaceRepository(database) {
         `SELECT t.id, t.status, l.kind,
            EXISTS (
              SELECT 1 FROM payment_intents p
-             WHERE p.transaction_id = t.id AND p.status IN ('authorized','paid')
+             WHERE p.transaction_id = t.id AND p.status = 'paid'
+               AND p.amount_cents = t.amount_cents AND p.provider_reference IS NOT NULL
            ) AS payment_confirmed
          FROM transactions t JOIN listings l ON l.id = t.listing_id
          WHERE t.id = $1 AND $2 IN (t.buyer_id, t.seller_id)`,
