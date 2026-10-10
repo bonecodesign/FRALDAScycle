@@ -28,7 +28,7 @@ async function query(path) {
 }
 let pending = false;
 const lock = disabled => { refresh.disabled = disabled; if(previousButton)previousButton.disabled=disabled||page<=1; if(nextButton)nextButton.disabled=disabled||!hasMore; list.querySelectorAll('button').forEach(button => button.disabled = disabled); };
-async function select(item) {
+async function select(item,details=false) {
   if (pending) return;
   pending = true; lock(true);
   const previous = sessionStorage.getItem('fc.activeShipmentId');
@@ -42,7 +42,7 @@ async function select(item) {
       sessionStorage.removeItem('fc.deliveryProofShipmentId');
     }
     sessionStorage.setItem('fc.activeShipmentId',item.id);
-    window.location.assign(current.status === 'assigned' ? '/app/collection' : '/courier/proof');
+    window.location.assign(details ? '/courier/job' : current.status === 'assigned' ? '/app/collection' : '/courier/proof');
   } catch (error) { list.replaceChildren(); hasMore=false; feedback.textContent = (error.message || 'Não foi possível selecionar a entrega.') + ' Atualize a lista antes de selecionar novamente.'; }
   finally { pending = false; lock(false); }
 }
@@ -71,7 +71,9 @@ async function load(target=1) {
       }
       const button = document.createElement('button'); button.type = 'button'; button.className = 'button secondary block';
       button.textContent = item.status === 'assigned' ? 'Selecionar para coleta' : 'Selecionar para comprovante';
-      button.addEventListener('click',()=>select(item)); panel.append(title,status,button); list.append(panel);
+      button.addEventListener('click',()=>select(item));
+      const details = document.createElement('button'); details.type='button'; details.className='button secondary block'; details.textContent='Consultar contato e repasse'; details.addEventListener('click',()=>select(item,true));
+      panel.append(title,status,button,details); list.append(panel);
     }
     feedback.textContent = history
       ? (items.length ? 'Histórico carregado. Página ' + page + ' — até 50 registros.' : 'Nenhum registro no histórico da sua conta.')
