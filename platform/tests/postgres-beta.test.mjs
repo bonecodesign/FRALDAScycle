@@ -95,6 +95,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const session = await authService.login(fixture);
       const currentSession = await authService.session(session.token);
       await seedBrowserPremium(database, currentSession.id);
+      await database.query("INSERT INTO support_tickets(requester_id,category,subject,details,idempotency_key,created_at) SELECT $1,'general','Pedido antigo fictício '||n,'Descrição sintética para paginação no navegador.','synthetic-browser-support-page-'||n,'2000-01-01'::timestamptz FROM generate_series(1,55) n",[currentSession.id]);
       const browserTransaction=await seedBrowserCommunication(database,currentSession.id,user);
       const { createPremiumRepository } = await import('../database/premium-repository.js');
       const { createPremiumService } = await import('../apps/api/premium-service.js');

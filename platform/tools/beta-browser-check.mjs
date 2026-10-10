@@ -342,6 +342,11 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const clientSupport=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/support/tickets')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items.find(ticket=>ticket.subject==='Pedido fictício suporte cliente'))`);assert.ok(clientSupport?.id);
     await evaluate(`document.getElementById('support-form').elements.transaction.value=${JSON.stringify(browserTransaction)};document.getElementById('operation-cancel').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('support-form').elements.category.value==='cancellation'&&!document.getElementById('operation-cancel').disabled`),'paid cancellation requires support');
+    await evaluate(`document.getElementById('support-next').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('support-page').textContent==='Página 2'&&!document.getElementById('support-refresh').disabled`),'client support second page');
+    assert.equal(await evaluate(`document.getElementById('support-form').elements.category.value`),'cancellation');
+    await evaluate(`document.getElementById('support-previous').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('support-page').textContent==='Página 1'&&!document.getElementById('support-refresh').disabled`),'client support previous page');
     const sharedSupportLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
@@ -354,6 +359,12 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.querySelectorAll('#support-list button').length>0`),'operational support queue');
     await evaluate(`[...document.querySelectorAll('#support-list button')].find(button=>button.textContent.includes('Pedido fictício suporte cliente')).focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`Boolean(document.querySelector('#support-detail form textarea'))`),'operational selected protocol');
+    await evaluate(`window.fcOriginalSupportFetch=window.fetch;window.fetch=async(...args)=>{const result=await window.fcOriginalSupportFetch(...args);if(!window.fcSupportResponseDropped&&String(args[0]).endsWith('/v1/support/tickets/'+${JSON.stringify(clientSupport.id)}+'/reply')&&args[1]?.method==='POST'){window.fcSupportResponseDropped=true;throw new TypeError('Synthetic response loss');}return result;}`);
+    await evaluate(`(()=>{const form=document.querySelector('#support-detail form');form.querySelector('textarea').value='Resposta operacional fictícia para conferir persistência.';form.querySelector('select').value='under_review';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('support-feedback').textContent.includes('Consulte o protocolo novamente')`),'support reply response lost after persistence');
+    assert.equal(await evaluate(`Boolean(sessionStorage.getItem('fc.supportReplyKey:'+${JSON.stringify(clientSupport.id)}))`),true);
+    await evaluate(`window.fetch=window.fcOriginalSupportFetch;[...document.querySelectorAll('#support-list button')].find(button=>button.textContent.includes('Pedido fictício suporte cliente')).focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`Boolean(document.querySelector('#support-detail form textarea'))&&!document.querySelector('#support-detail form button').disabled`),'support protocol reread before retry');
     await evaluate(`(()=>{const form=document.querySelector('#support-detail form');form.querySelector('textarea').value='Resposta operacional fictícia para conferir persistência.';form.querySelector('select').value='under_review';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('support-detail').textContent.includes('Resposta operacional fictícia para conferir persistência.')`),'operational reply persisted and reloaded');
     const clientSupportPersisted=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/support/tickets/')}+${JSON.stringify(clientSupport.id)},{credentials:'include'}).then(r=>r.json()).then(r=>r.ticket)`);assert.equal(clientSupportPersisted.status,'under_review');assert.equal(clientSupportPersisted.messages.filter(message=>message.body==='Resposta operacional fictícia para conferir persistência.').length,1);
@@ -400,7 +411,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       const overflow=await evaluate(`document.documentElement.scrollWidth>innerWidth+1`);assert.equal(overflow,false);courierDashboardLayouts.push({viewport:width,overflow});
     }
     await evaluate(`document.querySelectorAll('#courier-deliveries button')[1].focus()`);await key('Enter','Enter',13);
-    await until(()=>evaluate(`Boolean(document.getElementById('courier-contact'))`),'courier details screen');
+    await until(()=>evaluate(`Boolean(document.getElementById('courier-contact'))&&!document.getElementById('courier-contact').disabled`),'courier details screen');
     await evaluate(`document.getElementById('courier-contact').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('courier-details-feedback').textContent.includes('Contato logístico indisponível')`),'donation contact unavailable before collection');
     assert.equal(await evaluate(`document.getElementById('courier-details').textContent.includes('+5500000000000')`),false);
@@ -427,7 +438,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     // Stored media and geolocation are synthetic; the UI, API and database are real local services.
     await evaluate(`sessionStorage.setItem('fc.deliveryProofShipmentId',${JSON.stringify(browserDonationShipment)});sessionStorage.setItem('fc.deliveryProofMediaKey','synthetic/browser-donation-proof')`);
     await call('Page.navigate',{url:`${surfaceOrigin}/courier/job`});
-    await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('courier-contact'))`),'details after collection');
+    await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('courier-contact'))&&!document.getElementById('courier-contact').disabled`),'details after collection');
     await evaluate(`document.getElementById('courier-contact').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('courier-details-feedback').textContent.includes('Consulta concluída')`),'delivery contact after collection');
     assert.equal(await evaluate(`document.getElementById('courier-details').textContent.includes('+5500000000000')`),true);

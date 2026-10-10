@@ -72,6 +72,11 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async supportTickets(actor) {
       return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
     },
+    async supportPage(actor,{page='1'}={}) {
+      if(typeof page!=='string'||! /^[1-9][0-9]{0,5}$/.test(page)||Number(page)>100000)throw new MarketplaceError('invalid_support_page',400,'Informe uma página válida.');
+      const current=Number(page),rows=await repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,'admin:support:write'),limit:51,offset:(current-1)*50});
+      return {items:rows.slice(0,50),page:current,hasMore:rows.length>50};
+    },
     async supportTicket(actor,ticketId) {
       return repository.supportTicket({userId:actor.id,ticketId,reviewer:hasScope(actor,"admin:support:write")});
     },
@@ -79,10 +84,11 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       requireScope(actor,"admin:support:write");
       const body=String(input?.body??"").trim();
       const status=String(input?.status??"under_review");
-      if(body.length<10||body.length>2000||!["open","under_review","resolved"].includes(status)) {
+      const idempotencyKey=input?.idempotencyKey;
+      if(body.length<10||body.length>2000||!["open","under_review","resolved"].includes(status)||typeof idempotencyKey!=='string'||! /^[a-zA-Z0-9:_-]{16,128}$/.test(idempotencyKey)) {
         throw new MarketplaceError("invalid_support_reply",422,"Informe a resposta e o estado do atendimento.");
       }
-      return repository.replySupportTicket({actorId:actor.id,ticketId,body,status});
+      return repository.replySupportTicket({actorId:actor.id,ticketId,body,status,idempotencyKey});
     },
     async supportCancellationDecision(actor,ticketId,input) {
       requireScope(actor,"admin:support:write");
