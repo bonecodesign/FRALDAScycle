@@ -42,3 +42,10 @@
 [data-source-route="#/admin/operations"] #support-detail { overflow-wrap: anywhere; }
 
 [data-surface] nav[aria-label="Páginas dos atendimentos"] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+[data-source-route="#/admin/launch"] .support-filter-controls,
+[data-source-route="#/admin/operations"] .support-filter-controls { display: flex; flex-wrap: wrap; gap: 12px; min-width: 0; max-width: 100%; }
+[data-source-route="#/admin/launch"] .support-filter-controls > *,
+[data-source-route="#/admin/operations"] .support-filter-controls > * { flex: 1 1 12rem; min-width: 0; max-width: 100%; }
+[data-source-route="#/admin/launch"] .support-filter-controls select,
+[data-source-route="#/admin/operations"] .support-filter-controls select { width: 100%; min-width: 0; max-width: 100%; }
