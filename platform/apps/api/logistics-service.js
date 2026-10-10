@@ -15,6 +15,11 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    async courierShipments(actor) {
+      if (!['courier','admin'].includes(actor?.role)) throw new LogisticsError('forbidden',403,'Use a conta do entregador para consultar suas entregas.');
+      const rows = await repository.courierShipments(actor.id);
+      return rows.map(row => ({id:row.id,status:row.status,mode:row.mode,insured:row.insured,estimatedDeliveryAt:row.estimated_delivery_at??null}));
+    },
     ownAddresses(userId) { return repository.ownAddresses(userId); },
     async createAddress(userId,input) {
       const address={};

@@ -10,6 +10,11 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
   }
   if(!logisticsService)return false;
+  if(request.method==='GET'&&url.pathname==='/v1/courier/shipments'){
+    const actor=await authenticatedUser(request,authService);
+    const items=await logisticsService.courierShipments(actor);
+    sendJson(response,200,{items,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   if(url.pathname==="/v1/addresses"&&["GET","POST"].includes(request.method)){
     const actor=await authenticatedUser(request,authService);
     const result=request.method==="GET"?{items:await logisticsService.ownAddresses(actor.id)}:

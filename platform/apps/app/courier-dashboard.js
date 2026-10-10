@@ -1,0 +1,47 @@
+import { apiRequest } from '/packages/contracts/api-client.js';
+const list = document.getElementById('courier-deliveries');
+const feedback = document.getElementById('courier-feedback');
+const refresh = document.getElementById('courier-refresh');
+const states = {assigned:'Aguardando coleta',picked_up:'Coleta registrada',in_transit:'Em trânsito'};
+const validId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+let pending = false;
+const lock = disabled => { refresh.disabled = disabled; list.querySelectorAll('button').forEach(button => button.disabled = disabled); };
+async function select(item) {
+  if (pending) return;
+  pending = true; lock(true);
+  const previous = sessionStorage.getItem('fc.activeShipmentId');
+  try {
+    const result = await apiRequest('/v1/courier/shipments');
+    const current = Array.isArray(result.items) ? result.items.find(shipment => shipment?.id === item.id) : null;
+    if (!current || !states[current.status]) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
+    if (sessionStorage.getItem('fc.activeShipmentId') !== previous) throw new Error('A entrega ativa mudou. Atualize a lista antes de selecionar novamente.');
+    if (sessionStorage.getItem('fc.deliveryProofShipmentId') !== item.id) {
+      sessionStorage.removeItem('fc.deliveryProofMediaKey');
+      sessionStorage.removeItem('fc.deliveryProofShipmentId');
+    }
+    sessionStorage.setItem('fc.activeShipmentId',item.id);
+    window.location.assign(current.status === 'assigned' ? '/app/collection' : '/courier/proof');
+  } catch (error) { feedback.textContent = error.message || 'Não foi possível selecionar a entrega.'; }
+  finally { pending = false; lock(false); }
+}
+async function load() {
+  if (pending) return;
+  pending = true; lock(true); list.replaceChildren();
+  feedback.textContent = 'Consultando suas entregas...';
+  try {
+    const {items} = await apiRequest('/v1/courier/shipments');
+    if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !states[item.status])) throw new Error('Não foi possível confirmar a lista de entregas.');
+    for (const item of items) {
+      const panel = document.createElement('div'); panel.className = 'panel';
+      const title = document.createElement('p'); title.textContent = 'Entrega ' + item.id;
+      const status = document.createElement('p'); status.textContent = states[item.status];
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'button secondary block';
+      button.textContent = item.status === 'assigned' ? 'Selecionar para coleta' : 'Selecionar para comprovante';
+      button.addEventListener('click',()=>select(item)); panel.append(title,status,button); list.append(panel);
+    }
+    feedback.textContent = items.length ? 'Entregas carregadas. Exibindo até 50 operações ativas mais recentes.' : 'Nenhuma entrega ativa atribuída à sua conta.';
+  } catch (error) { list.replaceChildren(); feedback.textContent = error.message || 'Não foi possível consultar suas entregas.'; }
+  finally { pending = false; lock(false); }
+}
+refresh.addEventListener('click',load);
+void load();

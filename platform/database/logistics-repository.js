@@ -17,6 +17,12 @@ export function createLogisticsRepository(database) {
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
     addressChanges: createAddressChangeRepository(database),
+    async courierShipments(courierId) {
+      const result = await database.query(`SELECT id,status,mode,insured,estimated_delivery_at,created_at
+        FROM shipments WHERE courier_id=$1 AND status IN ('assigned','picked_up','in_transit')
+        ORDER BY created_at DESC,id DESC LIMIT 50`, [courierId]);
+      return result.rows;
+    },
     async context(input) {
       const { buyerId, transactionId, idempotencyKey } = input;
       return database.transaction(async (client) => {
