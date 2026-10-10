@@ -307,7 +307,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const reviewRestored=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/admin/review-moderation/')}+${JSON.stringify(browserReview.receivedId)},{credentials:'include'}).then(r=>r.json()).then(r=>r.review)`);
     assert.equal(reviewRestored.visibility,'public');assert.equal(reviewRestored.visibility_version,2);
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
-    await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback').textContent.includes('Vínculos carregados')`),'institution authorized review');
+    await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution authorized review');
     await evaluate(`(()=>{const article=[...document.querySelectorAll('#institution-access-list article')].find(a=>a.textContent.includes('Aceito, aguardando conferência'));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await evaluate(`(()=>{const f=document.getElementById('institution-access-review');f.elements.outcome.value='verified';f.elements.reason.value='Conferência fictícia do vínculo aceita pelo representante.';f.elements.confirmed.focus();})()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
@@ -348,20 +348,69 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.courierSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     const assignedDonation=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/assign',{method:'POST',credentials:'include'}).then(r=>r.status)`);assert.equal(assignedDonation,200);
-    await call('Page.navigate',{url:`${surfaceOrigin}/app/collection`});
-    await until(()=>evaluate(`!document.querySelector('#collection-form fieldset')?.disabled`),'assigned courier collection form');
-    await evaluate(`document.querySelector('#collection-form input[name=shipmentId]').value=${JSON.stringify(browserDonationShipment)};document.querySelector('#collection-form input[name=confirmed]').focus()`);
+    await call('Page.navigate',{url:`${surfaceOrigin}/courier/home`});
+    await until(()=>evaluate(`document.getElementById('courier-feedback')?.textContent.includes('Entregas carregadas')`),'assigned courier dashboard');
+    assert.equal(await evaluate(`document.querySelectorAll('#courier-deliveries button').length`),1);
+    const courierDashboardLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const overflow=await evaluate(`document.documentElement.scrollWidth>innerWidth+1`);assert.equal(overflow,false);courierDashboardLayouts.push({viewport:width,overflow});
+    }
+    await evaluate(`document.querySelector('#courier-deliveries button').focus()`);await key('Enter','Enter',13);
+
+    await until(()=>evaluate(`Boolean(document.querySelector('#collection-form fieldset'))&&!document.querySelector('#collection-form fieldset').disabled`),'assigned courier collection form');
+    assert.equal(await evaluate(`document.querySelector('#collection-form input[name=shipmentId]').value`),browserDonationShipment);
+    await evaluate(`document.querySelector('#collection-form input[name=confirmed]').focus()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('collection-feedback').textContent.includes('Coleta registrada')`),'courier collection keyboard');
-    // Media key and coordinates are synthetic fixtures; no upload/provider/physical delivery is asserted.
-    const proofStatus=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/proof',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({mediaKey:'synthetic/browser-donation-proof',recipientName:'Representante fictício',latitude:0,longitude:0})}).then(r=>r.status)`);assert.equal(proofStatus,201);
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.activeShipmentId')`),browserDonationShipment);
+    assert.equal(await evaluate(`document.getElementById('collection-next').hidden`),false);
+    // Stored media and geolocation are synthetic; the UI, API and database are real local services.
+    await evaluate(`sessionStorage.setItem('fc.deliveryProofShipmentId',${JSON.stringify(browserDonationShipment)});sessionStorage.setItem('fc.deliveryProofMediaKey','synthetic/browser-donation-proof')`);
+    await evaluate(`document.getElementById('collection-next').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.querySelector('[data-action="delivery"]'))`),'courier proof screen');
+    const courierProofLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('.phone-content input')].filter(c=>!c.labels?.length).length})`);
+      assert.equal(layout.overflow,false);assert.equal(layout.missingLabels,0);courierProofLayouts.push({viewport:width,...layout});
+    }
+    await evaluate(`document.getElementById('proof-recipient').value='Representante fictício';document.querySelector('.phone-content .terms input').checked=true;document.querySelector('[data-action="delivery"]').focus()`);
+    await send('Browser.setPermission',{permission:{name:'geolocation'},setting:'denied',origin:surfaceOrigin});
+    await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('toast').textContent.includes('Permita o acesso')&&!document.querySelector('[data-action="delivery"]').disabled`),'location denied preserves proof');
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.deliveryProofMediaKey')`),'synthetic/browser-donation-proof');
+    await send('Browser.setPermission',{permission:{name:'geolocation'},setting:'granted',origin:surfaceOrigin});
+    await call('Emulation.setGeolocationOverride',{latitude:0,longitude:0,accuracy:1});
+    await evaluate(`document.querySelector('[data-action="delivery"]').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`location.pathname==='/courier/history'`),'proof accepted through courier UI');
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.deliveryProofMediaKey')`),null);
+    await until(()=>evaluate(`document.getElementById('courier-feedback')?.textContent.includes('Histórico carregado')`),'courier history loads recorded delivery');
+    assert.equal(await evaluate(`document.querySelectorAll('#courier-history-records .panel').length`),1);
+    assert.equal(await evaluate(`document.querySelectorAll('#courier-history-records button').length`),0);
+    assert.equal(await evaluate(`document.getElementById('courier-history-records').textContent.includes('Entrega registrada como entregue')`),true);
+    assert.deepEqual(await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/courier/shipments')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items)`),[]);
+    const courierHistoryLayouts=[];
+    for(const width of [320,375,768,1280]){
+      await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const overflow=await evaluate(`document.documentElement.scrollWidth>innerWidth+1`);assert.equal(overflow,false);courierHistoryLayouts.push({viewport:width,overflow});
+    }
+    await call('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    await evaluate(`document.getElementById('courier-refresh').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('courier-feedback')?.textContent.includes('Não foi possível conectar')&&!document.getElementById('courier-refresh').disabled`),'offline history consultation allows retry');
+    assert.equal(await evaluate(`document.querySelectorAll('#courier-history-records .panel').length`),0);
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.activeShipmentId')`),browserDonationShipment);
+    await call('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    await evaluate(`document.getElementById('courier-refresh').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('courier-feedback')?.textContent.includes('Histórico carregado')`),'online history consultation recovers');
+    assert.equal(await evaluate(`document.querySelectorAll('#courier-history-records .panel').length`),1);
     await call('Network.setCookie',{name:'fc_session',value:sessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/donations`});await until(()=>evaluate(`document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'institution receipt load');
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await evaluate(`document.querySelector('#donation-receipt input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Recebimento institucional aprovado')`),'institution receipt keyboard');
     const donationReady=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/settlement-status',{credentials:'include'}).then(r=>r.json()).then(r=>r.settlement)`);assert.equal(donationReady.payoutAllowed,false);assert.equal(donationReady.operationalRequirementsMet,false);
-    return { authentication, browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    return { courierQueryRecovery:"consulta offline remove cartões, preserva seleção e desbloqueia atualização; conexão restaurada recarrega histórico", courierHistoryLayouts, courierDashboardLayouts, courierProof:'localização recusada preserva foto; nova tentativa por teclado registra comprovante na API/PostgreSQL; foto e coordenadas são fixtures',courierProofLayouts, authentication, browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

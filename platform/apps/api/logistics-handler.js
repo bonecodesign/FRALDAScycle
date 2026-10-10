@@ -10,6 +10,11 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const result=await logisticsService.processWebhook(event);sendJson(response,200,{...result,requestId},headers);return true;
   }
   if(!logisticsService)return false;
+  if(request.method==='GET'&&['/v1/courier/shipments','/v1/courier/history'].includes(url.pathname)){
+    const actor=await authenticatedUser(request,authService);
+    const result=await logisticsService.courierPage(actor,{history:url.pathname==='/v1/courier/history',page:url.searchParams.get('page')??'1'});
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   if(url.pathname==="/v1/addresses"&&["GET","POST"].includes(request.method)){
     const actor=await authenticatedUser(request,authService);
     const result=request.method==="GET"?{items:await logisticsService.ownAddresses(actor.id)}:

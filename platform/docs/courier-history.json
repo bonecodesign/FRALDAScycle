@@ -1,0 +1,26 @@
+{
+  "browser": "Chrome/151.0.7922.173",
+  "layouts": [
+    {
+      "viewport": 320,
+      "overflow": false
+    },
+    {
+      "viewport": 375,
+      "overflow": false
+    },
+    {
+      "viewport": 768,
+      "overflow": false
+    },
+    {
+      "viewport": 1280,
+      "overflow": false
+    }
+  ],
+  "testsPassed": 9,
+  "readOnly": true,
+  "realPayouts": false,
+  "physicalDeliveryTested": false,
+  "productionEnabled": false
+}

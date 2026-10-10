@@ -1,0 +1,31 @@
+{
+  "browser": "Chrome/151.0.7922.173",
+  "courierProof": "localização recusada preserva foto; nova tentativa por teclado registra comprovante na API/PostgreSQL; foto e coordenadas são fixtures",
+  "layouts": [
+    {
+      "viewport": 320,
+      "overflow": false,
+      "missingLabels": 0
+    },
+    {
+      "viewport": 375,
+      "overflow": false,
+      "missingLabels": 0
+    },
+    {
+      "viewport": 768,
+      "overflow": false,
+      "missingLabels": 0
+    },
+    {
+      "viewport": 1280,
+      "overflow": false,
+      "missingLabels": 0
+    }
+  ],
+  "unitTestsPassed": 7,
+  "integratedPostgresPassed": 1,
+  "photoUploadProviderTested": false,
+  "physicalDeliveryTested": false,
+  "productionEnabled": false
+}
