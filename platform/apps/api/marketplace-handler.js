@@ -53,6 +53,12 @@ export async function handleMarketplace(request, response, {
       : await marketplaceService.supportPage(actor,{page:url.searchParams.get('page')??'1',status:url.searchParams.get('status')??'',category:url.searchParams.get('category')??'',q:url.searchParams.get('q')??'',assignment:url.searchParams.get('assignment')??'',sort:url.searchParams.get('sort')??'newest'});
     sendJson(response,request.method==="POST"&&!result.reused?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
   }
+  const supportNote=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/notes$/i);
+  if(supportNote&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.addSupportNote(actor,supportNote[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{note:result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const support=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})(\/reply)?$/i);
   if(support && ((request.method==="GET"&&!support[2])||(request.method==="POST"&&support[2]))) {
     const actor=await authenticatedUser(request,authService);

@@ -17,3 +17,7 @@ O servidor exige o escopo `admin:support:write`. A linha do atendimento é bloqu
 - Chromium: filtros mine/unassigned e assumir/liberar via teclado na fila real de teste; layouts validados em 320, 375, 768 e 1280 px.
 
 Não há definição de SLA neste passo: prazos e escalonamento requerem política aprovada. O ensaio usa usuários e tickets sintéticos e não configura equipes ou alertas reais.
+
+## Notas internas
+
+O `/admin/launch` e o `/admin/operations` permitem registrar notas internas separadas das mensagens e respostas visíveis ao cliente. A rota exige `admin:support:write`; as notas ficam em tabela própria, são append-only e deduplicadas por autor e chave UUID. A consulta do cliente não retorna o campo `internal_notes`, enquanto detalhes administrativos retornam autor e data. O evento `support.ticket.note_added` registra a ação sem copiar o conteúdo privado para os metadados de auditoria. O texto aceita de 10 a 2000 caracteres e é renderizado como texto simples.
