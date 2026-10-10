@@ -24,7 +24,7 @@ function lockForm(disabled){for(const control of form.querySelectorAll('input,te
 function clearSelection(){selected=null;panel.hidden=true;form.elements.ticketId.value='';document.getElementById('support-detail-title').textContent='Atendimento';document.getElementById('support-detail-description').textContent='';document.getElementById('support-messages').replaceChildren();assignmentPanel?.replaceChildren();if(notesPanel)notesPanel.hidden=true;notesList?.replaceChildren();document.getElementById('support-note-status').textContent='';lockForm(true);}
 async function query(path){const signal=AbortSignal.timeout(15000);try{const result=await apiRequest(path,{signal});if(signal.aborted)throw new Error();return result;}catch(error){if(signal.aborted)throw new Error('A consulta demorou para responder. Tente novamente.');throw error;}}
 async function openTicket(id,afterReply=false){
- if(replying||noteSaving)return;
+ if((replying&&!afterReply)||noteSaving)return;
  const generation=++selectionGeneration;clearSelection();replyStatus.textContent='Consultando atendimento…';
  if(!validId(id)){replyStatus.textContent='Identificador de atendimento inválido.';return;}
  try{
