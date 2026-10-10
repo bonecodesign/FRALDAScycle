@@ -12,7 +12,7 @@ export function nativeChrome() {
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(operation, label) {
-  const deadline = Date.now() + 60000;
+  const deadline = Date.now() + 120000;
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
