@@ -107,16 +107,16 @@ export function createOperationSupportRepository(database) {
         return {ticket:created.rows[0],reused:false};
       });
     },
-    async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null,q=null}) {
+    async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null,q=null,assignment=null}) {
       return database.transaction(async client => {
         const result = await client.query(`SELECT st.id,st.protocol,st.category,st.subject,st.status,st.created_at,st.updated_at,
           CASE WHEN $2::boolean THEN st.assignee_id END AS assignee_id,
           CASE WHEN $2::boolean THEN assignee.display_name END AS assignee_name,
           CASE WHEN $2::boolean THEN st.assigned_at END AS assigned_at
           FROM support_tickets st LEFT JOIN users assignee ON assignee.id=st.assignee_id
-          WHERE (st.requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR st.status=$5) AND ($6::text IS NULL OR st.category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(st.protocol::text || ' ' || st.subject || ' ' || st.details))>0) ORDER BY st.created_at DESC,st.id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q]);
+          WHERE (st.requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR st.status=$5) AND ($6::text IS NULL OR st.category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(st.protocol::text || ' ' || st.subject || ' ' || st.details))>0) AND ($8::text IS NULL OR ($8='mine' AND st.assignee_id=$1) OR ($8='unassigned' AND st.assignee_id IS NULL)) ORDER BY st.created_at DESC,st.id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q,assignment]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category,q})]);
+          VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category,q,assignment})]);
         return result.rows;
       });
     },

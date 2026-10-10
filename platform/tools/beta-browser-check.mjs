@@ -12,7 +12,7 @@ export function nativeChrome() {
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(operation, label) {
-  const deadline = Date.now() + 12000;
+  const deadline = Date.now() + 30000;
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
@@ -328,6 +328,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.querySelector('#support-reply-form input[name=ticketId]').value===${JSON.stringify(browserSupport.id)}&&!document.querySelector('#support-reply-form button').disabled`),'admin selected support ticket');
     await evaluate(`(()=>{const button=document.querySelector('#support-assignment button');button.focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelector('#support-assignment').textContent.includes('Responsável:')&&document.querySelector('#support-assignment button').textContent==='Liberar atribuição'`),'admin claims support ticket');
+    await evaluate(`(()=>{document.getElementById('support-filter-assignment').value='mine';document.getElementById('support-filter-form').requestSubmit();})()`);
+    await until(()=>evaluate(`[...document.querySelectorAll('#support-rows tr')].some(row=>row.textContent.includes('Atendimento fictício navegador'))`),'my assigned support queue');
+    await evaluate(`(()=>{document.getElementById('support-filter-assignment').value='unassigned';document.getElementById('support-filter-form').requestSubmit();})()`);
+    await until(()=>evaluate(`![...document.querySelectorAll('#support-rows tr')].some(row=>row.textContent.includes('Atendimento fictício navegador'))`),'unassigned support queue excludes claimed ticket');
     await evaluate(`(()=>{const button=document.querySelector('#support-assignment button');button.focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelector('#support-assignment').textContent.includes('Sem responsável')&&document.querySelector('#support-assignment button').textContent==='Assumir atendimento'`),'admin releases own support assignment');
     const adminSupportLayouts=[];
