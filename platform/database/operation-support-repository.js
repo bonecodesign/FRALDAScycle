@@ -109,8 +109,12 @@ export function createOperationSupportRepository(database) {
     },
     async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null,q=null}) {
       return database.transaction(async client => {
-        const result = await client.query(`SELECT id,protocol,category,subject,status,created_at,updated_at
-          FROM support_tickets WHERE (requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR status=$5) AND ($6::text IS NULL OR category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(protocol::text || ' ' || subject || ' ' || details))>0) ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q]);
+        const result = await client.query(`SELECT st.id,st.protocol,st.category,st.subject,st.status,st.created_at,st.updated_at,
+          CASE WHEN $2::boolean THEN st.assignee_id END AS assignee_id,
+          CASE WHEN $2::boolean THEN assignee.display_name END AS assignee_name,
+          CASE WHEN $2::boolean THEN st.assigned_at END AS assigned_at
+          FROM support_tickets st LEFT JOIN users assignee ON assignee.id=st.assignee_id
+          WHERE (st.requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR st.status=$5) AND ($6::text IS NULL OR st.category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(st.protocol::text || ' ' || st.subject || ' ' || st.details))>0) ORDER BY st.created_at DESC,st.id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category,q})]);
         return result.rows;
@@ -118,7 +122,13 @@ export function createOperationSupportRepository(database) {
     },
     async supportTicket({userId,ticketId,reviewer=false}) {
       return database.transaction(async client => {
-        const result = await client.query('SELECT * FROM support_tickets WHERE id=$1 AND (requester_id=$2 OR $3::boolean)',[ticketId,userId,reviewer]);
+        const result = await client.query(`SELECT st.*,
+          CASE WHEN $3::boolean THEN assignee.display_name END AS assignee_name,
+          CASE WHEN $3::boolean THEN st.assignee_id END AS assignee_id,
+          CASE WHEN $3::boolean THEN st.assigned_at END AS assigned_at,
+          COALESCE($3::boolean AND st.assignee_id=$2,false) AS assigned_to_me FROM support_tickets st
+          LEFT JOIN users assignee ON assignee.id=st.assignee_id
+          WHERE st.id=$1 AND (st.requester_id=$2 OR $3::boolean)`,[ticketId,userId,reviewer]);
         if (!result.rows[0]) throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
         const messages = await client.query('SELECT id,body,created_at FROM support_ticket_messages WHERE ticket_id=$1 ORDER BY created_at,id',[ticketId]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
@@ -147,6 +157,27 @@ export function createOperationSupportRepository(database) {
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.replied','support_ticket',$2,$3::jsonb)`,[actorId,ticketId,JSON.stringify({status})]);
         return {id:ticketId,status,messageId:created.rows[0].id,reused:false};
+      });
+    },
+    async setSupportAssignment({actorId,ticketId,action}) {
+      return database.transaction(async client => {
+        const found=await client.query('SELECT id,status,assignee_id FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId]);
+        const ticket=found.rows[0];
+        if(!ticket)throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
+        let changed=false;
+        if(action==='claim'){
+          if(ticket.status==='resolved')throw fail('support_ticket_resolved',409,'Um atendimento resolvido não pode ser assumido.');
+          if(ticket.assignee_id&&ticket.assignee_id!==actorId)throw fail('support_ticket_assigned',409,'Este atendimento já está atribuído a outra pessoa.');
+          if(!ticket.assignee_id){await client.query('UPDATE support_tickets SET assignee_id=$2,assigned_at=now(),updated_at=now() WHERE id=$1',[ticketId,actorId]);changed=true;}
+        }else if(action==='release'){
+          if(ticket.assignee_id&&ticket.assignee_id!==actorId)throw fail('support_assignment_not_owned',409,'Somente quem assumiu este atendimento pode liberá-lo.');
+          if(ticket.assignee_id){await client.query('UPDATE support_tickets SET assignee_id=NULL,assigned_at=NULL,updated_at=now() WHERE id=$1',[ticketId]);changed=true;}
+        }
+        const result=await client.query(`SELECT st.id,st.assignee_id,assignee.display_name AS assignee_name,st.assigned_at,COALESCE(st.assignee_id=$2,false) AS assigned_to_me
+          FROM support_tickets st LEFT JOIN users assignee ON assignee.id=st.assignee_id WHERE st.id=$1`,[ticketId,actorId]);
+        if(changed)await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,$2,'support_ticket',$3,$4::jsonb)`,[actorId,action==='claim'?'support.ticket.claimed':'support.ticket.released',ticketId,JSON.stringify({assigneeId:result.rows[0].assignee_id})]);
+        return result.rows[0];
       });
     },
   });
