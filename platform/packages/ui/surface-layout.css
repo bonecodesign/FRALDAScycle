@@ -34,3 +34,9 @@
 
 [data-surface="app"] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 [data-surface="app"] input, [data-surface="app"] select, [data-surface="app"] textarea { max-width: 100%; }
+
+/* O formulário operacional deve caber sem ocultar campos ou ações. */
+[data-source-route="#/admin/operations"] .admin-filters { flex-wrap: wrap; }
+[data-source-route="#/admin/operations"] .admin-filters > * { min-width: 0; max-width: 100%; }
+[data-source-route="#/admin/operations"] .phone-card > div { min-width: 0; overflow-wrap: anywhere; }
+[data-source-route="#/admin/operations"] #support-detail { overflow-wrap: anywhere; }

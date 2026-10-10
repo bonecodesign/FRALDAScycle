@@ -9,13 +9,22 @@ const labels = { global: "Toda a plataforma", marketplace: "Marketplace", paymen
 
 function render(items) {
   if (!states) return;
-  states.innerHTML = items.map(item => `<article class="phone-card"><span class="status-icon">${item.paused ? "!" : "✓"}</span><div><strong>${labels[item.domain] ?? item.domain}</strong><p>${item.paused ? item.reason : "Novas operações autorizadas"}</p></div><span class="badge ${item.paused ? "warn" : ""}">${item.paused ? "Pausado" : "Ativo"}</span></article>`).join("");
+  if (!Array.isArray(items) || items.some(item => !item || !Object.hasOwn(labels,item.domain) || typeof item.paused !== 'boolean' || (item.paused && typeof item.reason !== 'string'))) throw new Error('Estado operacional inválido.');
+  states.replaceChildren();
+  for (const item of items) {
+    const article=document.createElement('article'),icon=document.createElement('span'),content=document.createElement('div'),title=document.createElement('strong'),reason=document.createElement('p'),badge=document.createElement('span');
+    article.className='phone-card';icon.className='status-icon';icon.textContent=item.paused?'!':'✓';
+    title.textContent=labels[item.domain];reason.textContent=item.paused?item.reason:'Novas operações autorizadas';
+    badge.className='badge'+(item.paused?' warn':'');badge.textContent=item.paused?'Pausado':'Ativo';
+    content.append(title,reason);article.append(icon,content,badge);states.append(article);
+  }
   const paused = items.filter(item => item.paused).length;
   summary.textContent = paused ? `${paused} domínio${paused === 1 ? "" : "s"} pausado${paused === 1 ? "" : "s"}` : "Operação ativa";
 }
 
 async function load() {
   if (!form) return;
+  states?.replaceChildren();
   try {
     const result = await apiRequest("/v1/admin/operational-control");
     render(result.items);
