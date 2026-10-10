@@ -9,6 +9,12 @@ const nextButton = document.getElementById('courier-next');
 let page=1,hasMore=false;
 const states = history ? {delivered:'Entrega registrada como entregue',failed:'Falha na entrega',cancelled:'Entrega cancelada'} : {assigned:'Aguardando coleta',picked_up:'Coleta registrada',in_transit:'Em trânsito'};
 const validId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+function confirmedItems(result,target) {
+  const items = result?.items;
+  if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status)) || new Set(items.map(item=>item.id.toLowerCase())).size !== items.length) throw new Error('Não foi possível confirmar a lista de entregas.');
+  if (result.page!==undefined && result.page!==target) throw new Error('Não foi possível confirmar a página de entregas.');
+  return items;
+}
 async function query(path) {
   const signal = AbortSignal.timeout(15000);
   try {
@@ -28,7 +34,7 @@ async function select(item) {
   const previous = sessionStorage.getItem('fc.activeShipmentId');
   try {
     const result = await query('/v1/courier/shipments?page='+page);
-    const current = Array.isArray(result.items) ? result.items.find(shipment => shipment?.id === item.id) : null;
+    const current = confirmedItems(result,page).find(shipment => shipment.id === item.id);
     if (!current || !Object.hasOwn(states,current.status)) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
     if (sessionStorage.getItem('fc.activeShipmentId') !== previous) throw new Error('A entrega ativa mudou. Atualize a lista antes de selecionar novamente.');
     if (sessionStorage.getItem('fc.deliveryProofShipmentId') !== item.id) {
@@ -46,9 +52,7 @@ async function load(target=1) {
   feedback.textContent = 'Consultando suas entregas...';
   try {
     const result = await query(endpoint+'?page='+target);
-    const {items} = result;
-    if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status))) throw new Error('Não foi possível confirmar a lista de entregas.');
-    if (result.page!==undefined && result.page!==target) throw new Error('Não foi possível confirmar a página de entregas.');
+    const items = confirmedItems(result,target);
     page=target;hasMore=result.hasMore===true;
     for (const item of items) {
       const panel = document.createElement('div'); panel.className = 'panel';
