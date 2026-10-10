@@ -26,6 +26,9 @@ export function setupSupport({admin=false}={}){
    for(const message of ticket.messages)detail.append(text('p',date(message.created_at)+' · '+message.body));
    say('Atendimento carregado.');
    if(!admin)return;
+   detail.append(text('p',ticket.assignee_id?'Responsável: '+(ticket.assignee_name||'administrador atribuído'):'Sem responsável atribuído.'));
+   const assignment=document.createElement('button');assignment.type='button';assignment.className='button secondary';assignment.textContent=ticket.assigned_to_me?'Liberar atribuição':'Assumir atendimento';assignment.disabled=Boolean(ticket.assignee_id&&!ticket.assigned_to_me);detail.append(assignment);
+   assignment.addEventListener('click',async()=>{if(replying||generation!==detailGeneration)return;const current=generation,action=ticket.assigned_to_me?'release':'claim';assignment.disabled=true;try{const result=await apiRequest('/v1/support/tickets/'+id+'/assignment',{method:'POST',body:{action}});if(current!==detailGeneration){await load(page);return;}if(result?.assignment?.id!==id||Boolean(result.assignment.assigned_to_me)!==(action==='claim'))throw new Error('Não foi possível confirmar a atribuição.');await Promise.all([load(page),openTicket(id,true)]);}catch(error){if(current===detailGeneration){assignment.disabled=false;say(error.message||'Não foi possível alterar a atribuição.');}}});
    const form=document.createElement('form'),label=text('label','Resposta ao usuário'),body=document.createElement('textarea'),state=document.createElement('select'),button=text('button','Registrar resposta');
    body.id='support-reply-body';label.htmlFor=body.id;body.className='input';body.required=true;body.minLength=10;body.maxLength=2000;
    state.className='input';state.setAttribute('aria-label','Estado do atendimento');
@@ -53,7 +56,7 @@ export function setupSupport({admin=false}={}){
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
    if(!items.length)list.append(text('p','Nenhum pedido registrado.'));
-   for(const ticket of items){const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]);button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
+   for(const ticket of items){const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável'));button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
    lockList(replying);say('Pedidos carregados. Página '+page+'.');
   }catch(error){if(generation===listGeneration){list.replaceChildren();hasMore=false;say(error.message||'Não foi possível consultar os pedidos.');}}
   finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}

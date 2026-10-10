@@ -93,6 +93,11 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       }
       return repository.replySupportTicket({actorId:actor.id,ticketId,body,status,idempotencyKey});
     },
+    async setSupportAssignment(actor,ticketId,input) {
+      requireScope(actor,'admin:support:write');
+      if(!['claim','release'].includes(input?.action))throw new MarketplaceError('invalid_support_assignment',422,'Escolha assumir ou liberar o atendimento.');
+      return repository.setSupportAssignment({actorId:actor.id,ticketId,action:input.action});
+    },
     async supportCancellationDecision(actor,ticketId,input) {
       requireScope(actor,"admin:support:write");
       const reason=String(input?.reason??"").trim();

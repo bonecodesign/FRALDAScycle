@@ -74,7 +74,7 @@ test('support details are private, read-audited, and include chronological respo
   await assert.rejects(createOperationSupportRepository(missing).supportTicket({userId:'other',ticketId:id}),error=>error.code==='support_ticket_not_found');
   assert.equal(missing.calls.length,1);
   assert.deepEqual(missing.calls[0].values,[id,'other',false]);
-  const db=database(sql=>/SELECT \*/.test(sql)?[{id,protocol:'42'}]:/SELECT id,body/.test(sql)?[{id:1,body:'Resposta do atendimento.'}]:[]);
+  const db=database(sql=>/SELECT st\.\*/.test(sql)?[{id,protocol:'42'}]:/SELECT id,body/.test(sql)?[{id:1,body:'Resposta do atendimento.'}]:[]);
   const ticket=await createOperationSupportRepository(db).supportTicket({userId:'buyer',ticketId:id});
   assert.equal(ticket.messages.length,1);
   assert.match(db.calls.at(-1).sql,/support.ticket.read/);

@@ -61,6 +61,12 @@ export async function handleMarketplace(request, response, {
       : await marketplaceService.replySupportTicket(actor,support[1],await readJson(request));
     sendJson(response,200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
   }
+  const supportAssignment=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/assignment$/i);
+  if(supportAssignment&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const assignment=await marketplaceService.setSupportAssignment(actor,supportAssignment[1],await readJson(request));
+    sendJson(response,200,{assignment,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const cancellationDecision=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/cancellation-decision$/i);
   if(cancellationDecision&&request.method==='POST'){
     const actor=await authenticatedUser(request,authService);
