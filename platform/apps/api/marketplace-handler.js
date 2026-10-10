@@ -50,7 +50,7 @@ export async function handleMarketplace(request, response, {
     const actor=await authenticatedUser(request,authService);
     const result=request.method==="POST"
       ? await marketplaceService.createSupportTicket(actor.id,await readJson(request))
-      : await marketplaceService.supportPage(actor,{page:url.searchParams.get('page')??'1',status:url.searchParams.get('status')??'',category:url.searchParams.get('category')??'',q:url.searchParams.get('q')??'',assignment:url.searchParams.get('assignment')??''});
+      : await marketplaceService.supportPage(actor,{page:url.searchParams.get('page')??'1',status:url.searchParams.get('status')??'',category:url.searchParams.get('category')??'',q:url.searchParams.get('q')??'',assignment:url.searchParams.get('assignment')??'',sort:url.searchParams.get('sort')??'newest'});
     sendJson(response,request.method==="POST"&&!result.reused?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
   }
   const support=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})(\/reply)?$/i);
