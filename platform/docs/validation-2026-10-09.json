@@ -1,0 +1,284 @@
+{
+  "checkedAt": "2026-10-10T00:07:50.681823+00:00",
+  "userDate": "2026-10-09",
+  "suite": {
+    "tests": 438,
+    "pass": 427,
+    "fail": 0,
+    "skipped": 11
+  },
+  "dedicatedPostgres": {
+    "tests": 11,
+    "pass": 11,
+    "fail": 0,
+    "skipped": 0,
+    "migrations": 45,
+    "chatHttpVerified": true
+  },
+  "prototypeChecks": {
+    "pass": 83,
+    "total": 83
+  },
+  "productionSyntaxFiles": 119,
+  "browser": {
+    "browser": "Chrome/151.0.7922.173",
+    "keyboard": "Space, Tab e Enter executados via navegador",
+    "preferences": "carregar, salvar, consultar e recarregar com API/PostgreSQL",
+    "premium": "escolha e cancelamento de renovação com teclado e persistência, cobrança desativada",
+    "donation": "doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse",
+    "donationLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "institutions": "aceite e conferência administrativa do vínculo com teclado, identidade fictícia",
+    "institutionLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "reviews": "denúncia, recurso do autor e restauração com teclado",
+    "reviewLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "privacy": "pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada",
+    "privacyLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "addressChange": "pedido e aprovação pelo suporte com teclado, versão e protocolo",
+    "addressLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "draftTerms": "aceite indisponível",
+    "layouts": [
+      {
+        "viewport": 320,
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0,
+        "visible": true,
+        "bounded": true,
+        "formWidth": 254
+      },
+      {
+        "viewport": 375,
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0,
+        "visible": true,
+        "bounded": true,
+        "formWidth": 309
+      },
+      {
+        "viewport": 768,
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0,
+        "visible": true,
+        "bounded": true,
+        "formWidth": 300
+      },
+      {
+        "viewport": 1280,
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0,
+        "visible": true,
+        "bounded": true,
+        "formWidth": 300
+      }
+    ],
+    "premiumLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "bounded": true,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "bounded": true,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "bounded": true,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "bounded": true,
+        "missingLabels": 0
+      }
+    ],
+    "moderationLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "adminLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "adminModeration": "consulta e revisão administrativa com teclado e conta separada",
+    "moderation": "chat persistido, contato bloqueado e contestação protocolada via teclado",
+    "humanTest": false,
+    "screenReader": false,
+    "physicalDevices": false
+  },
+  "productionReadiness": false,
+  "externalProvidersTested": false,
+  "githubCiRerun": false,
+  "historicalPilot": {
+    "passed": 16,
+    "failed": 1,
+    "skipped": 4,
+    "humanTest": false
+  },
+  "containers": {
+    "builds": [
+      "api",
+      "site",
+      "app",
+      "admin"
+    ],
+    "composeValid": true,
+    "surfaceRoutesVerified": [
+      "/site/home",
+      "/site/search",
+      "/app/home",
+      "/courier/home",
+      "/admin/login"
+    ],
+    "deployed": false
+  }
+}

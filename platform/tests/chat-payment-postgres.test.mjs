@@ -6,6 +6,9 @@ import {discoverMigrations, migrate} from '../database/migrate.js';
 import {createMarketplaceRepository} from '../database/marketplace-repository.js';
 import {createMarketplaceService} from '../apps/api/marketplace-service.js';
 import {createCommunicationsRepository} from '../database/communications-repository.js';
+import {createCommunicationsService} from '../apps/api/communications-service.js';
+import {createApiServer} from '../apps/api/server.js';
+import {loadConfig} from '../apps/api/config.js';
 
 const databaseUrl=process.env.FC_LISTING_TEST_DATABASE_URL;
 test('PostgreSQL gates chat reads and writes on confirmed matching payment for participants', {
@@ -15,6 +18,7 @@ test('PostgreSQL gates chat reads and writes on confirmed matching payment for p
   assert.equal(url.pathname,'/fc_listing_creation_test');
   assert.ok(['localhost','127.0.0.1'].includes(url.hostname));
   const database=createDatabase({databaseUrl,databaseSsl:false});
+  let server;
   try {
     await migrate(database,await discoverMigrations());
     const seller=randomUUID(),buyer=randomUUID(),outsider=randomUUID();
@@ -28,12 +32,23 @@ test('PostgreSQL gates chat reads and writes on confirmed matching payment for p
       VALUES($1,$2,$3,1000,'payment_pending') RETURNING id`,[listing,buyer,seller])).rows[0].id;
     const marketplace=createMarketplaceService(createMarketplaceRepository(database));
     const communications=createCommunicationsRepository(database);
+    server=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),marketplaceService:marketplace,
+      communicationsService:createCommunicationsService(communications),
+      authService:{async session(token){return [buyer,seller,outsider].includes(token)?{id:token}:null;}}});
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    const origin=`http://127.0.0.1:${server.address().port}/v1/transactions/${transaction}`;
+    const request=(actor,path,post=false)=>fetch(origin+path,{method:post?'POST':'GET',headers:{cookie:`fc_session=${actor}`,
+      'content-type':'application/json'},...(post?{body:JSON.stringify({body:'Mensagem fictícia pela API',idempotencyKey:randomUUID()})}:{})});
+    assert.equal((await request('invalid','/messages')).status,401);
     const send=actor=>communications.send(actor,transaction,{body:'Mensagem fictícia',idempotencyKey:randomUUID()});
     async function blocked() {
       for(const actor of [buyer,seller]) {
         assert.equal((await marketplace.chatAccess(actor,transaction)).allowed,false);
         await assert.rejects(communications.messages(actor,transaction),error=>error.code==='chat_not_allowed');
         await assert.rejects(send(actor),error=>error.code==='chat_not_allowed');
+        assert.equal((await (await request(actor,'/chat-access')).json()).allowed,false);
+        assert.equal((await request(actor,'/messages')).status,409);
+        assert.equal((await request(actor,'/messages',true)).status,409);
       }
     }
     await blocked();
@@ -57,6 +72,10 @@ test('PostgreSQL gates chat reads and writes on confirmed matching payment for p
       assert.ok((await send(actor)).message.id);
     }
     assert.equal((await communications.messages(buyer,transaction)).length,2);
+    assert.equal((await request(buyer,'/messages')).status,200);
+    assert.equal((await request(buyer,'/messages',true)).status,200);
+    assert.equal((await request(outsider,'/messages')).status,404);
+    assert.equal((await request(outsider,'/messages',true)).status,404);
     for(const operation of [()=>marketplace.chatAccess(outsider,transaction),
       ()=>communications.messages(outsider,transaction),()=>send(outsider)]) {
       await assert.rejects(operation(),error=>error.code==='transaction_not_found');
@@ -73,6 +92,6 @@ test('PostgreSQL gates chat reads and writes on confirmed matching payment for p
     await database.query("UPDATE listings SET kind='donation',price_cents=NULL,institution_id=$2 WHERE id=$1",[listing,institution]);
     await blocked();
     assert.equal((await database.query('SELECT count(*)::int AS count FROM transaction_messages WHERE transaction_id=$1',
-      [transaction])).rows[0].count,2,'Tentativas bloqueadas não persistem mensagens.');
-  } finally { await database.close(); }
+      [transaction])).rows[0].count,3,'Tentativas bloqueadas não persistem mensagens.');
+  } finally { if(server)await new Promise(resolve=>server.close(resolve));await database.close(); }
 });

@@ -64,7 +64,7 @@ export async function validateSyntheticDonation(database,{user,other}){
  await institutions.changeStatus(admin.id,institutionId,{status:'suspended',reason:'Pausa fictícia de novas doações por capacidade.'});
  assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[pending])).rows[0].status,'paused');assert.equal((await service.detail(donor,transaction)).transaction_status,'in_delivery');
  await assert.rejects(createPremiumRepository(database).changeListingStatus(user,{listingId:pending,status:'published',expectedStatus:'paused'}),e=>e.code==='donation_institution_unavailable');
- await assert.rejects(createMarketplaceRepository(database).create({sellerId:user,kind:'donation',institutionId,packageCondition:'sealed',mediaKeys:[]}),e=>e.code==='donation_institution_unavailable');
+ await assert.rejects(createMarketplaceRepository(database).create({sellerId:user,kind:'donation',institutionId,packageCondition:'sealed',mediaKeys:[`listings/${user}/synthetic.webp`]}),e=>e.code==='donation_institution_unavailable');
  const audit=JSON.stringify((await database.query("SELECT metadata FROM audit_events WHERE action LIKE 'donation.%' OR action LIKE 'shipment.address.%'")).rows);assert.equal(audit.includes(address.street),false);
  console.log('BETA_DONATION: duas confirmações, autoridade atual, logística do doador, retirada idempotente, endereço privado/revogação, recebimento institucional e validação independente em PostgreSQL; novas doações pausadas, histórico preservado, zero cobrança/repasse.');
 }

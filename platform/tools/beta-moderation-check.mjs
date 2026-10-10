@@ -21,7 +21,7 @@ export async function validateSyntheticModeration(database,{user,other,transacti
   await database.query("INSERT INTO users(id,email,password_hash,display_name,role) VALUES($1,'synthetic-reviewer@example.test','synthetic-unusable-hash','Revisor fictício','moderator')",[reviewer.id]);
   const moderation=createModerationRepository(database),service=createModerationService(moderation);
   const communications=createCommunicationsService(createCommunicationsRepository(database),moderation);
-  const marketplace=createMarketplaceService(createMarketplaceRepository(database),moderation);
+  const marketplace=createMarketplaceService(createMarketplaceRepository(database),moderation,{async verifyListingMedia(){}});
   await assert.rejects(communications.messages(admin.id,transaction),e=>e.status===404);
   const sent=await Promise.all([communications.send(user,transaction,{body:'O pacote está pronto para coleta.',idempotencyKey:'synthetic-chat-ready'}),communications.send(user,transaction,{body:'O pacote está pronto para coleta.',idempotencyKey:'synthetic-chat-ready'})]);
   assert.equal(sent.filter(item=>!item.reused).length,1);
@@ -54,9 +54,9 @@ export async function validateSyntheticModeration(database,{user,other,transacti
   await assert.rejects(communications.review(user,transaction,{rating:4,comment:'fake@example.test'}),e=>e.code==='content_requires_moderation');
   const publicReviews=await communications.publicReviews(user);assert.equal(publicReviews.length,1);
   assert.deepEqual(Object.keys(publicReviews[0]).sort(),['comment','created_at','id','rating']);
-  const payload={title:'Pacote fictício seguro',description:'Pacote lacrado para fixture interna.',kind:'sale',quantity:10,priceCents:10000,category:'infant',brand:'Pampers',model:'Confort Sec',packageCondition:'sealed',mediaKeys:[]};
+  const payload={title:'Pacote fictício seguro',description:'Pacote lacrado para fixture interna.',kind:'sale',quantity:10,priceCents:10000,category:'infant',brand:'Pampers',model:'Confort Sec',packageCondition:'sealed',mediaKeys:[`listings/${user}/synthetic.webp`]};
   await assert.rejects(marketplace.create(user,{...payload,description:'Contato fake@example.test para a fixture.'}),e=>e.code==='content_requires_moderation');
-  const queued=await marketplace.create(user,{...payload,mediaKeys:['synthetic/private-media-key']});assert.equal(queued.status,'review');
+  const queued=await marketplace.create(user,payload);assert.equal(queued.status,'review');
   await assert.rejects(marketplace.detail(queued.id),e=>e.status===404);
   const until=new Date(Date.now()+86400000).toISOString(),suspension={userId:user,reason:'Ocorrência fictícia para ensaio de suspensão temporária.',until,idempotencyKey:'synthetic-suspension-key'};
   const suspended=await Promise.all([service.suspend(admin,suspension),service.suspend(admin,suspension)]);assert.equal(suspended.filter(item=>!item.reused).length,1);
@@ -67,7 +67,7 @@ export async function validateSyntheticModeration(database,{user,other,transacti
   const decision=suspended[0].decision.id;await service.appeal({id:user},decision,{body:'Solicito revisão da suspensão fictícia.'});
   await assert.rejects(service.reviewAppeal(admin,decision,{confirmed:true,outcome:'overturned',reason:'Revisão da própria decisão inicial.'}),e=>e.code==='moderation_independent_reviewer_required');
   await service.reviewAppeal(reviewer,decision,{confirmed:true,outcome:'overturned',reason:'Revisor independente encerra restrição fictícia.'});
-  assert.equal((await marketplace.create(user,payload)).status,'published');
+  assert.equal((await marketplace.create(user,payload)).status,'review');
   const audit=JSON.stringify((await database.query("SELECT metadata FROM audit_events WHERE action LIKE 'moderation.%' OR action='chat.message.created' OR action='review.created'")).rows);
   assert.ok(!audit.includes('fake@example.test'));assert.ok(!audit.includes(barcode));
   assert.equal((await database.query("SELECT count(*)::integer AS n FROM moderation_appeals WHERE decision_id=$1",[decision])).rows[0].n,1);

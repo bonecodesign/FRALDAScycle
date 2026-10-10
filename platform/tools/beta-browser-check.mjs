@@ -62,7 +62,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const call = (method, params) => send(method, params, sessionId);
     const evaluate = async expression => {
       const result = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-      if (result.exceptionDetails) throw new Error('Browser evaluation failed: ' + result.exceptionDetails.text);
+      if (result.exceptionDetails) throw new Error(`Browser evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}; expression: ${expression.slice(0,240)}`);
       return result.result.value;
     };
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
@@ -162,7 +162,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const moderationLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Moderation overflow ${width}`);assert.equal(layout.missingLabels,0);moderationLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
@@ -177,7 +177,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const addressLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Address overflow ${width}`);assert.equal(layout.missingLabels,0);addressLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/privacy`});
@@ -192,7 +192,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const privacyLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Privacy overflow ${width}`);assert.equal(layout.missingLabels,0);privacyLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/review-moderation?reviewId=${browserReview.receivedId}`});
@@ -207,7 +207,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const reviewLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Review moderation overflow ${width}`);assert.equal(layout.missingLabels,0);reviewLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
@@ -219,7 +219,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Institution access overflow ${width}`);assert.equal(layout.missingLabels,0);institutionLayouts.push({viewport:width,...layout});
     }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
@@ -237,7 +237,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const adminLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Admin moderation overflow ${width}`);assert.equal(layout.missingLabels,0);adminLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
@@ -293,7 +293,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.donorSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/donations`});
-    await until(()=>evaluate(`document.querySelector('#donation-create fieldset')?.disabled===false && document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor own listing');
+    try { await until(()=>evaluate(`document.querySelector('#donation-create fieldset')?.disabled===false && document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor own listing'); }
+    catch(error){throw new Error(error.message+': '+JSON.stringify(await evaluate(`(async()=>({route:location.pathname,feedback:document.getElementById('donation-feedback')?.textContent,sessionStatus:await fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(r=>r.status),options:document.querySelector('#donation-create select')?.options.length}))()`)));}
     await evaluate(`document.querySelector('#donation-create input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Confirmação do doador registrada')`),'donor confirmation keyboard');
     const browserDonationTransaction=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/donations')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].transaction_id)`);
@@ -315,7 +316,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const donationLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Donation overflow ${width}`);assert.equal(layout.missingLabels,0);donationLayouts.push({viewport:width,...layout});
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.courierSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});

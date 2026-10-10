@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { nativePostgresTools, withNativeTestPostgres, freeLocalPort } from '../tools/native-postgres.mjs';
 
 const native = await nativePostgresTools();
-test('native PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
+test('PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
   skip: !native && !process.env.CI ? 'PostgreSQL nativo ausente neste ambiente; nenhuma homologação local alegada.' : false,
   timeout: 120000,
 }, async () => {
@@ -110,7 +110,10 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(adminFixture);
       await database.query("UPDATE users SET role='admin' WHERE email=$1",[adminFixture.email]);
-      const adminSession=await authService.login(adminFixture);
+      const adminChallenge=await authService.login(adminFixture);
+      assert.equal(adminChallenge.mfaRequired,true);
+      const adminCode=(await database.query("SELECT payload->>'token' AS code FROM notification_outbox WHERE recipient=$1 AND kind='admin_login_mfa' ORDER BY created_at DESC LIMIT 1",[adminFixture.email])).rows[0].code;
+      const adminSession=await authService.confirmAdminMfa({challenge:adminChallenge.challenge,code:adminCode});
       const { createMarketplaceService } = await import('../apps/api/marketplace-service.js');
       const { createMarketplaceRepository } = await import('../database/marketplace-repository.js');
       const { createModerationService } = await import('../apps/api/moderation-service.js');
@@ -164,7 +167,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
       const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,donationService });
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', RATE_LIMIT_MAX: '1000', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,institutionService:createInstitutionService(createInstitutionRepository(database)),donationService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);

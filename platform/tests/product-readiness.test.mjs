@@ -17,7 +17,9 @@ test("separa demonstração local de produção e aplica escopo visual do admin"
   assert.match(auth, /function applyNavigationScope/);
   assert.match(auth, /link\.hidden = !visible/);
   assert.match(auth, /princípio do menor privilégio/);
-  assert.match(auth, /Modo local demonstrativo/);
+  assert.match(auth, /addEnvironmentDisclosure/);
+  assert.match(auth, /apiRequest\("\/v1\/auth\/session"\)/);
+  assert.doesNotMatch(auth, /Modo local demonstrativo/);
   assert.match(server, /x-fraldacycle-mode/);
   assert.match(server, /local-demo/);
   assert.match(plan, /Glossário de confiança/);

@@ -132,7 +132,8 @@ test("transfers the approved publish impact and help experiences", async () => {
   assert.equal((publish.match(/data-site-publish-step=/g) ?? []).length, 8);
   assert.match(publishBehavior, /Adicione pelo menos uma foto para continuar/);
   assert.match(publishBehavior, /Anúncio publicado com sucesso/);
-  assert.match(publishBehavior, /\/source\/assets\/approved\/pampers-approved\.png/);
+  assert.match(publishBehavior, /readListingPhoto/);
+  assert.doesNotMatch(publishBehavior, /\/source\/assets\/approved\/pampers-approved\.png/);
   assert.match(impact, /Metodologia antes dos números/);
   assert.match(impact, /Indicadores quantitativos ainda não publicados/);
   assert.doesNotMatch(impact, /data-impact-value|data-impact-place|7\.420|5\.080|2\.120|18\.650/);
@@ -209,7 +210,7 @@ test("transfers the complete approved App identity journey", async () => {
 
   assert.match(behavior, /contactValid/);
   assert.match(behavior, /Digite os seis números do código/);
-  assert.match(behavior, /Novo código enviado com sucesso/);
+  assert.match(behavior, /Solicitação de novo código recebida/);
   assert.match(behavior, /location\.pathname/);
   const verifyHtml = await readFile(resolve(root, "apps/app/verify.html"), "utf8");
   assert.equal((verifyHtml.match(/maxlength="1"/g) ?? []).length, 6);
@@ -248,7 +249,7 @@ test("transfers App marketplace filters favorites and all eight publish steps", 
   }
 
   assert.match(publishBehavior, /Adicione pelo menos uma foto do produto/);
-  assert.match(publishBehavior, /Anúncio publicado com sucesso/);
+  assert.match(publishBehavior, /Anúncio enviado para revisão/);
   assert.match(server, /\/app\\\/publish-\[1-8\]/);
   for (const name of ["appSearch", "setupSearchStates", "appFavorites", "appPublish", "setupPublishValidation"]) {
     assert.ok(provenance.source.functions.includes(name));
