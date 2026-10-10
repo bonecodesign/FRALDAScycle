@@ -15,7 +15,7 @@ async function select(item) {
   try {
     const result = await apiRequest('/v1/courier/shipments');
     const current = Array.isArray(result.items) ? result.items.find(shipment => shipment?.id === item.id) : null;
-    if (!current || !states[current.status]) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
+    if (!current || !Object.hasOwn(states,current.status)) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
     if (sessionStorage.getItem('fc.activeShipmentId') !== previous) throw new Error('A entrega ativa mudou. Atualize a lista antes de selecionar novamente.');
     if (sessionStorage.getItem('fc.deliveryProofShipmentId') !== item.id) {
       sessionStorage.removeItem('fc.deliveryProofMediaKey');
@@ -32,12 +32,22 @@ async function load() {
   feedback.textContent = 'Consultando suas entregas...';
   try {
     const {items} = await apiRequest(endpoint);
-    if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !states[item.status])) throw new Error('Não foi possível confirmar a lista de entregas.');
+    if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status))) throw new Error('Não foi possível confirmar a lista de entregas.');
     for (const item of items) {
       const panel = document.createElement('div'); panel.className = 'panel';
       const title = document.createElement('p'); title.textContent = 'Entrega ' + item.id;
       const status = document.createElement('p'); status.textContent = states[item.status];
-      if (history) { panel.append(title,status); list.append(panel); continue; }
+      if (history) {
+        const detail = document.createElement('p');
+        const modes = {pickup:'Retirada no local',partner:'Entrega por parceiro',postal:'Envio postal',express:'Entrega expressa'};
+        const mode = Object.hasOwn(modes,item.mode) ? modes[item.mode] : 'Modalidade não informada';
+        const date = typeof item.updatedAt === 'string' ? new Date(item.updatedAt) : null;
+        const updated = date && Number.isFinite(date.getTime())
+          ? new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date)
+          : 'Data não informada';
+        detail.textContent = mode + ' · Atualizado em: ' + updated;
+        panel.append(title,status,detail); list.append(panel); continue;
+      }
       const button = document.createElement('button'); button.type = 'button'; button.className = 'button secondary block';
       button.textContent = item.status === 'assigned' ? 'Selecionar para coleta' : 'Selecionar para comprovante';
       button.addEventListener('click',()=>select(item)); panel.append(title,status,button); list.append(panel);

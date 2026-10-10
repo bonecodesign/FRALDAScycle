@@ -13,7 +13,7 @@ async function harness({apiRequest=async()=>({proof:{id:'proof-1'}}),upload=asyn
   vm.runInNewContext(source,{document:{querySelector:s=>s.includes('secondary')?photo:s.includes('data-action')?action:s.includes('form-group')?recipient:confirmation,createElement(){const input=control();input.files=[{name:'synthetic.png'}];input.click=()=>{};inputs.push(input);return input}},
     sessionStorage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},
     navigator:{geolocation:location??{getCurrentPosition(ok,fail){geoSuccess=ok;geoFailure=fail}}},notify:m=>notices.push(m),apiRequest,uploadListingMedia:upload,window:{location:{assign:p=>navigations.push(p)}}});
-  return {values,action,photo,recipient,confirmation,notices,navigations,inputs,click:()=>action.handlers.click(event()),choose:()=>photo.handlers.click(event()),locate:()=>geoSuccess({coords:{latitude:0,longitude:0}}),deny:()=>geoFailure()};
+  return {values,action,photo,recipient,confirmation,notices,navigations,inputs,click:()=>action.handlers.click(event()),choose:()=>photo.handlers.click(event()),locate:()=>geoSuccess({coords:{latitude:0,longitude:0}}),deny:code=>geoFailure({code})};
 }
 
 test('proof blocks repeated submissions while locating and posting',async()=>{
@@ -47,4 +47,10 @@ test('missing confirmation, short recipient and mismatched photo prevent proof s
   for(const alter of [app=>app.confirmation.checked=false,app=>app.recipient.value='X',app=>app.values.set('fc.deliveryProofShipmentId','shipment-2')]){
     const app=await harness();alter(app);await app.click();assert.equal(app.action.disabled,false);assert.equal(app.navigations.length,0);assert.equal(app.notices.length,1);
   }
+});
+
+test('location timeout and unavailable position give accurate retry feedback without losing proof',async()=>{
+ for(const [code,message] of [[3,/demorou/],[2,/local com sinal/]]){
+   const app=await harness();const pending=app.click();app.deny(code);await pending;assert.match(app.notices.at(-1),message);assert.equal(app.values.get('fc.deliveryProofMediaKey'),'synthetic/photo');assert.equal(app.action.disabled,false);assert.equal(app.navigations.length,0);
+ }
 });

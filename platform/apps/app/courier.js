@@ -8,7 +8,11 @@ async function currentLocation() {
     if (!navigator.geolocation) return reject(new Error('Localização indisponível.'));
     navigator.geolocation.getCurrentPosition(
       position => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-      () => reject(new Error('Permita o acesso à localização para concluir a entrega.')),
+      error => reject(new Error(error?.code === 3
+        ? 'A localização demorou para responder. Tente novamente.'
+        : error?.code === 2
+          ? 'Não foi possível obter sua localização. Tente novamente em um local com sinal.'
+          : 'Permita o acesso à localização para concluir a entrega.')),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   });

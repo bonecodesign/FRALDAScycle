@@ -28,3 +28,15 @@ test('dashboard handles empty and malformed responses without selectable cards',
    app.values.set('fc.activeShipmentId','active');app.values.set('fc.deliveryProofMediaKey','saved-photo');
    await app.refresh.handlers.click();assert.equal(app.list.children.length,3);assert.equal(app.list.querySelectorAll().length,0);assert.equal(app.values.get('fc.activeShipmentId'),'active');assert.equal(app.values.get('fc.deliveryProofMediaKey'),'saved-photo');assert.equal(app.navigations.length,0);
  });
+
+test('unknown or inherited shipment states cannot produce cards or pass selection revalidation',async()=>{
+ for(const status of ['constructor','toString','__proto__']){
+  const invalid=await harness(async()=>({items:[{id,status}]}));assert.equal(invalid.list.children.length,0);assert.match(invalid.feedback.textContent,/confirmar a lista/);
+  let calls=0;const selected=await harness(async()=>({items:[{id,status:++calls===1?'assigned':status}]}));await selected.select();assert.equal(selected.navigations.length,0);assert.equal(selected.values.has('fc.activeShipmentId'),false);
+ }
+});
+test('history displays stored modality and update date with an explicit fallback for missing data',async()=>{
+ const app=await harness(async()=>({items:[{id,status:'delivered',mode:'postal',updatedAt:'2026-10-09T12:00:00Z'},{id,status:'failed',mode:'unknown',updatedAt:'invalid'}]}),true);
+ assert.match(app.list.children[0].children[2].textContent,/Envio postal.*Atualizado em:/);assert.doesNotMatch(app.list.children[0].children[2].textContent,/Data não informada/);
+ assert.match(app.list.children[1].children[2].textContent,/Modalidade não informada.*Data não informada/);
+});
