@@ -13,6 +13,7 @@ const files = [
   "apps/app/collection.js",
   "apps/app/courier.js",
   "apps/app/courier-dashboard.js",
+  "apps/app/courier-details.js",
   "tools/auth-browser-check.mjs",
   "tools/beta-donation-check.mjs",
   "packages/contracts/institution-status.js",

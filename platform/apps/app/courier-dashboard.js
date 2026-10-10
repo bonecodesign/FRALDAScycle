@@ -9,6 +9,12 @@ const nextButton = document.getElementById('courier-next');
 let page=1,hasMore=false;
 const states = history ? {delivered:'Entrega registrada como entregue',failed:'Falha na entrega',cancelled:'Entrega cancelada'} : {assigned:'Aguardando coleta',picked_up:'Coleta registrada',in_transit:'Em trânsito'};
 const validId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+function confirmedItems(result,target) {
+  const items = result?.items;
+  if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status)) || new Set(items.map(item=>item.id.toLowerCase())).size !== items.length) throw new Error('Não foi possível confirmar a lista de entregas.');
+  if (result.page!==undefined && result.page!==target) throw new Error('Não foi possível confirmar a página de entregas.');
+  return items;
+}
 async function query(path) {
   const signal = AbortSignal.timeout(15000);
   try {
@@ -22,13 +28,13 @@ async function query(path) {
 }
 let pending = false;
 const lock = disabled => { refresh.disabled = disabled; if(previousButton)previousButton.disabled=disabled||page<=1; if(nextButton)nextButton.disabled=disabled||!hasMore; list.querySelectorAll('button').forEach(button => button.disabled = disabled); };
-async function select(item) {
+async function select(item,details=false) {
   if (pending) return;
   pending = true; lock(true);
   const previous = sessionStorage.getItem('fc.activeShipmentId');
   try {
     const result = await query('/v1/courier/shipments?page='+page);
-    const current = Array.isArray(result.items) ? result.items.find(shipment => shipment?.id === item.id) : null;
+    const current = confirmedItems(result,page).find(shipment => shipment.id === item.id);
     if (!current || !Object.hasOwn(states,current.status)) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
     if (sessionStorage.getItem('fc.activeShipmentId') !== previous) throw new Error('A entrega ativa mudou. Atualize a lista antes de selecionar novamente.');
     if (sessionStorage.getItem('fc.deliveryProofShipmentId') !== item.id) {
@@ -36,7 +42,7 @@ async function select(item) {
       sessionStorage.removeItem('fc.deliveryProofShipmentId');
     }
     sessionStorage.setItem('fc.activeShipmentId',item.id);
-    window.location.assign(current.status === 'assigned' ? '/app/collection' : '/courier/proof');
+    window.location.assign(details ? '/courier/job' : current.status === 'assigned' ? '/app/collection' : '/courier/proof');
   } catch (error) { list.replaceChildren(); hasMore=false; feedback.textContent = (error.message || 'Não foi possível selecionar a entrega.') + ' Atualize a lista antes de selecionar novamente.'; }
   finally { pending = false; lock(false); }
 }
@@ -46,9 +52,7 @@ async function load(target=1) {
   feedback.textContent = 'Consultando suas entregas...';
   try {
     const result = await query(endpoint+'?page='+target);
-    const {items} = result;
-    if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status))) throw new Error('Não foi possível confirmar a lista de entregas.');
-    if (result.page!==undefined && result.page!==target) throw new Error('Não foi possível confirmar a página de entregas.');
+    const items = confirmedItems(result,target);
     page=target;hasMore=result.hasMore===true;
     for (const item of items) {
       const panel = document.createElement('div'); panel.className = 'panel';
@@ -67,7 +71,9 @@ async function load(target=1) {
       }
       const button = document.createElement('button'); button.type = 'button'; button.className = 'button secondary block';
       button.textContent = item.status === 'assigned' ? 'Selecionar para coleta' : 'Selecionar para comprovante';
-      button.addEventListener('click',()=>select(item)); panel.append(title,status,button); list.append(panel);
+      button.addEventListener('click',()=>select(item));
+      const details = document.createElement('button'); details.type='button'; details.className='button secondary block'; details.textContent='Consultar contato e repasse'; details.addEventListener('click',()=>select(item,true));
+      panel.append(title,status,button,details); list.append(panel);
     }
     feedback.textContent = history
       ? (items.length ? 'Histórico carregado. Página ' + page + ' — até 50 registros.' : 'Nenhum registro no histórico da sua conta.')
