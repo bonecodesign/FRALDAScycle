@@ -162,6 +162,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const donationService=createDonationService(createDonationRepository(database));
       const donorFixture={email:'browser-donor@example.test',displayName:'Doador fictício navegador',password:'synthetic-only-donor-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(donorFixture);const donorSession=await authService.login(donorFixture),donorActor=await authService.session(donorSession.token);
+      await database.query("UPDATE users SET phone='+5500000000000',phone_verified_at=now() WHERE id=$1",[currentSession.id]);
       const browserDonationListing=await seedDonationListing(database,donorActor.id,browserInstitution);
       await logisticsService.createAddress(donorActor.id,{label:'Coleta fictícia navegador',postalCode:'00000000',street:'Rua fictícia de coleta no navegador',number:'S/N',district:'Bairro fictício',city:'Belo Horizonte',state:'MG'});
       const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};

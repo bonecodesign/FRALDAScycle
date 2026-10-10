@@ -24,7 +24,7 @@ test('dashboard handles empty and malformed responses without selectable cards',
 });
 
  test('history is read-only and preserves the active shipment and its proof',async()=>{
-   const app=await harness(async(path)=>{assert.equal(path,'/v1/courier/history?page=1');return {items:[{id,status:'delivered'},{id,status:'failed'},{id,status:'cancelled'}]}},true);
+   const app=await harness(async(path)=>{assert.equal(path,'/v1/courier/history?page=1');return {items:[{id,status:'delivered'},{id:'22222222-2222-4222-8222-222222222222',status:'failed'},{id:'33333333-3333-4333-8333-333333333333',status:'cancelled'}]}},true);
    app.values.set('fc.activeShipmentId','active');app.values.set('fc.deliveryProofMediaKey','saved-photo');
    await app.refresh.handlers.click();assert.equal(app.list.children.length,3);assert.equal(app.list.querySelectorAll().length,0);assert.equal(app.values.get('fc.activeShipmentId'),'active');assert.equal(app.values.get('fc.deliveryProofMediaKey'),'saved-photo');assert.equal(app.navigations.length,0);
  });
@@ -36,7 +36,7 @@ test('unknown or inherited shipment states cannot produce cards or pass selectio
  }
 });
 test('history displays stored modality and update date with an explicit fallback for missing data',async()=>{
- const app=await harness(async()=>({items:[{id,status:'delivered',mode:'postal',updatedAt:'2026-10-09T12:00:00Z'},{id,status:'failed',mode:'unknown',updatedAt:'invalid'}]}),true);
+ const app=await harness(async()=>({items:[{id,status:'delivered',mode:'postal',updatedAt:'2026-10-09T12:00:00Z'},{id:'22222222-2222-4222-8222-222222222222',status:'failed',mode:'unknown',updatedAt:'invalid'}]}),true);
  assert.match(app.list.children[0].children[2].textContent,/Envio postal.*Atualizado em:/);assert.doesNotMatch(app.list.children[0].children[2].textContent,/Data não informada/);
  assert.match(app.list.children[1].children[2].textContent,/Modalidade não informada.*Data não informada/);
 });
@@ -51,7 +51,7 @@ test('timed-out consultation unlocks refresh, leaves no stale cards and preserve
 test('failed revalidation removes stale selectable cards and permits refreshed selection',async()=>{
  let calls=0;const app=await harness(async()=>{calls++;if(calls===2)throw new Error('Sessão expirada');return {items:[{id,status:'assigned'}]}});
  app.values.set('fc.deliveryProofMediaKey','saved-photo');await app.select();assert.equal(app.list.children.length,0);assert.equal(app.values.get('fc.deliveryProofMediaKey'),'saved-photo');assert.equal(app.refresh.disabled,false);
- await app.refresh.handlers.click();assert.equal(app.list.querySelectorAll().length,1);await app.select();assert.deepEqual(app.navigations,['/app/collection']);
+ await app.refresh.handlers.click();assert.equal(app.list.querySelectorAll().length,2);await app.select();assert.deepEqual(app.navigations,['/app/collection']);
 });
 
 test('pages advance and return without replacing active operation; refresh resets to first page',async()=>{
@@ -63,4 +63,18 @@ test('pages advance and return without replacing active operation; refresh reset
 test('selection revalidates the current page and cannot select another page operation',async()=>{
  const paths=[];const app=await harness(async path=>{paths.push(path);const page=Number(path.split('page=')[1]);return {items:[{id,status:'assigned'}],page,hasMore:page===1}});
  await app.next.handlers.click();await app.select();assert.equal(paths.at(-1),'/v1/courier/shipments?page=2');assert.deepEqual(app.navigations,['/app/collection']);
+});
+
+ test('selection refuses wrong-page, oversized, duplicate and malformed responses without losing saved proof',async()=>{
+ const item={id,status:'assigned'};
+ for(const result of [{items:[item],page:2},{items:Array(51).fill(item)},{items:[item,item]},{items:[item,{id:'invalid',status:'assigned'}]},null]){
+  let calls=0;const app=await harness(async()=>++calls===1?{items:[item],page:1}:result);
+  app.values.set('fc.activeShipmentId','saved');app.values.set('fc.deliveryProofMediaKey','photo');
+  await app.select();assert.equal(app.navigations.length,0);assert.equal(app.values.get('fc.activeShipmentId'),'saved');assert.equal(app.values.get('fc.deliveryProofMediaKey'),'photo');assert.equal(app.list.children.length,0);assert.equal(app.refresh.disabled,false);
+ }
+});
+
+test('contact/details button revalidates assignment before opening the selected operation',async()=>{
+ let calls=0;const app=await harness(async()=>{calls++;return {items:[{id,status:'assigned'}],page:1}});
+ await app.list.querySelectorAll()[1].handlers.click();assert.equal(calls,2);assert.equal(app.values.get('fc.activeShipmentId'),id);assert.deepEqual(app.navigations,['/courier/job']);
 });
