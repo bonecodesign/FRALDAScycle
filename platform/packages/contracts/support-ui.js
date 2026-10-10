@@ -53,7 +53,7 @@ export function setupSupport({admin=false}={}){
   if(replying)return;
   const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
-   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(admin&&sortFilter?.value==='oldest')params.set('sort','oldest');const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
+   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(admin&&sortFilter?.value&&sortFilter.value!=='newest')params.set('sort',sortFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
    if(result.page!==target||typeof result.hasMore!=='boolean')throw new Error('Não foi possível confirmar a página de pedidos.');
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
