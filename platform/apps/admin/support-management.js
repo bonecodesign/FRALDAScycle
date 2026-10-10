@@ -8,9 +8,9 @@ const form=document.getElementById('support-reply-form');
 const panel=document.getElementById('support-detail');
 const replyStatus=document.getElementById('support-reply-status');
 const rows=document.getElementById('support-rows');
-const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page');
+const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category');
 let page=1,hasMore=false,listBusy=false;
-const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;};
+const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;};
 let selectionGeneration=0,listGeneration=0,selected=null,replying=false;
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(parsed.getTime())?dateTime.format(parsed):'Data não informada';};
@@ -37,7 +37,7 @@ async function openTicket(id,afterReply=false){
 async function loadTickets(target=1){
  listBusy=true;lockPages();const generation=++listGeneration,status=document.getElementById('support-status');rows.replaceChildren();status.textContent='Consultando atendimentos…';
  try{
-  const result=await query('/v1/support/tickets?page='+target);if(generation!==listGeneration)return;
+  const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;
   if(result.page!==target||typeof result.hasMore!=='boolean'||!Array.isArray(result.items)||result.items.length>50||result.items.some(ticket=>!ticket||!validId(ticket.id)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a fila de atendimentos.');
   page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
   for(const ticket of result.items){const row=document.createElement('tr');cell(row,ticket.protocol);cell(row,Object.hasOwn(categoryLabels,ticket.category)?categoryLabels[ticket.category]:'Categoria não informada');cell(row,ticket.subject);cell(row,statusLabels[ticket.status]);cell(row,date(ticket.created_at));const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='button text';button.textContent='Abrir';button.disabled=replying;button.addEventListener('click',()=>openTicket(ticket.id));action.append(button);row.append(action);rows.append(row);}
@@ -48,6 +48,7 @@ async function loadTickets(target=1){
 document.getElementById('support-refresh')?.addEventListener('click',()=>loadTickets(1));
 previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return loadTickets(page-1);});
 next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return loadTickets(page+1);});
+statusFilter?.addEventListener('change',()=>loadTickets(1));categoryFilter?.addEventListener('change',()=>loadTickets(1));
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(replying||!selected)return;
  const id=selected,body=form.elements.body.value.trim(),status=form.elements.status.value;

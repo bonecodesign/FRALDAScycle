@@ -322,12 +322,14 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.ok(browserSupport?.id);
     await call('Page.navigate',{url:`${adminOrigin}/admin/launch`});
     await until(()=>evaluate(`document.querySelectorAll('#support-rows button').length>0`),'admin support queue');
+    await evaluate(`(()=>{const status=document.getElementById('support-filter-status'),category=document.getElementById('support-filter-category');status.value='open';status.dispatchEvent(new Event('change'));category.value='general';category.dispatchEvent(new Event('change'));})()`);
+    await until(()=>evaluate(`document.getElementById('support-status').textContent.includes('Página 1')&&[...document.querySelectorAll('#support-rows tr')].some(row=>row.textContent.includes('Atendimento fictício navegador'))`),'filtered admin support queue');
     await evaluate(`(()=>{const row=[...document.querySelectorAll('#support-rows tr')].find(row=>row.textContent.includes('Atendimento fictício navegador'));row.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelector('#support-reply-form input[name=ticketId]').value===${JSON.stringify(browserSupport.id)}&&!document.querySelector('#support-reply-form button').disabled`),'admin selected support ticket');
     const adminSupportLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const overflow=await evaluate(`document.documentElement.scrollWidth>innerWidth+1`);assert.equal(overflow,false);adminSupportLayouts.push({viewport:width,overflow});
+      const overflow=await evaluate(`document.documentElement.scrollWidth>innerWidth+1`);assert.equal(overflow,false,`Admin support overflow ${width}: `+JSON.stringify(await evaluate(`[...document.querySelectorAll('main *')].filter(node=>node.getBoundingClientRect().right>innerWidth+1).map(node=>({tag:node.tagName,id:node.id,class:node.className,right:node.getBoundingClientRect().right})).slice(0,12)`)));adminSupportLayouts.push({viewport:width,overflow});
     }
     await evaluate(`(()=>{const form=document.getElementById('support-reply-form');form.elements.body.value='Resposta fictícia para validação no navegador.';form.elements.status.value='under_review';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#support-reply-form button').disabled&&document.getElementById('support-messages').textContent.includes('Resposta fictícia para validação no navegador.')`),'admin reply persisted and reloaded');
