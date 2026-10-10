@@ -58,7 +58,7 @@ export function setupSupport({admin=false}={}){
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
    if(!items.length)list.append(text('p','Nenhum pedido registrado.'));
-   for(const ticket of items){const ageText=age(ticket.created_at);const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável')+(admin?' · Criado '+ageText:'') );button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
+   for(const ticket of items){const ageText=age(ticket.created_at);const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável')+(admin?' · Criado '+ageText+' · Atualizado em '+date(ticket.updated_at):'') );button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
    lockList(replying);say('Pedidos carregados. Página '+page+'.');
   }catch(error){if(generation===listGeneration){list.replaceChildren();hasMore=false;say(error.message||'Não foi possível consultar os pedidos.');}}
   finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}
