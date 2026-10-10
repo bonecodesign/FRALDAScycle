@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const one='11111111-1111-4111-8111-111111111111',two='22222222-2222-4222-8222-222222222222';
+function node(){return {children:[],handlers:{},disabled:false,value:'',append(...children){this.children.push(...children)},replaceChildren(){this.children=[]},addEventListener(type,handler){this.handlers[type]=handler},setAttribute(){},focus(){},querySelectorAll(selector){return this.children.flatMap(child=>[...(selector==='button'?(child.tag==='button'?[child]:[]):['input','select','textarea','button'].includes(child.tag)?[child]:[]),...child.querySelectorAll(selector)])}};}
+const ticket=id=>({id,protocol:id===one?'42':'43',status:'open',subject:'Assunto fictício',details:'Descrição fictícia do atendimento',category:'general',transaction_id:null,messages:[{body:'Mensagem sintética',created_at:'invalid'}]});
+async function harness(request,{admin=false,client=false,signal=null}={}){
+ const elements=Object.fromEntries(['support-feedback','support-list','support-detail','support-refresh'].map(key=>[key,node()]));
+ if(client){const form=node();form.elements=Object.fromEntries(['transaction','category','subject','details'].map(key=>[key,node()]));form.elements.category.value='general';form.elements.subject.value='Assunto fictício';form.elements.details.value='Descrição fictícia do atendimento';form.querySelectorAll=()=>Object.values(form.elements);elements['support-form']=form;elements['operation-cancel']=node();}
+ const values=new Map(),calls=[];let keys=0;const source=(await readFile(new URL('../packages/contracts/support-ui.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'').replace('export function','function');
+ vm.runInNewContext(source+';setupSupport({admin:'+admin+'});',{apiRequest:async(path,options)=>{calls.push({path,options});return request(path,options)},AbortSignal:signal?{timeout:()=>signal}:AbortSignal,crypto:{randomUUID:()=>`synthetic-key-${++keys}`},sessionStorage:{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)},document:{getElementById:key=>elements[key],createElement:tag=>Object.assign(node(),{tag})}});
+ return {elements,values,calls,refresh:()=>elements['support-refresh'].handlers.click(),open:index=>elements['support-list'].children[index].handlers.click(),send:()=>elements['support-form'].handlers.submit({preventDefault(){}}),cancel:()=>elements['operation-cancel'].handlers.click()};
+}
+test('latest detail wins, invalid date has fallback, and client gets no reply controls',async()=>{
+ let finish;const app=await harness(async path=>path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:path.endsWith(one)?new Promise(resolve=>finish=resolve):{ticket:ticket(two)});await app.refresh();const pending=app.open(0);await app.open(1);finish({ticket:ticket(one)});await pending;assert.equal(app.elements['support-detail'].children[0].textContent,'Protocolo FC-S-43');assert.equal(app.elements['support-detail'].children.filter(item=>item.tag==='form').length,0);assert.match(app.elements['support-detail'].children.at(-1).textContent,/Data não informada/);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,0);
+});
+test('failed or malformed list/detail removes old actions and handles error without stale content',async()=>{
+ let detailCalls=0,lists=0;const app=await harness(async path=>{if(path==='/v1/support/tickets')return ++lists===1?{items:[ticket(one)]}:{items:[{...ticket(one),status:'constructor'}]};if(++detailCalls===1)return {ticket:ticket(one)};throw new Error('Acesso revogado');});await app.refresh();await app.open(0);await app.open(0);assert.equal(app.elements['support-detail'].children.length,0);assert.equal(app.elements['support-feedback'].textContent,'Acesso revogado');await app.refresh();assert.equal(app.elements['support-list'].children.length,0);
+});
+test('timed-out query releases refresh and preserves saved draft key',async()=>{
+ const signal={aborted:false};let fail;const app=await harness(async()=>new Promise((_,reject)=>fail=reject),{client:true,signal});const key=app.values.get('fc.supportDraftKey');const pending=app.refresh();assert.equal(app.elements['support-refresh'].disabled,true);signal.aborted=true;fail(new Error('aborted'));await pending;assert.equal(app.elements['support-refresh'].disabled,false);assert.match(app.elements['support-feedback'].textContent,/demorou/);assert.equal(app.values.get('fc.supportDraftKey'),key);
+});
+test('creation blocks duplicate submit/cancel and rotates key only after a confirmed ticket',async()=>{
+ let finish;const app=await harness(async(path,options)=>options?.method==='POST'?new Promise(resolve=>finish=resolve):path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)},{client:true});const old=app.values.get('fc.supportDraftKey');const pending=app.send();await app.send();await app.cancel();assert.equal(app.calls.length,1);assert.equal(app.elements['support-form'].elements.subject.disabled,true);finish({ticket:ticket(one)});await pending;assert.notEqual(app.values.get('fc.supportDraftKey'),old);assert.equal(app.elements['support-form'].elements.subject.value,'');assert.equal(app.elements['support-form'].elements.subject.disabled,false);
+});
+test('creation failure preserves key and fields for idempotent retry',async()=>{
+ const app=await harness(async()=>{throw new Error('Sem conexão')},{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();await app.send();assert.equal(app.calls[0].options.body.idempotencyKey,app.calls[1].options.body.idempotencyKey);assert.equal(app.values.get('fc.supportDraftKey'),old);assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');
+});
+test('reused key returning another draft does not discard fields or claim creation',async()=>{
+ const app=await harness(async()=>({ticket:{...ticket(one),subject:'Pedido anterior'}}),{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');assert.notEqual(app.values.get('fc.supportDraftKey'),old);assert.match(app.elements['support-feedback'].textContent,/pedido anterior/);
+});
+test('admin reply cannot duplicate or switch tickets and uses confirmed target',async()=>{
+ let finish;const app=await harness(async(path,options)=>options?.method==='POST'?new Promise(resolve=>finish=resolve):path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:{ticket:ticket(one)},{admin:true});await app.refresh();await app.open(0);const form=app.elements['support-detail'].children.at(-1),body=form.children[1],state=form.children[2];body.value='Resposta fictícia por teste';state.value='under_review';const send=()=>form.handlers.submit({preventDefault(){}});const pending=send();await send();await app.open(1);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);assert.equal(app.calls.at(-1).path,'/v1/support/tickets/'+one+'/reply');finish({id:one,status:'under_review'});await pending;assert.equal(app.elements['support-refresh'].disabled,false);
+});
+test('reply failure keeps draft disabled and blocks another send until fresh consultation',async()=>{
+ const app=await harness(async(path,options)=>{if(options?.method==='POST')throw new Error('Sem conexão');return path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)}},{admin:true});await app.refresh();await app.open(0);const form=app.elements['support-detail'].children.at(-1);form.children[1].value='Resposta fictícia preservada';const send=()=>form.handlers.submit({preventDefault(){}});await send();await send();assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);assert.equal(form.children[1].disabled,true);assert.match(app.elements['support-feedback'].textContent,/Consulte o protocolo/);
+});
+test('paid cancellation routes to support, blocks duplicate click and preserves its operation',async()=>{
+ let fail;const app=await harness(async()=>new Promise((_,reject)=>fail=reject),{client:true});app.elements['support-form'].elements.transaction.value=one;const pending=app.cancel();await app.cancel();await app.send();assert.equal(app.calls.length,1);fail(Object.assign(new Error('Pagamento exige suporte'),{code:'cancellation_requires_support'}));await pending;assert.equal(app.elements['support-form'].elements.category.value,'cancellation');assert.equal(app.elements['support-form'].elements.transaction.value,one);assert.equal(app.elements['operation-cancel'].disabled,false);
+});
+
+test('mismatched detail or unconfirmed reply cannot leave an active response form',async()=>{
+ for(const bad of [true,false]){const app=await harness(async(path,options)=>options?.method==='POST'?{}:path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(bad?two:one)},{admin:true});await app.refresh();await app.open(0);if(bad){assert.equal(app.elements['support-detail'].children.length,0);continue;}const form=app.elements['support-detail'].children.at(-1);form.children[1].value='Resposta fictícia para teste';await form.handlers.submit({preventDefault(){}});assert.equal(form.children.at(-1).disabled,true);assert.match(app.elements['support-feedback'].textContent,/confirmar a resposta/);}
+});
+
+test('unconfirmed cancellation does not report success and unlocks the form',async()=>{
+ const app=await harness(async()=>({transaction:{id:two,status:'cancelled'}}),{client:true});app.elements['support-form'].elements.transaction.value=one;await app.cancel();assert.match(app.elements['support-feedback'].textContent,/Não foi possível confirmar/);assert.equal(app.elements['operation-cancel'].disabled,false);assert.equal(app.elements['support-form'].elements.transaction.value,one);
+});
