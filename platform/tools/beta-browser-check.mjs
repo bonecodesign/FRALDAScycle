@@ -15,7 +15,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -67,6 +67,31 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     };
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
     await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
+    const loginLayouts=[];
+    if(loginFixture){
+      await call('Page.navigate',{url:`${surfaceOrigin}/app/login`});
+      await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('login-form'))`),'login form ready');
+      assert.equal(await evaluate(`[...document.querySelectorAll('#login-form input')].every(input=>input.labels?.length>0)`),true);
+      for(const width of [320,375,768,1280]){
+        await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+        const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('#login-form input')].filter(input=>!input.labels?.length).length})`);
+        assert.equal(layout.overflow,false,`Login overflow ${width}`);assert.equal(layout.missingLabels,0);loginLayouts.push({viewport:width,...layout});
+      }
+      await evaluate(`document.getElementById('login-contact').value=${JSON.stringify(loginFixture.email)};document.getElementById('login-password').value='synthetic-invalid-password';document.querySelector('#login-form button[type=submit]').focus()`);
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>evaluate(`Boolean(document.querySelector('#login-form .field-error')?.textContent)&&!document.querySelector('#login-form button[type=submit]').disabled`),'invalid password rejected');
+      assert.equal(await evaluate('location.pathname'),'/app/login');
+      assert.equal(await evaluate(`document.getElementById('login-password').value`),'');
+      assert.equal(await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(response=>response.status)`),401);
+      await evaluate(`document.getElementById('login-password').value=${JSON.stringify(loginFixture.password)};document.querySelector('#login-form button[type=submit]').focus()`);
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>evaluate(`location.pathname==='/app/home'`),'valid login navigates home');
+      assert.equal(await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(response=>response.json()).then(result=>result.user?.id)`),loginFixture.userId);
+      const cookies=await call('Network.getCookies',{urls:[apiOrigin]});
+      assert.ok(cookies.cookies.some(cookie=>cookie.name==='fc_session'&&cookie.httpOnly));
+    }
     await call('Network.setCookie', { name: 'fc_session', value: sessionToken, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Lax' });
     await call('Page.navigate', { url: `${surfaceOrigin}/app/notification-settings` });
     await until(() => evaluate(`Boolean(document.querySelector('#operational-preferences-form fieldset:not([disabled])'))`), 'authenticated preferences load');
@@ -334,7 +359,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#donation-receipt input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Recebimento institucional aprovado')`),'institution receipt keyboard');
     const donationReady=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/settlement-status',{credentials:'include'}).then(r=>r.json()).then(r=>r.settlement)`);assert.equal(donationReady.payoutAllowed,false);assert.equal(donationReady.operationalRequirementsMet,false);
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    return { browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }

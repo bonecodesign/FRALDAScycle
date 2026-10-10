@@ -22,6 +22,29 @@
   "productionSyntaxFiles": 119,
   "browser": {
     "browser": "Chrome/151.0.7922.173",
+    "login": "senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida",
+    "loginLayouts": [
+      {
+        "viewport": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "viewport": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
     "keyboard": "Space, Tab e Enter executados via navegador",
     "preferences": "carregar, salvar, consultar e recarregar com API/PostgreSQL",
     "premium": "escolha e cancelamento de renovação com teclado e persistência, cobrança desativada",
@@ -257,7 +280,7 @@
   },
   "productionReadiness": false,
   "externalProvidersTested": false,
-  "githubCiRerun": false,
+  "githubCiRerun": true,
   "historicalPilot": {
     "passed": 16,
     "failed": 1,
@@ -280,5 +303,20 @@
       "/admin/login"
     ],
     "deployed": false
+  },
+  "githubCi": {
+    "runId": 38008191165,
+    "url": "https://github.com/bonecodesign/FRALDAScycle/actions/runs/38008191165",
+    "commitSha": "519402a813a88a4ac1021e55d20c4f61d74324db",
+    "jobs": {
+      "foundation": "success",
+      "listing-postgres": "success",
+      "containers": "success"
+    }
+  },
+  "loginExtension": {
+    "pass": true,
+    "checkedAt": "2026-10-10T00:17:08.668579+00:00",
+    "remoteCi": "Acompanhar a execução correspondente à atualização do PR #87."
   }
 }

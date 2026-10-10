@@ -11,7 +11,7 @@ Data de referência do usuário: 9 de outubro de 2026, America/Sao_Paulo. A exec
 | Chat HTTP com PostgreSQL | Consulta, envio e controle de abertura comprovados | Bloqueio antes de `paid`, valor divergente, referência ausente, terceiros, cancelamento, reembolso e doação; sessão fictícia no teste HTTP |
 | Beta integrada em PostgreSQL e Chromium | Aprovada dentro da suíte completa | Serviços reais locais, dados e eventos financeiros/mídia sintéticos; sem fornecedor, entrega física ou repasse |
 | Backup/restauração | `pg_dump` e `pg_restore` reais; igualdade de tabelas, sequências e migrações; segunda restauração e isolamento | Somente bancos descartáveis, arquivo temporário com permissão 0600 |
-| Navegador | Chrome 151; Space, Tab e Enter; nove conjuntos de telas em 320, 375, 768 e 1280 pixels | Sem overflow nos conjuntos verificados; contratos de rótulos verificados; não substitui leitor de tela ou auditoria WCAG completa |
+| Navegador | Chrome 151; Space, Tab e Enter; dez conjuntos de telas em 320, 375, 768 e 1280 pixels | Sem overflow nos conjuntos verificados; contratos de rótulos verificados; não substitui leitor de tela ou auditoria WCAG completa |
 | Protótipo | 83/83 verificações aprovadas | Contratos automatizados; não é comparação visual completa com o acervo |
 | Sintaxe de produção | 119 arquivos aprovados | Não mede comportamento em infraestrutura real |
 | Contêineres | Builds de API, site, app e admin aprovados; Compose válido | Imagens locais, sem publicação em registry ou deployment |
@@ -19,7 +19,7 @@ Data de referência do usuário: 9 de outubro de 2026, America/Sao_Paulo. A exec
 | Manifestos de fornecedores e piloto | Validadores estruturais aprovados | Validade do documento não significa fornecedor contratado nem piloto aprovado |
 | `production:doctor` | `ready: false` | Configuração real ausente; produção permanece bloqueada |
 
-O navegador cobriu preferências operacionais, Premium sem cobrança, chat persistido e moderação, solicitação de alteração de endereço, privacidade sem exclusão, denúncias/recursos de avaliações, representação institucional, revisão administrativa e doação com retirada, coleta e aprovação do recebedor. Cadastro, recuperação e MFA possuem testes de serviço, concorrência em PostgreSQL, contratos HTTP e lógica de interface; esta rodada não comprova todos esses fluxos completos pela interface real.
+O navegador cobriu preferências operacionais, Premium sem cobrança, chat persistido e moderação, solicitação de alteração de endereço, privacidade sem exclusão, denúncias/recursos de avaliações, representação institucional, revisão administrativa e doação com retirada, coleta e aprovação do recebedor. O login do cliente também passou pela tela real: senha inválida não cria sessão e permanece no login; senha válida, enviada por teclado, abre a Home e confirma a conta pela API com cookie HttpOnly. Os rótulos dos campos estão associados aos inputs, com autocomplete apropriado e ausência de overflow em quatro larguras. Cadastro, recuperação e MFA possuem testes de serviço, concorrência em PostgreSQL, contratos HTTP e lógica de interface; esta rodada não comprova todos esses fluxos completos pela interface real.
 
 ## Correções da validação
 
@@ -38,6 +38,6 @@ O navegador cobriu preferências operacionais, Premium sem cobrança, chat persi
 3. Configurar banco, sessões, integrações, segredos, limitação distribuída e telemetria no ambiente real; validar domínio, TLS, migração, restauração, observabilidade, rollback e carga nesse ambiente.
 4. Percorrer autenticação e publicação/checkout completos nas interfaces reais e comparar todas as telas com o acervo aprovado. Esta rodada não atribui percentual de fidelidade visual.
 5. Executar piloto humano, leitor de tela e aparelhos físicos; confirmar responsável e substituto pelo rollback. O piloto histórico preserva 16 aprovados, uma falha e quatro não executados; não foi convertido automaticamente em aprovação.
-6. Publicar estas correções e executar o CI do GitHub. O PR #86 já foi incorporado; esta rodada foi executada no workspace e não equivale a uma execução remota do CI.
+6. O PR #87 publica esta rodada. O CI remoto do commit `519402a813a88a4ac1021e55d20c4f61d74324db` passou em foundation, listing-postgres e containers ([execução 38008191165](https://github.com/bonecodesign/FRALDAScycle/actions/runs/38008191165)). A ampliação do login terá sua execução correspondente no mesmo PR. O PR #86 já foi incorporado; esta atualização permanece distinguível da ativação em produção.
 
 Conclusão formal dos requisitos permanece 8/70 (11,43%) e cobertura parcial/concluída 58/70 (82,86%). Suíte aprovada não encerra automaticamente dependências externas ou homologação humana.
