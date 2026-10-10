@@ -4,10 +4,10 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 const id='11111111-1111-4111-8111-111111111111';
 function element(){return {children:[],disabled:false,handlers:{},append(...nodes){this.children.push(...nodes)},replaceChildren(){this.children=[]},addEventListener(type,fn){this.handlers[type]=fn},querySelectorAll(){return this.children.flatMap(panel=>panel.children.filter(node=>node.type==='button'))}}}
-async function harness(apiRequest,history=false){
+async function harness(apiRequest,history=false,timeoutSignal=null){
  const source=(await readFile(new URL('../apps/app/courier-dashboard.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'');
  const list=element(),refresh=element(),feedback=element(),values=new Map(),navigations=[];
- vm.runInNewContext(source,{document:{getElementById:key=>({'courier-deliveries':history?null:list,'courier-history-records':history?list:null,'courier-feedback':feedback,'courier-refresh':refresh})[key],createElement:()=>element()},apiRequest,sessionStorage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},window:{location:{assign:path=>navigations.push(path)}}});
+ vm.runInNewContext(source,{AbortSignal:timeoutSignal?{timeout:()=>timeoutSignal}:AbortSignal,document:{getElementById:key=>({'courier-deliveries':history?null:list,'courier-history-records':history?list:null,'courier-feedback':feedback,'courier-refresh':refresh})[key],createElement:()=>element()},apiRequest,sessionStorage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},window:{location:{assign:path=>navigations.push(path)}}});
  await new Promise(resolve=>setImmediate(resolve));return {list,refresh,feedback,values,navigations,select:()=>list.querySelectorAll()[0].handlers.click()};
 }
 test('dashboard rechecks assignment, blocks duplicate selection and uses refreshed state',async()=>{
@@ -39,4 +39,17 @@ test('history displays stored modality and update date with an explicit fallback
  const app=await harness(async()=>({items:[{id,status:'delivered',mode:'postal',updatedAt:'2026-10-09T12:00:00Z'},{id,status:'failed',mode:'unknown',updatedAt:'invalid'}]}),true);
  assert.match(app.list.children[0].children[2].textContent,/Envio postal.*Atualizado em:/);assert.doesNotMatch(app.list.children[0].children[2].textContent,/Data não informada/);
  assert.match(app.list.children[1].children[2].textContent,/Modalidade não informada.*Data não informada/);
+});
+
+test('timed-out consultation unlocks refresh, leaves no stale cards and preserves saved operation',async()=>{
+ const signal={aborted:false};let fail,calls=0;
+ const app=await harness(async(_,options)=>{calls++;assert.equal(options.signal,signal);return new Promise((_,reject)=>fail=reject)},false,signal);
+ app.values.set('fc.activeShipmentId','previous');app.values.set('fc.deliveryProofMediaKey','saved-photo');assert.equal(app.refresh.disabled,true);
+ signal.aborted=true;fail(new Error('aborted'));await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(app.refresh.disabled,false);assert.equal(app.list.children.length,0);assert.equal(app.values.get('fc.activeShipmentId'),'previous');assert.equal(app.values.get('fc.deliveryProofMediaKey'),'saved-photo');assert.match(app.feedback.textContent,/demorou/);assert.equal(calls,1);
+});
+test('failed revalidation removes stale selectable cards and permits refreshed selection',async()=>{
+ let calls=0;const app=await harness(async()=>{calls++;if(calls===2)throw new Error('Sessão expirada');return {items:[{id,status:'assigned'}]}});
+ app.values.set('fc.deliveryProofMediaKey','saved-photo');await app.select();assert.equal(app.list.children.length,0);assert.equal(app.values.get('fc.deliveryProofMediaKey'),'saved-photo');assert.equal(app.refresh.disabled,false);
+ await app.refresh.handlers.click();assert.equal(app.list.querySelectorAll().length,1);await app.select();assert.deepEqual(app.navigations,['/app/collection']);
 });

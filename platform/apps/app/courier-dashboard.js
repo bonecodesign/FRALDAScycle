@@ -6,6 +6,17 @@ const feedback = document.getElementById('courier-feedback');
 const refresh = document.getElementById('courier-refresh');
 const states = history ? {delivered:'Entrega registrada como entregue',failed:'Falha na entrega',cancelled:'Entrega cancelada'} : {assigned:'Aguardando coleta',picked_up:'Coleta registrada',in_transit:'Em trânsito'};
 const validId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+async function query(path) {
+  const signal = AbortSignal.timeout(15000);
+  try {
+    const result = await apiRequest(path,{signal});
+    if (signal.aborted) throw new Error('Consulta interrompida.');
+    return result;
+  } catch (error) {
+    if (signal.aborted) throw new Error('A consulta demorou para responder. Atualize a lista para tentar novamente.');
+    throw error;
+  }
+}
 let pending = false;
 const lock = disabled => { refresh.disabled = disabled; list.querySelectorAll('button').forEach(button => button.disabled = disabled); };
 async function select(item) {
@@ -13,7 +24,7 @@ async function select(item) {
   pending = true; lock(true);
   const previous = sessionStorage.getItem('fc.activeShipmentId');
   try {
-    const result = await apiRequest('/v1/courier/shipments');
+    const result = await query('/v1/courier/shipments');
     const current = Array.isArray(result.items) ? result.items.find(shipment => shipment?.id === item.id) : null;
     if (!current || !Object.hasOwn(states,current.status)) throw new Error('A entrega não está mais disponível nesta lista. Atualize suas entregas.');
     if (sessionStorage.getItem('fc.activeShipmentId') !== previous) throw new Error('A entrega ativa mudou. Atualize a lista antes de selecionar novamente.');
@@ -23,7 +34,7 @@ async function select(item) {
     }
     sessionStorage.setItem('fc.activeShipmentId',item.id);
     window.location.assign(current.status === 'assigned' ? '/app/collection' : '/courier/proof');
-  } catch (error) { feedback.textContent = error.message || 'Não foi possível selecionar a entrega.'; }
+  } catch (error) { list.replaceChildren(); feedback.textContent = (error.message || 'Não foi possível selecionar a entrega.') + ' Atualize a lista antes de selecionar novamente.'; }
   finally { pending = false; lock(false); }
 }
 async function load() {
@@ -31,7 +42,7 @@ async function load() {
   pending = true; lock(true); list.replaceChildren();
   feedback.textContent = 'Consultando suas entregas...';
   try {
-    const {items} = await apiRequest(endpoint);
+    const {items} = await query(endpoint);
     if (!Array.isArray(items) || items.length > 50 || items.some(item=>!item || !validId(item.id) || !Object.hasOwn(states,item.status))) throw new Error('Não foi possível confirmar a lista de entregas.');
     for (const item of items) {
       const panel = document.createElement('div'); panel.className = 'panel';
