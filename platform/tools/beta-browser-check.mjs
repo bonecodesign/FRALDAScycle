@@ -1,3 +1,4 @@
+import { checkAuthBrowser } from './auth-browser-check.mjs';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -15,7 +16,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -62,11 +63,37 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const call = (method, params) => send(method, params, sessionId);
     const evaluate = async expression => {
       const result = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-      if (result.exceptionDetails) throw new Error('Browser evaluation failed: ' + result.exceptionDetails.text);
+      if (result.exceptionDetails) throw new Error(`Browser evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}; expression: ${expression.slice(0,240)}`);
       return result.result.value;
     };
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
     await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
+    const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
+    const loginLayouts=[];
+    if(loginFixture){
+      await call('Page.navigate',{url:`${surfaceOrigin}/app/login`});
+      await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('login-form'))`),'login form ready');
+      assert.equal(await evaluate(`[...document.querySelectorAll('#login-form input')].every(input=>input.labels?.length>0)`),true);
+      for(const width of [320,375,768,1280]){
+        await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+        const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('#login-form input')].filter(input=>!input.labels?.length).length})`);
+        assert.equal(layout.overflow,false,`Login overflow ${width}`);assert.equal(layout.missingLabels,0);loginLayouts.push({viewport:width,...layout});
+      }
+      await evaluate(`document.getElementById('login-contact').value=${JSON.stringify(loginFixture.email)};document.getElementById('login-password').value='synthetic-invalid-password';document.querySelector('#login-form button[type=submit]').focus()`);
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>evaluate(`Boolean(document.querySelector('#login-form .field-error')?.textContent)&&!document.querySelector('#login-form button[type=submit]').disabled`),'invalid password rejected');
+      assert.equal(await evaluate('location.pathname'),'/app/login');
+      assert.equal(await evaluate(`document.getElementById('login-password').value`),'');
+      assert.equal(await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(response=>response.status)`),401);
+      await evaluate(`document.getElementById('login-password').value=${JSON.stringify(loginFixture.password)};document.querySelector('#login-form button[type=submit]').focus()`);
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>evaluate(`location.pathname==='/app/home'`),'valid login navigates home');
+      assert.equal(await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(response=>response.json()).then(result=>result.user?.id)`),loginFixture.userId);
+      const cookies=await call('Network.getCookies',{urls:[apiOrigin]});
+      assert.ok(cookies.cookies.some(cookie=>cookie.name==='fc_session'&&cookie.httpOnly));
+    }
     await call('Network.setCookie', { name: 'fc_session', value: sessionToken, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Lax' });
     await call('Page.navigate', { url: `${surfaceOrigin}/app/notification-settings` });
     await until(() => evaluate(`Boolean(document.querySelector('#operational-preferences-form fieldset:not([disabled])'))`), 'authenticated preferences load');
@@ -162,7 +189,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const moderationLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Moderation overflow ${width}`);assert.equal(layout.missingLabels,0);moderationLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
@@ -177,7 +204,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const addressLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Address overflow ${width}`);assert.equal(layout.missingLabels,0);addressLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/privacy`});
@@ -192,7 +219,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const privacyLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Privacy overflow ${width}`);assert.equal(layout.missingLabels,0);privacyLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/review-moderation?reviewId=${browserReview.receivedId}`});
@@ -207,7 +234,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const reviewLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Review moderation overflow ${width}`);assert.equal(layout.missingLabels,0);reviewLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
@@ -219,7 +246,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Institution access overflow ${width}`);assert.equal(layout.missingLabels,0);institutionLayouts.push({viewport:width,...layout});
     }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
@@ -237,7 +264,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const adminLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Admin moderation overflow ${width}`);assert.equal(layout.missingLabels,0);adminLayouts.push({viewport:width,...layout});
     }
     await call('Page.navigate',{url:`${surfaceOrigin}/app/address-changes`});
@@ -293,7 +320,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.donorSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/donations`});
-    await until(()=>evaluate(`document.querySelector('#donation-create fieldset')?.disabled===false && document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor own listing');
+    try { await until(()=>evaluate(`document.querySelector('#donation-create fieldset')?.disabled===false && document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor own listing'); }
+    catch(error){throw new Error(error.message+': '+JSON.stringify(await evaluate(`(async()=>({route:location.pathname,feedback:document.getElementById('donation-feedback')?.textContent,sessionStatus:await fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(r=>r.status),options:document.querySelector('#donation-create select')?.options.length}))()`)));}
     await evaluate(`document.querySelector('#donation-create input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Confirmação do doador registrada')`),'donor confirmation keyboard');
     const browserDonationTransaction=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/donations')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].transaction_id)`);
@@ -315,7 +343,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const donationLayouts=[];
     for(const width of [320,375,768,1280]){
       await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
-      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>!c.labels.length).length})`);
+      const layout=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth+1,missingLabels:[...document.querySelectorAll('input,textarea,select')].filter(c=>c.type!=='hidden'&&!c.labels?.length&&!c.getAttribute('aria-label')&&!c.getAttribute('aria-labelledby')).length})`);
       assert.equal(layout.overflow,false,`Donation overflow ${width}`);assert.equal(layout.missingLabels,0);donationLayouts.push({viewport:width,...layout});
     }
     await call('Network.setCookie',{name:'fc_session',value:browserDonation.courierSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
@@ -333,7 +361,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#donation-receipt input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Recebimento institucional aprovado')`),'institution receipt keyboard');
     const donationReady=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/settlement-status',{credentials:'include'}).then(r=>r.json()).then(r=>r.settlement)`);assert.equal(donationReady.payoutAllowed,false);assert.equal(donationReady.operationalRequirementsMet,false);
-    return { browser: version.product, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    return { authentication, browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }
@@ -350,6 +378,13 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
 if (isMainModule(import.meta.url)) {
   let input = '';
   for await (const chunk of process.stdin) input += chunk;
-  try { console.log(JSON.stringify(await runBrowserBetaChecks(JSON.parse(input)))); }
+  try { console.log(JSON.stringify(await runBrowserBetaChecks({...JSON.parse(input),requestAuthCode: async (email,kind) => new Promise((resolve,reject)=>{
+    const id=crypto.randomUUID();
+    const timer=setTimeout(()=>{process.off("message",receive);reject(new Error("Código local indisponível"));},12000);
+    const receive=message=>{if(message.id!==id)return;clearTimeout(timer);process.off("message",receive);message.error?reject(new Error(message.error)):resolve(message.code);};
+    process.on("message",receive);process.send({id,email,kind});
+  })}))); }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }
+
+if (process.connected) process.disconnect();

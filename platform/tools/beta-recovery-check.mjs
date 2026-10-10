@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { mkdtemp, chmod, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDatabase } from '../database/client.js';
 import { createBackupPlan, createRestorePlan, executePlan } from '../database/recovery.js';
+import { spawnPostgresTestTool } from './native-postgres.mjs';
 
 // Only called with the disposable cluster created by withNativeTestPostgres.
 export async function validateSyntheticRecovery(database, databaseUrl, bin) {
@@ -18,7 +18,7 @@ export async function validateSyntheticRecovery(database, databaseUrl, bin) {
   const dump = join(directory, 'synthetic.dump');
   const env = { DATABASE_URL: source.toString(), RESTORE_DATABASE_URL: target.toString(),
     DATABASE_DUMP_PATH: dump, CONFIRM_DATABASE_RESTORE: 'RESTORE' };
-  const spawnImpl = (command, args, options) => spawn(join(bin, command), args, options);
+  const spawnImpl = (command, args, options) => spawnPostgresTestTool(bin, command, args, options);
   let restored;
   async function snapshot(connection) {
     const tables = (await connection.query("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;

@@ -153,7 +153,7 @@ test("HTTP marketplace keeps public reads open and protects writes", async (cont
     async addFavorite() { return { saved: true }; },
     async removeFavorite() { return { saved: false }; },
   };
-  const authService = { async session(token) { return token === "valid" ? { id: "user-1" } : null; } };
+  const authService = { async session(token) { return token === "valid" ? { id: "user-1", adultDeclared: true } : token === "undeclared" ? { id: "user-2", adultDeclared: false } : null; } };
   const server = createApiServer({ config: loadConfig({ NODE_ENV: "test" }), authService, marketplaceService });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   context.after(() => server.close());
@@ -167,6 +167,12 @@ test("HTTP marketplace keeps public reads open and protects writes", async (cont
     method: "POST", headers: { "content-type": "application/json" }, body: "{}",
   });
   assert.equal(denied.status, 401);
+
+  const undeclared = await fetch(`${origin}/v1/listings`, {
+    method: "POST", headers: { "content-type": "application/json", cookie: "fc_session=undeclared" }, body: "{}",
+  });
+  assert.equal(undeclared.status, 403);
+  assert.equal((await undeclared.json()).error.code, "adult_declaration_required");
 
   const created = await fetch(`${origin}/v1/listings`, {
     method: "POST",

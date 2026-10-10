@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { nativePostgresTools, withNativeTestPostgres, freeLocalPort } from '../tools/native-postgres.mjs';
 
 const native = await nativePostgresTools();
-test('native PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
+test('PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
   skip: !native && !process.env.CI ? 'PostgreSQL nativo ausente neste ambiente; nenhuma homologação local alegada.' : false,
   timeout: 120000,
 }, async () => {
@@ -110,7 +110,10 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(adminFixture);
       await database.query("UPDATE users SET role='admin' WHERE email=$1",[adminFixture.email]);
-      const adminSession=await authService.login(adminFixture);
+      const adminChallenge=await authService.login(adminFixture);
+      assert.equal(adminChallenge.mfaRequired,true);
+      const adminCode=(await database.query("SELECT payload->>'token' AS code FROM notification_outbox WHERE recipient=$1 AND kind='admin_login_mfa' ORDER BY created_at DESC LIMIT 1",[adminFixture.email])).rows[0].code;
+      const adminSession=await authService.confirmAdminMfa({challenge:adminChallenge.challenge,code:adminCode});
       const { createMarketplaceService } = await import('../apps/api/marketplace-service.js');
       const { createMarketplaceRepository } = await import('../database/marketplace-repository.js');
       const { createModerationService } = await import('../apps/api/moderation-service.js');
@@ -164,7 +167,7 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
       const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
       const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,donationService });
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', RATE_LIMIT_MAX: '1000', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,institutionService:createInstitutionService(createInstitutionRepository(database)),donationService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
@@ -186,14 +189,27 @@ test('native PostgreSQL beta validates immutable migrations, upgrade data and re
         }
         assert.equal(ready, true, 'Surface server did not start');
         const args = [...(typeof WebSocket === 'undefined' ? ['--experimental-websocket'] : []), fileURLToPath(new URL('../tools/beta-browser-check.mjs', import.meta.url))];
-        const browser = spawn(process.execPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+        const browser = spawn(process.execPath, args, { stdio: ['pipe', 'pipe', 'pipe', 'ipc'] });
+        const authFixture={email:'browser-new@example.test',displayName:'Pessoa fictícia navegador',password:'synthetic-browser-password-v1',nextPassword:'synthetic-browser-password-v2',adminEmail:adminFixture.email,adminPassword:adminFixture.password};
+        browser.on('message',async message=>{
+          try {
+            assert.ok([authFixture.email,authFixture.adminEmail].includes(message.email));
+            assert.ok(['email_verification','password_recovery','admin_login_mfa'].includes(message.kind));
+            const row=(await database.query("SELECT payload->>'token' AS code FROM notification_outbox WHERE recipient=$1 AND kind=$2 ORDER BY created_at DESC,id DESC LIMIT 1",[message.email,message.kind])).rows[0];
+            assert.match(row?.code??'',/^\d{6}$/);
+            browser.send({id:message.id,code:row.code});
+          } catch { browser.send({id:message.id,error:'Falha na leitura do código fictício local'}); }
+        });
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
+        browser.stdin.end(JSON.stringify({ authFixture, loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);
+        assert.equal(result.authentication.externalDelivery,false);
+        assert.equal(result.authentication.layouts.length,24);
+        assert.equal((await database.query('SELECT email_verified_at IS NOT NULL AS verified FROM users WHERE email=$1',[authFixture.email])).rows[0].verified,true);
         assert.deepEqual(result.layouts.map(layout => layout.viewport), [320, 375, 768, 1280]);
         console.log('BETA_BROWSER: ' + JSON.stringify(result));
       } finally {

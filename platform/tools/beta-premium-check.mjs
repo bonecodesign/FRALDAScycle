@@ -74,11 +74,11 @@ export async function validateSyntheticPremium(database) {
   await repository.regularize(owner);
   assert.equal((await service.status(owner)).listings.filter(l=>l.status==='published').length,3);
   const marketplace=createMarketplaceRepository(database);
-  const payload={sellerId:other,title:'Pacote fictício publicado',description:'Descrição exclusiva para teste de quota concorrente.',category:'infant',brand:'Pampers',model:'Confort',packageCondition:'sealed',openPackageAttested:false,size:'M',quantity:10,kind:'sale',priceCents:10000,city:null,state:null,latitude:null,longitude:null,institutionId:null,mediaKeys:[]};
-  await marketplace.create(payload); // Outra conta tinha um anúncio.
+  const payload={sellerId:other,title:'Pacote fictício publicado',description:'Descrição exclusiva para teste de quota concorrente.',category:'infant',brand:'Pampers',model:'Confort',packageCondition:'sealed',openPackageAttested:false,size:'M',quantity:10,kind:'sale',priceCents:10000,city:null,state:null,latitude:null,longitude:null,institutionId:null,mediaKeys:[`listings/${other}/synthetic.webp`]};
+  assert.equal((await marketplace.create(payload)).status,'review');
   const publications=await Promise.allSettled([marketplace.create(payload),marketplace.create(payload)]);
-  assert.equal(publications.filter(result=>result.status==='fulfilled').length,1);
-  assert.equal(publications.find(result=>result.status==='rejected').reason.code,'free_listing_limit');
+  assert.equal(publications.filter(result=>result.status==='fulfilled'&&result.value.status==='review').length,2);
+  assert.equal((await database.query("SELECT count(*)::int AS n FROM listings WHERE seller_id=$1 AND status='published'",[other])).rows[0].n,1);
   const defaultOwner='50000000-0000-4000-8000-000000000003';
   await database.query("INSERT INTO users(id,email,password_hash,display_name) VALUES($1,'premium-default@example.test','synthetic-unusable-hash','Escolha padrão fictícia')",[defaultOwner]);
   const defaultIds=[]; for(let i=0;i<5;i++) defaultIds.push(await insertListing(database,defaultOwner,i));
