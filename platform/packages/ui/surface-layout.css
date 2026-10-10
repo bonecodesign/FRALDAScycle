@@ -49,3 +49,6 @@
 [data-source-route="#/admin/operations"] .support-filter-controls > * { flex: 1 1 12rem; min-width: 0; max-width: 100%; }
 [data-source-route="#/admin/launch"] .support-filter-controls select,
 [data-source-route="#/admin/operations"] .support-filter-controls select { width: 100%; min-width: 0; max-width: 100%; }
+
+[data-source-route="#/admin/launch"] .support-filter-controls input,
+[data-source-route="#/admin/operations"] .support-filter-controls input { width: 100%; min-width: 0; max-width: 100%; }
