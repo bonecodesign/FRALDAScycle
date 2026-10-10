@@ -17,16 +17,16 @@ export function createLogisticsRepository(database) {
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
     addressChanges: createAddressChangeRepository(database),
-    async courierHistory(courierId) {
+    async courierHistory(courierId,{limit=50,offset=0}={}) {
       const result = await database.query(`SELECT id,status,mode,updated_at
         FROM shipments WHERE courier_id=$1 AND status IN ('delivered','failed','cancelled')
-        ORDER BY updated_at DESC,id DESC LIMIT 50`, [courierId]);
+        ORDER BY updated_at DESC,id DESC LIMIT $2 OFFSET $3`, [courierId,limit,offset]);
       return result.rows;
     },
-    async courierShipments(courierId) {
+    async courierShipments(courierId,{limit=50,offset=0}={}) {
       const result = await database.query(`SELECT id,status,mode,insured,estimated_delivery_at,created_at
         FROM shipments WHERE courier_id=$1 AND status IN ('assigned','picked_up','in_transit')
-        ORDER BY created_at DESC,id DESC LIMIT 50`, [courierId]);
+        ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3`, [courierId,limit,offset]);
       return result.rows;
     },
     async context(input) {

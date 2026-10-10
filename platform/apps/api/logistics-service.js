@@ -15,6 +15,16 @@ function publicShipment(row){return {
 }}
 export function createLogisticsService(repository,provider,mediaProvider){
   return Object.freeze({
+    async courierPage(actor,{history=false,page='1'}={}) {
+      if (!['courier','admin'].includes(actor?.role)) throw new LogisticsError('forbidden',403,'Use a conta do entregador para consultar suas operações.');
+      if (!/^[1-9][0-9]{0,5}$/.test(String(page)) || Number(page)>100000) throw new LogisticsError('invalid_page',400,'Informe uma página válida.');
+      const number=Number(page),options={limit:51,offset:(number-1)*50};
+      const rows=history?await repository.courierHistory(actor.id,options):await repository.courierShipments(actor.id,options);
+      const items=rows.slice(0,50).map(row=>history
+        ? {id:row.id,status:row.status,mode:row.mode,updatedAt:row.updated_at}
+        : {id:row.id,status:row.status,mode:row.mode,insured:row.insured,estimatedDeliveryAt:row.estimated_delivery_at??null});
+      return {items,page:number,hasMore:rows.length>50};
+    },
     async courierHistory(actor) {
       if (!['courier','admin'].includes(actor?.role)) throw new LogisticsError('forbidden',403,'Use a conta do entregador para consultar seu histórico.');
       const rows = await repository.courierHistory(actor.id);
