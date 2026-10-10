@@ -17,6 +17,12 @@ export function createLogisticsRepository(database) {
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
     addressChanges: createAddressChangeRepository(database),
+    async courierHistory(courierId) {
+      const result = await database.query(`SELECT id,status,mode,updated_at
+        FROM shipments WHERE courier_id=$1 AND status IN ('delivered','failed','cancelled')
+        ORDER BY updated_at DESC,id DESC LIMIT 50`, [courierId]);
+      return result.rows;
+    },
     async courierShipments(courierId) {
       const result = await database.query(`SELECT id,status,mode,insured,estimated_delivery_at,created_at
         FROM shipments WHERE courier_id=$1 AND status IN ('assigned','picked_up','in_transit')

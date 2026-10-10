@@ -15,9 +15,18 @@ test('courier service rejects other roles and projects only operational metadata
   assert.equal(calls,0);const items=await service.courierShipments({id:'own',role:'courier'});assert.deepEqual(Object.keys(items[0]),['id','status','mode','insured','estimatedDeliveryAt']);
 });
 test('HTTP courier list uses authenticated identity and prevents cached operational data',async context=>{
-  const service=createLogisticsService({async courierShipments(id){assert.equal(id,'own');return []}},null,null);
+  const service=createLogisticsService({async courierShipments(id){assert.equal(id,'own');return []},async courierHistory(id){assert.equal(id,'own');return []}},null,null);
   const server=createApiServer({config:loadConfig({NODE_ENV:'test'}),authService:{async session(token){return token==='courier'?{id:'own',role:'courier'}:token==='buyer'?{id:'buyer',role:'customer'}:null}},logisticsService:service});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));context.after(()=>server.close());const url=`http://127.0.0.1:${server.address().port}/v1/courier/shipments?courierId=foreign`;
   assert.equal((await fetch(url)).status,401);assert.equal((await fetch(url,{headers:{cookie:'fc_session=buyer'}})).status,403);
   const result=await fetch(url,{headers:{cookie:'fc_session=courier'}});assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'no-store');assert.deepEqual((await result.json()).items,[]);
+  const history=url.replace('/shipments?','/history?');assert.equal((await fetch(history)).status,401);assert.equal((await fetch(history,{headers:{cookie:'fc_session=buyer'}})).status,403);const records=await fetch(history,{headers:{cookie:'fc_session=courier'}});assert.equal(records.status,200);assert.equal(records.headers.get('cache-control'),'no-store');assert.deepEqual((await records.json()).items,[]);
+});
+
+test('history limits results to the authenticated courier and finished operational states',async()=>{
+ const repository=createLogisticsRepository({async query(sql,params){assert.deepEqual(params,['own']);assert.match(sql,/courier_id=\$1/);assert.match(sql,/status IN \('delivered','failed','cancelled'\)/);assert.match(sql,/ORDER BY updated_at DESC,id DESC LIMIT 50/);assert.doesNotMatch(sql,/address|phone|amount|provider_reference/);return {rows:[]}}});
+ assert.deepEqual(await repository.courierHistory('own'),[]);
+ const service=createLogisticsService({async courierHistory(actorId){assert.equal(actorId,'own');return [{id:'shipment',status:'delivered',mode:'postal',updated_at:'synthetic-date',phone:'private'}]}},null,null);
+ await assert.rejects(service.courierHistory({id:'own',role:'customer'}),error=>error.status===403);
+ assert.deepEqual(Object.keys((await service.courierHistory({id:'own',role:'courier'}))[0]),['id','status','mode','updatedAt']);
 });
