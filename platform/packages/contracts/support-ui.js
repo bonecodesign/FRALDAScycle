@@ -10,27 +10,31 @@ export function setupSupport({admin=false}={}){
  const feedback=document.getElementById('support-feedback'),list=document.getElementById('support-list'),detail=document.getElementById('support-detail'),refresh=document.getElementById('support-refresh');
  if(!feedback||!list||!detail||!refresh)return;
  const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category'),queryFilter=document.getElementById('support-filter-query'),assignmentFilter=document.getElementById('support-filter-assignment'),sortFilter=document.getElementById('support-filter-sort'),filterForm=document.getElementById('support-filter-form');
- let page=1,hasMore=false,listBusy=false;
- const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;if(queryFilter)queryFilter.disabled=replying||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||listBusy;if(sortFilter)sortFilter.disabled=replying||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||listBusy;}};
- let detailGeneration=0,listGeneration=0,replying=false,creating=false,cancelling=false;
+ let page=1,hasMore=false,listBusy=false,noteSaving=false;
+ const lockPages=()=>{if(previous)previous.disabled=replying||noteSaving||listBusy||page<=1;if(next)next.disabled=replying||noteSaving||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||noteSaving||listBusy;if(categoryFilter)categoryFilter.disabled=replying||noteSaving||listBusy;if(queryFilter)queryFilter.disabled=replying||noteSaving||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||noteSaving||listBusy;if(sortFilter)sortFilter.disabled=replying||noteSaving||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||noteSaving||listBusy;}};
+ let detailGeneration=0,listGeneration=0,replying=false,creating=false,cancelling=false;const noteKeys=new Map();
  const say=value=>{feedback.textContent=value;};
  const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
  const lockList=disabled=>list.querySelectorAll('button').forEach(button=>button.disabled=disabled);
  async function query(path){const signal=AbortSignal.timeout(15000);try{const result=await apiRequest(path,{signal});if(signal.aborted)throw new Error();return result;}catch(error){if(signal.aborted)throw new Error('A consulta demorou para responder. Tente novamente.');throw error;}}
  async function openTicket(id,afterReply=false){
-  if(replying&&!afterReply)return;
+  if(replying||noteSaving)return;
   const generation=++detailGeneration;detail.replaceChildren();say('Consultando atendimento...');
   try{
    if(!validId(id))throw new Error('Identificador de atendimento inválido.');
    const {ticket}=await query('/v1/support/tickets/'+id);if(generation!==detailGeneration)return;
-   if(!ticket||ticket.id!==id||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)||typeof ticket.subject!=='string'||typeof ticket.details!=='string'||!Array.isArray(ticket.messages)||ticket.messages.some(message=>!message||typeof message.body!=='string'))throw new Error('Não foi possível confirmar o atendimento.');
+   if(!ticket||ticket.id!==id||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)||typeof ticket.subject!=='string'||typeof ticket.details!=='string'||!Array.isArray(ticket.messages)||ticket.messages.some(message=>!message||typeof message.body!=='string')||(admin&&(!Array.isArray(ticket.internal_notes)||ticket.internal_notes.some(note=>!note||typeof note.body!=='string'||!Number.isSafeInteger(Number(note.id))))))throw new Error('Não foi possível confirmar o atendimento.');
    detail.append(text('h3','Protocolo FC-S-'+ticket.protocol),text('p',statusLabels[ticket.status]),text('p',ticket.subject),text('p',ticket.details));
    for(const message of ticket.messages)detail.append(text('p',date(message.created_at)+' · '+message.body));
    say('Atendimento carregado.');
    if(!admin)return;
    detail.append(text('p',ticket.assignee_id?'Responsável: '+(ticket.assignee_name||'administrador atribuído'):'Sem responsável atribuído.'));
    const assignment=document.createElement('button');assignment.type='button';assignment.className='button secondary';assignment.textContent=ticket.assigned_to_me?'Liberar atribuição':'Assumir atendimento';assignment.disabled=Boolean(ticket.assignee_id&&!ticket.assigned_to_me);detail.append(assignment);
-   assignment.addEventListener('click',async()=>{if(replying||generation!==detailGeneration)return;const current=generation,action=ticket.assigned_to_me?'release':'claim';assignment.disabled=true;try{const result=await apiRequest('/v1/support/tickets/'+id+'/assignment',{method:'POST',body:{action}});if(current!==detailGeneration){await load(page);return;}if(result?.assignment?.id!==id||Boolean(result.assignment.assigned_to_me)!==(action==='claim'))throw new Error('Não foi possível confirmar a atribuição.');await Promise.all([load(page),openTicket(id,true)]);}catch(error){if(current===detailGeneration){assignment.disabled=false;say(error.message||'Não foi possível alterar a atribuição.');}}});
+   assignment.addEventListener('click',async()=>{if(replying||noteSaving||generation!==detailGeneration)return;const current=generation,action=ticket.assigned_to_me?'release':'claim';assignment.disabled=true;try{const result=await apiRequest('/v1/support/tickets/'+id+'/assignment',{method:'POST',body:{action}});if(current!==detailGeneration){await load(page);return;}if(result?.assignment?.id!==id||Boolean(result.assignment.assigned_to_me)!==(action==='claim'))throw new Error('Não foi possível confirmar a atribuição.');await Promise.all([load(page),openTicket(id,true)]);}catch(error){if(current===detailGeneration){assignment.disabled=false;say(error.message||'Não foi possível alterar a atribuição.');}}});
+   const notes=document.createElement('section'),notesHeading=text('h3','Notas internas · somente equipe'),notesList=document.createElement('div'),noteForm=document.createElement('form'),noteLabel=text('label','Adicionar nota interna'),noteBody=document.createElement('textarea'),noteButton=text('button','Salvar nota interna'),noteStatus=text('p','');
+   notesHeading.id='support-notes-heading';notes.setAttribute('aria-labelledby',notesHeading.id);notesList.className='phone-list';noteBody.className='input';noteBody.required=true;noteBody.minLength=10;noteBody.maxLength=2000;noteLabel.htmlFor='support-note-body';noteBody.id='support-note-body';noteButton.type='submit';noteButton.className='button secondary';noteStatus.setAttribute('role','status');noteStatus.setAttribute('aria-live','polite');notes.append(notesHeading,notesList);noteForm.append(noteLabel,noteBody,noteButton);notes.append(noteForm,noteStatus);detail.append(notes);
+   const renderNote=note=>{const card=document.createElement('article'),content=text('p',note.body),meta=text('small',(note.author_name||'Equipe')+' · '+date(note.created_at));card.className='phone-card';card.append(content,meta);notesList.append(card);};for(const note of ticket.internal_notes)renderNote(note);
+   noteForm.addEventListener('submit',async event=>{event.preventDefault();if(replying||noteSaving||generation!==detailGeneration)return;const value=noteBody.value.trim();if(value.length<10||value.length>2000){noteStatus.textContent='Escreva uma nota interna de 10 a 2000 caracteres.';return;}const key=noteKeys.get(id)||crypto.randomUUID();noteKeys.set(id,key);noteSaving=true;noteBody.disabled=true;noteButton.disabled=true;assignment.disabled=true;lockList(true);refresh.disabled=true;lockPages();noteStatus.textContent='Salvando nota interna…';try{const result=await apiRequest('/v1/support/tickets/'+id+'/notes',{method:'POST',body:{body:value,idempotencyKey:key}}),note=result?.note;if(note?.ticket_id!==id||note.body!==value||!Number.isSafeInteger(Number(note.id))||!note.created_at)throw new Error('Não foi possível confirmar a nota interna.');noteKeys.delete(id);renderNote(note);noteBody.value='';noteStatus.textContent='Nota interna registrada; visível somente à equipe.';await load(page);}catch(error){noteStatus.textContent=(error.message||'Não foi possível salvar a nota interna.')+' A chave foi preservada para uma tentativa segura.';}finally{noteSaving=false;noteBody.disabled=false;noteButton.disabled=false;assignment.disabled=Boolean(ticket.assignee_id&&!ticket.assigned_to_me);lockList(false);refresh.disabled=replying;lockPages();}});
    const form=document.createElement('form'),label=text('label','Resposta ao usuário'),body=document.createElement('textarea'),state=document.createElement('select'),button=text('button','Registrar resposta');
    body.id='support-reply-body';label.htmlFor=body.id;body.className='input';body.required=true;body.minLength=10;body.maxLength=2000;
    state.className='input';state.setAttribute('aria-label','Estado do atendimento');
@@ -39,7 +43,7 @@ export function setupSupport({admin=false}={}){
    form.append(label,body,state,button);detail.append(form);
    const lock=disabled=>{body.disabled=disabled;state.disabled=disabled;button.disabled=disabled;};
    form.addEventListener('submit',async event=>{
-    event.preventDefault();if(replying||generation!==detailGeneration)return;
+    event.preventDefault();if(replying||noteSaving||generation!==detailGeneration)return;
     const answer=body.value.trim(),status=state.value;
     if(answer.length<10||answer.length>2000||!Object.hasOwn(statusLabels,status)){say('Preencha uma resposta de 10 a 2000 caracteres e um estado válido.');return;}
     replying=true;lock(true);lockList(true);refresh.disabled=true;lockPages();
@@ -50,7 +54,7 @@ export function setupSupport({admin=false}={}){
   }catch(error){if(generation===detailGeneration){detail.replaceChildren();say(error.message||'Não foi possível consultar o atendimento.');}}
  }
  async function load(target=1){
-  if(replying)return;
+  if(replying||noteSaving)return;
   const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
    const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(admin&&sortFilter?.value&&sortFilter.value!=='newest')params.set('sort',sortFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;

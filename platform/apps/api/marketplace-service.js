@@ -83,6 +83,12 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async supportTicket(actor,ticketId) {
       return repository.supportTicket({userId:actor.id,ticketId,reviewer:hasScope(actor,"admin:support:write")});
     },
+    async addSupportNote(actor,ticketId,input) {
+      requireScope(actor,'admin:support:write');
+      const body=String(input?.body??'').trim(),idempotencyKey=input?.idempotencyKey;
+      if(body.length<10||body.length>2000||typeof idempotencyKey!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey))throw new MarketplaceError('invalid_support_note',422,'Informe uma nota interna de 10 a 2000 caracteres.');
+      return repository.addSupportNote({actorId:actor.id,ticketId,body,idempotencyKey});
+    },
     async replySupportTicket(actor,ticketId,input) {
       requireScope(actor,"admin:support:write");
       const body=String(input?.body??"").trim();

@@ -131,9 +131,33 @@ export function createOperationSupportRepository(database) {
           WHERE st.id=$1 AND (st.requester_id=$2 OR $3::boolean)`,[ticketId,userId,reviewer]);
         if (!result.rows[0]) throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
         const messages = await client.query('SELECT id,body,created_at FROM support_ticket_messages WHERE ticket_id=$1 ORDER BY created_at,id',[ticketId]);
+        const internalNotes=reviewer?await client.query(`SELECT n.id,n.ticket_id,n.body,n.created_at,n.author_id,u.display_name AS author_name
+          FROM support_ticket_internal_notes n JOIN users u ON u.id=n.author_id WHERE n.ticket_id=$1 ORDER BY n.created_at,n.id`,[ticketId]):null;
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.read','support_ticket',$2,'{}'::jsonb)`,[userId,ticketId]);
-        return {...result.rows[0],messages:messages.rows};
+        return {...result.rows[0],messages:messages.rows,...(reviewer?{internal_notes:internalNotes.rows}:{})};
+      });
+    },
+    async addSupportNote({actorId,ticketId,body,idempotencyKey}) {
+      return database.transaction(async client=>{
+        const found=await client.query('SELECT id FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId]);
+        if(!found.rows[0])throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
+        const readExisting=async()=> (await client.query(`SELECT n.id,n.ticket_id,n.body,n.created_at,n.author_id,u.display_name AS author_name
+          FROM support_ticket_internal_notes n JOIN users u ON u.id=n.author_id WHERE n.author_id=$1 AND n.idempotency_key=$2`,[actorId,idempotencyKey])).rows[0];
+        const replay=async note=>{
+          if(note.ticket_id!==ticketId||note.body!==body)throw fail('support_note_key_conflict',409,'A chave já foi usada para outra nota interna. Consulte o protocolo.');
+          return {...note,reused:true};
+        };
+        const existing=await readExisting();if(existing)return replay(existing);
+        const created=await client.query(`INSERT INTO support_ticket_internal_notes(ticket_id,author_id,body,idempotency_key)
+          VALUES($1,$2,$3,$4) ON CONFLICT(author_id,idempotency_key) DO NOTHING RETURNING id`,[ticketId,actorId,body,idempotencyKey]);
+        if(!created.rows[0]){const concurrent=await readExisting();if(!concurrent)throw fail('support_note_key_conflict',409,'Consulte o protocolo antes de reenviar a nota.');return replay(concurrent);}
+        await client.query('UPDATE support_tickets SET updated_at=now() WHERE id=$1',[ticketId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'support.ticket.note_added','support_ticket',$2,'{}'::jsonb)`,[actorId,ticketId]);
+        const note=await client.query(`SELECT n.id,n.ticket_id,n.body,n.created_at,n.author_id,u.display_name AS author_name
+          FROM support_ticket_internal_notes n JOIN users u ON u.id=n.author_id WHERE n.id=$1`,[created.rows[0].id]);
+        return {...note.rows[0],reused:false};
       });
     },
     async replySupportTicket({actorId,ticketId,body,status,idempotencyKey}) {
