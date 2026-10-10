@@ -12,4 +12,4 @@ Validação local: oito testes da lógica real das telas, com DOM/API simulados,
 
 Limites: fidelidade visual, acessibilidade no navegador, jornadas completas e fornecedores continuam pendentes de homologação.
 
-Continuação após o PR #86: o login do cliente foi validado no Chromium com API/PostgreSQL reais locais, senha inválida sem sessão, senha válida pelo teclado e confirmação de cookie HttpOnly. Rótulos dos inputs foram associados e quatro larguras passaram sem overflow. Os dados são fictícios; cadastro, recuperação e MFA completos pela interface e fornecedores continuam pendentes.
+Continuação após o PR #86: o login do cliente foi validado no Chromium com API/PostgreSQL reais locais, senha inválida sem sessão, senha válida pelo teclado e confirmação de cookie HttpOnly. Rótulos dos inputs foram associados e quatro larguras passaram sem overflow. Os dados são fictícios. A continuação comprovou cadastro, confirmação de e-mail, recuperação com revogação da sessão anterior e MFA completo pela interface real; detalhes em `authentication-browser-validation.md`. Entrega externa por fornecedores e homologação humana continuam pendentes.

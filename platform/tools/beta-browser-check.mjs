@@ -1,3 +1,4 @@
+import { checkAuthBrowser } from './auth-browser-check.mjs';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -15,7 +16,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -67,6 +68,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     };
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
     await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
+    const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
     const loginLayouts=[];
     if(loginFixture){
       await call('Page.navigate',{url:`${surfaceOrigin}/app/login`});
@@ -359,7 +361,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#donation-receipt input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Recebimento institucional aprovado')`),'institution receipt keyboard');
     const donationReady=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/settlement-status',{credentials:'include'}).then(r=>r.json()).then(r=>r.settlement)`);assert.equal(donationReady.payoutAllowed,false);assert.equal(donationReady.operationalRequirementsMet,false);
-    return { browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
+    return { authentication, browser: version.product, login: loginFixture ? 'senha recusada sem sessão, senha válida via tela/teclado, sessão HttpOnly e conta persistida' : 'não executado', loginLayouts, keyboard: 'Space, Tab e Enter executados via navegador', preferences: 'carregar, salvar, consultar e recarregar com API/PostgreSQL', premium: 'escolha e cancelamento de renovação com teclado e persistência, cobrança desativada', donation:'doador, representante, retirada, endereço, coleta e aprovação com teclado; prova/mídia e entrega física são fixtures, zero repasse',donationLayouts,institutions:'aceite e conferência administrativa do vínculo com teclado, identidade fictícia',institutionLayouts,reviews:'denúncia, recurso do autor e restauração com teclado',reviewLayouts,privacy:'pedido de exclusão protocolado, consulta e análise autorizada com teclado; exclusão bloqueada',privacyLayouts,addressChange:'pedido e aprovação pelo suporte com teclado, versão e protocolo',addressLayouts,draftTerms: 'aceite indisponível', layouts, premiumLayouts,moderationLayouts,adminLayouts,adminModeration:'consulta e revisão administrativa com teclado e conta separada',moderation:'chat persistido, contato bloqueado e contestação protocolada via teclado', humanTest: false, screenReader: false, physicalDevices: false };
   } finally {
     if (requestClose && chrome.exitCode === null && chrome.signalCode === null) await Promise.race([requestClose().catch(() => {}), pause(2000)]);
     for (const operation of pending.values()) { clearTimeout(operation.timer); operation.reject(new Error('Browser closed')); }
@@ -376,6 +378,13 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
 if (isMainModule(import.meta.url)) {
   let input = '';
   for await (const chunk of process.stdin) input += chunk;
-  try { console.log(JSON.stringify(await runBrowserBetaChecks(JSON.parse(input)))); }
+  try { console.log(JSON.stringify(await runBrowserBetaChecks({...JSON.parse(input),requestAuthCode: async (email,kind) => new Promise((resolve,reject)=>{
+    const id=crypto.randomUUID();
+    const timer=setTimeout(()=>{process.off("message",receive);reject(new Error("Código local indisponível"));},12000);
+    const receive=message=>{if(message.id!==id)return;clearTimeout(timer);process.off("message",receive);message.error?reject(new Error(message.error)):resolve(message.code);};
+    process.on("message",receive);process.send({id,email,kind});
+  })}))); }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }
+
+if (process.connected) process.disconnect();

@@ -189,14 +189,27 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
         }
         assert.equal(ready, true, 'Surface server did not start');
         const args = [...(typeof WebSocket === 'undefined' ? ['--experimental-websocket'] : []), fileURLToPath(new URL('../tools/beta-browser-check.mjs', import.meta.url))];
-        const browser = spawn(process.execPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+        const browser = spawn(process.execPath, args, { stdio: ['pipe', 'pipe', 'pipe', 'ipc'] });
+        const authFixture={email:'browser-new@example.test',displayName:'Pessoa fictícia navegador',password:'synthetic-browser-password-v1',nextPassword:'synthetic-browser-password-v2',adminEmail:adminFixture.email,adminPassword:adminFixture.password};
+        browser.on('message',async message=>{
+          try {
+            assert.ok([authFixture.email,authFixture.adminEmail].includes(message.email));
+            assert.ok(['email_verification','password_recovery','admin_login_mfa'].includes(message.kind));
+            const row=(await database.query("SELECT payload->>'token' AS code FROM notification_outbox WHERE recipient=$1 AND kind=$2 ORDER BY created_at DESC,id DESC LIMIT 1",[message.email,message.kind])).rows[0];
+            assert.match(row?.code??'',/^\d{6}$/);
+            browser.send({id:message.id,code:row.code});
+          } catch { browser.send({id:message.id,error:'Falha na leitura do código fictício local'}); }
+        });
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
+        browser.stdin.end(JSON.stringify({ authFixture, loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);
+        assert.equal(result.authentication.externalDelivery,false);
+        assert.equal(result.authentication.layouts.length,24);
+        assert.equal((await database.query('SELECT email_verified_at IS NOT NULL AS verified FROM users WHERE email=$1',[authFixture.email])).rows[0].verified,true);
         assert.deepEqual(result.layouts.map(layout => layout.viewport), [320, 375, 768, 1280]);
         console.log('BETA_BROWSER: ' + JSON.stringify(result));
       } finally {

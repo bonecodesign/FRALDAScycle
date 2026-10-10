@@ -1,0 +1,159 @@
+{
+  "browser": "Chrome/151.0.7922.173",
+  "authentication": {
+    "registration": "verified through actual UI and local outbox",
+    "recovery": "invalid code rejected; password changed; previous session revoked; old password rejected",
+    "adminMfa": "no session before valid second factor; invalid code rejected; HttpOnly session after confirmation",
+    "layouts": [
+      {
+        "path": "/app/register",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/register",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/register",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/register",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/recovery",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/recovery",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/recovery",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/recovery",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/reset-password",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/reset-password",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/reset-password",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/reset-password",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/app/verify",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/admin/login",
+        "width": 320,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/admin/login",
+        "width": 375,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/admin/login",
+        "width": 768,
+        "overflow": false,
+        "missingLabels": 0
+      },
+      {
+        "path": "/admin/login",
+        "width": 1280,
+        "overflow": false,
+        "missingLabels": 0
+      }
+    ],
+    "externalDelivery": false
+  },
+  "test": "node --test tests/postgres-beta.test.mjs",
+  "humanTest": false,
+  "physicalDevices": false,
+  "productionEnabled": false
+}
