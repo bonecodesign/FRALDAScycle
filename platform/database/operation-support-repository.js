@@ -107,12 +107,12 @@ export function createOperationSupportRepository(database) {
         return {ticket:created.rows[0],reused:false};
       });
     },
-    async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null}) {
+    async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null,q=null}) {
       return database.transaction(async client => {
         const result = await client.query(`SELECT id,protocol,category,subject,status,created_at,updated_at
-          FROM support_tickets WHERE (requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR status=$5) AND ($6::text IS NULL OR category=$6) ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category]);
+          FROM support_tickets WHERE (requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR status=$5) AND ($6::text IS NULL OR category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(protocol::text || ' ' || subject || ' ' || details))>0) ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category})]);
+          VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category,q})]);
         return result.rows;
       });
     },

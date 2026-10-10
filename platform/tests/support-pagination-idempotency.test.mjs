@@ -10,13 +10,13 @@ test('HTTP paging uses session identity, no-store and rejects invalid pages or r
 
 test('support queue filters are allowlisted and unavailable to accounts without support scope',async()=>{
  let queries=0;const service=createMarketplaceService({async supportTickets(options){queries++;return [{id, ...options}]}});const admin={id:'admin',role:'admin'},customer={id:'own',role:'customer'};
- for(const filter of [{status:'constructor'},{category:'other'},{status:'open; DROP TABLE support_tickets'}])await assert.rejects(service.supportPage(admin,filter),error=>error.status===400&&error.code==='invalid_support_filter');
+ for(const filter of [{status:'constructor'},{category:'other'},{status:'open; DROP TABLE support_tickets'},{q:'a'.repeat(101)},{q:'texto\nquebrado'}])await assert.rejects(service.supportPage(admin,filter),error=>error.status===400&&error.code==='invalid_support_filter');
  await assert.rejects(service.supportPage(customer,{status:'open'}),error=>error.status===403);assert.equal(queries,0);
- const result=await service.supportPage(admin,{status:'resolved',category:'cancellation'});assert.equal(result.items[0].status,'resolved');assert.equal(result.items[0].category,'cancellation');assert.equal(queries,1);
+ const result=await service.supportPage(admin,{status:'resolved',category:'cancellation',q:'FC-S-42 100%'});assert.equal(result.items[0].status,'resolved');assert.equal(result.items[0].category,'cancellation');assert.equal(result.items[0].q,'FC-S-42 100%');assert.equal(queries,1);
 });
 
 test('HTTP support filters require admin scope and forward allowlisted values',async context=>{
  let received=null;const service=createMarketplaceService({async supportTickets(options){received=options;return []}});const server=createApiServer({config:loadConfig({NODE_ENV:'test'}),marketplaceService:service,authService:{async session(token){return token==='admin'?{id:'admin',role:'admin'}:token==='own'?{id:'own',role:'customer'}:null}}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));context.after(()=>server.close());const url=`http://127.0.0.1:${server.address().port}/v1/support/tickets`;
- assert.equal((await fetch(url+'?status=resolved&category=privacy',{headers:{cookie:'fc_session=admin'}})).status,200);assert.equal(received.status,'resolved');assert.equal(received.category,'privacy');assert.equal(received.reviewer,true);
- assert.equal((await fetch(url+'?status=open',{headers:{cookie:'fc_session=own'}})).status,403);const calls=received;assert.equal((await fetch(url+'?status=invalid',{headers:{cookie:'fc_session=admin'}})).status,400);assert.equal(received,calls);
+ assert.equal((await fetch(url+'?status=resolved&category=privacy&q=FC-S-42%20100%25',{headers:{cookie:'fc_session=admin'}})).status,200);assert.equal(received.status,'resolved');assert.equal(received.category,'privacy');assert.equal(received.q,'FC-S-42 100%');assert.equal(received.reviewer,true);
+ assert.equal((await fetch(url+'?status=open',{headers:{cookie:'fc_session=own'}})).status,403);const calls=received;assert.equal((await fetch(url+'?status=invalid',{headers:{cookie:'fc_session=admin'}})).status,400);assert.equal(received,calls);assert.equal((await fetch(url+'?q='+encodeURIComponent('x'.repeat(101)),{headers:{cookie:'fc_session=admin'}})).status,400);
 });

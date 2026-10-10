@@ -7,9 +7,9 @@ const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(pa
 export function setupSupport({admin=false}={}){
  const feedback=document.getElementById('support-feedback'),list=document.getElementById('support-list'),detail=document.getElementById('support-detail'),refresh=document.getElementById('support-refresh');
  if(!feedback||!list||!detail||!refresh)return;
- const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category');
+ const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category'),queryFilter=document.getElementById('support-filter-query'),filterForm=document.getElementById('support-filter-form');
  let page=1,hasMore=false,listBusy=false;
- const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;};
+ const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;if(queryFilter)queryFilter.disabled=replying||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||listBusy;}};
  let detailGeneration=0,listGeneration=0,replying=false,creating=false,cancelling=false;
  const say=value=>{feedback.textContent=value;};
  const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
@@ -48,7 +48,7 @@ export function setupSupport({admin=false}={}){
   if(replying)return;
   const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
-   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
+   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
    if(result.page!==target||typeof result.hasMore!=='boolean')throw new Error('Não foi possível confirmar a página de pedidos.');
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
@@ -61,7 +61,7 @@ export function setupSupport({admin=false}={}){
  refresh.addEventListener('click',()=>load(1));
  previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return load(page-1);});
  next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return load(page+1);});
- statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));
+ statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));filterForm?.addEventListener('submit',event=>{event.preventDefault();return load(1);});
  const form=document.getElementById('support-form'),cancel=document.getElementById('operation-cancel');
  const lockCreation=disabled=>{form?.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=disabled);if(cancel)cancel.disabled=disabled;};
  if(form){
