@@ -71,7 +71,7 @@ export async function validateSyntheticSale(database, { user, other, transaction
   assert.match(String(ticket.ticket.protocol), /^[1-9]\d*$/);
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).requirementsMet, false);
   await assert.rejects(support.replySupportTicket({ id: other, role: 'customer' }, ticket.ticket.id, { body: 'Resposta fictícia de teste', status: 'resolved' }), error => error.status === 403);
-  await support.replySupportTicket({ id: admin, role: 'admin' }, ticket.ticket.id, { body: 'Análise fictícia encerrada sem movimentação financeira.', status: 'resolved' });
+  await support.replySupportTicket({ id: admin, role: 'admin' }, ticket.ticket.id, { body: 'Análise fictícia encerrada sem movimentação financeira.', status: 'resolved', idempotencyKey:'synthetic-beta-sale-support-reply' });
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).requirementsMet, true);
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).payoutAllowed, false);
   const audit = await database.query('SELECT metadata FROM audit_events');

@@ -1,5 +1,6 @@
 import '/apps/admin/auth.js';
 import { apiRequest } from '/packages/contracts/api-client.js';
+import { supportReplyKey, clearSupportReplyKey } from '/packages/contracts/support-reply-key.js';
 const dateTime=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'});
 const categoryLabels=Object.freeze({general:'Geral',cancellation:'Cancelamento',receipt_problem:'Problema no recebimento',privacy:'Privacidade',account:'Conta'});
 const statusLabels=Object.freeze({open:'Aberto',under_review:'Em análise',resolved:'Resolvido'});
@@ -7,6 +8,9 @@ const form=document.getElementById('support-reply-form');
 const panel=document.getElementById('support-detail');
 const replyStatus=document.getElementById('support-reply-status');
 const rows=document.getElementById('support-rows');
+const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page');
+let page=1,hasMore=false,listBusy=false;
+const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;};
 let selectionGeneration=0,listGeneration=0,selected=null,replying=false;
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(parsed.getTime())?dateTime.format(parsed):'Data não informada';};
@@ -30,24 +34,28 @@ async function openTicket(id,afterReply=false){
   form.elements.ticketId.value=id;form.elements.status.value=ticket.status;form.elements.body.value='';selected=id;panel.hidden=false;lockForm(replying);replyStatus.textContent=messages.children.length+' mensagem(ns) registrada(s).';panel.scrollIntoView({behavior:'smooth',block:'nearest'});
  }catch(error){if(generation!==selectionGeneration)return;clearSelection();panel.hidden=false;replyStatus.textContent=failure(error);}
 }
-async function loadTickets(){
- const generation=++listGeneration,status=document.getElementById('support-status');rows.replaceChildren();status.textContent='Consultando atendimentos…';
+async function loadTickets(target=1){
+ listBusy=true;lockPages();const generation=++listGeneration,status=document.getElementById('support-status');rows.replaceChildren();status.textContent='Consultando atendimentos…';
  try{
-  const result=await query('/v1/support/tickets');if(generation!==listGeneration)return;
-  if(!Array.isArray(result.items)||result.items.some(ticket=>!ticket||!validId(ticket.id)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a fila de atendimentos.');
+  const result=await query('/v1/support/tickets?page='+target);if(generation!==listGeneration)return;
+  if(result.page!==target||typeof result.hasMore!=='boolean'||!Array.isArray(result.items)||result.items.length>50||result.items.some(ticket=>!ticket||!validId(ticket.id)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a fila de atendimentos.');
+  page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
   for(const ticket of result.items){const row=document.createElement('tr');cell(row,ticket.protocol);cell(row,Object.hasOwn(categoryLabels,ticket.category)?categoryLabels[ticket.category]:'Categoria não informada');cell(row,ticket.subject);cell(row,statusLabels[ticket.status]);cell(row,date(ticket.created_at));const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='button text';button.textContent='Abrir';button.disabled=replying;button.addEventListener('click',()=>openTicket(ticket.id));action.append(button);row.append(action);rows.append(row);}
-  document.getElementById('support-empty').hidden=rows.rows.length>0;status.textContent=rows.rows.length.toLocaleString('pt-BR')+' atendimento(s) exibido(s).';
- }catch(error){if(generation!==listGeneration)return;rows.replaceChildren();document.getElementById('support-empty').hidden=false;status.textContent=failure(error);}
+  document.getElementById('support-empty').hidden=rows.rows.length>0;status.textContent=rows.rows.length.toLocaleString('pt-BR')+' atendimento(s) exibido(s). Página '+page+'.';
+ }catch(error){if(generation!==listGeneration)return;rows.replaceChildren();hasMore=false;document.getElementById('support-empty').hidden=false;status.textContent=failure(error);}
+ finally{if(generation===listGeneration){listBusy=false;lockPages();}}
 }
-document.getElementById('support-refresh')?.addEventListener('click',loadTickets);
+document.getElementById('support-refresh')?.addEventListener('click',()=>loadTickets(1));
+previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return loadTickets(page-1);});
+next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return loadTickets(page+1);});
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(replying||!selected)return;
  const id=selected,body=form.elements.body.value.trim(),status=form.elements.status.value;
  if(body.length<10||body.length>2000||!Object.hasOwn(statusLabels,status)){replyStatus.textContent='Preencha uma resposta de 10 a 2000 caracteres e selecione um estado válido.';return;}
- replying=true;lockForm(true);rows.querySelectorAll('button').forEach(button=>button.disabled=true);replyStatus.textContent='Registrando resposta…';
- try{await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body,status}});replyStatus.textContent='Resposta persistida e estado atualizado.';await Promise.all([loadTickets(),openTicket(id,true)]);}
+ replying=true;lockPages();lockForm(true);rows.querySelectorAll('button').forEach(button=>button.disabled=true);replyStatus.textContent='Registrando resposta…';
+ try{const idempotencyKey=await supportReplyKey(id,body,status);const result=await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body,status,idempotencyKey}});if(result?.id!==id||result?.status!==status)throw new Error('Não foi possível confirmar a resposta registrada.');clearSupportReplyKey(id,idempotencyKey);replyStatus.textContent='Resposta persistida e estado atualizado.';await Promise.all([loadTickets(page),openTicket(id,true)]);}
  catch(error){selected=null;form.elements.ticketId.value='';replyStatus.textContent=failure(error)+' Consulte o protocolo novamente antes de reenviar; confira se a resposta já foi registrada.';}
- finally{replying=false;lockForm(!selected);rows.querySelectorAll('button').forEach(button=>button.disabled=false);}
+ finally{replying=false;lockPages();lockForm(!selected);rows.querySelectorAll('button').forEach(button=>button.disabled=false);}
 });
 clearSelection();
 await loadTickets();

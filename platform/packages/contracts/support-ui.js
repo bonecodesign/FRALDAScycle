@@ -1,4 +1,5 @@
 import { apiRequest } from './api-client.js';
+import { supportReplyKey, clearSupportReplyKey } from './support-reply-key.js';
 const statusLabels={open:'Aberto',under_review:'Em análise',resolved:'Resolvido'};
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const validProtocol=value=>/^[1-9][0-9]{0,19}$/.test(String(value??''));
@@ -6,6 +7,9 @@ const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(pa
 export function setupSupport({admin=false}={}){
  const feedback=document.getElementById('support-feedback'),list=document.getElementById('support-list'),detail=document.getElementById('support-detail'),refresh=document.getElementById('support-refresh');
  if(!feedback||!list||!detail||!refresh)return;
+ const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page');
+ let page=1,hasMore=false,listBusy=false;
+ const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;};
  let detailGeneration=0,listGeneration=0,replying=false,creating=false,cancelling=false;
  const say=value=>{feedback.textContent=value;};
  const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
@@ -33,26 +37,30 @@ export function setupSupport({admin=false}={}){
     event.preventDefault();if(replying||generation!==detailGeneration)return;
     const answer=body.value.trim(),status=state.value;
     if(answer.length<10||answer.length>2000||!Object.hasOwn(statusLabels,status)){say('Preencha uma resposta de 10 a 2000 caracteres e um estado válido.');return;}
-    replying=true;lock(true);lockList(true);refresh.disabled=true;
-    try{const result=await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body:answer,status}});if(result?.id!==id||result?.status!==status)throw new Error('Não foi possível confirmar a resposta registrada.');say('Resposta registrada. Nenhum pagamento ou cancelamento foi executado.');await openTicket(id,true);}
+    replying=true;lock(true);lockList(true);refresh.disabled=true;lockPages();
+    try{const idempotencyKey=await supportReplyKey(id,answer,status);const result=await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body:answer,status,idempotencyKey}});if(result?.id!==id||result?.status!==status)throw new Error('Não foi possível confirmar a resposta registrada.');clearSupportReplyKey(id,idempotencyKey);say('Resposta registrada. Nenhum pagamento ou cancelamento foi executado.');await openTicket(id,true);}
     catch(error){detailGeneration++;say((error.message||'Não foi possível registrar a resposta.')+' Consulte o protocolo novamente antes de reenviar e confira se a resposta já foi registrada.');}
-    finally{replying=false;lockList(false);refresh.disabled=replying;}
+    finally{replying=false;lockList(false);refresh.disabled=replying;lockPages();}
    });
   }catch(error){if(generation===detailGeneration){detail.replaceChildren();say(error.message||'Não foi possível consultar o atendimento.');}}
  }
- async function load(){
+ async function load(target=1){
   if(replying)return;
-  const generation=++listGeneration;refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
+  const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
-   const {items}=await query('/v1/support/tickets');if(generation!==listGeneration)return;
-   if(!Array.isArray(items)||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
+   const result=await query('/v1/support/tickets?page='+target);if(generation!==listGeneration)return;const {items}=result;
+   if(result.page!==target||typeof result.hasMore!=='boolean')throw new Error('Não foi possível confirmar a página de pedidos.');
+   if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
+   page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
    if(!items.length)list.append(text('p','Nenhum pedido registrado.'));
    for(const ticket of items){const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]);button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
-   lockList(replying);say('Pedidos carregados.');
-  }catch(error){if(generation===listGeneration){list.replaceChildren();say(error.message||'Não foi possível consultar os pedidos.');}}
-  finally{if(generation===listGeneration)refresh.disabled=replying;}
+   lockList(replying);say('Pedidos carregados. Página '+page+'.');
+  }catch(error){if(generation===listGeneration){list.replaceChildren();hasMore=false;say(error.message||'Não foi possível consultar os pedidos.');}}
+  finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}
  }
- refresh.addEventListener('click',()=>load());
+ refresh.addEventListener('click',()=>load(1));
+ previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return load(page-1);});
+ next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return load(page+1);});
  const form=document.getElementById('support-form'),cancel=document.getElementById('operation-cancel');
  const lockCreation=disabled=>{form?.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=disabled);if(cancel)cancel.disabled=disabled;};
  if(form){

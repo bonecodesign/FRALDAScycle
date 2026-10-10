@@ -80,10 +80,10 @@ test('support details are private, read-audited, and include chronological respo
   assert.match(db.calls.at(-1).sql,/support.ticket.read/);
 });
 test('administrative reply records history and status but never cancels or refunds',async()=>{
-  const db=database(sql=>/SELECT id FROM support_tickets/.test(sql)?[{id}]:[]);
-  const result=await createOperationSupportRepository(db).replySupportTicket({actorId:'admin',ticketId:id,body:'Pedido em análise pelo atendimento.',status:'under_review'});
+  const db=database(sql=>/SELECT id FROM support_tickets/.test(sql)?[{id}]:/INSERT INTO support_ticket_messages/.test(sql)?[{id:'1'}]:[]);
+  const result=await createOperationSupportRepository(db).replySupportTicket({actorId:'admin',ticketId:id,body:'Pedido em análise pelo atendimento.',status:'under_review',idempotencyKey:'synthetic-support-reply-key'});
   assert.equal(result.status,'under_review');
-  assert.equal(db.calls.length,4);
+  assert.equal(db.calls.length,5);
   assert.ok(db.calls.every(({sql})=>!/UPDATE transactions|UPDATE payment/.test(sql)));
 });
 test('support HTTP requires session, exposes protocol, and protects administrative replies',async context=>{

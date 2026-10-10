@@ -107,10 +107,10 @@ export function createOperationSupportRepository(database) {
         return {ticket:created.rows[0],reused:false};
       });
     },
-    async supportTickets({userId,reviewer=false}) {
+    async supportTickets({userId,reviewer=false,limit=100,offset=0}) {
       return database.transaction(async client => {
         const result = await client.query(`SELECT id,protocol,category,subject,status,created_at,updated_at
-          FROM support_tickets WHERE requester_id=$1 OR $2::boolean ORDER BY created_at DESC LIMIT 100`,[userId,reviewer]);
+          FROM support_tickets WHERE requester_id=$1 OR $2::boolean ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length})]);
         return result.rows;
@@ -126,15 +126,27 @@ export function createOperationSupportRepository(database) {
         return {...result.rows[0],messages:messages.rows};
       });
     },
-    async replySupportTicket({actorId,ticketId,body,status}) {
+    async replySupportTicket({actorId,ticketId,body,status,idempotencyKey}) {
       return database.transaction(async client => {
         const found = await client.query('SELECT id FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId]);
         if (!found.rows[0]) throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
-        await client.query('INSERT INTO support_ticket_messages (ticket_id,author_id,body) VALUES ($1,$2,$3)',[ticketId,actorId,body]);
+        const replay=row=>{
+          if(row.ticket_id!==ticketId||row.body!==body||row.requested_status!==status)throw fail('support_reply_key_conflict',409,'A chave já foi usada para outra resposta. Consulte o protocolo.');
+          return {id:ticketId,status:row.requested_status,messageId:row.id,reused:true};
+        };
+        const existing=await client.query('SELECT id,ticket_id,body,requested_status FROM support_ticket_messages WHERE author_id=$1 AND idempotency_key=$2',[actorId,idempotencyKey]);
+        if(existing.rows[0])return replay(existing.rows[0]);
+        const created=await client.query(`INSERT INTO support_ticket_messages (ticket_id,author_id,body,idempotency_key,requested_status)
+          VALUES ($1,$2,$3,$4,$5) ON CONFLICT (author_id,idempotency_key) DO NOTHING RETURNING id`,[ticketId,actorId,body,idempotencyKey,status]);
+        if(!created.rows[0]){
+          const concurrent=await client.query('SELECT id,ticket_id,body,requested_status FROM support_ticket_messages WHERE author_id=$1 AND idempotency_key=$2',[actorId,idempotencyKey]);
+          if(!concurrent.rows[0])throw fail('support_reply_key_conflict',409,'Consulte o protocolo antes de reenviar.');
+          return replay(concurrent.rows[0]);
+        }
         await client.query('UPDATE support_tickets SET status=$2,updated_at=now() WHERE id=$1',[ticketId,status]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.replied','support_ticket',$2,$3::jsonb)`,[actorId,ticketId,JSON.stringify({status})]);
-        return {id:ticketId,status};
+        return {id:ticketId,status,messageId:created.rows[0].id,reused:false};
       });
     },
   });
