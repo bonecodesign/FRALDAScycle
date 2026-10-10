@@ -4,12 +4,14 @@ const statusLabels={open:'Aberto',under_review:'Em análise',resolved:'Resolvido
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const validProtocol=value=>/^[1-9][0-9]{0,19}$/.test(String(value??''));
 const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(parsed.getTime())?parsed.toLocaleString('pt-BR'):'Data não informada';};
+const relativeTime=new Intl.RelativeTimeFormat('pt-BR',{numeric:'auto'});
+const age=value=>{const timestamp=new Date(value).getTime();if(!value||!Number.isFinite(timestamp))return 'Data não informada';const seconds=Math.max(0,Math.floor((Date.now()-timestamp)/1000));if(seconds<60)return relativeTime.format(-seconds,'second');const minutes=Math.floor(seconds/60);if(minutes<60)return relativeTime.format(-minutes,'minute');const hours=Math.floor(minutes/60);if(hours<24)return relativeTime.format(-hours,'hour');return relativeTime.format(-Math.floor(hours/24),'day');};
 export function setupSupport({admin=false}={}){
  const feedback=document.getElementById('support-feedback'),list=document.getElementById('support-list'),detail=document.getElementById('support-detail'),refresh=document.getElementById('support-refresh');
  if(!feedback||!list||!detail||!refresh)return;
- const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category'),queryFilter=document.getElementById('support-filter-query'),assignmentFilter=document.getElementById('support-filter-assignment'),filterForm=document.getElementById('support-filter-form');
+ const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category'),queryFilter=document.getElementById('support-filter-query'),assignmentFilter=document.getElementById('support-filter-assignment'),sortFilter=document.getElementById('support-filter-sort'),filterForm=document.getElementById('support-filter-form');
  let page=1,hasMore=false,listBusy=false;
- const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;if(queryFilter)queryFilter.disabled=replying||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||listBusy;}};
+ const lockPages=()=>{if(previous)previous.disabled=replying||listBusy||page<=1;if(next)next.disabled=replying||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||listBusy;if(categoryFilter)categoryFilter.disabled=replying||listBusy;if(queryFilter)queryFilter.disabled=replying||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||listBusy;if(sortFilter)sortFilter.disabled=replying||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||listBusy;}};
  let detailGeneration=0,listGeneration=0,replying=false,creating=false,cancelling=false;
  const say=value=>{feedback.textContent=value;};
  const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
@@ -51,12 +53,12 @@ export function setupSupport({admin=false}={}){
   if(replying)return;
   const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
-   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
+   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(admin&&sortFilter?.value==='oldest')params.set('sort','oldest');const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
    if(result.page!==target||typeof result.hasMore!=='boolean')throw new Error('Não foi possível confirmar a página de pedidos.');
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
    if(!items.length)list.append(text('p','Nenhum pedido registrado.'));
-   for(const ticket of items){const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável'));button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
+   for(const ticket of items){const ageText=age(ticket.created_at);const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável')+(admin?' · Criado '+ageText:'') );button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
    lockList(replying);say('Pedidos carregados. Página '+page+'.');
   }catch(error){if(generation===listGeneration){list.replaceChildren();hasMore=false;say(error.message||'Não foi possível consultar os pedidos.');}}
   finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}
@@ -64,7 +66,7 @@ export function setupSupport({admin=false}={}){
  refresh.addEventListener('click',()=>load(1));
  previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return load(page-1);});
  next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return load(page+1);});
- statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));assignmentFilter?.addEventListener('change',()=>load(1));filterForm?.addEventListener('submit',event=>{event.preventDefault();return load(1);});
+ statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));assignmentFilter?.addEventListener('change',()=>load(1));sortFilter?.addEventListener('change',()=>load(1));filterForm?.addEventListener('submit',event=>{event.preventDefault();return load(1);});
  const form=document.getElementById('support-form'),cancel=document.getElementById('operation-cancel');
  const lockCreation=disabled=>{form?.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=disabled);if(cancel)cancel.disabled=disabled;};
  if(form){
