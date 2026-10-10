@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const one='11111111-1111-4111-8111-111111111111',two='22222222-2222-4222-8222-222222222222';
+function element(){return {children:[],handlers:{},disabled:false,hidden:false,value:'',textContent:'',get rows(){return this.children},append(...nodes){this.children.push(...nodes)},replaceChildren(){this.children=[]},addEventListener(type,fn){this.handlers[type]=fn},scrollIntoView(){},querySelectorAll(){const result=[];for(const node of this.children){if(node.type==='button')result.push(node);result.push(...node.querySelectorAll());}return result;}};}
+const ticket=id=>({id,protocol:id===one?1:2,subject:'Assunto fictício',details:'Detalhes fictícios',category:'general',status:'open',messages:[{body:'Mensagem fictícia',created_at:'invalid'}]});
+async function harness(request){
+ const keys=['support-reply-form','support-detail','support-reply-status','support-rows','support-detail-title','support-detail-description','support-messages','support-status','support-empty','support-refresh'];const elements=Object.fromEntries(keys.map(key=>[key,element()]));const form=elements['support-reply-form'];form.elements={ticketId:element(),body:element(),status:element()};const submit=element();submit.type='button';form.querySelectorAll=()=>[...Object.values(form.elements),submit];
+ const calls=[];const apiRequest=async(path,options)=>{calls.push({path,options});return request(path,options)};
+ const source=(await readFile(new URL('../apps/admin/support-management.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'');
+ await vm.runInNewContext('(async()=>{'+source+'})()',{apiRequest,AbortSignal,document:{getElementById:key=>elements[key],createElement:element}});
+ return {elements,form,calls,submit,open:index=>elements['support-rows'].querySelectorAll()[index].handlers.click(),send:()=>form.handlers.submit({preventDefault(){}}),refresh:()=>elements['support-refresh'].handlers.click()};
+}
+test('latest ticket selection wins over out-of-order response and renders text safely',async()=>{
+ let finish;const app=await harness(async path=>path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:path.endsWith(one)?new Promise(resolve=>finish=resolve):{ticket:{...ticket(two),subject:'<img onerror=alert(1)>'}});
+ const first=app.open(0);assert.equal(app.submit.disabled,true);await app.open(1);finish({ticket:ticket(one)});await first;assert.equal(app.form.elements.ticketId.value,two);assert.match(app.elements['support-detail-description'].textContent,/<img/);assert.equal(app.submit.disabled,false);assert.equal(app.elements['support-messages'].children[0].children[0].children[1].textContent,'Data não informada');
+});
+test('failed or mismatched ticket removes old details and cannot receive a reply',async()=>{
+ for(const mismatch of [false,true]){let calls=0;const app=await harness(async path=>{if(path==='/v1/support/tickets')return {items:[ticket(one)]};if(++calls===1)return {ticket:ticket(one)};if(mismatch)return {ticket:ticket(two)};throw new Error('Acesso revogado');});await app.open(0);await app.open(0);assert.equal(app.form.elements.ticketId.value,'');assert.equal(app.elements['support-messages'].children.length,0);assert.equal(app.elements['support-detail-description'].textContent,'');assert.equal(app.submit.disabled,true);await app.send();assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,0);}
+});
+test('reply locks selection and duplicates; target comes from confirmed selection',async()=>{
+ let finish;const app=await harness(async(path,options)=>options?.method==='POST'?new Promise(resolve=>finish=resolve):path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:{ticket:ticket(path.split('/').at(-1))});await app.open(0);app.form.elements.body.value='Resposta fictícia para teste';app.form.elements.status.value='under_review';app.form.elements.ticketId.value=two;const pending=app.send();await app.send();await app.open(1);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);assert.equal(app.calls.find(call=>call.options?.method==='POST').path,'/v1/support/tickets/'+one+'/reply');assert.equal(app.form.elements.body.disabled,true);finish({});await pending;assert.equal(app.form.elements.ticketId.value,one);assert.equal(app.submit.disabled,false);
+});
+test('reply failure preserves draft and requires a fresh read before another send',async()=>{
+ const app=await harness(async(path,options)=>{if(options?.method==='POST')throw new Error('Não foi possível conectar');return path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)}});await app.open(0);app.form.elements.body.value='Resposta fictícia preservada';app.form.elements.status.value='resolved';await app.send();assert.equal(app.form.elements.body.value,'Resposta fictícia preservada');assert.equal(app.form.elements.ticketId.value,'');assert.equal(app.submit.disabled,true);assert.match(app.elements['support-reply-status'].textContent,/conectar/);await app.send();assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);
+});
+test('invalid body/status cannot issue a reply and malformed queue clears old actions',async()=>{
+ let loads=0;const app=await harness(async path=>path==='/v1/support/tickets'?++loads===1?{items:[ticket(one)]}:{items:[{...ticket(one),status:'constructor'}]}:{ticket:ticket(one)});await app.open(0);app.form.elements.body.value='short';app.form.elements.status.value='open';await app.send();app.form.elements.body.value='Resposta fictícia válida';app.form.elements.status.value='constructor';await app.send();assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,0);await app.refresh();assert.equal(app.elements['support-rows'].children.length,0);
+});
+test('older queue response cannot replace newer refresh',async()=>{
+ let loads=0,finish;const app=await harness(async()=>++loads===1?{items:[]}:loads===2?new Promise(resolve=>finish=resolve):{items:[ticket(two)]});const pending=app.refresh();await app.refresh();finish({items:[ticket(one)]});await pending;assert.equal(app.elements['support-rows'].children[0].children[0].textContent,2);
+});
