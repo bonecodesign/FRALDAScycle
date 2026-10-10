@@ -6,6 +6,8 @@ O filtro Responsável oferece “Todos os atendimentos”, “Meus atendimentos�
 
 As telas administrativas mostram quando cada atendimento foi criado e há quanto tempo, e oferecem ordenação opcional entre mais recentes (padrão) e mais antigos. A idade é informativa; não representa prazo, prioridade ou SLA. O servidor aceita `sort=oldest` apenas no escopo administrativo e mantém os filtros combináveis.
 
+A tabela do `/admin/launch` e os cartões administrativos em `/admin/operations` também exibem o horário da última atualização persistida (`updated_at`). Esse campo pode mudar com resposta, mudança de estado ou atribuição e não significa necessariamente que o cliente enviou uma nova mensagem.
+
 O servidor exige o escopo `admin:support:write`. A linha do atendimento é bloqueada durante a operação no PostgreSQL, então apenas um administrador pode assumir um ticket livre. Um ticket atribuído a outra pessoa não pode ser tomado ou liberado por outro usuário. Repetir a ação já aplicada é idempotente e não gera evento duplicado. Mudanças efetivas geram eventos de auditoria. Consultas de cliente omitem a identidade e os metadados do responsável.
 
 ## Validação local
