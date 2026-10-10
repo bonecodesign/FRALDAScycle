@@ -307,7 +307,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     const reviewRestored=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/admin/review-moderation/')}+${JSON.stringify(browserReview.receivedId)},{credentials:'include'}).then(r=>r.json()).then(r=>r.review)`);
     assert.equal(reviewRestored.visibility,'public');assert.equal(reviewRestored.visibility_version,2);
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
-    await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback').textContent.includes('Vínculos carregados')`),'institution authorized review');
+    await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution authorized review');
     await evaluate(`(()=>{const article=[...document.querySelectorAll('#institution-access-list article')].find(a=>a.textContent.includes('Aceito, aguardando conferência'));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await evaluate(`(()=>{const f=document.getElementById('institution-access-review');f.elements.outcome.value='verified';f.elements.reason.value='Conferência fictícia do vínculo aceita pelo representante.';f.elements.confirmed.focus();})()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
@@ -353,9 +353,11 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#collection-form input[name=shipmentId]').value=${JSON.stringify(browserDonationShipment)};document.querySelector('#collection-form input[name=confirmed]').focus()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('collection-feedback').textContent.includes('Coleta registrada')`),'courier collection keyboard');
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.activeShipmentId')`),browserDonationShipment);
+    assert.equal(await evaluate(`document.getElementById('collection-next').hidden`),false);
     // Stored media and geolocation are synthetic; the UI, API and database are real local services.
-    await evaluate(`sessionStorage.setItem('fc.activeShipmentId',${JSON.stringify(browserDonationShipment)});sessionStorage.setItem('fc.deliveryProofShipmentId',${JSON.stringify(browserDonationShipment)});sessionStorage.setItem('fc.deliveryProofMediaKey','synthetic/browser-donation-proof')`);
-    await call('Page.navigate',{url:`${surfaceOrigin}/courier/proof`});
+    await evaluate(`sessionStorage.setItem('fc.deliveryProofShipmentId',${JSON.stringify(browserDonationShipment)});sessionStorage.setItem('fc.deliveryProofMediaKey','synthetic/browser-donation-proof')`);
+    await evaluate(`document.getElementById('collection-next').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.querySelector('[data-action="delivery"]'))`),'courier proof screen');
     const courierProofLayouts=[];
     for(const width of [320,375,768,1280]){
