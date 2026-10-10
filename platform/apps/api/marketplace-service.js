@@ -72,9 +72,12 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async supportTickets(actor) {
       return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
     },
-    async supportPage(actor,{page='1'}={}) {
+    async supportPage(actor,{page='1',status='',category=''}={}) {
       if(typeof page!=='string'||! /^[1-9][0-9]{0,5}$/.test(page)||Number(page)>100000)throw new MarketplaceError('invalid_support_page',400,'Informe uma página válida.');
-      const current=Number(page),rows=await repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,'admin:support:write'),limit:51,offset:(current-1)*50});
+      const reviewer=hasScope(actor,'admin:support:write');
+      if((status!==''&&!['open','under_review','resolved'].includes(status))||(category!==''&&!['general','cancellation','receipt_problem','privacy','account'].includes(category)))throw new MarketplaceError('invalid_support_filter',400,'O filtro de atendimento é inválido.');
+      if(!reviewer&&(status!==''||category!==''))throw new MarketplaceError('support_filter_forbidden',403,'Filtros da fila administrativa indisponíveis para esta conta.');
+      const current=Number(page),rows=await repository.supportTickets({userId:actor.id,reviewer,limit:51,offset:(current-1)*50,status:status||null,category:category||null});
       return {items:rows.slice(0,50),page:current,hasMore:rows.length>50};
     },
     async supportTicket(actor,ticketId) {

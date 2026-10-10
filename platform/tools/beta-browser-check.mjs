@@ -322,6 +322,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.ok(browserSupport?.id);
     await call('Page.navigate',{url:`${adminOrigin}/admin/launch`});
     await until(()=>evaluate(`document.querySelectorAll('#support-rows button').length>0`),'admin support queue');
+    await evaluate(`(()=>{const status=document.getElementById('support-filter-status'),category=document.getElementById('support-filter-category');status.value='open';status.dispatchEvent(new Event('change'));category.value='general';category.dispatchEvent(new Event('change'));})()`);
+    await until(()=>evaluate(`document.getElementById('support-status').textContent.includes('Página 1')&&[...document.querySelectorAll('#support-rows tr')].some(row=>row.textContent.includes('Atendimento fictício navegador'))`),'filtered admin support queue');
     await evaluate(`(()=>{const row=[...document.querySelectorAll('#support-rows tr')].find(row=>row.textContent.includes('Atendimento fictício navegador'));row.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelector('#support-reply-form input[name=ticketId]').value===${JSON.stringify(browserSupport.id)}&&!document.querySelector('#support-reply-form button').disabled`),'admin selected support ticket');
     const adminSupportLayouts=[];
