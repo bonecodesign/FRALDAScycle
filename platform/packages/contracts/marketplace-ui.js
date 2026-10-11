@@ -35,7 +35,7 @@ function listingStatus(item) {
 }
 
 export function renderListingCard(item, surface) {
-  const href = surface === "site" ? `/site/detail?id=${item.id}` : `/app/chat?listing=${item.id}`;
+  const href = surface === "site" ? `/site/detail?id=${encodeURIComponent(item.id)}` : `/app/listing?id=${encodeURIComponent(item.id)}`;
   const proximity = item.distance_km == null ? "" : ` · ${Number(item.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
   const condition = `<span class="badge info">${listingCondition(item)}</span>`;
   const status = listingStatus(item);
