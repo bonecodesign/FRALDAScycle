@@ -20,13 +20,29 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function listingCard(item, surface) {
+function listingCondition(item) {
+  if (item.package_condition === 'sealed') return 'Pacote fechado';
+  if (item.kind === 'donation' && item.package_condition === 'open') return 'Pacote aberto';
+  return 'Condição não confirmada';
+}
+
+function listingStatus(item) {
+  const labels = { published: 'Disponível', unavailable: 'Indisponível', completed: 'Finalizado' };
+  const label = labels[item.status];
+  if (!label) return '';
+  const tone = item.status === 'unavailable' ? ' warn' : item.status === 'completed' ? ' info' : '';
+  return `<span class="badge${tone}" data-listing-status="${item.status}">${label}</span>`;
+}
+
+export function renderListingCard(item, surface) {
   const href = surface === "site" ? `/site/detail?id=${item.id}` : `/app/chat?listing=${item.id}`;
   const proximity = item.distance_km == null ? "" : ` · ${Number(item.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
+  const condition = `<span class="badge info">${listingCondition(item)}</span>`;
+  const status = listingStatus(item);
   if (surface === "site") {
-    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
+    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span>${condition}${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
   }
-  return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
+  return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span> ${condition} ${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
 }
 
 export async function loadLiveSearch({ surface, query = "", kind = "", size = "", latitude = null, longitude = null, radiusKm = null }) {
@@ -40,7 +56,7 @@ export async function loadLiveSearch({ surface, query = "", kind = "", size = ""
     params.set("radiusKm", radiusKm ?? 25);
   }
   const { items } = await apiRequest(`/v1/listings?${params}`);
-  return { items, markup: items.map((item) => listingCard(item, surface)).join("") };
+  return { items, markup: items.map((item) => renderListingCard(item, surface)).join("") };
 }
 
 export async function renderSiteSearch() {
@@ -128,7 +144,7 @@ export async function renderFavorites({ surface }) {
   try {
     const { items } = await apiRequest("/v1/favorites");
     target.innerHTML = items.length
-      ? `<div class="${surface === "site" ? "product-grid" : "phone-list"}">${items.map((item) => listingCard(item, surface)).join("")}</div>`
+      ? `<div class="${surface === "site" ? "product-grid" : "phone-list"}">${items.map((item) => renderListingCard(item, surface)).join("")}</div>`
       : '<div class="ui-state empty-state"><div class="state-icon">♡</div><h2>Nenhum favorito salvo</h2><p>Os anúncios favoritados aparecerão aqui.</p></div>';
     target.querySelectorAll("[data-live-listing]").forEach((card) => {
       const id = card.dataset.liveListing;
