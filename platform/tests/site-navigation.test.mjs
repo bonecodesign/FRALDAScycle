@@ -65,6 +65,10 @@ test('Site home offers a responsive accessible menu and donation deep link', asy
   ]);
   assert.match(home, /id="site-menu-toggle"[^>]*aria-controls="site-navigation"[^>]*aria-expanded="false"/);
   assert.match(home, /id="site-navigation"[^>]*aria-label="Navegação principal"/);
+  const navigation = home.match(/<nav class="site-navigation"[^>]*>(.*?)<\/nav>/)?.[1] ?? '';
+  assert.deepEqual([...navigation.matchAll(/<a href="[^"]+">([^<]+)<\/a>/g)].map(([, label]) => label), [
+    'Como funciona', 'Categorias', 'Anunciar', 'Doações', 'Ajuda',
+  ]);
   assert.match(home, /href="\/site\/search\?kind=donation">Doações<\/a>/);
   assert.match(home, /class="button primary site-mobile-publish" href="\/site\/publish">Publicar<\/a>/);
   assert.match(css, /@media \(max-width: 991px\)/);
