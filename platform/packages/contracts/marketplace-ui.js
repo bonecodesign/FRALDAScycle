@@ -47,10 +47,13 @@ export async function renderSiteSearch() {
   const grid = document.querySelector(".product-grid");
   const input = document.querySelector("#q");
   if (!grid || !input) return;
+  const kindFilter = document.querySelector('#site-filter-kind');
+  const requestedKind = new URL(window.location.href).searchParams.get('kind');
+  if (kindFilter && ['sale', 'exchange', 'donation'].includes(requestedKind)) kindFilter.value = requestedKind;
   let timer;
   async function refresh() {
     try {
-      const { items, markup } = await loadLiveSearch({ surface: "site", query: input.value.trim() });
+      const { items, markup } = await loadLiveSearch({ surface: "site", query: input.value.trim(), kind: kindFilter?.value ?? '' });
       grid.innerHTML = items.length ? markup : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum anúncio encontrado</h2><p>Tente outro termo de busca.</p></div>';
       document.documentElement.dataset.marketplaceState = items.length ? "live" : "empty";
     } catch (error) {
@@ -59,6 +62,7 @@ export async function renderSiteSearch() {
     }
   }
   input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(refresh, 250); });
+  kindFilter?.addEventListener('change', refresh);
   await refresh();
 }
 
