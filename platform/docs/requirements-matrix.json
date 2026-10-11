@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-05",
-  "baseline": "2c14f89e59d4f219051378ace2f2b2d6af231018",
+  "updatedAt": "2026-10-11",
+  "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
     {
