@@ -113,6 +113,10 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async search(params = {}) {
       const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
       const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
+      const category = params.category ? String(params.category).trim() : null;
+      if (category && !CATEGORIES.has(category)) {
+        throw new MarketplaceError("invalid_category", 422, "Selecione uma categoria válida.");
+      }
       const hasLatitude = params.latitude != null && params.latitude !== "";
       const hasLongitude = params.longitude != null && params.longitude !== "";
       if (hasLatitude !== hasLongitude) {
@@ -133,6 +137,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       return repository.search({
         query: query || null,
         size: size || null,
+        category,
         kind, latitude, longitude, radiusKm, limit, offset,
       });
     },

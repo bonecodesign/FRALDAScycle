@@ -1,6 +1,6 @@
 # Matriz dos 70 requisitos — beta
 
-Fonte: [FC-DEC-2026-10-02, PR #62](https://github.com/bonecodesign/FRALDAScycle/pull/62). Base consolidada em main: `2c14f89e59d4f219051378ace2f2b2d6af231018` (PRs #60–#81 integrados). Atualização: 11 de outubro de 2026; código-base `ac99a52955def605e0aa6b95fbf6306f242de378` (PR #104).
+Fonte: [FC-DEC-2026-10-02, PR #62](https://github.com/bonecodesign/FRALDAScycle/pull/62). Base consolidada em main: `2c14f89e59d4f219051378ace2f2b2d6af231018` (PRs #60–#81 integrados). Atualização: 11 de outubro de 2026; código-base integrada `ac99a52955def605e0aa6b95fbf6306f242de378` (PR #104); alterações do PR #105 em revisão.
 
 O denominador permanece 70, incluindo item 12 e requisitos bloqueados. Não há ponderação nem crédito parcial. Concluído significa que o requisito delimitado está implementado/documentado e possui evidência automatizada ou documental pertinente; não significa aprovação em PostgreSQL, navegador, usuários ou fornecedores reais. Parcial tem parte implementada, pendente não tem fluxo demonstrado, bloqueado depende de decisão/revisão/fornecedor externo. Não se excluem bloqueados para aumentar o percentual.
 

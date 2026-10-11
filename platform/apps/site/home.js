@@ -2,6 +2,7 @@ import "/packages/ui/iconography.js";
 import { fcIcon } from "/packages/ui/iconography.js";
 import { bindFavoriteButtons, loadLiveSearch } from "/packages/contracts/marketplace-ui.js";
 import { bindResponsiveSiteNavigation } from "/packages/contracts/site-navigation.js";
+import { DIAPER_CATEGORIES, DIAPER_SIZES } from "/packages/contracts/diaper-catalog.js";
 const themeToggle = document.querySelector("#theme-toggle");
 const storedTheme = localStorage.getItem("fraldacycle-theme") === "dark" ? "dark" : "light";
 
@@ -57,10 +58,15 @@ const categorySection = document.createElement("section");
 categorySection.className = "section site-category-section";
 categorySection.id = "categorias";
 categorySection.innerHTML = `
-  <div class="section-head"><div><span class="eyebrow">Categorias</span><h2>Encontre o tamanho certo para cada fase</h2></div><p>Filtros claros por tamanho, marca e modalidade.</p></div>
+  <div class="section-head"><div><span class="eyebrow">Categorias</span><h2>Encontre o tipo e tamanho certos</h2></div><p>Escolha entre fraldas descartáveis infantis e para piscina, depois refine pelo tamanho.</p></div>
   <div class="site-category-grid" aria-label="Categorias de fraldas">
-    ${[['RN', 'Recém-nascido', 'até 4 kg'], ['P', 'Pequena', '3 a 6 kg'], ['M', 'Média', '5 a 9 kg'], ['G', 'Grande', '9 a 13 kg'], ['XG', 'Extra grande', 'acima de 13 kg']].map(([size, label, range]) => `<a class="site-category-card" href="/site/search"><span class="site-category-size">${size}</span><strong>${label}</strong><small>${range}</small></a>`).join('')}
-  </div>`;
+    ${DIAPER_CATEGORIES.map(({ value }) => {
+      const label = value === 'infant' ? 'Fraldas infantis' : 'Fraldas para piscina';
+      const description = value === 'infant' ? 'Pacotes descartáveis para o uso diário.' : 'Modelos descartáveis próprios para piscina.';
+      return `<a class="site-category-card" href="/site/search?category=${value}"><strong>${label}</strong><small>${description}</small><span class="category-link-label">Ver anúncios →</span></a>`;
+    }).join('')}
+  </div>
+  <div class="site-size-filter"><h3>Filtrar por tamanho</h3><div class="site-size-chips" aria-label="Tamanhos disponíveis">${DIAPER_SIZES.map((size) => `<a class="site-size-chip" href="/site/search?category=infant&size=${encodeURIComponent(size)}">${size}</a>`).join('')}</div></div>`;
 marketplace?.before(categorySection);
 
 const donationSection = document.createElement("section");

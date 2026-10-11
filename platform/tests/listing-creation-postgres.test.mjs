@@ -41,7 +41,11 @@ test('PostgreSQL applies listing identity upgrade and deduplicates concurrent re
     assert.notEqual(another.id,results[0].id);
     await database.query("UPDATE listings SET status='published',published_at=now() WHERE id=$1",[results[0].id]);
     assert.equal((await service.create(owner,input)).status,'published');
-    console.log('20 envios simultâneos: 1 anúncio e 1 foto; conflito e isolamento por conta verificados.');
+    const swim=await service.create(owner,{...input,title:'Fralda Splashers para piscina',description:'Pacote descartável para piscina, fechado e protegido.',category:'swim',model:'Splashers',size:'RN+',quantity:12,idempotencyKey:'20000000-0000-4000-8000-000000000003',mediaKeys:[`listings/${owner}/swim.webp`]});
+    await database.query("UPDATE listings SET status='published',published_at=now() WHERE id=$1",[swim.id]);
+    assert.deepEqual((await service.search({category:'swim',size:'RN+'})).map(item=>item.id),[swim.id]);
+    assert.deepEqual(await service.search({category:'infant',size:'RN+'}),[]);
+    console.log('20 envios simultâneos: 1 anúncio e 1 foto; filtro PostgreSQL de categoria e tamanho verificado.');
     await database.query(`CREATE FUNCTION reject_test_media() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN IF NEW.storage_key LIKE '%rollback.webp' THEN RAISE EXCEPTION 'synthetic media failure'; END IF; RETURN NEW; END $$`);
     await database.query('CREATE TRIGGER reject_test_media BEFORE INSERT ON listing_media FOR EACH ROW EXECUTE FUNCTION reject_test_media()');
@@ -49,7 +53,7 @@ test('PostgreSQL applies listing identity upgrade and deduplicates concurrent re
     const rollbackInput={...input,idempotencyKey:rollbackKey,mediaKeys:[`listings/${owner}/rollback.webp`]};
     await assert.rejects(service.create(owner,rollbackInput),/synthetic media failure/);
     assert.equal((await database.query('SELECT count(*)::int AS count FROM listings WHERE creation_key=$1',[rollbackKey])).rows[0].count,0);
-    assert.equal((await database.query('SELECT count(*)::int AS count FROM listings WHERE seller_id=$1',[owner])).rows[0].count,2);
+    assert.equal((await database.query("SELECT count(*)::int AS count FROM listings WHERE seller_id=$1 AND category='infant'",[owner])).rows[0].count,2);
     await database.query('DROP TRIGGER reject_test_media ON listing_media');
     const recovered=await service.create(owner,rollbackInput);assert.ok(recovered.id);
     await assert.rejects(database.query('UPDATE listings SET creation_fingerprint=NULL WHERE id=$1',[recovered.id]),error=>error.code==='23514');

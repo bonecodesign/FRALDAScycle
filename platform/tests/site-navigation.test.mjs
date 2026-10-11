@@ -76,8 +76,13 @@ test('Site home offers a responsive accessible menu and donation deep link', asy
   assert.match(css, /min-height: 44px/);
   assert.match(runtime, /bindResponsiveSiteNavigation/);
   assert.match(search, /id="site-filter-kind"/);
-  assert.match(marketplace, /searchParams\.get\('kind'\)/);
+  assert.match(search, /id="site-filter-category"/);
+  assert.match(search, /id="site-filter-size"/);
+  assert.match(marketplace, /requested\.get\('category'\)/);
+  assert.match(marketplace, /requested\.get\('kind'\)/);
   assert.match(marketplace, /kind: kindFilter\?\.value/);
+  assert.match(marketplace, /category: categoryFilter\?\.value/);
+  assert.match(marketplace, /size: sizeFilter\?\.value/);
 });
 
 test('mobile Site navigation opens with focus, traps Tab, closes on link/Escape and restores focus', () => {
