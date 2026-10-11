@@ -34,7 +34,8 @@ async function loadDetail() {
     const actions = document.createElement("div"); actions.className = "hero-actions";
     const favorite = text("button", "♡ Favoritar", "button secondary"); favorite.type = "button";
     favorite.addEventListener("click", async () => { try { await setFavorite(listingId, true); favorite.textContent = "♥ Favoritado"; favorite.disabled = true; } catch (error) { if (error.status === 401) location.pathname = "/site/login"; } });
-    const negotiate = text("a", "Iniciar negociação", "button primary"); negotiate.href = `/app/chat?listing=${listingId}`;
+    const negotiate = text("a", listing.kind === "sale" ? "Continuar no App" : listing.kind === "exchange" ? "Propor troca no App" : "Ver orientações da doação", "button primary");
+    negotiate.href = `/app/listing?id=${encodeURIComponent(listingId)}`;
     actions.append(favorite, negotiate); body.append(actions); layout.append(image, body); content.replaceChildren(layout);
   } catch (error) {
     content.replaceChildren(text("p", error.message || "Não foi possível carregar o anúncio.", "notice"));

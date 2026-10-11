@@ -190,7 +190,9 @@
       "/courier/job",
       "/courier/route",
       "/courier/proof",
-      "/courier/history"
+      "/courier/history",
+      "/app/listing",
+      "/app/exchange"
     ],
     "behaviorFiles": [
       "platform/apps/app/search.js",
@@ -200,7 +202,9 @@
       "platform/apps/app/finance.js",
       "platform/apps/app/logistics.js",
       "platform/apps/app/profile.js",
-      "platform/apps/app/courier.js"
+      "platform/apps/app/courier.js",
+      "platform/apps/app/listing.js",
+      "platform/apps/app/exchange.js"
     ]
   },
   "strategy": "approved markup rendered into independent destination routes with authentication behavior adapted to pathname navigation",
