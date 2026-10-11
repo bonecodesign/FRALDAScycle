@@ -1,5 +1,7 @@
 import "/packages/ui/iconography.js";
+import { fcIcon } from "/packages/ui/iconography.js";
 import { bindFavoriteButtons, loadLiveSearch } from "/packages/contracts/marketplace-ui.js";
+import { bindResponsiveSiteNavigation } from "/packages/contracts/site-navigation.js";
 const themeToggle = document.querySelector("#theme-toggle");
 const storedTheme = localStorage.getItem("fraldacycle-theme") === "dark" ? "dark" : "light";
 
@@ -9,6 +11,25 @@ function applyTheme(theme) {
 }
 
 applyTheme(storedTheme);
+
+const menuToggle = document.querySelector('#site-menu-toggle');
+const menuNavigation = document.querySelector('#site-navigation');
+if (menuToggle && menuNavigation) {
+  bindResponsiveSiteNavigation({
+    button: menuToggle,
+    navigation: menuNavigation,
+    getFocusables: () => [menuToggle, ...menuNavigation.querySelectorAll('a[href]'), themeToggle, ...document.querySelectorAll('.site-mobile-publish')],
+    onToggle: (open) => {
+      const icon = menuToggle.querySelector('span');
+      if (icon) icon.innerHTML = fcIcon(open ? 'close' : 'menu');
+    },
+  });
+}
+
+const favoritesLabel = document.querySelector('.site-favorites-link span');
+if (favoritesLabel && !favoritesLabel.previousElementSibling?.classList.contains('fc-icon')) {
+  favoritesLabel.insertAdjacentHTML('beforebegin', fcIcon('heart'));
+}
 
 const documentationPage = document.querySelector('.component-states-page, .advanced-components-page, .accessibility-lab-page, .responsive-lab-page, .motion-lab-page, .design-tokens-page');
 if (documentationPage) {
