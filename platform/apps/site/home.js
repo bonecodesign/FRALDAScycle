@@ -66,7 +66,10 @@ categorySection.innerHTML = `
       return `<a class="site-category-card" href="/site/search?category=${value}"><strong>${label}</strong><small>${description}</small><span class="category-link-label">Ver anúncios →</span></a>`;
     }).join('')}
   </div>
-  <div class="site-size-filter"><h3>Filtrar por tamanho</h3><div class="site-size-chips" aria-label="Tamanhos disponíveis">${DIAPER_SIZES.map((size) => `<a class="site-size-chip" href="/site/search?category=infant&size=${encodeURIComponent(size)}">${size}</a>`).join('')}</div></div>`;
+  <div class="site-size-filter"><h3>Filtrar por tamanho</h3><div class="site-size-chips" aria-label="Tamanhos disponíveis">${DIAPER_SIZES.map((size) => {
+    const label = size === 'RN' ? 'RN — Recém-nascido' : size;
+    return `<a class="site-size-chip" aria-label="Tamanho ${label}" href="/site/search?category=infant&size=${encodeURIComponent(size)}">${label}</a>`;
+  }).join('')}</div></div>`;
 marketplace?.before(categorySection);
 
 const donationSection = document.createElement("section");
