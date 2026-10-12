@@ -1,6 +1,6 @@
 # Plano de fechamento atualizado após PR #104
 
-Base: main `ac99a52955def605e0aa6b95fbf6306f242de378`, PR #104 integrado em 10 de outubro de 2026. Matriz conferida: 70 requisitos, 8 concluídos, 50 parciais, 12 bloqueados. Conclusão formal 11,43%; cobertura parcial/concluída 82,86%. Cobertura não representa código concluído nem prontidão. Sem percentual comprovado para fidelidade visual, interfaces individuais ou aplicativos nativos.
+Base: main `ac99a52955def605e0aa6b95fbf6306f242de378`, PR #104 integrado em 10 de outubro de 2026; atualização do PR #105 em revisão. Matriz conferida: 70 requisitos, 10 concluídos, 48 parciais, 12 bloqueados. Conclusão formal 14,29%; cobertura parcial/concluída 82,86%. Cobertura não representa código concluído nem prontidão. Sem percentual comprovado para fidelidade visual, interfaces individuais ou aplicativos nativos.
 
 | Área | Conclusão formal | Cobertura parcial/concluída |
 | --- | ---: | ---: |
@@ -9,7 +9,7 @@ Base: main `ac99a52955def605e0aa6b95fbf6306f242de378`, PR #104 integrado em 10 d
 | Marketplace/moderação | 15,4% | 100% |
 | Família/privacidade | 20% | 53,3% |
 | Instituições/doações | 0% | 100% |
-| Administração/infraestrutura | 13,3% | 86,7% |
+| Administração/infraestrutura | 26,7% | 86,7% |
 
 Estimativas iniciais de esforço técnico por pessoa, em dias úteis de 6–8 horas. São faixas de planejamento, não prazos garantidos nem medição do código restante; devem ser revistas após inventário e aceite de cada etapa. Etapas curtas podem subdividir cada bloco.
 

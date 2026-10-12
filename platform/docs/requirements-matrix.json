@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-11",
+  "updatedAt": "2026-10-12",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -1029,22 +1029,23 @@
     {
       "id": 68,
       "title": "Pausa operacional",
-    "status": "parcial",
+    "status": "concluido",
     "references": [
       "database/migrations/031_operational_control.sql",
       "database/operational-control-repository.js",
       "apps/api/operational-control.js",
       "apps/admin/operations.html",
       "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
       "docs/operational-control-beta.md"
     ],
-    "evidence": "Seis contratos específicos sem socket, regressão 83/83, sintaxe e contratos de migração aprovados localmente.",
-    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas; HTTP real e PostgreSQL nativo pendentes."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
+    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
     },
     {
       "id": 69,
       "title": "Retomada",
-    "status": "parcial",
+    "status": "concluido",
       "references": [
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
@@ -1054,10 +1055,11 @@
       "apps/api/operational-control.js",
       "apps/admin/operations.html",
       "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
       "docs/operational-control-beta.md"
       ],
-    "evidence": "Autorização administrativa, confirmação, motivo, versão e auditoria validados sem socket; piloto permanece NO-GO.",
-    "reason": "Retomada persistente e auditada implementada; HTTP real e PostgreSQL nativo pendentes, sem autorização de piloto real."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
+    "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
     },
     {
       "id": 70,
