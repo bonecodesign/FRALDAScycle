@@ -56,12 +56,13 @@ function fixture() {
 }
 
 test('Site home offers a responsive accessible menu and donation deep link', async () => {
-  const [home, css, search, marketplace, runtime] = await Promise.all([
+  const [home, css, search, marketplace, runtime, help] = await Promise.all([
     read('../apps/site/index.html'),
     read('../apps/site/home.css'),
     read('../apps/site/search.html'),
     read('../packages/contracts/marketplace-ui.js'),
     read('../apps/site/home.js'),
+    read('../apps/site/help.html'),
   ]);
   assert.match(home, /id="site-menu-toggle"[^>]*aria-controls="site-navigation"[^>]*aria-expanded="false"/);
   assert.match(home, /id="site-navigation"[^>]*aria-label="Navegação principal"/);
@@ -70,6 +71,17 @@ test('Site home offers a responsive accessible menu and donation deep link', asy
     'Como funciona', 'Categorias', 'Anunciar', 'Doações', 'Ajuda',
   ]);
   assert.match(home, /href="\/site\/search\?kind=donation">Doações<\/a>/);
+  const footer = home.match(/<div class="site-footer-groups">([\s\S]*?)<\/div><small>/)?.[1] ?? '';
+  assert.deepEqual([...footer.matchAll(/<nav class="site-footer-group" aria-label="([^"]+)"/g)].map(([, label]) => label), [
+    'Plataforma', 'Institucional', 'Suporte', 'Conta',
+  ]);
+  for (const href of ['/site/home#categorias', '/site/search?kind=donation', '/site/help#canais', '/site/help#politicas', '/app/privacy', '/app/register']) {
+    assert.ok(footer.includes(`href="${href}"`), `Home footer link missing: ${href}`);
+  }
+  assert.match(help, /id="politicas"/);
+  assert.match(help, /Termos e privacidade em revisão/);
+  assert.match(help, /id="canais"/);
+  assert.match(help, /canais oficiais e prazos de resposta ainda não foram definidos/);
   assert.match(home, /class="button primary site-mobile-publish" href="\/site\/publish">Publicar<\/a>/);
   assert.match(css, /@media \(max-width: 991px\)/);
   assert.match(css, /\.site-navigation\[data-open="true"\]/);
