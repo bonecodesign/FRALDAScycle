@@ -447,7 +447,7 @@
     {
       "id": 30,
       "title": "Maioridade",
-    "status": "parcial",
+    "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
@@ -460,10 +460,11 @@
       "apps/app/auth.js",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
+      "tests/adult-declaration-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-    "evidence": "Declaração FC-AGE-1, persistência, auditoria, bloqueios sensíveis e interface validados localmente sem HTTP.",
-    "reason": "Controle explícito implementado; HTTP real e PostgreSQL nativo permanecem pendentes."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
+    "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
     },
     {
       "id": 31,
