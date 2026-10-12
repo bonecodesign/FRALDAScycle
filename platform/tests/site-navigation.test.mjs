@@ -97,6 +97,27 @@ test('Site home offers a responsive accessible menu and donation deep link', asy
   assert.match(marketplace, /size: sizeFilter\?\.value/);
 });
 
+test('customer Site pages load one shared footer and retain their own status note', async () => {
+  const pages = ['index', 'help', 'impact', 'login', 'publish', 'search', 'detail', 'favorites', 'seller'];
+  const documents = await Promise.all(pages.map(page => read(`../apps/site/${page}.html`)));
+  for (const [index, document] of documents.entries()) {
+    assert.match(document, /<footer class="site-footer/);
+    assert.match(document, /src="\/apps\/site\/footer\.js"/);
+    assert.ok(document.includes('site-footer'), `${pages[index]} has no footer host`);
+  }
+  const [footer, css] = await Promise.all([
+    read('../apps/site/footer.js'),
+    read('../apps/site/footer.css'),
+  ]);
+  for (const label of ['Plataforma', 'Institucional', 'Suporte', 'Conta']) assert.match(footer, new RegExp(`aria-label="${label}"`));
+  assert.match(footer, /footer\.querySelector\('small'\)/);
+  assert.match(footer, /escapeHtml\(pageNote\)/);
+  assert.match(footer, /Termos e privacidade \(em revisão\)/);
+  assert.match(documents[1], /canais oficiais e prazos de resposta ainda não foram definidos/);
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 575px\)/);
+});
+
 test('mobile Site navigation opens with focus, traps Tab, closes on link/Escape and restores focus', () => {
   const state = fixture();
   state.button.dispatch('click');

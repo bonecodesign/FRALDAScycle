@@ -42,4 +42,4 @@ Validação já registrada para o código integrado do PR #104: suíte local com
 
 ## Continuação do Site — 12 de outubro de 2026
 
-O rodapé da Home foi dividido nos quatro grupos definidos pela especificação visual. Destinos de contato e política pré-operacional agora esclarecem os limites do beta sem simular canal ou aceite legal final. Os 14 testes focados de navegação e contrato visual passaram; a conclusão da fidelidade visual ainda depende de comparar capturas com as pranchas oficiais e testar os viewports normativos.
+O rodapé compartilhado das nove rotas públicas do Site foi dividido nos quatro grupos definidos pela especificação visual, preservando o aviso específico de cada tela. Destinos de contato e política pré-operacional esclarecem os limites do beta sem simular canal ou aceite legal final. Os 15 testes focados de navegação e contrato visual passaram; a conclusão da fidelidade visual ainda depende de comparar capturas com as pranchas oficiais e testar os viewports normativos.
