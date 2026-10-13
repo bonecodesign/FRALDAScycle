@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-12",
+  "updatedAt": "2026-10-13",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -841,7 +841,7 @@
     {
       "id": 55,
       "title": "Revogação administrativa",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
@@ -851,10 +851,11 @@
         "tests/identity.test.mjs",
         "tests/session.test.mjs",
         "tests/postgres-beta.test.mjs",
+        "tests/admin-session-revocation-postgres.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Revogação e sessões implementadas; ensaio operacional real pendente."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam listagem, revogação exclusiva das outras sessões, preservação da sessão atual, perda imediata de acesso e auditoria da contagem.",
+      "reason": "Revogação administrativa das demais sessões, preservação da sessão atual e trilha de auditoria concluídas no escopo beta."
     },
     {
       "id": 56,
