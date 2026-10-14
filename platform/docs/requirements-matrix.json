@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-13",
+  "updatedAt": "2026-10-14",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -825,7 +825,7 @@
     {
       "id": 54,
       "title": "Autenticação administrativa",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
@@ -833,10 +833,13 @@
         "tests/session.test.mjs",
         "apps/api/authorization.js",
         "database/admin-repository.js",
-        "tests/admin-rbac.test.mjs"
+        "tests/admin-rbac.test.mjs",
+        "tests/admin-mfa.test.mjs",
+        "tests/admin-mfa-postgres.test.mjs",
+        "tests/admin-mfa-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Contas individuais existem; dois fatores ainda necessários antes da operação real."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam senha sem sessão, desafio MFA curto, código incorreto rejeitado, código correto de uso único e criação da sessão privilegiada somente após o segundo fator; concorrência e limites possuem teste PostgreSQL dedicado.",
+      "reason": "Contas individuais e autenticação administrativa em dois fatores concluídas no escopo beta, sem dispensar homologação do canal de entrega."
     },
     {
       "id": 55,
