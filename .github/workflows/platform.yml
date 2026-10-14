@@ -54,7 +54,10 @@ jobs:
       - name: Validate production syntax
         run: npm run check:production
       - name: Run platform tests
-        run: npm test
+        # The beta test owns a PostgreSQL instance plus two HTTP surfaces and a
+        # real browser. Serial execution prevents unrelated test workers from
+        # starving its bounded UI waits on shared GitHub runners.
+        run: node --test --test-concurrency=1 tests/*.test.mjs
       - name: Validate synchronized prototype
         working-directory: .
         run: node qa-regression.mjs
