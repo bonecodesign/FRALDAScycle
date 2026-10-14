@@ -968,23 +968,25 @@
     {
       "id": 64,
       "title": "Recusa de doação",
-    "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-      "tests/local-cancellation-support.test.mjs",
-      "database/migrations/032_donation_refusal.sql",
-      "database/migrations/039_donor_post_refusal_decision.sql",
-      "database/migrations/040_donation_redirect_institution.sql",
-      "database/donation-repository.js",
-      "apps/api/donation-service.js",
-      "apps/api/donation-handler.js",
-      "apps/app/donations.js",
-      "tests/donation-service.test.mjs",
-      "docs/donation-beta.md"
+        "tests/local-cancellation-support.test.mjs",
+        "database/migrations/032_donation_refusal.sql",
+        "database/migrations/039_donor_post_refusal_decision.sql",
+        "database/migrations/040_donation_redirect_institution.sql",
+        "database/migrations/049_donation_confirmation_version_consistency.sql",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/api/donation-handler.js",
+        "apps/app/donations.js",
+        "tests/donation-service.test.mjs",
+        "tests/donation-refusal-http-postgres.test.mjs",
+        "docs/donation-beta.md"
       ],
-    "evidence": "Onze testes locais validam recusa, republicação, redirecionamento para instituição verificada, encerramento, idempotência e preservação do histórico original.",
-    "reason": "Recusa e três escolhas posteriores do doador implementadas; HTTP, PostgreSQL nativo e operação institucional real permanecem pendentes."
+      "evidence": "Teste dedicado atravessa autenticação, HTTP e PostgreSQL para três recusas, republicação, redirecionamento e encerramento, incluindo repetição idempotente, auditoria e preservação do histórico original.",
+      "reason": "Fluxo técnico beta comprovado de ponta a ponta; operação institucional humana permanece como dependência de ativação, sem invalidar a conclusão do requisito de software."
     },
     {
       "id": 65,
