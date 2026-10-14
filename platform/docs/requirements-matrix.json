@@ -956,14 +956,15 @@
     {
       "id": 63,
       "title": "Doação aberta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "tests/donation-refusal-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Declaração e validação do pacote existem; jornada de recebimento/recusa pendente."
+      "evidence": "Teste HTTP/PostgreSQL exige declaração sanitária, persiste duas fotos e a condição aberta, recusa instituição sem aceite e atravessa confirmação e recusa institucional preservando o histórico.",
+      "reason": "Fluxo técnico beta de doação aberta concluído; inspeção física e participantes humanos permanecem dependências de ativação, sem serem simulados como evidência."
     },
     {
       "id": 64,
