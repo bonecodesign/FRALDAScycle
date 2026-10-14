@@ -224,17 +224,18 @@
     {
       "id": 16,
       "title": "Conclusão da troca",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
         "database/exchange-repository.js",
         "database/receipt-repository.js",
         "apps/api/exchange-service.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Conclusão local exige exatamente duas pernas atribuídas, entregues, com comprovante, aprovação e validação independentes, e ausência financeira.",
-      "reason": "Conclusão, recusa e cancelamento bilateral reversível implementados; operação real e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "Dez testes, incluindo prova HTTP/PostgreSQL, validam recusa, cancelamento bilateral reversível e conclusão atômica após duas entregas aprovadas e validadas, sem registro financeiro.",
+      "reason": "Escopo técnico concluído com fixtures; entrega, cobrança e operação humana reais permanecem dependências externas."
     },
     {
       "id": 17,
