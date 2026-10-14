@@ -1009,7 +1009,7 @@
     {
       "id": 66,
       "title": "Marca institucional",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/035_institution_brand_authorizations.sql",
         "database/institution-access-repository.js",
@@ -1017,10 +1017,11 @@
         "apps/api/institution-access-handler.js",
         "apps/app/institution-access.js",
         "tests/institution-brand-authorization.test.mjs",
+        "tests/institution-brand-http-postgres.test.mjs",
         "docs/institution-brand-authorization-beta.md"
       ],
-      "evidence": "Cinco testes locais validam autoridade exclusiva do representante, finalidade, canais, materiais, prazo, revogação, auditoria e leitura pública fechada.",
-      "reason": "Fundação local implementada; revisão jurídica, mídia real e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "Seis testes, incluindo prova HTTP/PostgreSQL, validam autoridade exclusiva do representante verificado, consulta administrativa, finalidade, canais, materiais, vigência, conflito de versão, revogação idempotente, auditoria e leitura pública fechada.",
+      "reason": "Mecanismo técnico beta concluído; revisão jurídica e aprovação de mídia real permanecem dependências de ativação e não são apresentadas como executadas."
     },
     {
       "id": 67,

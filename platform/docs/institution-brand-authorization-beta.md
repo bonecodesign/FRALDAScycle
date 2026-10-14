@@ -6,4 +6,4 @@ A autorização registra finalidade, versão do aviso, materiais, canais e inter
 
 O representante pode revogar o registro com motivo e versão esperada. Revogação e vencimento bloqueiam novas exibições, mas preservam registro, eventos e auditoria. Administradores podem consultar os registros, mas não consentir ou revogar em nome da instituição.
 
-A função de leitura pública exige simultaneamente instituição, canal, material, vigência e ausência de revogação. Nenhum logotipo, foto ou relato real foi carregado ou publicado nesta etapa. Validação HTTP/PostgreSQL, revisão jurídica e mídia real permanecem pendentes.
+A função de leitura pública exige simultaneamente instituição, canal, material, vigência e ausência de revogação. A validação HTTP/PostgreSQL cobre autorização, consulta, conflito, revogação, eventos e auditoria com atores exclusivamente fictícios. Nenhum logotipo, foto ou relato real foi carregado ou publicado nesta etapa. Revisão jurídica e mídia real permanecem pendentes para ativação.
