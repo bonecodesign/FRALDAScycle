@@ -453,7 +453,9 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`Boolean(document.querySelector('#collection-form fieldset'))&&!document.querySelector('#collection-form fieldset').disabled`),'assigned courier collection form');
     assert.equal(await evaluate(`document.querySelector('#collection-form input[name=shipmentId]').value`),browserDonationShipment);
     await evaluate(`document.querySelector('#collection-form input[name=confirmed]').focus()`);
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await key(' ','Space',32);
+    await evaluate(`document.querySelector('#collection-form button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('collection-feedback').textContent.includes('Coleta registrada')`),'courier collection keyboard');
     assert.equal(await evaluate(`sessionStorage.getItem('fc.activeShipmentId')`),browserDonationShipment);
     assert.equal(await evaluate(`document.getElementById('collection-next').hidden`),false);
