@@ -31,11 +31,12 @@ test('capacity change requires boolean availability, current version, reason and
 });
 
 test('capacity migration and repositories preserve existing operations while blocking new donations',async()=>{
- const [migration,access,publication,donations]=await Promise.all([
+ const [migration,access,publication,donations,ui]=await Promise.all([
   readFile(new URL('../database/migrations/050_institution_donation_capacity.sql',import.meta.url),'utf8'),
   readFile(new URL('../database/institution-access-repository.js',import.meta.url),'utf8'),
   readFile(new URL('../database/institution-publication.js',import.meta.url),'utf8'),
   readFile(new URL('../database/donation-repository.js',import.meta.url),'utf8'),
+  readFile(new URL('../apps/app/institution-access.js',import.meta.url),'utf8'),
  ]);
  assert.match(migration,/accepting_donations boolean NOT NULL DEFAULT true/);
  assert.match(migration,/UNIQUE \(institution_id, version\)/);
@@ -44,4 +45,7 @@ test('capacity migration and repositories preserve existing operations while blo
  assert.match(publication,/accepting_donations/);
  assert.match(donations,/capacityRequired:true/);
  assert.match(donations,/donation_institution_capacity_paused/);
+ assert.match(ui,/id="institution-capacity-form"/);
+ assert.match(ui,/method:'PUT'/);
+ assert.match(ui,/Operações existentes e o histórico serão preservados/);
 });

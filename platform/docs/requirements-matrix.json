@@ -997,11 +997,18 @@
     {
       "id": 65,
       "title": "Capacidade institucional",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
+        "database/migrations/050_institution_donation_capacity.sql",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/api/institution-access-handler.js",
+        "apps/app/institution-access.js",
         "tests/institutions.test.mjs",
+        "tests/institution-capacity.test.mjs",
+        "tests/institution-capacity-http-postgres.test.mjs",
         "database/donation-repository.js",
         "apps/api/donation-service.js",
         "apps/app/donations.html",
@@ -1009,8 +1016,8 @@
         "docs/donation-beta.md",
         "docs/institution-capacity-beta.md"
       ],
-      "evidence": "Fundação versionada permite ao representante verificado pausar ou retomar novas doações, pausa anúncios livres e preserva operações existentes, recusas e histórico; testes unitários validam contrato e bloqueios.",
-      "reason": "Prova HTTP/PostgreSQL e interface do representante ainda pendentes; espaço, equipe, horário e capacidade operacional real permanecem externos ao software."
+      "evidence": "Interface e prova HTTP/PostgreSQL validam pausa/retomada pelo representante verificado, versão, conflito, anúncios livres pausados, operações existentes preservadas, eventos e auditoria.",
+      "reason": "Escopo técnico concluído; espaço, equipe, horário e capacidade operacional real permanecem dependências de ativação e piloto."
     },
     {
       "id": 66,
