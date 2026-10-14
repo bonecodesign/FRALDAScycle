@@ -3,7 +3,7 @@ async function record(client,actor,row,reason=null){
   await client.query('INSERT INTO institution_representative_events(institution_id,user_id,actor_id,version,status,reason) VALUES($1,$2,$3,$4,$5,$6)',[row.institution_id,row.user_id,actor,row.version,row.status,reason]);
   await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'institution.representative.changed','institution',$2,$3::jsonb)`,[actor,row.institution_id,JSON.stringify({status:row.status,version:row.version})]);
 }
-async function institution(client,id){const row=(await client.query('SELECT id,status,representative_email FROM institutions WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!row)throw fail('institution_not_found',404,'Instituição não encontrada.');return row;}
+async function institution(client,id){const row=(await client.query('SELECT id,status,representative_email,accepting_donations,capacity_version,capacity_reason,capacity_changed_at FROM institutions WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!row)throw fail('institution_not_found',404,'Instituição não encontrada.');return row;}
 async function identity(client,record,userId){const u=(await client.query('SELECT id,email,email_verified_at FROM users WHERE id=$1',[userId])).rows[0];
   if(!u||!u.email_verified_at||u.email.toLowerCase()!==record.representative_email.toLowerCase())throw fail('institution_representative_identity_pending',409,'Conta e e-mail verificado precisam corresponder ao representante institucional conferido.');
 }
@@ -12,6 +12,24 @@ export async function verifiedInstitutionRepresentative(client,institutionId){
     WHERE r.institution_id=$1 AND r.status='verified' AND i.status='active' AND u.email_verified_at IS NOT NULL AND lower(u.email)=lower(i.representative_email)`,[institutionId])).rows[0]?.user_id??null;
 }
 export function createInstitutionAccessRepository(database){return Object.freeze({
+  async capacity({actorId,institutionId}){return database.transaction(async client=>{
+    const i=await institution(client,institutionId),representative=await verifiedInstitutionRepresentative(client,institutionId);
+    if(representative!==actorId)throw fail('institution_capacity_authority_required',403,'Somente o representante verificado pode consultar a capacidade institucional.');
+    return {institution_id:i.id,accepting_donations:i.accepting_donations,version:i.capacity_version,reason:i.capacity_reason,changed_at:i.capacity_changed_at};
+  });},
+  async changeCapacity({actorId,institutionId,acceptingDonations,expectedVersion,reason}){return database.transaction(async client=>{
+    const i=await institution(client,institutionId),representative=await verifiedInstitutionRepresentative(client,institutionId);
+    if(i.status!=='active'||representative!==actorId)throw fail('institution_capacity_authority_required',403,'Somente o representante verificado de uma instituição ativa pode alterar a capacidade.');
+    if(i.capacity_version!==expectedVersion)throw fail('institution_capacity_version_conflict',409,'A capacidade foi atualizada; consulte novamente.');
+    if(i.accepting_donations===acceptingDonations&&i.capacity_reason===reason)return {institution_id:i.id,accepting_donations:i.accepting_donations,version:i.capacity_version,reason:i.capacity_reason,reused:true};
+    const row=(await client.query(`UPDATE institutions SET accepting_donations=$2,capacity_version=capacity_version+1,capacity_reason=$3,capacity_changed_at=now(),capacity_changed_by=$4,updated_at=now()
+      WHERE id=$1 RETURNING id AS institution_id,accepting_donations,capacity_version AS version,capacity_reason AS reason,capacity_changed_at AS changed_at`,[institutionId,acceptingDonations,reason,actorId])).rows[0];
+    if(!acceptingDonations)await client.query(`UPDATE listings SET status='paused',updated_at=now() WHERE institution_id=$1 AND kind='donation' AND status='published'
+      AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=listings.id AND t.status NOT IN('cancelled','refunded','completed'))`,[institutionId]);
+    await client.query('INSERT INTO institution_capacity_events(institution_id,actor_id,accepting_donations,version,reason) VALUES($1,$2,$3,$4,$5)',[institutionId,actorId,acceptingDonations,row.version,reason]);
+    await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'institution.capacity.changed','institution',$2,$3::jsonb)`,[actorId,institutionId,JSON.stringify({acceptingDonations,version:row.version})]);
+    return {...row,reused:false};
+  });},
   async list({actorId,reviewer=false}){return database.transaction(async client=>{
     const rows=await client.query(`SELECT r.institution_id,r.user_id,r.status,r.version,r.accepted_at,r.verified_at,r.updated_at,i.public_name,i.status AS institution_status FROM institution_representatives r JOIN institutions i ON i.id=r.institution_id WHERE r.user_id=$1 OR $2::boolean ORDER BY r.updated_at DESC LIMIT 100`,[actorId,reviewer]);
     await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'institution.representatives.read','institution','list','{}'::jsonb)`,[actorId]);return rows.rows;

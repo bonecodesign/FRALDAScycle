@@ -161,7 +161,7 @@ export function createMarketplaceRepository(database) {
 
     async activeInstitution(institutionId) {
       const result = await database.query(
-        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active'",
+        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active' AND accepting_donations = true",
         [institutionId],
       );
       return result.rows[0] ?? null;

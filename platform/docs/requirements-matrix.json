@@ -258,7 +258,12 @@
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
+        "database/migrations/050_institution_donation_capacity.sql",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/api/institution-access-handler.js",
         "tests/institutions.test.mjs",
+        "tests/institution-capacity.test.mjs",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
@@ -1001,10 +1006,11 @@
         "apps/api/donation-service.js",
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
-        "docs/donation-beta.md"
+        "docs/donation-beta.md",
+        "docs/institution-capacity-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Estado revalidado sob trava, anúncios novos pausados/publicação e retomada bloqueadas; operações confirmadas/histórico preservados. Capacidade/equipe real e intermediação dos casos pendentes."
+      "evidence": "Fundação versionada permite ao representante verificado pausar ou retomar novas doações, pausa anúncios livres e preserva operações existentes, recusas e histórico; testes unitários validam contrato e bloqueios.",
+      "reason": "Prova HTTP/PostgreSQL e interface do representante ainda pendentes; espaço, equipe, horário e capacidade operacional real permanecem externos ao software."
     },
     {
       "id": 66,
