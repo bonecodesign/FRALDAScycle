@@ -1,12 +1,12 @@
 # Plano de fechamento atualizado após PR #104
 
-Base: main `ac99a52955def605e0aa6b95fbf6306f242de378`, PR #104 integrado em 10 de outubro de 2026; atualização do PR #105 em revisão. Matriz conferida: 70 requisitos, 18 concluídos, 40 parciais, 12 bloqueados. Conclusão formal 25,71%; cobertura parcial/concluída 82,86%. Cobertura não representa código concluído nem prontidão. Sem percentual comprovado para fidelidade visual, interfaces individuais ou aplicativos nativos.
+Base: main `15685a7d13f2eab9e367f1312fe25aeb7524fa67`, PR #105 integrado em 14 de outubro de 2026; nova rodada em preparação. Matriz conferida: 70 requisitos, 19 concluídos, 39 parciais, 12 bloqueados. Conclusão formal 27,14%; cobertura parcial/concluída 82,86%. Cobertura não representa código concluído nem prontidão. Sem percentual comprovado para fidelidade visual, interfaces individuais ou aplicativos nativos.
 
 | Área | Conclusão formal | Cobertura parcial/concluída |
 | --- | ---: | ---: |
 | Comercial/pagamentos | 11,1% | 77,8% |
 | Logística/entregador | 9,1% | 90,9% |
-| Marketplace/moderação | 15,4% | 100% |
+| Marketplace/moderação | 23,1% | 100% |
 | Família/privacidade | 26,7% | 53,3% |
 | Instituições/doações | 57,1% | 100% |
 | Administração/infraestrutura | 40% | 86,7% |

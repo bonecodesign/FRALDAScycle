@@ -13,4 +13,6 @@
 
 ## Limite desta etapa
 
-O código local não afirma que o dinheiro foi devolvido. O envio e a confirmação do estorno dependem do provedor financeiro homologado, das credenciais e dos testes HTTP/PostgreSQL adiados. Até lá a decisão fica explicitamente pendente no provedor.
+O código local não afirma que o dinheiro foi devolvido. O envio e a confirmação do estorno dependem do provedor financeiro homologado e das credenciais. Até lá a decisão fica explicitamente pendente no provedor.
+
+A exceção logística de contato possui prova HTTP/PostgreSQL dedicada: cliente e administrador são recusados, outro entregador não acessa, o entregador atribuído vê somente o telefone verificado do vendedor na coleta e do comprador durante a entrega, e perde o acesso após a conclusão. A auditoria registra apenas canal e finalidade, nunca o telefone. Nenhuma chamada ou operação logística real foi executada.

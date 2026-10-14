@@ -539,16 +539,17 @@
     {
       "id": 36,
       "title": "Exceção logística de contato",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/logistics-repository.js",
         "apps/api/logistics-service.js",
         "apps/api/logistics-handler.js",
         "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "tests/logistics-contact-http-postgres.test.mjs",
         "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "Regra local testada sem HTTP: somente o entregador atribuído recebe telefone verificado durante coleta ou entrega, com auditoria sem o valor do contato.",
-      "reason": "Fluxo local implementado; validação PostgreSQL/HTTP e operação logística real continuam pendentes."
+      "evidence": "HTTP/PostgreSQL comprova que somente o entregador atribuído vê o telefone verificado da parte correta durante coleta/entrega, com encerramento do acesso e auditoria sem o valor.",
+      "reason": "Escopo técnico concluído; chamadas, entrega e operação logística reais permanecem externas."
     },
     {
       "id": 37,
