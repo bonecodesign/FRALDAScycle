@@ -677,7 +677,7 @@
     {
       "id": 44,
       "title": "Suspensão e pendências",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
@@ -691,10 +691,11 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/suspension-pending-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Novas operações bloqueadas por suspensão; acompanhamento/suporte preservados. Validação nativa deste lote pendente."
+      "evidence": "HTTP/PostgreSQL comprova suspensão temporária: anúncio livre pausado, novas publicações e compras bloqueadas, enquanto operação existente e suporte permanecem acessíveis.",
+      "reason": "Escopo técnico concluído; decisão humana, capacidade da equipe e operação real continuam externas."
     },
     {
       "id": 45,

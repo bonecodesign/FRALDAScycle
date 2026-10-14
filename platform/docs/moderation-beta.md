@@ -22,4 +22,6 @@ Local: quatro testes do detector, quatro do serviço/privacidade/permissões, ci
 
 Denúncia específica e ocultação/revisão de avaliações, detecção de mídia, revisão humana, leitor de tela/dispositivos, capacidade de equipe, canal externo e retenção definida por revisão profissional permanecem pendentes. Não ativar envio externo, fornecedores, termos, dados de crianças ou produção. Sem contratação, cobrança, repasse, reembolso, credenciais/dados reais ou desktop. Item 12 standby.
 
+Uma prova HTTP/PostgreSQL dedicada acrescentada em 14 de outubro confirma o limite da suspensão: anúncio livre é pausado, novas publicações e compras são recusadas, e mensagens de operação anterior e suporte continuam acessíveis. A prova não representa aplicação humana da sanção nem operação real.
+
 Matriz atualizada conserva denominador 70 e sete concluídos (10%): item 43 concluído pelo recurso protocolado e revisão independente efetivamente validados. Há 38 parciais, 13 pendentes e 12 bloqueados; demais itens de moderação continuam parciais. Prontidão para produção bloqueada, sem percentual atribuído.
