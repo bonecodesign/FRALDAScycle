@@ -81,7 +81,7 @@ export function createMarketplaceRepository(database) {
       return result.rows;
     },
     async search({
-      query = null, kind = null, size = null,
+      query = null, kind = null, size = null, category = null,
       latitude = null, longitude = null, radiusKm = null,
       limit = 24, offset = 0,
     }) {
@@ -89,11 +89,11 @@ export function createMarketplaceRepository(database) {
         `WITH candidates AS (
           SELECT ${publicColumns},
             (SELECT storage_key FROM listing_media WHERE listing_id = l.id ORDER BY position LIMIT 1) AS cover_key,
-            CASE WHEN $4::double precision IS NULL THEN NULL ELSE
+            CASE WHEN $5::double precision IS NULL THEN NULL ELSE
               6371 * acos(LEAST(1.0, GREATEST(-1.0,
-                sin(radians($4::double precision)) * sin(radians(l.latitude)) +
-                cos(radians($4::double precision)) * cos(radians(l.latitude)) *
-                cos(radians(l.longitude) - radians($5::double precision))
+                sin(radians($5::double precision)) * sin(radians(l.latitude)) +
+                cos(radians($5::double precision)) * cos(radians(l.latitude)) *
+                cos(radians(l.longitude) - radians($6::double precision))
               )))
             END AS distance_km
           FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
@@ -101,12 +101,13 @@ export function createMarketplaceRepository(database) {
             AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
             AND ($2::transaction_kind IS NULL OR l.kind = $2)
             AND ($3::text IS NULL OR l.size = $3)
+            AND ($4::text IS NULL OR l.category = $4)
         )
         SELECT * FROM candidates
-        WHERE ($4::double precision IS NULL OR distance_km <= $6::double precision)
+        WHERE ($5::double precision IS NULL OR distance_km <= $7::double precision)
         ORDER BY distance_km ASC NULLS LAST, published_at DESC NULLS LAST, created_at DESC
-        LIMIT $7 OFFSET $8`,
-        [query, kind, size, latitude, longitude, radiusKm, limit, offset],
+        LIMIT $8 OFFSET $9`,
+        [query, kind, size, category, latitude, longitude, radiusKm, limit, offset],
       );
       return result.rows;
     },
@@ -160,7 +161,7 @@ export function createMarketplaceRepository(database) {
 
     async activeInstitution(institutionId) {
       const result = await database.query(
-        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active'",
+        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active' AND accepting_donations = true",
         [institutionId],
       );
       return result.rows[0] ?? null;

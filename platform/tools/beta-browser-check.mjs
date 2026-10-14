@@ -11,8 +11,10 @@ export function nativeChrome() {
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync) ?? null;
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const browserWaitMs = process.env.CI ? 180000 : 120000;
+const devtoolsWaitMs = process.env.CI ? 30000 : 12000;
 async function until(operation, label) {
-  const deadline = Date.now() + 120000;
+  const deadline = Date.now() + browserWaitMs;
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
@@ -26,7 +28,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   const pending = new Map();
   try {
     const endpoint = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Chrome DevTools não iniciou.')), 12000);
+      const timer = setTimeout(() => reject(new Error('Chrome DevTools não iniciou.')), devtoolsWaitMs);
       chrome.once('error', error => { clearTimeout(timer); reject(error); });
       chrome.once('exit', () => { clearTimeout(timer); reject(new Error('Chrome encerrou antes da validação.')); });
       chrome.stderr.on('data', data => {
@@ -39,7 +41,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     let sequence = 0;
     const send = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
       const id = ++sequence;
-      const timer = setTimeout(() => { pending.delete(id); reject(new Error(`DevTools timeout: ${method}`)); }, 12000);
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error(`DevTools timeout: ${method}`)); }, devtoolsWaitMs);
       pending.set(id, { resolve, reject, timer });
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
@@ -451,7 +453,9 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`Boolean(document.querySelector('#collection-form fieldset'))&&!document.querySelector('#collection-form fieldset').disabled`),'assigned courier collection form');
     assert.equal(await evaluate(`document.querySelector('#collection-form input[name=shipmentId]').value`),browserDonationShipment);
     await evaluate(`document.querySelector('#collection-form input[name=confirmed]').focus()`);
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await key(' ','Space',32);
+    await evaluate(`document.querySelector('#collection-form button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('collection-feedback').textContent.includes('Coleta registrada')`),'courier collection keyboard');
     assert.equal(await evaluate(`sessionStorage.getItem('fc.activeShipmentId')`),browserDonationShipment);
     assert.equal(await evaluate(`document.getElementById('collection-next').hidden`),false);

@@ -1,8 +1,8 @@
 import {institutionTransitionAllowed} from "../packages/contracts/institution-status.js";
-const publicColumns = `id, public_name, city, state, open_packages_accepted, activated_at`;
+const publicColumns = `id, public_name, city, state, open_packages_accepted, accepting_donations, activated_at`;
 const adminColumns = `id, submitted_by_user_id, legal_name, public_name, tax_id,
   representative_name, representative_email, city, state, address_line, postal_code,
-  open_packages_accepted, document_keys, status, review_reason, verified_at,
+  open_packages_accepted, accepting_donations, capacity_version, capacity_reason, capacity_changed_at, capacity_changed_by, document_keys, status, review_reason, verified_at,
   activated_at, suspended_at, created_at, updated_at`;
 
 export function createInstitutionRepository(database) {
@@ -92,7 +92,7 @@ export function createInstitutionRepository(database) {
 
     async isActive(institutionId) {
       const result = await database.query(
-        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active'",
+        "SELECT id, open_packages_accepted FROM institutions WHERE id = $1 AND status = 'active' AND accepting_donations = true",
         [institutionId],
       );
       return result.rows[0] ?? null;

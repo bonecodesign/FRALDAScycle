@@ -9,3 +9,5 @@ Qualquer registro de pagamento ou caso financeiro impede a conclusão automátic
 Cada destinatário pode compartilhar o próprio endereço somente na sua perna e apenas com o entregador atribuído. A outra parte e administradores não recebem esse acesso. A leitura termina com o encerramento da etapa logística.
 
 O proprietário do anúncio desejado pode recusar a proposta antes do aceite, sem bloquear anúncios. Depois do aceite, o cancelamento local exige confirmação das duas partes, versão atual e ausência total de coleta, comprovante e endereço compartilhado. Havendo qualquer um desses marcos, o fluxo direciona ao suporte. O cancelamento bilateral reversível cancela as duas pernas e republica os dois anúncios.
+
+A prova HTTP/PostgreSQL usa exclusivamente atores e mídias fictícios. Ela confirma recusa sem bloquear anúncios, cancelamento em duas confirmações antes da coleta, restauração dos anúncios, duas entregas independentes com entregadores distintos, comprovantes, aprovações dos respectivos recebedores, validação administrativa, conclusão atômica e ausência de registros financeiros. Nenhuma entrega, cobrança ou validação humana real foi executada.

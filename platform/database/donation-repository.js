@@ -4,9 +4,10 @@ import {institutionPublicationAllowed} from './institution-publication.js';
 import {freePublicationAvailable,lockPremiumAccount} from './premium-repository.js';
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 async function audit(client,actor,action,id,metadata={}){await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,$2,'donation',$3,$4::jsonb)`,[actor,action,id,JSON.stringify(metadata)]);}
-async function authorized(client,institutionId,representativeId){
+async function authorized(client,institutionId,representativeId,{capacityRequired=false}={}){
  const i=(await client.query('SELECT id,status FROM institutions WHERE id=$1 FOR SHARE',[institutionId])).rows[0];
  if(!i||i.status!=='active'||await verifiedInstitutionRepresentative(client,institutionId)!==representativeId)throw fail('donation_institution_authority_pending',409,'A instituição ativa precisa de representante atualmente autorizado.');
+ if(capacityRequired){const capacity=(await client.query('SELECT accepting_donations FROM institutions WHERE id=$1 FOR SHARE',[institutionId])).rows[0];if(capacity?.accepting_donations===false)throw fail('donation_institution_capacity_paused',409,'A instituição pausou novas confirmações de doação.');}
 }
 const columns=`d.transaction_id,d.listing_id,d.institution_id,d.donor_id,d.representative_id,d.version,d.donor_confirmed_at,d.representative_confirmed_at,d.refused_at,d.refused_by,d.refusal_reason,d.refusal_note,d.refusal_evidence_key,d.donor_decision,d.donor_decided_at,d.donor_decision_institution_id,t.status AS transaction_status,l.title,l.status AS listing_status,i.public_name AS institution_name,s.id AS shipment_id,s.status AS shipment_status`;
 const joins=`JOIN transactions t ON t.id=d.transaction_id JOIN listings l ON l.id=d.listing_id JOIN institutions i ON i.id=d.institution_id LEFT JOIN shipments s ON s.transaction_id=t.id`;
@@ -29,7 +30,7 @@ export function createDonationRepository(database){return Object.freeze({
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',['donation:'+idempotencyKey]);
   const previous=(await client.query(`SELECT d.*,t.status AS transaction_status FROM donation_operations d JOIN transactions t ON t.id=d.transaction_id WHERE d.idempotency_key=$1`,[idempotencyKey])).rows[0];
   if(previous){if(previous.donor_id!==actorId||previous.listing_id!==listingId)throw fail('donation_key_conflict',409,'Chave já usada em outra solicitação.');return {...exposed(previous),reused:true};}
-  await authorized(client,reference.institution_id,representative);await requireNewOperations(client,actorId);await requireNewOperations(client,representative);
+  await authorized(client,reference.institution_id,representative,{capacityRequired:true});await requireNewOperations(client,actorId);await requireNewOperations(client,representative);
   const listing=(await client.query(`UPDATE listings SET status='unavailable',updated_at=now() WHERE id=$1 AND seller_id=$2 AND kind='donation' AND status='published' AND institution_id=$3 RETURNING id`,[listingId,actorId,reference.institution_id])).rows[0];
   if(!listing)throw fail('donation_listing_unavailable',409,'A doação não está disponível para nova confirmação.');
   const tx=(await client.query("INSERT INTO transactions(listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,'initiated',0) RETURNING id",[listingId,representative,actorId])).rows[0];
@@ -45,7 +46,7 @@ export function createDonationRepository(database){return Object.freeze({
   if(operation.version===2&&expectedVersion===1)return {...exposed(operation),transaction_status:tx.status,reused:true};
   if(operation.version!==expectedVersion||tx.status!=='initiated')throw fail('donation_confirmation_conflict',409,'Consulte o estado atual da doação.');
   await client.query('SELECT id FROM users WHERE id=ANY($1::uuid[]) ORDER BY id FOR NO KEY UPDATE',[[operation.donor_id,actorId]]);
-  await authorized(client,operation.institution_id,actorId);await requireNewOperations(client,actorId);await requireNewOperations(client,operation.donor_id);
+  await authorized(client,operation.institution_id,actorId,{capacityRequired:true});await requireNewOperations(client,actorId);await requireNewOperations(client,operation.donor_id);
   const accepted=(await client.query('UPDATE donation_operations SET representative_confirmed_at=now(),version=2 WHERE transaction_id=$1 RETURNING transaction_id,version',[transactionId])).rows[0];
   await client.query("UPDATE transactions SET status='donation_confirmed',updated_at=now() WHERE id=$1",[transactionId]);
   await audit(client,actorId,'donation.institution.confirmed',transactionId,{noticeVersion:'FC-DONATION-1'});return {...exposed(accepted),transaction_status:'donation_confirmed',reused:false};

@@ -5,13 +5,15 @@ export async function handleInstitutionAccess(request,response,{url,headers,requ
  if(!institutionAccessService)return false;
  const list=url.pathname==='/v1/institution-access',action=url.pathname.match(/^\/v1\/institution-access\/([0-9a-f-]{36})\/(assign|accept|review)$/i);
  const brands=url.pathname==='/v1/institution-brand-authorizations',brandAuthorize=url.pathname.match(/^\/v1\/institution-brand-authorizations\/([0-9a-f-]{36})\/authorize$/i),brandRevoke=url.pathname.match(/^\/v1\/institution-brand-authorizations\/([0-9a-f-]{36})\/revoke$/i);
- if(!(list&&request.method==='GET'||action&&request.method==='POST'||brands&&request.method==='GET'||brandAuthorize&&request.method==='POST'||brandRevoke&&request.method==='POST'))return false;
+ const capacity=url.pathname.match(/^\/v1\/institution-capacity\/([0-9a-f-]{36})$/i);
+ if(!(list&&request.method==='GET'||action&&request.method==='POST'||brands&&request.method==='GET'||brandAuthorize&&request.method==='POST'||brandRevoke&&request.method==='POST'||capacity&&['GET','PUT'].includes(request.method)))return false;
  const actor=await authenticatedUser(request,authService);
  let result;
  if(list)result={items:await institutionAccessService.list(actor)};
  else if(action)result={binding:await institutionAccessService[action[2]](actor,action[1],await readJson(request))};
+ else if(capacity)result={capacity:request.method==='GET'?await institutionAccessService.capacity(actor,capacity[1]):await institutionAccessService.changeCapacity(actor,capacity[1],await readJson(request))};
  else if(brands)result={items:await institutionAccessService.brandAuthorizations(actor)};
  else if(brandAuthorize)result={authorization:await institutionAccessService.authorizeBrand(actor,brandAuthorize[1],await readJson(request))};
  else result={authorization:await institutionAccessService.revokeBrand(actor,brandRevoke[1],await readJson(request))};
- const entity=result.binding??result.authorization;sendJson(response,request.method==='POST'&&!entity?.reused?201:200,{...result,requestId},{...headers,'cache-control':'no-store','pragma':'no-cache'});return true;
+ const entity=result.binding??result.authorization??result.capacity;sendJson(response,request.method==='POST'&&!entity?.reused?201:200,{...result,requestId},{...headers,'cache-control':'no-store','pragma':'no-cache'});return true;
 }

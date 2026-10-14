@@ -56,12 +56,13 @@ function fixture() {
 }
 
 test('Site home offers a responsive accessible menu and donation deep link', async () => {
-  const [home, css, search, marketplace, runtime] = await Promise.all([
+  const [home, css, search, marketplace, runtime, help] = await Promise.all([
     read('../apps/site/index.html'),
     read('../apps/site/home.css'),
     read('../apps/site/search.html'),
     read('../packages/contracts/marketplace-ui.js'),
     read('../apps/site/home.js'),
+    read('../apps/site/help.html'),
   ]);
   assert.match(home, /id="site-menu-toggle"[^>]*aria-controls="site-navigation"[^>]*aria-expanded="false"/);
   assert.match(home, /id="site-navigation"[^>]*aria-label="Navegação principal"/);
@@ -70,14 +71,51 @@ test('Site home offers a responsive accessible menu and donation deep link', asy
     'Como funciona', 'Categorias', 'Anunciar', 'Doações', 'Ajuda',
   ]);
   assert.match(home, /href="\/site\/search\?kind=donation">Doações<\/a>/);
+  const footer = home.match(/<div class="site-footer-groups">([\s\S]*?)<\/div><small>/)?.[1] ?? '';
+  assert.deepEqual([...footer.matchAll(/<nav class="site-footer-group" aria-label="([^"]+)"/g)].map(([, label]) => label), [
+    'Plataforma', 'Institucional', 'Suporte', 'Conta',
+  ]);
+  for (const href of ['/site/home#categorias', '/site/search?kind=donation', '/site/help#canais', '/site/help#politicas', '/app/privacy', '/app/register']) {
+    assert.ok(footer.includes(`href="${href}"`), `Home footer link missing: ${href}`);
+  }
+  assert.match(help, /id="politicas"/);
+  assert.match(help, /Termos e privacidade em revisão/);
+  assert.match(help, /id="canais"/);
+  assert.match(help, /canais oficiais e prazos de resposta ainda não foram definidos/);
   assert.match(home, /class="button primary site-mobile-publish" href="\/site\/publish">Publicar<\/a>/);
   assert.match(css, /@media \(max-width: 991px\)/);
   assert.match(css, /\.site-navigation\[data-open="true"\]/);
   assert.match(css, /min-height: 44px/);
   assert.match(runtime, /bindResponsiveSiteNavigation/);
   assert.match(search, /id="site-filter-kind"/);
-  assert.match(marketplace, /searchParams\.get\('kind'\)/);
+  assert.match(search, /id="site-filter-category"/);
+  assert.match(search, /id="site-filter-size"/);
+  assert.match(marketplace, /requested\.get\('category'\)/);
+  assert.match(marketplace, /requested\.get\('kind'\)/);
   assert.match(marketplace, /kind: kindFilter\?\.value/);
+  assert.match(marketplace, /category: categoryFilter\?\.value/);
+  assert.match(marketplace, /size: sizeFilter\?\.value/);
+});
+
+test('customer Site pages load one shared footer and retain their own status note', async () => {
+  const pages = ['index', 'help', 'impact', 'login', 'publish', 'search', 'detail', 'favorites', 'seller'];
+  const documents = await Promise.all(pages.map(page => read(`../apps/site/${page}.html`)));
+  for (const [index, document] of documents.entries()) {
+    assert.match(document, /<footer class="site-footer/);
+    assert.match(document, /src="\/apps\/site\/footer\.js"/);
+    assert.ok(document.includes('site-footer'), `${pages[index]} has no footer host`);
+  }
+  const [footer, css] = await Promise.all([
+    read('../apps/site/footer.js'),
+    read('../apps/site/footer.css'),
+  ]);
+  for (const label of ['Plataforma', 'Institucional', 'Suporte', 'Conta']) assert.match(footer, new RegExp(`aria-label="${label}"`));
+  assert.match(footer, /footer\.querySelector\('small'\)/);
+  assert.match(footer, /escapeHtml\(pageNote\)/);
+  assert.match(footer, /Termos e privacidade \(em revisão\)/);
+  assert.match(documents[1], /canais oficiais e prazos de resposta ainda não foram definidos/);
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 575px\)/);
 });
 
 test('mobile Site navigation opens with focus, traps Tab, closes on link/Escape and restores focus', () => {

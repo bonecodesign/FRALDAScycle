@@ -144,9 +144,10 @@ test("chat access is authorized by transaction participation and confirmed payme
   });
 });
 
-test("HTTP marketplace keeps public reads open and protects writes", async (context) => {
+test("HTTP marketplace keeps public reads open, forwards category/size, and protects writes", async (context) => {
+  let searchFilters;
   const marketplaceService = {
-    async search() { return [{ id: "item-1", title: "Fraldas M" }]; },
+    async search(filters) { searchFilters = filters; return [{ id: "item-1", title: "Fraldas M" }]; },
     async detail() { return { id: "item-1", title: "Fraldas M" }; },
     async create(userId, input) { return { id: "item-2", sellerId: userId, ...input }; },
     async favorites() { return []; },
@@ -162,6 +163,10 @@ test("HTTP marketplace keeps public reads open and protects writes", async (cont
   const search = await fetch(`${origin}/v1/listings`);
   assert.equal(search.status, 200);
   assert.equal((await search.json()).items.length, 1);
+  const filtered = await fetch(`${origin}/v1/listings?category=swim&size=RN%2B`);
+  assert.equal(filtered.status, 200);
+  assert.equal(searchFilters.category, "swim");
+  assert.equal(searchFilters.size, "RN+");
 
   const denied = await fetch(`${origin}/v1/listings`, {
     method: "POST", headers: { "content-type": "application/json" }, body: "{}",
@@ -188,6 +193,10 @@ test("marketplace validates radius and orders PostgreSQL results by distance", a
   const store = repository();
   store.search = async (input) => { filters = input; return []; };
   const service = createMarketplaceService(store);
+  await service.search({ category: "swim", size: "P/M" });
+  assert.equal(filters.category, "swim");
+  assert.equal(filters.size, "P/M");
+  await assert.rejects(service.search({ category: "reusable" }), error => error.code === "invalid_category" && error.status === 422);
   await service.search({ latitude: "-19.9167", longitude: "-43.9345", radiusKm: "15" });
   assert.equal(filters.latitude, -19.9167);
   assert.equal(filters.longitude, -43.9345);
@@ -203,5 +212,8 @@ test("marketplace validates radius and orders PostgreSQL results by distance", a
   assert.match(query.text, /distance_km/);
   assert.match(query.text, /6371 \* acos/);
   assert.match(query.text, /ORDER BY distance_km ASC NULLS LAST/);
-  assert.deepEqual(query.values.slice(3, 6), [-19.9167, -43.9345, 15]);
+  assert.deepEqual(query.values.slice(4, 7), [-19.9167, -43.9345, 15]);
+  await createMarketplaceRepository(database).search({ ...filters, category: "swim", size: "P/M" });
+  assert.match(query.text, /\(\$4::text IS NULL OR l\.category = \$4\)/);
+  assert.deepEqual(query.values.slice(2, 5), ["P/M", "swim", -19.9167]);
 });

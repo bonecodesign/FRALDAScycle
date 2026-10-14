@@ -27,7 +27,7 @@ export function createAdultDeclarationRepository(database) {
         )).rows[0];
         await client.query(
           `INSERT INTO audit_events(actor_user_id, action, entity_type, entity_id, metadata)
-           VALUES($1, 'account.adult.declared', 'user', $1::text, $2::jsonb)`,
+           VALUES($1::uuid, 'account.adult.declared', 'user', $1::uuid::text, $2::jsonb)`,
           [actorUserId, JSON.stringify({ version })],
         );
         return { ...state, reused: false };

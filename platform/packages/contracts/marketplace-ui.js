@@ -45,11 +45,12 @@ export function renderListingCard(item, surface) {
   return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span> ${condition} ${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
 }
 
-export async function loadLiveSearch({ surface, query = "", kind = "", size = "", latitude = null, longitude = null, radiusKm = null }) {
+export async function loadLiveSearch({ surface, query = "", kind = "", size = "", category = "", latitude = null, longitude = null, radiusKm = null }) {
   const params = new URLSearchParams();
   if (query) params.set("query", query);
   if (kind) params.set("kind", { Venda: "sale", Troca: "exchange", Doação: "donation" }[kind] ?? kind);
   if (size) params.set("size", size);
+  if (category) params.set("category", category);
   if (latitude != null && longitude != null) {
     params.set("latitude", latitude);
     params.set("longitude", longitude);
@@ -64,12 +65,20 @@ export async function renderSiteSearch() {
   const input = document.querySelector("#q");
   if (!grid || !input) return;
   const kindFilter = document.querySelector('#site-filter-kind');
-  const requestedKind = new URL(window.location.href).searchParams.get('kind');
+  const categoryFilter = document.querySelector('#site-filter-category');
+  const sizeFilter = document.querySelector('#site-filter-size');
+  const requested = new URL(window.location.href).searchParams;
+  const requestedKind = requested.get('kind');
   if (kindFilter && ['sale', 'exchange', 'donation'].includes(requestedKind)) kindFilter.value = requestedKind;
+  if (categoryFilter && ['infant', 'swim'].includes(requested.get('category'))) categoryFilter.value = requested.get('category');
+  if (sizeFilter && [...sizeFilter.options].some((option) => option.value === requested.get('size'))) sizeFilter.value = requested.get('size');
   let timer;
   async function refresh() {
     try {
-      const { items, markup } = await loadLiveSearch({ surface: "site", query: input.value.trim(), kind: kindFilter?.value ?? '' });
+      const { items, markup } = await loadLiveSearch({
+        surface: "site", query: input.value.trim(), kind: kindFilter?.value ?? '',
+        category: categoryFilter?.value ?? '', size: sizeFilter?.value ?? '',
+      });
       grid.innerHTML = items.length ? markup : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum anúncio encontrado</h2><p>Tente outro termo de busca.</p></div>';
       document.documentElement.dataset.marketplaceState = items.length ? "live" : "empty";
     } catch (error) {
@@ -79,6 +88,8 @@ export async function renderSiteSearch() {
   }
   input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(refresh, 250); });
   kindFilter?.addEventListener('change', refresh);
+  categoryFilter?.addEventListener('change', refresh);
+  sizeFilter?.addEventListener('change', refresh);
   await refresh();
 }
 

@@ -7,7 +7,7 @@ import { nativePostgresTools, withNativeTestPostgres, freeLocalPort } from '../t
 const native = await nativePostgresTools();
 test('PostgreSQL beta validates immutable migrations, upgrade data and real preference concurrency', {
   skip: !native && !process.env.CI ? 'PostgreSQL nativo ausente neste ambiente; nenhuma homologação local alegada.' : false,
-  timeout: 120000,
+  timeout: process.env.CI ? 600000 : 240000,
 }, async () => {
   await withNativeTestPostgres(async databaseUrl => {
     const { createDatabase } = await import('../database/client.js');

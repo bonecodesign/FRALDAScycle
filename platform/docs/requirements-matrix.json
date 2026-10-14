@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-05",
-  "baseline": "2c14f89e59d4f219051378ace2f2b2d6af231018",
+  "updatedAt": "2026-10-14",
+  "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
     {
@@ -224,17 +224,18 @@
     {
       "id": 16,
       "title": "Conclusão da troca",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
         "database/exchange-repository.js",
         "database/receipt-repository.js",
         "apps/api/exchange-service.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Conclusão local exige exatamente duas pernas atribuídas, entregues, com comprovante, aprovação e validação independentes, e ausência financeira.",
-      "reason": "Conclusão, recusa e cancelamento bilateral reversível implementados; operação real e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "Dez testes, incluindo prova HTTP/PostgreSQL, validam recusa, cancelamento bilateral reversível e conclusão atômica após duas entregas aprovadas e validadas, sem registro financeiro.",
+      "reason": "Escopo técnico concluído com fixtures; entrega, cobrança e operação humana reais permanecem dependências externas."
     },
     {
       "id": 17,
@@ -258,7 +259,12 @@
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
+        "database/migrations/050_institution_donation_capacity.sql",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/api/institution-access-handler.js",
         "tests/institutions.test.mjs",
+        "tests/institution-capacity.test.mjs",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
@@ -447,7 +453,7 @@
     {
       "id": 30,
       "title": "Maioridade",
-    "status": "parcial",
+    "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
@@ -460,10 +466,11 @@
       "apps/app/auth.js",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
+      "tests/adult-declaration-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-    "evidence": "Declaração FC-AGE-1, persistência, auditoria, bloqueios sensíveis e interface validados localmente sem HTTP.",
-    "reason": "Controle explícito implementado; HTTP real e PostgreSQL nativo permanecem pendentes."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
+    "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
     },
     {
       "id": 31,
@@ -824,7 +831,7 @@
     {
       "id": 54,
       "title": "Autenticação administrativa",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
@@ -832,15 +839,18 @@
         "tests/session.test.mjs",
         "apps/api/authorization.js",
         "database/admin-repository.js",
-        "tests/admin-rbac.test.mjs"
+        "tests/admin-rbac.test.mjs",
+        "tests/admin-mfa.test.mjs",
+        "tests/admin-mfa-postgres.test.mjs",
+        "tests/admin-mfa-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Contas individuais existem; dois fatores ainda necessários antes da operação real."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam senha sem sessão, desafio MFA curto, código incorreto rejeitado, código correto de uso único e criação da sessão privilegiada somente após o segundo fator; concorrência e limites possuem teste PostgreSQL dedicado.",
+      "reason": "Contas individuais e autenticação administrativa em dois fatores concluídas no escopo beta, sem dispensar homologação do canal de entrega."
     },
     {
       "id": 55,
       "title": "Revogação administrativa",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
@@ -850,10 +860,11 @@
         "tests/identity.test.mjs",
         "tests/session.test.mjs",
         "tests/postgres-beta.test.mjs",
+        "tests/admin-session-revocation-postgres.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Revogação e sessões implementadas; ensaio operacional real pendente."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam listagem, revogação exclusiva das outras sessões, preservação da sessão atual, perda imediata de acesso e auditoria da contagem.",
+      "reason": "Revogação administrativa das demais sessões, preservação da sessão atual e trilha de auditoria concluídas no escopo beta."
     },
     {
       "id": 56,
@@ -951,57 +962,68 @@
     {
       "id": 63,
       "title": "Doação aberta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "tests/approved-business-rules.test.mjs",
+        "tests/donation-refusal-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Declaração e validação do pacote existem; jornada de recebimento/recusa pendente."
+      "evidence": "Teste HTTP/PostgreSQL exige declaração sanitária, persiste duas fotos e a condição aberta, recusa instituição sem aceite e atravessa confirmação e recusa institucional preservando o histórico.",
+      "reason": "Fluxo técnico beta de doação aberta concluído; inspeção física e participantes humanos permanecem dependências de ativação, sem serem simulados como evidência."
     },
     {
       "id": 64,
       "title": "Recusa de doação",
-    "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-      "tests/local-cancellation-support.test.mjs",
-      "database/migrations/032_donation_refusal.sql",
-      "database/migrations/039_donor_post_refusal_decision.sql",
-      "database/migrations/040_donation_redirect_institution.sql",
-      "database/donation-repository.js",
-      "apps/api/donation-service.js",
-      "apps/api/donation-handler.js",
-      "apps/app/donations.js",
-      "tests/donation-service.test.mjs",
-      "docs/donation-beta.md"
+        "tests/local-cancellation-support.test.mjs",
+        "database/migrations/032_donation_refusal.sql",
+        "database/migrations/039_donor_post_refusal_decision.sql",
+        "database/migrations/040_donation_redirect_institution.sql",
+        "database/migrations/049_donation_confirmation_version_consistency.sql",
+        "database/donation-repository.js",
+        "apps/api/donation-service.js",
+        "apps/api/donation-handler.js",
+        "apps/app/donations.js",
+        "tests/donation-service.test.mjs",
+        "tests/donation-refusal-http-postgres.test.mjs",
+        "docs/donation-beta.md"
       ],
-    "evidence": "Onze testes locais validam recusa, republicação, redirecionamento para instituição verificada, encerramento, idempotência e preservação do histórico original.",
-    "reason": "Recusa e três escolhas posteriores do doador implementadas; HTTP, PostgreSQL nativo e operação institucional real permanecem pendentes."
+      "evidence": "Teste dedicado atravessa autenticação, HTTP e PostgreSQL para três recusas, republicação, redirecionamento e encerramento, incluindo repetição idempotente, auditoria e preservação do histórico original.",
+      "reason": "Fluxo técnico beta comprovado de ponta a ponta; operação institucional humana permanece como dependência de ativação, sem invalidar a conclusão do requisito de software."
     },
     {
       "id": 65,
       "title": "Capacidade institucional",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
+        "database/migrations/050_institution_donation_capacity.sql",
+        "database/institution-access-repository.js",
+        "apps/api/institution-access-service.js",
+        "apps/api/institution-access-handler.js",
+        "apps/app/institution-access.js",
         "tests/institutions.test.mjs",
+        "tests/institution-capacity.test.mjs",
+        "tests/institution-capacity-http-postgres.test.mjs",
         "database/donation-repository.js",
         "apps/api/donation-service.js",
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
-        "docs/donation-beta.md"
+        "docs/donation-beta.md",
+        "docs/institution-capacity-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Estado revalidado sob trava, anúncios novos pausados/publicação e retomada bloqueadas; operações confirmadas/histórico preservados. Capacidade/equipe real e intermediação dos casos pendentes."
+      "evidence": "Interface e prova HTTP/PostgreSQL validam pausa/retomada pelo representante verificado, versão, conflito, anúncios livres pausados, operações existentes preservadas, eventos e auditoria.",
+      "reason": "Escopo técnico concluído; espaço, equipe, horário e capacidade operacional real permanecem dependências de ativação e piloto."
     },
     {
       "id": 66,
       "title": "Marca institucional",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/035_institution_brand_authorizations.sql",
         "database/institution-access-repository.js",
@@ -1009,10 +1031,11 @@
         "apps/api/institution-access-handler.js",
         "apps/app/institution-access.js",
         "tests/institution-brand-authorization.test.mjs",
+        "tests/institution-brand-http-postgres.test.mjs",
         "docs/institution-brand-authorization-beta.md"
       ],
-      "evidence": "Cinco testes locais validam autoridade exclusiva do representante, finalidade, canais, materiais, prazo, revogação, auditoria e leitura pública fechada.",
-      "reason": "Fundação local implementada; revisão jurídica, mídia real e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "Seis testes, incluindo prova HTTP/PostgreSQL, validam autoridade exclusiva do representante verificado, consulta administrativa, finalidade, canais, materiais, vigência, conflito de versão, revogação idempotente, auditoria e leitura pública fechada.",
+      "reason": "Mecanismo técnico beta concluído; revisão jurídica e aprovação de mídia real permanecem dependências de ativação e não são apresentadas como executadas."
     },
     {
       "id": 67,
@@ -1029,22 +1052,23 @@
     {
       "id": 68,
       "title": "Pausa operacional",
-    "status": "parcial",
+    "status": "concluido",
     "references": [
       "database/migrations/031_operational_control.sql",
       "database/operational-control-repository.js",
       "apps/api/operational-control.js",
       "apps/admin/operations.html",
       "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
       "docs/operational-control-beta.md"
     ],
-    "evidence": "Seis contratos específicos sem socket, regressão 83/83, sintaxe e contratos de migração aprovados localmente.",
-    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas; HTTP real e PostgreSQL nativo pendentes."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
+    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
     },
     {
       "id": 69,
       "title": "Retomada",
-    "status": "parcial",
+    "status": "concluido",
       "references": [
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
@@ -1054,10 +1078,11 @@
       "apps/api/operational-control.js",
       "apps/admin/operations.html",
       "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
       "docs/operational-control-beta.md"
       ],
-    "evidence": "Autorização administrativa, confirmação, motivo, versão e auditoria validados sem socket; piloto permanece NO-GO.",
-    "reason": "Retomada persistente e auditada implementada; HTTP real e PostgreSQL nativo pendentes, sem autorização de piloto real."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
+    "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
     },
     {
       "id": 70,

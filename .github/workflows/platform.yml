@@ -54,10 +54,29 @@ jobs:
       - name: Validate production syntax
         run: npm run check:production
       - name: Run platform tests
-        run: npm test
+        run: node tools/run-foundation-tests.mjs
       - name: Validate synchronized prototype
         working-directory: .
         run: node qa-regression.mjs
+
+  browser-postgres:
+    needs: foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate PostgreSQL and browser beta in isolation
+        run: node --test tests/postgres-beta.test.mjs
 
   listing-postgres:
     runs-on: ubuntu-latest
