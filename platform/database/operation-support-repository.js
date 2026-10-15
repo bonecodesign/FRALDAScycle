@@ -62,7 +62,8 @@ export function createOperationSupportRepository(database) {
     async supportCancellationDecision({ actorId,ticketId,reason }) {
       return database.transaction(async client => {
         const found=await client.query(`SELECT st.id AS ticket_id,st.transaction_id,st.category,st.status AS ticket_status,
-          t.status AS transaction_status,p.id AS payment_intent_id,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents
+          t.status AS transaction_status,t.address_shared_at,p.id AS payment_intent_id,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,
+          EXISTS(SELECT 1 FROM shipments s WHERE s.transaction_id=t.id AND (s.status IN ('picked_up','in_transit','delivered') OR EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN ('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id))) AS collected
           FROM support_tickets st JOIN transactions t ON t.id=st.transaction_id
           JOIN payment_intents p ON p.transaction_id=t.id AND p.status='paid'
           WHERE st.id=$1 AND st.category='cancellation'
@@ -72,18 +73,30 @@ export function createOperationSupportRepository(database) {
         if(['completed','cancelled','refunded'].includes(row.transaction_status))throw fail('transaction_not_cancellable',409,'A operação já foi encerrada.');
         const existing=await client.query('SELECT * FROM supported_cancellations WHERE transaction_id=$1',[row.transaction_id]);
         if(existing.rows[0])return {cancellation:existing.rows[0],reused:true};
-        const refund=row.amount_cents-row.platform_fee_cents-row.delivery_fee_cents;
+        const phase=row.collected===false&&!row.address_shared_at?'pre_collection':'post_milestone';
+        const retainedPlatformFee=phase==='pre_collection'?0:row.platform_fee_cents;
+        const refund=row.amount_cents-retainedPlatformFee-row.delivery_fee_cents;
         const created=await client.query(`INSERT INTO supported_cancellations
-          (transaction_id,support_ticket_id,payment_intent_id,decided_by,gross_amount_cents,retained_platform_fee_cents,retained_delivery_fee_cents,refund_amount_cents,reason)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[row.transaction_id,ticketId,row.payment_intent_id,actorId,row.amount_cents,row.platform_fee_cents,row.delivery_fee_cents,refund,reason]);
+          (transaction_id,support_ticket_id,payment_intent_id,decided_by,gross_amount_cents,retained_platform_fee_cents,retained_delivery_fee_cents,refund_amount_cents,reason,cancellation_phase)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[row.transaction_id,ticketId,row.payment_intent_id,actorId,row.amount_cents,retainedPlatformFee,row.delivery_fee_cents,refund,reason,phase]);
         await client.query("UPDATE transactions SET status='disputed',updated_at=now() WHERE id=$1",[row.transaction_id]);
         await client.query("UPDATE support_tickets SET status='under_review',updated_at=now() WHERE id=$1",[ticketId]);
         await client.query(`UPDATE transaction_contact_access SET revoked_at=now(),revoked_by=$2,revocation_reason='supported_cancellation'
           WHERE transaction_id=$1 AND revoked_at IS NULL`,[row.transaction_id,actorId]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES($1,'transaction.supported_cancellation.decided','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({supportTicketId:ticketId,grossAmountCents:row.amount_cents,retainedPlatformFeeCents:row.platform_fee_cents,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:refund})]);
+          VALUES($1,'transaction.supported_cancellation.decided','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({supportTicketId:ticketId,phase,grossAmountCents:row.amount_cents,retainedPlatformFeeCents:retainedPlatformFee,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:refund})]);
         return {cancellation:created.rows[0],reused:false};
       });
+    },
+    async supportCancellationPreview({actorId,ticketId}) {
+      const result=await database.query(`SELECT st.id AS ticket_id,t.id AS transaction_id,t.address_shared_at,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,
+        EXISTS(SELECT 1 FROM shipments s WHERE s.transaction_id=t.id AND (s.status IN ('picked_up','in_transit','delivered') OR EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN ('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id))) AS collected
+        FROM support_tickets st JOIN transactions t ON t.id=st.transaction_id JOIN payment_intents p ON p.transaction_id=t.id AND p.status='paid'
+        WHERE st.id=$1 AND st.category='cancellation' ORDER BY p.updated_at DESC LIMIT 1`,[ticketId]);
+      const row=result.rows[0];if(!row)throw fail('supported_cancellation_not_available',409,'O pedido precisa estar ligado a uma operação com pagamento confirmado.');
+      const phase=row.collected===false&&!row.address_shared_at?'pre_collection':'post_milestone',retainedPlatformFeeCents=phase==='pre_collection'?0:row.platform_fee_cents;
+      const preview={phase,grossAmountCents:row.amount_cents,refundedPlatformFeeCents:row.platform_fee_cents-retainedPlatformFeeCents,retainedPlatformFeeCents,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:row.amount_cents-retainedPlatformFeeCents-row.delivery_fee_cents,providerStatus:'pending'};
+      await database.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'transaction.supported_cancellation.previewed','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({phase})]);return preview;
     },
     async createSupportTicket(input) {
       return database.transaction(async client => {

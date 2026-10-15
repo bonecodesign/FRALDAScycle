@@ -113,6 +113,10 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       if(input?.confirmed!==true||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_cancellation_decision',422,'Confirme a decisão e informe uma justificativa de 10 a 1000 caracteres.');
       return repository.supportCancellationDecision({actorId:actor.id,ticketId,reason});
     },
+    supportCancellationPreview(actor,ticketId) {
+      requireScope(actor,"admin:support:write");
+      return repository.supportCancellationPreview({actorId:actor.id,ticketId});
+    },
     async supportOccurrenceDecision(actor,ticketId,input) {
       requireScope(actor,"admin:support:write");
       const outcome=String(input?.outcome??"").trim(),reason=String(input?.reason??"").trim();

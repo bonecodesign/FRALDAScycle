@@ -319,20 +319,24 @@
     {
       "id": 21,
       "title": "Cancelamento antes da coleta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
+        "database/migrations/052_supported_cancellation_phase.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/pre-collection-cancellation-http-postgres.test.mjs",
         "database/migrations/038_exchange_refusal_and_cancellation.sql",
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md",
+        "docs/paid-contact-and-supported-cancellation-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Venda e troca reversível possuem cancelamento protegido; devolução financeira e operação real dependem de homologação."
+      "evidence": "HTTP/PostgreSQL comprova venda sem pagamento reversível, venda paga com prévia que devolve a comissão da plataforma, marco de coleta/endereço e troca bilateral protegida.",
+      "reason": "Escopo técnico concluído; estorno, custos externos, fornecedor e operação real continuam pendentes e explicitamente não são alegados."
     },
     {
       "id": 22,
