@@ -527,14 +527,18 @@
     {
       "id": 35,
       "title": "Contatos entre partes",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "database/operation-support-repository.js",
+        "database/payment-repository.js",
+        "tests/approved-business-rules.test.mjs",
+        "tests/paid-party-contact-http-postgres.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Chat exige operação paga; compartilhamento final autorizado não implementado."
+      "evidence": "HTTP/PostgreSQL comprova contato estruturado somente após webhook pago, canais verificados, isolamento de terceiros, auditoria sem valores e revogação no cancelamento assistido.",
+      "reason": "Escopo técnico concluído; comunicação externa, estorno no provedor e operação humana permanecem separados."
     },
     {
       "id": 36,
