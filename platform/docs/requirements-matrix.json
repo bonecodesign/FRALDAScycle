@@ -570,17 +570,18 @@
     {
       "id": 38,
       "title": "Avaliações",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/reviews-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Avaliação persistida exige finalização e partes; proteção de conteúdo em padrões testados, ocultação/denúncia específicas e validação real deste lote pendentes."
+      "evidence": "HTTP/PostgreSQL comprova finalização e participação obrigatórias, idempotência, bloqueio de contato, consulta pública mínima, denúncia, ocultação provisória e decisão moderada.",
+      "reason": "Escopo técnico concluído; moderação humana e operação real continuam externas."
     },
     {
       "id": 39,
