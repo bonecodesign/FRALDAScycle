@@ -285,16 +285,17 @@
     {
       "id": 19,
       "title": "Comprovante mínimo",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
+        "tests/delivery-proof-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Vínculo, registro e foto privados existem; fornecedor e jornada real pendentes."
+      "evidence": "HTTP/PostgreSQL comprova registro atribuído e idempotente, vínculo à entrega/recebedor/localização, consulta privada, foto assinada e auditoria sem mídia ou nome.",
+      "reason": "Escopo técnico concluído; entrega, fotografia e fornecedor reais continuam externos."
     },
     {
       "id": 20,
