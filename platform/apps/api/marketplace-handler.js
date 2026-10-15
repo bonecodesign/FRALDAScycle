@@ -79,6 +79,12 @@ export async function handleMarketplace(request, response, {
     const result=await marketplaceService.supportCancellationDecision(actor,cancellationDecision[1],await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const occurrenceDecision=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/occurrence-decision$/i);
+  if(occurrenceDecision&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.supportOccurrenceDecision(actor,occurrenceDecision[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
     const items = await marketplaceService.search(Object.fromEntries(url.searchParams));

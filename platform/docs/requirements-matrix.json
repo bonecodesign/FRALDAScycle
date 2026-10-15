@@ -300,18 +300,21 @@
     {
       "id": 20,
       "title": "Divergência",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
+        "database/migrations/051_transaction_occurrences.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/transaction-occurrence-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "docs/transaction-occurrence-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Ocorrências bloqueiam consulta; resolução integral pendente."
+      "evidence": "HTTP/PostgreSQL comprova abertura tipada e idempotente, bloqueio imediato, decisão administrativa obrigatória, repetição segura e auditoria mínima.",
+      "reason": "Escopo técnico concluído; devolução, substituição, reembolso, fornecedor e operação humana reais continuam externos."
     },
     {
       "id": 21,
