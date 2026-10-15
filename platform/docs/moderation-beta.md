@@ -26,4 +26,6 @@ Uma prova HTTP/PostgreSQL dedicada acrescentada em 14 de outubro confirma o limi
 
 Uma prova HTTP/PostgreSQL dedicada acrescentada em 15 de outubro confirma a jornada de avaliações: somente partes após conclusão avaliam, repetição é idempotente, contato é bloqueado, a exposição pública é mínima e a denúncia oculta até decisão independente. Não representa moderação humana nem transação real.
 
+Outra prova HTTP/PostgreSQL de 15 de outubro confirma o chat: acesso somente após pagamento confirmado, persistência idempotente, bloqueio de e-mail/telefone/convite externo sem cópia na auditoria e exceção de falso positivo limitada ao conteúdo exato revisado. A detecção não promete reconhecer todo disfarce futuro.
+
 Matriz atualizada conserva denominador 70 e sete concluídos (10%): item 43 concluído pelo recurso protocolado e revisão independente efetivamente validados. Há 38 parciais, 13 pendentes e 12 bloqueados; demais itens de moderação continuam parciais. Prontidão para produção bloqueada, sem percentual atribuído.

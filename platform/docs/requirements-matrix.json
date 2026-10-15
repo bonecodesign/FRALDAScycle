@@ -606,7 +606,7 @@
     {
       "id": 40,
       "title": "Contatos no chat",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
@@ -616,10 +616,11 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/chat-contact-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Chat privado persistido e filtro compartilhado de disfarces; validação nativa do lote e revisão de falsos negativos pendentes."
+      "evidence": "HTTP/PostgreSQL comprova liberação somente após pagamento, bloqueio de e-mail, telefone e convite externo sem persistir os textos, idempotência e exceção revisada vinculada ao conteúdo exato.",
+      "reason": "Escopo técnico dos padrões aprovados concluído; moderação humana e evolução contínua contra novos disfarces permanecem operacionais."
     },
     {
       "id": 41,
