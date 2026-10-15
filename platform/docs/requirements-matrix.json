@@ -341,19 +341,20 @@
     {
       "id": 22,
       "title": "Após coleta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
+        "database/migrations/052_supported_cancellation_phase.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/post-collection-support-http-postgres.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md",
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
-        "docs/bilateral-exchange-beta.md",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Cancelamento direto é bloqueado após coleta, comprovante ou endereço; análise de retorno/reembolso ainda depende do suporte e fornecedor."
+      "evidence": "HTTP/PostgreSQL comprova bloqueio do cancelamento direto após coleta/endereço, prévia post_milestone, decisão assistida pendente no provedor e preservação da entrega e do anúncio.",
+      "reason": "Escopo técnico delimitado concluído; retorno, reembolso, fornecedor financeiro e análise humana reais continuam externos e não são alegados."
     },
     {
       "id": 23,
