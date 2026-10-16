@@ -383,16 +383,24 @@
     {
       "id": 24,
       "title": "Aviso de endereço",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/address-repository.js",
+        "apps/api/logistics-service.js",
+        "apps/app/addresses.html",
+        "apps/app/addresses.js",
+        "apps/app/donations.html",
+        "apps/app/donations.js",
+        "apps/app/address-changes.html",
+        "apps/app/address-changes.js",
         "tests/private-address-sharing.test.mjs",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
-        ,"docs/bilateral-exchange-beta.md"
+        "tests/address-notice-interface.test.mjs",
+        "tests/private-address-http-postgres.test.mjs",
+        "docs/private-address-sharing-beta.md",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Aviso explícito FC-ADDRESS-1 aplicado a venda, doação e troca; validação integral das interfaces e operação real permanecem pendentes."
+      "evidence": "Contrato automatizado comprova o texto aprovado integral, checkbox obrigatório, valor real da confirmação, versão FC-ADDRESS-1 e limpeza do consentimento nas interfaces geral, doação e alteração assistida.",
+      "reason": "Escopo técnico delimitado concluído; homologação humana, dispositivos e operação logística reais continuam externos e não são alegados."
     },
     {
       "id": 25,

@@ -12,3 +12,5 @@
 ## Evidência e limite
 
 O teste HTTP/PostgreSQL dedicado cria uma venda sintética, comprova bloqueios antes do pagamento e sem consentimento, isolamento por papel, leitura privada, marco de cancelamento e expiração após entrega. Não executa pagamento, entrega, transportadora, geocodificação ou validação humana reais. O prazo jurídico de retenção continua pendente e não é inventado por esta etapa.
+
+O aviso `FC-ADDRESS-1` também possui contrato integral de interface. Compartilhamento geral de venda/troca, doação institucional e alteração assistida exibem exatamente o texto aprovado, exigem checkbox, enviam o valor efetivamente marcado e limpam a confirmação ao trocar o contexto ou concluir. O backend rejeita confirmação ausente ou versão divergente.
