@@ -9,6 +9,14 @@ function enabled(flag) {
   if (!flag) throw fail("child_profiles_disabled", 404, "Perfis infantis ainda não estão disponíveis.");
 }
 
+function requireFamilyAccount(actor) {
+  requireAdultDeclaration(actor);
+  if (actor.role !== "customer") {
+    throw fail("family_profile_not_available", 403, "Use uma conta familiar para gerenciar perfis infantis.");
+  }
+  return actor;
+}
+
 function exact(input, fields) {
   if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).some(key => !fields.includes(key))) {
     throw fail("invalid_child_profile", 422, "Dados do perfil infantil inválidos.");
@@ -40,11 +48,11 @@ function publicProfile(row, referenceDate) {
 export function createChildProfileService(repository, { featureEnabled = false, now = () => new Date() } = {}) {
   return Object.freeze({
     async list(actor) {
-      enabled(featureEnabled); requireAdultDeclaration(actor);
+      enabled(featureEnabled); requireFamilyAccount(actor);
       return (await repository.list(actor.id)).map(row => publicProfile(row, now()));
     },
     async create(actor, input) {
-      enabled(featureEnabled); requireAdultDeclaration(actor);
+      enabled(featureEnabled); requireFamilyAccount(actor);
       exact(input, ["birthDate", "consentConfirmed", "consentVersion", "personalizationEnabled"]);
       if (input.consentConfirmed !== true || input.consentVersion !== CHILD_PROFILE_CONSENT_VERSION || input.personalizationEnabled !== true) {
         throw fail("child_profile_consent_required", 422, "Confirme a personalização e a versão atual do consentimento.");
@@ -53,7 +61,7 @@ export function createChildProfileService(repository, { featureEnabled = false, 
       return publicProfile(await repository.create({ accountId: actor.id, birthDate: value.birthDate, consentVersion: input.consentVersion }), now());
     },
     async update(actor, profileId, input) {
-      enabled(featureEnabled); requireAdultDeclaration(actor);
+      enabled(featureEnabled); requireFamilyAccount(actor);
       if (!UUID.test(profileId)) throw fail("child_profile_not_found", 404, "Perfil infantil não encontrado.");
       exact(input, ["birthDate", "expectedVersion"]);
       if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw fail("child_profile_version_required", 422, "Consulte a versão atual do perfil.");
@@ -64,7 +72,7 @@ export function createChildProfileService(repository, { featureEnabled = false, 
       return publicProfile(row, now());
     },
     async remove(actor, profileId, input) {
-      enabled(featureEnabled); requireAdultDeclaration(actor);
+      enabled(featureEnabled); requireFamilyAccount(actor);
       if (!UUID.test(profileId)) throw fail("child_profile_not_found", 404, "Perfil infantil não encontrado.");
       exact(input, ["confirmed", "expectedVersion"]);
       if (input.confirmed !== true || !Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw fail("child_profile_removal_confirmation_required", 422, "Confirme a remoção usando a versão atual.");
@@ -74,7 +82,7 @@ export function createChildProfileService(repository, { featureEnabled = false, 
       return { id: row.id, removed: true, personalizationEnabled: false, version: row.version };
     },
     async personalizationSignals(actor) {
-      enabled(featureEnabled); requireAdultDeclaration(actor);
+      enabled(featureEnabled); requireFamilyAccount(actor);
       const rows = await repository.list(actor.id);
       const bands = new Set(rows.filter(row => row.personalization_enabled)
         .map(row => childAgeBand(storedBirthDate(row.birth_date), now())));

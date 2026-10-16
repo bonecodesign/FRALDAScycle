@@ -512,10 +512,11 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Estrutura separada e inativa preparada; ativação depende de revisão e não altera outros perfis."
+      "evidence": "HTTP/PostgreSQL comprova isolamento por responsável e recusa contas de entregador e administrador; o recurso continua desligado por padrão.",
+    "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
       "id": 32,
@@ -525,10 +526,11 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Múltiplos perfis preparados atrás de feature flag; coleta continua bloqueada até revisão."
+      "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
+    "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
       "id": 33,
@@ -539,10 +541,11 @@
       "database/child-profile-repository.js",
       "apps/api/child-profile-service.js",
       "apps/app/family-profile.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Correção versionada e remoção que desativa personalização preparadas; retenção/purga aguardam revisão."
+      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
+    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
     },
     {
       "id": 34,

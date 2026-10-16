@@ -93,7 +93,7 @@ test("owner can manage multiple private profiles with explicit consent and versi
     async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
   };
   const service = createChildProfileService(repository, { featureEnabled: true, now: () => reference });
-  const actor = { id: "account-1", adultDeclared: true };
+  const actor = { id: "account-1", role: "customer", adultDeclared: true };
   const first = await service.create(actor, { birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
   const second = await service.create(actor, { birthDate: "2025-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
   assert.equal((await service.list(actor)).length, 2);
@@ -109,13 +109,16 @@ test("owner can manage multiple private profiles with explicit consent and versi
 
 test("child profile rejects missing consent, injected account and non-child date", async () => {
   const service = createChildProfileService({ async create() { throw new Error("must not write"); } }, { featureEnabled: true, now: () => new Date("2026-10-07T12:00:00Z") });
-  const actor = { id: "account-1", adultDeclared: true };
+  const actor = { id: "account-1", role: "customer", adultDeclared: true };
   const base = { birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true };
   await assert.rejects(service.create(actor, { ...base, consentConfirmed: false }), error => error.code === "child_profile_consent_required");
   await assert.rejects(service.create(actor, { ...base, birthDate: undefined }), error => error.code === "invalid_child_birth_date");
   await assert.rejects(service.create(actor, { ...base, accountId: "other" }), error => error.code === "invalid_child_profile");
   await assert.rejects(service.create(actor, { ...base, label: "Dado não permitido" }), error => error.code === "invalid_child_profile");
   await assert.rejects(service.create(actor, { ...base, birthDate: "2000-01-01" }), error => error.code === "invalid_child_birth_date");
+  for (const role of ["courier", "moderator", "admin"]) {
+    await assert.rejects(service.create({ ...actor, role }, base), error => error.code === "family_profile_not_available" && error.status === 403);
+  }
 });
 
 test("account interface requires adulthood and keeps child UI hidden on disabled feature", async () => {
