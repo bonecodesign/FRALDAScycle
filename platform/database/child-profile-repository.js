@@ -2,7 +2,7 @@ export function createChildProfileRepository(database) {
   return Object.freeze({
     async list(accountId) {
       const result = await database.query(
-        `SELECT id, label, birth_date, consent_version, consented_at,
+        `SELECT id, birth_date, consent_version, consented_at,
                 personalization_enabled, version, created_at, updated_at
          FROM child_profiles WHERE account_id = $1 AND deleted_at IS NULL
          ORDER BY created_at, id`,
@@ -11,13 +11,13 @@ export function createChildProfileRepository(database) {
       return result.rows;
     },
 
-    async create({ accountId, label, birthDate, consentVersion }) {
+    async create({ accountId, birthDate, consentVersion }) {
       return database.transaction(async client => {
         const row = (await client.query(
-          `INSERT INTO child_profiles(account_id, label, birth_date, consent_version, consented_at, personalization_enabled)
-           VALUES($1,$2,$3,$4,now(),true)
-           RETURNING id,label,birth_date,consent_version,consented_at,personalization_enabled,version,created_at,updated_at`,
-          [accountId, label, birthDate, consentVersion],
+          `INSERT INTO child_profiles(account_id, birth_date, consent_version, consented_at, personalization_enabled)
+           VALUES($1,$2,$3,now(),true)
+           RETURNING id,birth_date,consent_version,consented_at,personalization_enabled,version,created_at,updated_at`,
+          [accountId, birthDate, consentVersion],
         )).rows[0];
         await client.query(
           `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
@@ -28,7 +28,7 @@ export function createChildProfileRepository(database) {
       });
     },
 
-    async update({ accountId, profileId, expectedVersion, label, birthDate }) {
+    async update({ accountId, profileId, expectedVersion, birthDate }) {
       return database.transaction(async client => {
         const current = (await client.query(
           `SELECT id,version FROM child_profiles
@@ -38,10 +38,10 @@ export function createChildProfileRepository(database) {
         if (!current) return null;
         if (current.version !== expectedVersion) return { conflict: true };
         const row = (await client.query(
-          `UPDATE child_profiles SET label=$3,birth_date=$4,version=version+1,updated_at=now()
+          `UPDATE child_profiles SET birth_date=$3,version=version+1,updated_at=now()
            WHERE id=$1 AND account_id=$2
-           RETURNING id,label,birth_date,consent_version,consented_at,personalization_enabled,version,created_at,updated_at`,
-          [profileId, accountId, label, birthDate],
+           RETURNING id,birth_date,consent_version,consented_at,personalization_enabled,version,created_at,updated_at`,
+          [profileId, accountId, birthDate],
         )).rows[0];
         await client.query(
           `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)

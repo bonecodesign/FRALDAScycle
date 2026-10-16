@@ -427,11 +427,16 @@
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
+      "database/migrations/053_child_profile_data_minimization.sql",
       "apps/api/child-profile-service.js",
+      "database/child-profile-repository.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Fundação técnica permanece desativada; revisão de privacidade obrigatória antes de coleta ou uso."
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
+    "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
       "id": 27,

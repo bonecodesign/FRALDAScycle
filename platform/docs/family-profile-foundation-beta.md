@@ -6,7 +6,7 @@ O cadastro exige declaração explícita e versionada `FC-AGE-1`, sem coletar da
 
 ## Perfis infantis preparados, mas inativos
 
-A fundação suporta múltiplos perfis por conta, apelido opcional, data de nascimento privada, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. O mecanismo interno deriva somente uma faixa etária; a data exata não integra os sinais de ofertas nem é exposta a parceiros.
+A fundação suporta múltiplos perfis por conta, somente data de nascimento privada, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente uma faixa etária; a data exata não integra os sinais de ofertas nem é exposta a parceiros.
 
 `CHILD_PROFILES_ENABLED` é falso por padrão. Enquanto estiver desligado, o serviço retorna `404` antes de consultar ou escrever no banco e a interface infantil não é criada. Nenhuma coleta infantil fica ativa nesta entrega.
 
@@ -20,6 +20,6 @@ Antes de habilitar a feature são obrigatórias revisão jurídica e de privacid
 - Declaração integrada ao cadastro e às novas operações sensíveis.
 - Serviço privado com criação, correção, remoção, múltiplos perfis e proteção concorrente.
 - Interface adulta ativa; interface infantil condicionada ao backend habilitado.
-- 11/11 contratos familiares e 83/83 regressões aprovados sem HTTP.
+- 12/12 verificações focadas aprovadas, incluindo HTTP/PostgreSQL nativo, isolamento por conta, correção, remoção, auditoria e ausência da antiga coluna de apelido.
 
-HTTP real e PostgreSQL nativo permanecem pendentes. O item 30 é parcial. Os itens 26–28 e 31–33 continuam bloqueados; código inativo não substitui autorização jurídica nem ativa coleta.
+O item 30 está concluído. Os itens 26–28 e 31–33 continuam bloqueados; código inativo e testes sintéticos não substituem autorização jurídica nem ativam coleta.
