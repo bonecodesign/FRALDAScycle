@@ -93,7 +93,7 @@
     {
       "id": 7,
       "title": "Retorno ao gratuito",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
@@ -101,11 +101,13 @@
         "database/premium-repository.js",
         "apps/api/premium-service.js",
         "apps/app/premium.html",
+        "workers/premium.js",
+        "tests/premium-worker.test.mjs",
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
-      "reason": "Escolha e pausa/retomada persistidas, quota concorrente e proteção das operações; agendamento periódico ainda pendente."
+      "evidence": "Regras, PostgreSQL e navegador comprovam escolha, quota e preservação; worker testado executa regularização periódica sequencial, delimitada e sem cobrança.",
+      "reason": "Retorno automático ao gratuito concluído no escopo técnico; ativação do perfil de deploy continua decisão operacional."
     },
     {
       "id": 8,
