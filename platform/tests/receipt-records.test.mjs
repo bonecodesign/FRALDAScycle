@@ -90,6 +90,7 @@ test('evidence read limits access to parties or authorized reviewer and reports 
     assert.equal(proof.approvedAt, null);
     assert.equal(proof.validatedAt, null);
     assert.equal(proof.payoutStatus, 'not_configured');
+    assert.equal('mediaKey' in proof, false);
   }
   const db = database();
   await createReceiptRepository(db).receiptEvidence({ userId: 'outsider', shipmentId });

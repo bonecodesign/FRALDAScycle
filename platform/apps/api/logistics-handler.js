@@ -49,7 +49,7 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
   if(receipt && request.method==="GET" && receipt[2]==="proof"){
     const actor=await authenticatedUser(request,authService);
     const proof=await logisticsService.receiptEvidence(actor,receipt[1]);
-    sendJson(response,200,{proof,requestId},headers);return true;
+    sendJson(response,200,{proof,requestId},{...headers,"cache-control":"no-store","pragma":"no-cache"});return true;
   }
   if(receipt && request.method==="POST" && receipt[2]!=="proof"){
     const actor=await authenticatedUser(request,authService);

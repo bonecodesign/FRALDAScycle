@@ -83,7 +83,7 @@ export function createLogisticsService(repository,provider,mediaProvider){
       });
       if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
       return {
-        id: proof.id, mediaKey: proof.media_key, courierId: proof.courier_id,
+        id: proof.id, courierId: proof.courier_id,
         createdAt: proof.created_at, approvedAt: proof.approved_at ?? null,
         validatedAt: proof.validated_at ?? null, payoutStatus: "not_configured",
       };

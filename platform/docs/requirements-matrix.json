@@ -405,16 +405,20 @@
     {
       "id": 25,
       "title": "Acesso ao comprovante",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
+        "apps/api/logistics-handler.js",
         "tests/receipt-records.test.mjs",
+        "tests/admin-proof-review.test.mjs",
+        "tests/delivery-proof-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "docs/proof-access-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Permissão e mídia privada implementadas para venda; prazos de retenção pendentes."
+      "evidence": "HTTP/PostgreSQL comprova autenticação, acesso exclusivo das partes, entregador atribuído e suporte autorizado, bloqueio sem exposição para terceiros, metadados sem chave interna, no-store e foto por leitura assinada privada.",
+      "reason": "Escopo de acesso aprovado concluído; retenção é deliberadamente definida em requisito separado e fornecedor/homologação reais permanecem externos."
     },
     {
       "id": 26,
