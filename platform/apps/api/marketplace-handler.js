@@ -150,6 +150,17 @@ export async function handleMarketplace(request, response, {
     const contact=await marketplaceService.transactionContact(user.id,contactAccess[1]);
     sendJson(response,200,{contact,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const contactAuthorization=url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/contact-authorization$/i);
+  if(request.method==='GET'&&contactAuthorization){
+    const user=await authenticatedUser(request,authService);
+    const authorization=await marketplaceService.transactionContactAuthorization(user.id,contactAuthorization[1]);
+    sendJson(response,200,{authorization,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  if(request.method==='PUT'&&contactAuthorization){
+    const user=await authenticatedUser(request,authService);
+    const authorization=await marketplaceService.authorizeTransactionContact(user.id,contactAuthorization[1],await readJson(request));
+    sendJson(response,200,{authorization,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
 
   const transactionAction = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/(cancel|complete)$/i);
   if (request.method === "POST" && transactionAction) {

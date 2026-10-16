@@ -274,6 +274,18 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
       return repository.transactionContact({actorId:userId,transactionId});
     },
+    async authorizeTransactionContact(userId,transactionId,input) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
+      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['emailAllowed','phoneAllowed','confirmed','expectedVersion'].includes(key))||
+        typeof input.emailAllowed!=='boolean'||typeof input.phoneAllowed!=='boolean'||input.confirmed!==true||!Number.isInteger(input.expectedVersion)||input.expectedVersion<0){
+        throw new MarketplaceError('invalid_contact_authorization',422,'Confirme os canais e a versão atual da autorização.');
+      }
+      return repository.authorizeTransactionContact({actorId:userId,transactionId,emailAllowed:input.emailAllowed,phoneAllowed:input.phoneAllowed,expectedVersion:input.expectedVersion});
+    },
+    async transactionContactAuthorization(userId,transactionId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
+      return repository.transactionContactAuthorization({actorId:userId,transactionId});
+    },
   });
 }
 

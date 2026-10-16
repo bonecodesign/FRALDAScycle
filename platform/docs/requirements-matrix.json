@@ -593,18 +593,21 @@
     {
       "id": 37,
       "title": "Autorização de contatos",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/034_paid_contact_and_supported_cancellation.sql",
+        "database/migrations/054_transaction_contact_authorization.sql",
         "database/operation-support-repository.js",
         "database/payment-repository.js",
         "apps/api/marketplace-service.js",
+        "apps/app/chat.html",
         "apps/app/negotiation.js",
         "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "tests/paid-party-contact-http-postgres.test.mjs",
         "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "Pagamento confirmado libera contato estruturado e auditado entre as partes; cancelamento pós-pagamento exige suporte, calcula taxas registradas e revoga o acesso.",
-      "reason": "Fluxo local implementado; estorno no provedor, validação PostgreSQL/HTTP e homologação financeira continuam pendentes."
+      "evidence": "HTTP/PostgreSQL comprova que pagamento apenas habilita a escolha: cada titular autoriza e revoga seus canais com confirmação e versão; terceiros e versões antigas são recusados.",
+      "reason": "Autorização expressa por titular e canal concluída no escopo técnico; comunicação e estorno externos permanecem separados."
     },
     {
       "id": 38,

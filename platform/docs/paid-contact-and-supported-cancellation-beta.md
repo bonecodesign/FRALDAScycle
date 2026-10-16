@@ -3,7 +3,8 @@
 ## Regra implementada
 
 - O chat continua rejeitando telefone, e-mail, links, QR Codes e redes sociais no texto.
-- Em vendas, o webhook autenticado `payment.paid` libera o contato estruturado entre comprador e vendedor.
+- Em vendas, o webhook autenticado `payment.paid` apenas torna a escolha disponível. Cada titular precisa autorizar expressamente seus próprios canais antes que a outra parte possa consultá-los.
+- A autorização é separada por e-mail e telefone, confirmada, versionada e revogável; pagamento sozinho nunca expõe o contato.
 - Apenas telefone e e-mail verificados podem ser exibidos; a leitura é individualmente auditada sem copiar o valor do contato para o log.
 - Operações não pagas, reembolsadas, canceladas, revogadas ou acessadas por terceiros falham de forma fechada.
 - O entregador atribuído recebe somente um telefone verificado durante a etapa ativa: vendedor para coleta; comprador para entrega. A permissão termina ao entregar, cancelar ou perder a atribuição; suporte e administrador não herdam esse acesso.
@@ -19,7 +20,7 @@ O código local não afirma que o dinheiro foi devolvido. O envio e a confirmaç
 
 A exceção logística de contato possui prova HTTP/PostgreSQL dedicada: cliente e administrador são recusados, outro entregador não acessa, o entregador atribuído vê somente o telefone verificado do vendedor na coleta e do comprador durante a entrega, e perde o acesso após a conclusão. A auditoria registra apenas canal e finalidade, nunca o telefone. Nenhuma chamada ou operação logística real foi executada.
 
-O contato entre comprador e vendedor também possui prova HTTP/PostgreSQL dedicada: permanece fechado antes do webhook pago, expõe somente canais verificados da outra parte, recusa terceiros, audita apenas os nomes dos canais e é revogado pelo cancelamento assistido. O teste não executa comunicação externa nem estorno no provedor.
+O contato entre comprador e vendedor também possui prova HTTP/PostgreSQL dedicada: permanece fechado antes do webhook pago e depois dele enquanto o titular não autorizar, expõe somente os canais verificados escolhidos, recusa terceiros e versões antigas, permite revogação e audita apenas nomes de canais. O cancelamento assistido revoga o acesso global. O teste não executa comunicação externa nem estorno no provedor.
 
 Uma prova HTTP/PostgreSQL de 15 de outubro cobre o cancelamento antes da coleta. Venda ainda sem pagamento é cancelada diretamente e o anúncio retorna conforme a capacidade de publicação. Venda paga exige suporte; a prévia mostra valor bruto, comissão devolvida, custos registrados, valor projetado e estado pendente do provedor. A decisão conserva anúncio indisponível e transação em disputa até o estorno externo. Troca aceita continua exigindo confirmação bilateral e ausência de coleta, comprovante ou endereço compartilhado.
 

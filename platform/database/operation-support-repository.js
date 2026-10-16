@@ -41,23 +41,60 @@ export function createOperationSupportRepository(database) {
       return database.transaction(async client => {
         const result=await client.query(`SELECT t.id,t.status,l.kind,
           peer.display_name,peer.email,peer.phone,peer.email_verified_at,peer.phone_verified_at,
-          a.unlocked_at,a.revoked_at
+          a.unlocked_at,a.revoked_at,consent.email_allowed,consent.phone_allowed
           FROM transactions t JOIN listings l ON l.id=t.listing_id
           JOIN transaction_contact_access a ON a.transaction_id=t.id
           JOIN users peer ON peer.id=CASE WHEN t.buyer_id=$2 THEN t.seller_id ELSE t.buyer_id END
+          JOIN transaction_contact_authorizations consent ON consent.transaction_id=t.id AND consent.holder_id=peer.id
           WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) AND l.kind='sale'
-            AND a.revoked_at IS NULL AND t.status NOT IN ('cancelled','refunded')
+            AND a.revoked_at IS NULL AND consent.revoked_at IS NULL AND t.status NOT IN ('cancelled','refunded')
             AND EXISTS (SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN ('paid','disputed'))`,[transactionId,actorId]);
         const row=result.rows[0];
-        if(!row)throw fail('contact_not_available',409,'O contato fica disponível somente após a confirmação do pagamento.');
+        if(!row)throw fail('contact_not_available',409,'O contato exige pagamento confirmado e autorização expressa da outra parte.');
         const contact={displayName:row.display_name,unlockedAt:row.unlocked_at};
-        if(row.phone_verified_at&&row.phone)contact.phone=row.phone;
-        if(row.email_verified_at&&row.email)contact.email=row.email;
+        if(row.phone_allowed&&row.phone_verified_at&&row.phone)contact.phone=row.phone;
+        if(row.email_allowed&&row.email_verified_at&&row.email)contact.email=row.email;
         if(!contact.phone&&!contact.email)throw fail('verified_contact_unavailable',409,'A outra parte ainda não possui contato verificado disponível.');
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'transaction.contact.read','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({channels:Object.keys(contact).filter(key=>['phone','email'].includes(key))})]);
         return contact;
       });
+    },
+    async authorizeTransactionContact({actorId,transactionId,emailAllowed,phoneAllowed,expectedVersion}) {
+      return database.transaction(async client => {
+        const access=(await client.query(`SELECT t.id FROM transactions t JOIN listings l ON l.id=t.listing_id
+          JOIN transaction_contact_access a ON a.transaction_id=t.id
+          WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) AND l.kind='sale' AND a.revoked_at IS NULL
+          AND t.status NOT IN ('cancelled','refunded')
+          AND EXISTS(SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN ('paid','disputed'))
+          FOR UPDATE OF t`,[transactionId,actorId])).rows[0];
+        if(!access)throw fail('contact_authorization_not_available',409,'A autorização exige uma venda com pagamento confirmado.');
+        const current=(await client.query('SELECT * FROM transaction_contact_authorizations WHERE transaction_id=$1 AND holder_id=$2 FOR UPDATE',[transactionId,actorId])).rows[0];
+        const version=current?.version??0;
+        if(version!==expectedVersion)throw fail('contact_authorization_version_conflict',409,'A autorização mudou; consulte novamente.');
+        const revoked=!emailAllowed&&!phoneAllowed;
+        const row=(await client.query(`INSERT INTO transaction_contact_authorizations
+          (transaction_id,holder_id,email_allowed,phone_allowed,version,authorized_at,revoked_at)
+          VALUES($1,$2,$3,$4,1,CASE WHEN $5 THEN NULL ELSE now() END,CASE WHEN $5 THEN now() ELSE NULL END)
+          ON CONFLICT(transaction_id,holder_id) DO UPDATE SET email_allowed=EXCLUDED.email_allowed,
+          phone_allowed=EXCLUDED.phone_allowed,version=transaction_contact_authorizations.version+1,
+          authorized_at=CASE WHEN $5 THEN transaction_contact_authorizations.authorized_at ELSE now() END,
+          revoked_at=CASE WHEN $5 THEN now() ELSE NULL END,updated_at=now() RETURNING *`,
+          [transactionId,actorId,emailAllowed,phoneAllowed,revoked])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,$2,'transaction',$3,$4::jsonb)`,[actorId,revoked?'transaction.contact.authorization.revoked':'transaction.contact.authorization.changed',transactionId,JSON.stringify({channels:[...(emailAllowed?['email']:[]),...(phoneAllowed?['phone']:[])],version:row.version})]);
+        return {emailAllowed:row.email_allowed,phoneAllowed:row.phone_allowed,version:row.version,revoked:Boolean(row.revoked_at)};
+      });
+    },
+    async transactionContactAuthorization({actorId,transactionId}) {
+      const result=await database.query(`SELECT consent.email_allowed,consent.phone_allowed,consent.version,consent.revoked_at
+        FROM transactions t JOIN listings l ON l.id=t.listing_id JOIN transaction_contact_access a ON a.transaction_id=t.id
+        LEFT JOIN transaction_contact_authorizations consent ON consent.transaction_id=t.id AND consent.holder_id=$2
+        WHERE t.id=$1 AND $2 IN(t.buyer_id,t.seller_id) AND l.kind='sale' AND a.revoked_at IS NULL
+        AND t.status NOT IN('cancelled','refunded') AND EXISTS(SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN('paid','disputed'))`,[transactionId,actorId]);
+      if(!result.rows.length)throw fail('contact_authorization_not_available',409,'A autorização exige uma venda com pagamento confirmado.');
+      const row=result.rows[0];
+      return {emailAllowed:Boolean(row.email_allowed),phoneAllowed:Boolean(row.phone_allowed),version:row.version??0,revoked:Boolean(row.revoked_at)};
     },
     async supportCancellationDecision({ actorId,ticketId,reason }) {
       return database.transaction(async client => {

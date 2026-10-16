@@ -37,6 +37,17 @@ async function setupProtectedChat() {
   }
   const contactButton=document.getElementById('transaction-contact');
   const contactResult=document.getElementById('transaction-contact-result');
+  const authorizationForm=document.getElementById('contact-authorization');
+  let authorizationVersion=0;
+  if(authorizationForm&&transactionId){
+    const authorizationError=authorizationForm.querySelector('[role="alert"]');
+    const authorizationSubmit=authorizationForm.querySelector('button[type="submit"]');
+    try{
+      const {authorization}=await apiRequest(`/v1/transactions/${encodeURIComponent(transactionId)}/contact-authorization`);
+      authorizationVersion=authorization.version;authorizationForm.elements.emailAllowed.checked=authorization.emailAllowed;authorizationForm.elements.phoneAllowed.checked=authorization.phoneAllowed;authorizationSubmit.disabled=false;
+    }catch(problem){authorizationError.textContent=problem.message;}
+    authorizationForm.addEventListener('submit',async event=>{event.preventDefault();authorizationSubmit.disabled=true;authorizationError.textContent='';try{const {authorization}=await apiRequest(`/v1/transactions/${encodeURIComponent(transactionId)}/contact-authorization`,{method:'PUT',body:{emailAllowed:authorizationForm.elements.emailAllowed.checked,phoneAllowed:authorizationForm.elements.phoneAllowed.checked,confirmed:authorizationForm.elements.confirmed.checked,expectedVersion:authorizationVersion}});authorizationVersion=authorization.version;authorizationForm.elements.confirmed.checked=false;notify(authorization.revoked?'Autorização revogada':'Autorização atualizada');}catch(problem){authorizationError.textContent=problem.message;}finally{authorizationSubmit.disabled=false;}});
+  }
   if(contactButton){
     contactButton.disabled=!transactionId;
     contactButton.addEventListener('click',async()=>{contactButton.disabled=true;contactResult.textContent='Consultando…';try{const result=await apiRequest(`/v1/transactions/${encodeURIComponent(transactionId)}/contact`);const contact=result.contact;contactResult.textContent=[contact.displayName,contact.phone,contact.email].filter(Boolean).join(' · ');notify('Contato verificado consultado');}catch(problem){contactResult.textContent=problem.message;contactButton.disabled=false;}});
