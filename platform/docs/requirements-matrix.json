@@ -359,12 +359,12 @@
     {
       "id": 23,
       "title": "Endereço",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/address-repository.js",
         "tests/private-address-sharing.test.mjs",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md",
+        "tests/private-address-http-postgres.test.mjs",
+        "docs/private-address-sharing-beta.md",
         "database/address-change-repository.js",
         "apps/api/address-change-service.js",
         "apps/app/address-changes.html",
@@ -374,11 +374,11 @@
         "apps/api/donation-service.js",
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
-        "docs/donation-beta.md"
-        ,"docs/bilateral-exchange-beta.md"
+        "docs/donation-beta.md",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Venda, doação e cada perna da troca usam confirmação e acesso restrito; transportadora, retenção e validação real permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova localização pública sem endereço exato, pagamento e consentimento prévios, acesso limitado ao titular/entregador atribuído, marco de suporte e expiração após a entrega.",
+      "reason": "Escopo técnico delimitado concluído; transportadora, retenção jurídica, geocodificação e validação humana reais continuam externos e não são alegados."
     },
     {
       "id": 24,
