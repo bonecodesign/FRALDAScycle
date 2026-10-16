@@ -76,7 +76,9 @@ export function createChildProfileService(repository, { featureEnabled = false, 
     async personalizationSignals(actor) {
       enabled(featureEnabled); requireAdultDeclaration(actor);
       const rows = await repository.list(actor.id);
-      return rows.filter(row => row.personalization_enabled).map(row => ({ profileId: row.id, ageBand: childAgeBand(storedBirthDate(row.birth_date), now()) }));
+      const bands = new Set(rows.filter(row => row.personalization_enabled)
+        .map(row => childAgeBand(storedBirthDate(row.birth_date), now())));
+      return [...bands].sort().map(ageBand => ({ ageBand }));
     },
   });
 }

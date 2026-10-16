@@ -444,10 +444,14 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Perfil infantil não é obrigatório; qualquer ativação ou mudança depende de revisão."
+      "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
+    "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
     },
     {
       "id": 28,
@@ -457,10 +461,12 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "packages/contracts/child-age-band.js",
       "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "tests/family-profile-foundation.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Faixa derivada preparada sem expor data; coleta, ofertas e parceiros aguardam revisão."
+      "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
+    "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,

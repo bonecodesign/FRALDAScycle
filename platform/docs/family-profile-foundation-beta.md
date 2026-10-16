@@ -6,13 +6,15 @@ O cadastro exige declaração explícita e versionada `FC-AGE-1`, sem coletar da
 
 ## Perfis infantis preparados, mas inativos
 
-A fundação suporta múltiplos perfis por conta, somente data de nascimento privada, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente uma faixa etária; a data exata não integra os sinais de ofertas nem é exposta a parceiros.
+A fundação suporta múltiplos perfis por conta, somente data de nascimento privada, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças não integram os sinais de ofertas nem podem ser expostos a parceiros.
 
 `CHILD_PROFILES_ENABLED` é falso por padrão. Enquanto estiver desligado, o serviço retorna `404` antes de consultar ou escrever no banco e a interface infantil não é criada. Nenhuma coleta infantil fica ativa nesta entrega.
 
 ## Condições para ativação futura
 
 Antes de habilitar a feature são obrigatórias revisão jurídica e de privacidade, definição de finalidade, base legal, retenção, exclusão, atendimento do responsável, compartilhamento e transparência das ofertas. O cadastro infantil não pode ser requisito para criar conta, comprar, vender, doar ou solicitar suporte. Publicidade exige escolha separada.
+
+A data é obrigatória somente ao adicionar um perfil dentro da área familiar. Cadastros de conta, entregador e instituição continuam separados e não aceitam esse campo. A ausência de perfil não bloqueia acesso à conta nem operações existentes enquanto a funcionalidade permanecer inativa.
 
 ## Evidência e limites
 

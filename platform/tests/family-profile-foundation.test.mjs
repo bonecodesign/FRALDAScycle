@@ -97,8 +97,10 @@ test("owner can manage multiple private profiles with explicit consent and versi
   const first = await service.create(actor, { birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
   const second = await service.create(actor, { birthDate: "2025-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true });
   assert.equal((await service.list(actor)).length, 2);
-  assert.deepEqual(await service.personalizationSignals(actor), [{ profileId: first.id, ageBand: "infant_6_11" }, { profileId: second.id, ageBand: "toddler_12_23" }]);
-  assert.equal("birthDate" in (await service.personalizationSignals(actor))[0], false);
+  assert.deepEqual(await service.personalizationSignals(actor), [{ ageBand: "infant_6_11" }, { ageBand: "toddler_12_23" }]);
+  for (const signal of await service.personalizationSignals(actor)) {
+    assert.deepEqual(Object.keys(signal), ["ageBand"]);
+  }
   const corrected = await service.update(actor, first.id, { birthDate: "2026-05-07", expectedVersion: 1 });
   assert.equal(corrected.version, 2);
   await assert.rejects(service.update(actor, first.id, { birthDate: "2026-05-07", expectedVersion: 1 }), error => error.code === "child_profile_version_conflict");
@@ -110,6 +112,7 @@ test("child profile rejects missing consent, injected account and non-child date
   const actor = { id: "account-1", adultDeclared: true };
   const base = { birthDate: "2026-04-07", consentConfirmed: true, consentVersion: "FC-CHILD-PROFILE-1", personalizationEnabled: true };
   await assert.rejects(service.create(actor, { ...base, consentConfirmed: false }), error => error.code === "child_profile_consent_required");
+  await assert.rejects(service.create(actor, { ...base, birthDate: undefined }), error => error.code === "invalid_child_birth_date");
   await assert.rejects(service.create(actor, { ...base, accountId: "other" }), error => error.code === "invalid_child_profile");
   await assert.rejects(service.create(actor, { ...base, label: "Dado não permitido" }), error => error.code === "invalid_child_profile");
   await assert.rejects(service.create(actor, { ...base, birthDate: "2000-01-01" }), error => error.code === "invalid_child_birth_date");
