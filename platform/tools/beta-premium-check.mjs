@@ -44,7 +44,13 @@ export async function validateSyntheticPremium(database) {
   assert.equal((await database.query("SELECT count(*)::integer AS n FROM audit_events WHERE actor_user_id=$1 AND action='premium.renewal.cancelled'",[owner])).rows[0].n,1);
   // Falha original há dois dias: benefícios persistem, sem nova cobrança.
   await database.query("UPDATE premium_subscriptions SET paid_period_start=now()-interval '32 days',paid_period_end=now()-interval '2 days',renewal_failed_at=now()-interval '2 days',renewal_enabled=true WHERE user_id=$1",[owner]);
-  assert.equal((await service.status(owner)).state,'grace');
+  const firstFailureRun=await repository.regularizeExpired();
+  assert.equal(firstFailureRun.noticesCreated,1);
+  assert.equal((await repository.regularizeExpired()).noticesCreated,0);
+  const graceStatus=await service.status(owner);
+  assert.equal(graceStatus.state,'grace');
+  assert.equal(graceStatus.renewalFailureNotice.regularizeBy,graceStatus.graceThrough);
+  assert.equal(Date.parse(graceStatus.renewalFailureNotice.regularizeBy)-Date.parse(graceStatus.renewalFailureNotice.failedAt),3*24*60*60*1000);
   assert.deepEqual((await repository.regularize(owner)).pausedIds,[]);
   // Escolha pertence ao período atual; atualizar fixture de período não a reutiliza indevidamente.
   await service.saveChoice(owner,{selectedIds:chosen,expectedVersion:0});

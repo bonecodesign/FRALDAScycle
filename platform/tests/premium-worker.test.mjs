@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {runPremiumWorker} from '../workers/premium.js';
 
-function harness(results=[{accountsChecked:1,pausedCount:2,billingAllowed:false}]) {
+function harness(results=[{accountsChecked:1,noticesCreated:1,pausedCount:2,billingAllowed:false}]) {
   let closed=0,calls=0;const waits=[];
   const database={async close(){closed++;}};
   return {database,waits,get closed(){return closed;},get calls(){return calls;},options:{
@@ -16,7 +16,7 @@ test('manual premium regularization remains local and runs exactly once without 
   const run=harness(),logs=[],original=console.log;console.log=value=>logs.push(value);
   try{await runPremiumWorker({mode:'once',env:{DATABASE_URL:'postgresql://test:test@127.0.0.1:5432/test',DATABASE_SSL:'false'},...run.options});}finally{console.log=original;}
   assert.equal(run.calls,1);assert.equal(run.closed,1);assert.deepEqual(run.waits,[]);
-  assert.deepEqual(JSON.parse(logs[0]),{type:'premium.regularization.completed',accountsChecked:1,pausedCount:2,billingAllowed:false});
+  assert.deepEqual(JSON.parse(logs[0]),{type:'premium.regularization.completed',accountsChecked:1,noticesCreated:1,pausedCount:2,billingAllowed:false});
   await assert.rejects(runPremiumWorker({mode:'once',env:{DATABASE_URL:'postgresql://test:test@database.example:5432/test'},...run.options}),/somente PostgreSQL local/);
 });
 

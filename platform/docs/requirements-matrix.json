@@ -112,19 +112,24 @@
     {
       "id": 8,
       "title": "Falha de renovação",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
         "docs/premium-beta-rules.md",
+        "database/migrations/055_premium_renewal_failure_notices.sql",
         "database/premium-repository.js",
         "apps/api/premium-service.js",
         "apps/app/premium.html",
+        "apps/app/premium.js",
+        "workers/premium.js",
+        "tests/premium-worker.test.mjs",
+        "tests/premium-renewal-notice-interface.test.mjs",
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
-      "reason": "Graça de 72 horas calculada sobre falha original e benefícios revalidados; aviso externo e retentativas do fornecedor desativados."
+      "evidence": "Contrato, worker, interface e PostgreSQL comprovam aviso interno idempotente, graça de 72 horas sobre a falha original e retorno ao gratuito sem cobrança.",
+      "reason": "Falha de renovação concluída no escopo técnico local; retentativas e avisos externos continuam condicionados ao fornecedor e desligados."
     },
     {
       "id": 9,

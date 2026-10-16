@@ -6,7 +6,7 @@ Base consolidada: `fa8a0cd0f0e05cfb2889cc827b31a9e610880490`, com PRs #60–#74 
 
 Migração 024 prepara registros de períodos pagos, escolha e ajustes dos anúncios. Nenhum endpoint concede assinatura, registra pagamento/falha ou cobra. Períodos usados na validação são fixtures fictícias. Uma fonte real dependerá de homologação separada.
 
-A conta consulta o próprio plano, cancela a próxima renovação com confirmação, escolhe até três anúncios publicados sem operação em andamento e pausa/retoma anúncios próprios. Cancelamento é idempotente, preserva período pago e auditoria. Falha original conserva benefícios por 72 horas; retries não reiniciam esse prazo. Não são geradas mensalidades, retentativas, mensagens ou reembolsos.
+A conta consulta o próprio plano, cancela a próxima renovação com confirmação, escolhe até três anúncios publicados sem operação em andamento e pausa/retoma anúncios próprios. Cancelamento é idempotente, preserva período pago e auditoria. Falha original conserva benefícios por 72 horas; retries não reiniciam esse prazo. O worker registra um aviso interno idempotente, e a tela apresenta a data limite e os efeitos da falha. Não são geradas mensalidades, retentativas externas, mensagens externas ou reembolsos.
 
 Ao retorno ao gratuito, aplicar a escolha do período ou manter os três anúncios publicados mais recentemente. Dados dos excedentes são preservados como pausados, e operações em andamento continuam. A escolha é consumida uma vez: não elimina anúncios gratuitos publicados depois. Escolhas de períodos anteriores não são reutilizadas. Pausa/retomada, escolha e limite de publicação são revalidados com trava por conta, sem confiar no corpo para identidade ou benefícios.
 
