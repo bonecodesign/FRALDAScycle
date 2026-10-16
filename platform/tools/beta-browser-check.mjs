@@ -11,7 +11,11 @@ export function nativeChrome() {
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync) ?? null;
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const browserWaitMs = process.env.CI ? 180000 : 120000;
+// The shared GitHub runner can pause a headless page while PostgreSQL-heavy
+// scenarios are still active. Keep the assertion strict, but let the browser
+// use half of the 10-minute Node test budget before declaring a transition
+// absent. Local feedback remains capped at two minutes.
+const browserWaitMs = process.env.CI ? 300000 : 120000;
 const devtoolsWaitMs = process.env.CI ? 30000 : 12000;
 async function until(operation, label) {
   const deadline = Date.now() + browserWaitMs;
