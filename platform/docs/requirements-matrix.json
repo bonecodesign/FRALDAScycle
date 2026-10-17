@@ -230,10 +230,12 @@
         "apps/api/logistics-handler.js",
         "apps/admin/proof-review.js",
         "tests/courier-payout-eligibility.test.mjs",
-        "docs/courier-payout-eligibility-beta.md"
+        "docs/courier-payout-eligibility-beta.md",
+        "tests/courier-payout-http-postgres.test.mjs",
+        "docs/courier-payout-obligation-beta.md"
       ],
-      "evidence": "Cinco testes locais validam pré-requisitos, split 95/5, idempotência, autorização e bloqueio de transferência real.",
-      "reason": "Ledger e elegibilidade locais implementados; cobrança de frete, KYC, provedor, conciliação e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova isolamento, autorização administrativa, cálculo 95/5, idempotência, auditoria e obrigação local sem transferência.",
+      "reason": "Ledger, elegibilidade e preparação local comprovados por HTTP/PostgreSQL; cobrança do frete, KYC, fornecedor, transferência e conciliação reais permanecem pendentes."
     },
     {
       "id": 16,
@@ -439,48 +441,48 @@
       "title": "Dados do bebê",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "database/migrations/033_age_and_child_profile_foundation.sql",
-      "database/migrations/053_child_profile_data_minimization.sql",
-      "apps/api/child-profile-service.js",
-      "database/child-profile-repository.js",
-      "apps/app/family-profile.js",
-      "tests/family-profile-foundation.test.mjs",
-      "tests/child-profile-http-postgres.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "database/migrations/033_age_and_child_profile_foundation.sql",
+        "database/migrations/053_child_profile_data_minimization.sql",
+        "apps/api/child-profile-service.js",
+        "database/child-profile-repository.js",
+        "apps/app/family-profile.js",
+        "tests/family-profile-foundation.test.mjs",
+        "tests/child-profile-http-postgres.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
-    "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
+      "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
       "id": 27,
       "title": "Obrigatoriedade do dado infantil",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "apps/api/child-profile-service.js",
-      "apps/api/child-profile-handler.js",
-      "apps/app/family-profile.js",
-      "tests/family-profile-foundation.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "apps/api/child-profile-service.js",
+        "apps/api/child-profile-handler.js",
+        "apps/app/family-profile.js",
+        "tests/family-profile-foundation.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
-    "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
+      "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
     },
     {
       "id": 28,
       "title": "Parceiros e idade",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "packages/contracts/child-age-band.js",
-      "apps/api/child-profile-service.js",
-      "apps/api/child-profile-handler.js",
-      "tests/family-profile-foundation.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "packages/contracts/child-age-band.js",
+        "apps/api/child-profile-service.js",
+        "apps/api/child-profile-handler.js",
+        "tests/family-profile-foundation.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
-    "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
+      "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,
@@ -499,67 +501,67 @@
     {
       "id": 30,
       "title": "Maioridade",
-    "status": "concluido",
+      "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
         "tests/identity.test.mjs",
-      "tests/session.test.mjs",
-      "database/migrations/033_age_and_child_profile_foundation.sql",
-      "packages/contracts/account-age.js",
-      "apps/api/adult-declaration-service.js",
-      "database/adult-declaration-repository.js",
-      "apps/app/auth.js",
-      "apps/app/family-profile.js",
-      "tests/family-profile-foundation.test.mjs",
-      "tests/adult-declaration-postgres.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "tests/session.test.mjs",
+        "database/migrations/033_age_and_child_profile_foundation.sql",
+        "packages/contracts/account-age.js",
+        "apps/api/adult-declaration-service.js",
+        "database/adult-declaration-repository.js",
+        "apps/app/auth.js",
+        "apps/app/family-profile.js",
+        "tests/family-profile-foundation.test.mjs",
+        "tests/adult-declaration-postgres.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
-    "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
-    "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
+      "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
     },
     {
       "id": 31,
       "title": "Perfis distintos",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "database/migrations/033_age_and_child_profile_foundation.sql",
-      "apps/api/child-profile-service.js",
-      "tests/child-profile-http-postgres.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "database/migrations/033_age_and_child_profile_foundation.sql",
+        "apps/api/child-profile-service.js",
+        "tests/child-profile-http-postgres.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "HTTP/PostgreSQL comprova isolamento por responsável e recusa contas de entregador e administrador; o recurso continua desligado por padrão.",
-    "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
+      "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
       "id": 32,
       "title": "Mais de um bebê",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "database/migrations/033_age_and_child_profile_foundation.sql",
-      "apps/api/child-profile-service.js",
-      "tests/child-profile-http-postgres.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "database/migrations/033_age_and_child_profile_foundation.sql",
+        "apps/api/child-profile-service.js",
+        "tests/child-profile-http-postgres.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
-    "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
+      "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
       "id": 33,
       "title": "Correção/remoção de datas",
       "status": "bloqueado",
       "references": [
-      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-      "database/child-profile-repository.js",
-      "apps/api/child-profile-service.js",
-      "apps/app/family-profile.js",
-      "tests/child-profile-http-postgres.test.mjs",
-      "docs/family-profile-foundation-beta.md"
+        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+        "database/child-profile-repository.js",
+        "apps/api/child-profile-service.js",
+        "apps/app/family-profile.js",
+        "tests/child-profile-http-postgres.test.mjs",
+        "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
-    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
+      "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
     },
     {
       "id": 34,
@@ -1112,37 +1114,37 @@
     {
       "id": 68,
       "title": "Pausa operacional",
-    "status": "concluido",
-    "references": [
-      "database/migrations/031_operational_control.sql",
-      "database/operational-control-repository.js",
-      "apps/api/operational-control.js",
-      "apps/admin/operations.html",
-      "tests/operational-control.test.mjs",
-      "tests/operational-control-postgres.test.mjs",
-      "docs/operational-control-beta.md"
-    ],
-    "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
-    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
+      "status": "concluido",
+      "references": [
+        "database/migrations/031_operational_control.sql",
+        "database/operational-control-repository.js",
+        "apps/api/operational-control.js",
+        "apps/admin/operations.html",
+        "tests/operational-control.test.mjs",
+        "tests/operational-control-postgres.test.mjs",
+        "docs/operational-control-beta.md"
+      ],
+      "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
+      "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
     },
     {
       "id": 69,
       "title": "Retomada",
-    "status": "concluido",
+      "status": "concluido",
       "references": [
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
-      "tests/pilot-session.test.mjs",
-      "database/migrations/031_operational_control.sql",
-      "database/operational-control-repository.js",
-      "apps/api/operational-control.js",
-      "apps/admin/operations.html",
-      "tests/operational-control.test.mjs",
-      "tests/operational-control-postgres.test.mjs",
-      "docs/operational-control-beta.md"
+        "tests/pilot-session.test.mjs",
+        "database/migrations/031_operational_control.sql",
+        "database/operational-control-repository.js",
+        "apps/api/operational-control.js",
+        "apps/admin/operations.html",
+        "tests/operational-control.test.mjs",
+        "tests/operational-control-postgres.test.mjs",
+        "docs/operational-control-beta.md"
       ],
-    "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
-    "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
+      "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
+      "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
     },
     {
       "id": 70,
