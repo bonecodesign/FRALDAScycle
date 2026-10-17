@@ -202,10 +202,12 @@
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "tests/seller-settlement-http-postgres.test.mjs",
+        "docs/seller-settlement-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Decisões separadas e consulta existem; não autorizam nem executam repasse."
+      "evidence": "HTTP/PostgreSQL comprova consulta privada de prontidão, isolamento, auditoria, prazo de referência e ausência de valores ou transferência.",
+      "reason": "Prontidão local e consulta privada comprovadas por HTTP/PostgreSQL; fornecedor, conciliação, transferência, prazo externo e autorização de repasse real permanecem pendentes."
     },
     {
       "id": 14,
