@@ -713,10 +713,12 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
-        "docs/moderation-beta.md"
+        "docs/moderation-beta.md",
+        "tests/moderation-appeal-http-postgres.test.mjs",
+        "docs/moderation-appeal-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Suspensão temporária com motivo, término e recurso; sem punição automática ou banimento definitivo, revisão/equipe pendentes."
+      "evidence": "HTTP/PostgreSQL comprova suspensão temporária, recurso, revisão independente, reversão e auditoria sem banimento automático.",
+      "reason": "Suspensão temporária e recurso independente comprovados; punição automática, banimento definitivo, comunicação externa e equipe humana permanecem pendentes."
     },
     {
       "id": 43,
