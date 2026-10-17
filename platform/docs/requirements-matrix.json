@@ -167,11 +167,16 @@
       "references": [
         "packages/contracts/commercial-rules.js",
         "apps/api/payment-service.js",
+        "apps/api/logistics-service.js",
+        "database/logistics-repository.js",
+        "database/migrations/057_sale_freight_responsibility.sql",
         "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "tests/payments.test.mjs",
+        "tests/logistics.test.mjs",
+        "tests/sale-freight-responsibility-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Produto e frete separados no contrato; checkout com entrega bloqueado."
+      "evidence": "Prova HTTP/PostgreSQL confirma que somente o comprador cria a entrega, fica registrado como responsável pelo frete e não recebe cotação nem cobrança fictícia.",
+      "reason": "Responsabilidade do comprador persistida e produto/frete separados; cotação, exibição antes da confirmação, cobrança e fornecedor permanecem pendentes com o item 12 em standby."
     },
     {
       "id": 12,

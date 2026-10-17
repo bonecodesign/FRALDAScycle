@@ -16,10 +16,10 @@ test("logistics creates pickup locally and external delivery through provider", 
     async context() { return { existing: false, transaction: { id: transactionId, seller_id: "seller-1", status: "paid" } }; },
     async createShipment(input) {
       createdInputs.push(input);
-      return { id: shipmentId, transaction_id: transactionId, mode: input.mode, insured: input.insured, status: input.mode === "pickup" ? "awaiting_pickup" : "provider_pending" };
+      return { id: shipmentId, transaction_id: transactionId, buyer_id:input.buyerId, logistics_payer_id:input.buyerId, mode: input.mode, insured: input.insured, status: input.mode === "pickup" ? "awaiting_pickup" : "provider_pending" };
     },
     async attachProvider(input) {
-      return { id: input.shipmentId, transaction_id: transactionId, mode: "partner", insured: true, status: input.status, estimated_delivery_at: input.estimatedDeliveryAt };
+      return { id: input.shipmentId, transaction_id: transactionId, buyer_id:'buyer-1', logistics_payer_id:'buyer-1', mode: "partner", insured: true, status: input.status, estimated_delivery_at: input.estimatedDeliveryAt };
     },
   };
   const provider = {
@@ -35,6 +35,9 @@ test("logistics creates pickup locally and external delivery through provider", 
   });
   assert.equal(partner.shipment.status, "assigned");
   assert.equal(createdInputs[1].sellerId, "seller-1");
+  assert.equal(partner.shipment.logisticsResponsibility,"buyer");
+  assert.equal(partner.shipment.freightCents,null);
+  assert.equal(partner.shipment.freightChargeAvailable,false);
 });
 
 test("logistics provider uses HTTPS authentication and idempotency", async () => {

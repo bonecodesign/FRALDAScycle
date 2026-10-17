@@ -12,7 +12,7 @@ function verifyReplay(row, input) {
 }
 export function createLogisticsRepository(database) {
   const shipmentColumns = `s.id, s.transaction_id, s.buyer_id, s.seller_id, s.courier_id,
-    s.mode, s.insured, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
+    s.mode, s.insured, s.logistics_payer_id, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
   return Object.freeze({
     ...createReceiptRepository(database),
     ...createAddressRepository(database),
@@ -62,8 +62,8 @@ export function createLogisticsRepository(database) {
         if (previous.rows[0]) throw conflict('shipment_already_exists','A operação já possui uma entrega.');
         const created = await client.query(
           `INSERT INTO shipments
-             (transaction_id, buyer_id, seller_id, mode, insured, idempotency_key, status)
-           VALUES ($1,$2,$3,$4::shipment_mode,$5,$6,$7::shipment_status)
+             (transaction_id, buyer_id, seller_id, mode, insured, idempotency_key, status, logistics_payer_id)
+           VALUES ($1,$2,$3,$4::shipment_mode,$5,$6,$7::shipment_status,$2)
            ON CONFLICT (idempotency_key) DO NOTHING RETURNING *`,
           [input.transactionId, input.buyerId, locked.rows[0].seller_id, input.mode, input.insured,
            input.idempotencyKey, input.mode === "pickup" ? "awaiting_pickup" : "provider_pending"],
@@ -81,7 +81,7 @@ export function createLogisticsRepository(database) {
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1,'shipment.created','shipment',$2,$3::jsonb)`,
-          [input.buyerId, created.rows[0].id, JSON.stringify({ transactionId: input.transactionId, mode: input.mode, insured: input.insured })],
+          [input.buyerId, created.rows[0].id, JSON.stringify({ transactionId: input.transactionId, mode: input.mode, insured: input.insured, logisticsResponsibility: 'buyer', freightCharged: false })],
         );
         return created.rows[0];
       });
