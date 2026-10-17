@@ -49,7 +49,7 @@ test('new payment rechecks transaction under lock and cannot charge a cancelled 
   assert.match(db.calls[0].sql,/FOR UPDATE/);
 });
 test('support creation checks transaction ownership and records a stable protocol without external actions',async()=>{
-  const db=database(sql=>/SELECT id FROM transactions/.test(sql)?[{id}]:/INSERT INTO support_tickets/.test(sql)?[{id,protocol:'42',requester_id:'buyer',status:'open'}]:[]);
+  const db=database(sql=>/SELECT id,status FROM transactions/.test(sql)?[{id,status:'initiated'}]:/INSERT INTO support_tickets/.test(sql)?[{id,protocol:'42',requester_id:'buyer',status:'open'}]:[]);
   const result=await createOperationSupportRepository(db).createSupportTicket({requesterId:'buyer',transactionId:id,category:'cancellation',subject:'Cancelar operação',details:'Preciso de atendimento para cancelar.',idempotencyKey:'support-key-123456'});
   assert.equal(result.ticket.protocol,'42');
   assert.equal(result.reused,false);
@@ -80,7 +80,7 @@ test('support details are private, read-audited, and include chronological respo
   assert.match(db.calls.at(-1).sql,/support.ticket.read/);
 });
 test('administrative reply records history and status but never cancels or refunds',async()=>{
-  const db=database(sql=>/SELECT id FROM support_tickets/.test(sql)?[{id}]:/INSERT INTO support_ticket_messages/.test(sql)?[{id:'1'}]:[]);
+  const db=database(sql=>/SELECT st\.id,st\.category/.test(sql)?[{id,category:'general',occurrence_pending:false}]:/INSERT INTO support_ticket_messages/.test(sql)?[{id:'1'}]:[]);
   const result=await createOperationSupportRepository(db).replySupportTicket({actorId:'admin',ticketId:id,body:'Pedido em análise pelo atendimento.',status:'under_review',idempotencyKey:'synthetic-support-reply-key'});
   assert.equal(result.status,'under_review');
   assert.equal(db.calls.length,5);

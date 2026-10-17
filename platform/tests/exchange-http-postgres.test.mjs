@@ -48,6 +48,17 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    assert.equal((await database.query("SELECT count(*)::int AS count FROM shipments WHERE transaction_id=$1 AND status='cancelled'",[cancelledId])).rows[0].count,2);
    const completedId=await propose(listingIds.slice(4,6));
    const acceptedComplete=await fetch(`${origin}/v1/exchanges/${completedId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,confirmed:true})});assert.equal(acceptedComplete.status,201);
+   const acceptedBody=await acceptedComplete.json();
+   assert.deepEqual(acceptedBody.exchange.shipments.map(leg=>({leg:leg.exchange_leg,sender:leg.seller_id,receiver:leg.buyer_id,payer:leg.logistics_payer_id})),[
+    {leg:1,sender:ids.requester,receiver:ids.owner,payer:ids.owner},
+    {leg:2,sender:ids.owner,receiver:ids.requester,payer:ids.requester},
+   ]);
+   const detailResponse=await fetch(`${origin}/v1/exchanges/${completedId}`,{headers:headers('requester')});const detail=await detailResponse.json();assert.equal(detailResponse.status,200,JSON.stringify(detail));
+   assert.deepEqual(detail.exchange.legs.map(leg=>({leg:leg.leg,sender:leg.senderId,receiver:leg.receiverId,payer:leg.logisticsPayerId})),[
+    {leg:1,sender:ids.requester,receiver:ids.owner,payer:ids.owner},
+    {leg:2,sender:ids.owner,receiver:ids.requester,payer:ids.requester},
+   ]);
+   await assert.rejects(database.query('UPDATE shipments SET logistics_payer_id=seller_id WHERE transaction_id=$1 AND exchange_leg=1',[completedId]),error=>error.code==='23514');
    const legs=(await database.query('SELECT id,exchange_leg,buyer_id FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg',[completedId])).rows;
    for(const [index,leg] of legs.entries()){
     const courier=index===0?ids.courier1:ids.courier2;

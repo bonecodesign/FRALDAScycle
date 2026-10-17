@@ -18,6 +18,15 @@ services:
     command: ["node", "workers/notifications.js"]
     restart: unless-stopped
 
+  premium-regularization-worker:
+    profiles: ["premium-regularization"]
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    env_file: ${FRALDACYCLE_ENV_FILE:-platform/.env.production}
+    command: ["node", "workers/premium.js", "--serve"]
+    restart: unless-stopped
+
   site:
     build:
       context: .

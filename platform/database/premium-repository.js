@@ -55,8 +55,13 @@ export function createPremiumRepository(database) {
   async function summary(client, userId, context) {
     const listings = await ownedListings(client, userId);
     const choice = (await client.query('SELECT * FROM premium_listing_choices WHERE user_id=$1', [userId])).rows[0];
+    const notice = context.subscription?.renewalFailedAt
+      ? (await client.query(`SELECT renewal_failed_at,regularize_by FROM premium_renewal_failure_notices
+          WHERE user_id=$1 AND renewal_failed_at=(SELECT renewal_failed_at FROM premium_subscriptions WHERE user_id=$1)`, [userId])).rows[0]
+      : null;
     const currentChoice = choice && context.entitlement.paidThrough === new Date(choice.paid_period_end).toISOString();
     return { ...context.entitlement, monthlyCents: 1290, freeListingLimit: FREE_LISTING_LIMIT,
+      renewalFailureNotice: notice ? { failedAt: new Date(notice.renewal_failed_at).toISOString(), regularizeBy: new Date(notice.regularize_by).toISOString() } : null,
       choice: currentChoice ? { version: choice.version, selectedIds: choice.selected_ids } : { version: 0, selectedIds: null },
       listings: listings.map(row => ({ id: row.id, title: row.title, status: row.status, ongoingTransaction: row.ongoing })) };
   }
@@ -121,11 +126,14 @@ export function createPremiumRepository(database) {
       });
     },
     async regularizeExpired() {
+      const notices = await database.query(`INSERT INTO premium_renewal_failure_notices(user_id,renewal_failed_at,regularize_by)
+        SELECT user_id,renewal_failed_at,renewal_failed_at+interval '3 days' FROM premium_subscriptions
+        WHERE renewal_failed_at IS NOT NULL ON CONFLICT(user_id,renewal_failed_at) DO NOTHING RETURNING user_id`);
       const users = await database.query(`SELECT user_id FROM premium_subscriptions WHERE paid_period_end<=now()
         UNION SELECT seller_id FROM listings WHERE status='published' GROUP BY seller_id HAVING count(*)>3`);
       const results = [];
       for (const { user_id: userId } of users.rows) results.push(await this.regularize(userId));
-      return { accountsChecked: results.length, pausedCount: results.reduce((n, result) => n + result.pausedIds.length, 0), billingAllowed: false };
+      return { accountsChecked: results.length, noticesCreated: notices.rowCount, pausedCount: results.reduce((n, result) => n + result.pausedIds.length, 0), billingAllowed: false };
     },
   });
 }

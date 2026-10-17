@@ -59,15 +59,18 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       const subject = String(input?.subject ?? "").trim();
       const details = String(input?.details ?? "").trim();
       const transactionId = String(input?.transactionId ?? "").trim() || null;
+      const occurrenceKind = String(input?.occurrenceKind ?? "").trim() || null;
       const idempotencyKey = String(input?.idempotencyKey ?? "").trim();
       if (!["general","cancellation","receipt_problem","privacy","account"].includes(category) ||
           subject.length < 5 || subject.length > 120 || details.length < 10 || details.length > 2000 ||
           idempotencyKey.length < 16 || idempotencyKey.length > 128 ||
           (transactionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transactionId)) ||
-          (["cancellation","receipt_problem"].includes(category) && !transactionId)) {
+          (["cancellation","receipt_problem"].includes(category) && !transactionId) ||
+          (category === "receipt_problem" && !["incorrect_product","quantity_mismatch","damaged_package","not_received"].includes(occurrenceKind)) ||
+          (category !== "receipt_problem" && occurrenceKind)) {
         throw new MarketplaceError("invalid_support_ticket",422,"Informe categoria, assunto, descrição e operação quando necessária.");
       }
-      return repository.createSupportTicket({requesterId:userId,transactionId,category,subject,details,idempotencyKey});
+      return repository.createSupportTicket({requesterId:userId,transactionId,category,subject,details,occurrenceKind,idempotencyKey});
     },
     async supportTickets(actor) {
       return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
@@ -109,6 +112,16 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       const reason=String(input?.reason??"").trim();
       if(input?.confirmed!==true||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_cancellation_decision',422,'Confirme a decisão e informe uma justificativa de 10 a 1000 caracteres.');
       return repository.supportCancellationDecision({actorId:actor.id,ticketId,reason});
+    },
+    supportCancellationPreview(actor,ticketId) {
+      requireScope(actor,"admin:support:write");
+      return repository.supportCancellationPreview({actorId:actor.id,ticketId});
+    },
+    async supportOccurrenceDecision(actor,ticketId,input) {
+      requireScope(actor,"admin:support:write");
+      const outcome=String(input?.outcome??"").trim(),reason=String(input?.reason??"").trim();
+      if(input?.confirmed!==true||!["dismissed","return_required","refund_required","replacement_agreed","other_resolution"].includes(outcome)||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_occurrence_decision',422,'Confirme a decisão, o resultado e uma justificativa de 10 a 1000 caracteres.');
+      return repository.supportOccurrenceDecision({actorId:actor.id,ticketId,outcome,reason});
     },
     async search(params = {}) {
       const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
@@ -260,6 +273,18 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async transactionContact(userId,transactionId) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
       return repository.transactionContact({actorId:userId,transactionId});
+    },
+    async authorizeTransactionContact(userId,transactionId,input) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
+      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['emailAllowed','phoneAllowed','confirmed','expectedVersion'].includes(key))||
+        typeof input.emailAllowed!=='boolean'||typeof input.phoneAllowed!=='boolean'||input.confirmed!==true||!Number.isInteger(input.expectedVersion)||input.expectedVersion<0){
+        throw new MarketplaceError('invalid_contact_authorization',422,'Confirme os canais e a versão atual da autorização.');
+      }
+      return repository.authorizeTransactionContact({actorId:userId,transactionId,emailAllowed:input.emailAllowed,phoneAllowed:input.phoneAllowed,expectedVersion:input.expectedVersion});
+    },
+    async transactionContactAuthorization(userId,transactionId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(transactionId)) throw new MarketplaceError('transaction_not_found',404,'Operação não encontrada.');
+      return repository.transactionContactAuthorization({actorId:userId,transactionId});
     },
   });
 }

@@ -9,6 +9,9 @@ function render(premium) {
   current = premium;
   const labels = { active: 'Premium ativo', grace: 'Prazo de regularização', free: 'Plano gratuito' };
   document.getElementById('premium-state').textContent = `${labels[premium.state]}. ${premium.paidThrough ? 'Período pago até ' + new Date(premium.paidThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.graceThrough ? 'Regularização até ' + new Date(premium.graceThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.renewalEnabled ? 'Próxima renovação habilitada no registro; cobrança indisponível.' : 'Sem próxima renovação habilitada.'}`;
+  const notice = document.getElementById('premium-renewal-notice');
+  notice.hidden = !premium.renewalFailureNotice;
+  notice.textContent = premium.renewalFailureNotice ? `Falha de renovação registrada. Regularize até ${new Date(premium.renewalFailureNotice.regularizeBy).toLocaleString('pt-BR')}. Os benefícios permanecem ativos até esse prazo. Não há cobrança ou retentativa automática nesta versão.` : '';
   cancel.hidden = !premium.renewalEnabled;
   choice.hidden = !premium.benefitsActive;
   regularize.hidden = premium.benefitsActive;

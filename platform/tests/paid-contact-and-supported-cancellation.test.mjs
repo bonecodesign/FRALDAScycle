@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
 import {createOperationSupportRepository} from '../database/operation-support-repository.js';
 import {createMarketplaceService} from '../apps/api/marketplace-service.js';
 import {createPaymentRepository} from '../database/payment-repository.js';
@@ -21,7 +22,7 @@ test('paid webhook unlocks structured contact for sales in the financial transac
 });
 
 test('contact exposes only verified channels and audits channel names without values',async()=>{
-  const db=database(sql=>/SELECT t.id,t.status/.test(sql)?[{id:tx,status:'paid',kind:'sale',display_name:'Pessoa vendedora',email:'venda@example.test',phone:'+5531999999999',email_verified_at:new Date(),phone_verified_at:null,unlocked_at:new Date(),revoked_at:null}]:[]);
+  const db=database(sql=>/SELECT t.id,t.status/.test(sql)?[{id:tx,status:'paid',kind:'sale',display_name:'Pessoa vendedora',email:'venda@example.test',phone:'+5531999999999',email_verified_at:new Date(),phone_verified_at:null,email_allowed:true,phone_allowed:false,unlocked_at:new Date(),revoked_at:null}]:[]);
   const contact=await createOperationSupportRepository(db).transactionContact({actorId:'buyer',transactionId:tx});
   assert.equal(contact.email,'venda@example.test');
   assert.equal(contact.phone,undefined);
@@ -73,4 +74,15 @@ test('only assigned courier sees the single verified phone required by the activ
   assert.ok(!JSON.stringify(db.calls.at(-1).values).includes('+5531999999999'));
   const service=createLogisticsService({courierContact:()=>assert.fail('must not query')});
   await assert.rejects(service.courierContact({id:'admin',role:'admin'},'shipment'),error=>error.code==='forbidden');
+});
+
+test('chat interface requires an explicit versioned choice before sharing own channels',async()=>{
+  const [html,controller]=await Promise.all([
+    readFile(new URL('../apps/app/chat.html',import.meta.url),'utf8'),
+    readFile(new URL('../apps/app/negotiation.js',import.meta.url),'utf8'),
+  ]);
+  assert.match(html,/id="contact-authorization"/);assert.match(html,/name="confirmed"[^>]*required/);
+  assert.match(html,/Autorizar meu e-mail verificado/);assert.match(html,/Autorizar meu telefone verificado/);
+  assert.match(controller,/expectedVersion:authorizationVersion/);assert.match(controller,/method:'PUT'/);
+  assert.match(controller,/authorization\.revoked/);
 });

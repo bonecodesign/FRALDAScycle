@@ -93,7 +93,7 @@
     {
       "id": 7,
       "title": "Retorno ao gratuito",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
@@ -101,28 +101,35 @@
         "database/premium-repository.js",
         "apps/api/premium-service.js",
         "apps/app/premium.html",
+        "workers/premium.js",
+        "tests/premium-worker.test.mjs",
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
-      "reason": "Escolha e pausa/retomada persistidas, quota concorrente e proteção das operações; agendamento periódico ainda pendente."
+      "evidence": "Regras, PostgreSQL e navegador comprovam escolha, quota e preservação; worker testado executa regularização periódica sequencial, delimitada e sem cobrança.",
+      "reason": "Retorno automático ao gratuito concluído no escopo técnico; ativação do perfil de deploy continua decisão operacional."
     },
     {
       "id": 8,
       "title": "Falha de renovação",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
         "docs/premium-beta-rules.md",
+        "database/migrations/055_premium_renewal_failure_notices.sql",
         "database/premium-repository.js",
         "apps/api/premium-service.js",
         "apps/app/premium.html",
+        "apps/app/premium.js",
+        "workers/premium.js",
+        "tests/premium-worker.test.mjs",
+        "tests/premium-renewal-notice-interface.test.mjs",
         "tools/beta-premium-check.mjs",
         "docs/premium-management-beta.md"
       ],
-      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
-      "reason": "Graça de 72 horas calculada sobre falha original e benefícios revalidados; aviso externo e retentativas do fornecedor desativados."
+      "evidence": "Contrato, worker, interface e PostgreSQL comprovam aviso interno idempotente, graça de 72 horas sobre a falha original e retorno ao gratuito sem cobrança.",
+      "reason": "Falha de renovação concluída no escopo técnico local; retentativas e avisos externos continuam condicionados ao fornecedor e desligados."
     },
     {
       "id": 9,
@@ -130,13 +137,15 @@
       "status": "parcial",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
+        "database/migrations/056_exchange_logistics_responsibility.sql",
         "database/exchange-repository.js",
         "apps/api/exchange-service.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Operação bilateral cria duas pernas logísticas identificadas, uma para cada pacote, sem cobrança ou provedor.",
-      "reason": "Duas rotas e endereços privados por perna implementados; preço, cobrança individual, provedor e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova duas pernas opostas, destinatários responsáveis por seus respectivos fretes e restrição contra atribuição ao remetente.",
+      "reason": "Duas rotas, endereços privados e responsabilidade individual persistidos; preço, cobrança individual e provedor permanecem pendentes."
     },
     {
       "id": 10,
@@ -285,77 +294,86 @@
     {
       "id": 19,
       "title": "Comprovante mínimo",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
+        "tests/delivery-proof-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Vínculo, registro e foto privados existem; fornecedor e jornada real pendentes."
+      "evidence": "HTTP/PostgreSQL comprova registro atribuído e idempotente, vínculo à entrega/recebedor/localização, consulta privada, foto assinada e auditoria sem mídia ou nome.",
+      "reason": "Escopo técnico concluído; entrega, fotografia e fornecedor reais continuam externos."
     },
     {
       "id": 20,
       "title": "Divergência",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
+        "database/migrations/051_transaction_occurrences.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/transaction-occurrence-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "docs/transaction-occurrence-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Ocorrências bloqueiam consulta; resolução integral pendente."
+      "evidence": "HTTP/PostgreSQL comprova abertura tipada e idempotente, bloqueio imediato, decisão administrativa obrigatória, repetição segura e auditoria mínima.",
+      "reason": "Escopo técnico concluído; devolução, substituição, reembolso, fornecedor e operação humana reais continuam externos."
     },
     {
       "id": 21,
       "title": "Cancelamento antes da coleta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
+        "database/migrations/052_supported_cancellation_phase.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/pre-collection-cancellation-http-postgres.test.mjs",
         "database/migrations/038_exchange_refusal_and_cancellation.sql",
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md",
+        "docs/paid-contact-and-supported-cancellation-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Venda e troca reversível possuem cancelamento protegido; devolução financeira e operação real dependem de homologação."
+      "evidence": "HTTP/PostgreSQL comprova venda sem pagamento reversível, venda paga com prévia que devolve a comissão da plataforma, marco de coleta/endereço e troca bilateral protegida.",
+      "reason": "Escopo técnico concluído; estorno, custos externos, fornecedor e operação real continuam pendentes e explicitamente não são alegados."
     },
     {
       "id": 22,
       "title": "Após coleta",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
+        "database/migrations/052_supported_cancellation_phase.sql",
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/post-collection-support-http-postgres.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md",
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
-        "docs/bilateral-exchange-beta.md",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Cancelamento direto é bloqueado após coleta, comprovante ou endereço; análise de retorno/reembolso ainda depende do suporte e fornecedor."
+      "evidence": "HTTP/PostgreSQL comprova bloqueio do cancelamento direto após coleta/endereço, prévia post_milestone, decisão assistida pendente no provedor e preservação da entrega e do anúncio.",
+      "reason": "Escopo técnico delimitado concluído; retorno, reembolso, fornecedor financeiro e análise humana reais continuam externos e não são alegados."
     },
     {
       "id": 23,
       "title": "Endereço",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/address-repository.js",
         "tests/private-address-sharing.test.mjs",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md",
+        "tests/private-address-http-postgres.test.mjs",
+        "docs/private-address-sharing-beta.md",
         "database/address-change-repository.js",
         "apps/api/address-change-service.js",
         "apps/app/address-changes.html",
@@ -365,39 +383,51 @@
         "apps/api/donation-service.js",
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
-        "docs/donation-beta.md"
-        ,"docs/bilateral-exchange-beta.md"
+        "docs/donation-beta.md",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Venda, doação e cada perna da troca usam confirmação e acesso restrito; transportadora, retenção e validação real permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova localização pública sem endereço exato, pagamento e consentimento prévios, acesso limitado ao titular/entregador atribuído, marco de suporte e expiração após a entrega.",
+      "reason": "Escopo técnico delimitado concluído; transportadora, retenção jurídica, geocodificação e validação humana reais continuam externos e não são alegados."
     },
     {
       "id": 24,
       "title": "Aviso de endereço",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/address-repository.js",
+        "apps/api/logistics-service.js",
+        "apps/app/addresses.html",
+        "apps/app/addresses.js",
+        "apps/app/donations.html",
+        "apps/app/donations.js",
+        "apps/app/address-changes.html",
+        "apps/app/address-changes.js",
         "tests/private-address-sharing.test.mjs",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
-        ,"docs/bilateral-exchange-beta.md"
+        "tests/address-notice-interface.test.mjs",
+        "tests/private-address-http-postgres.test.mjs",
+        "docs/private-address-sharing-beta.md",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Aviso explícito FC-ADDRESS-1 aplicado a venda, doação e troca; validação integral das interfaces e operação real permanecem pendentes."
+      "evidence": "Contrato automatizado comprova o texto aprovado integral, checkbox obrigatório, valor real da confirmação, versão FC-ADDRESS-1 e limpeza do consentimento nas interfaces geral, doação e alteração assistida.",
+      "reason": "Escopo técnico delimitado concluído; homologação humana, dispositivos e operação logística reais continuam externos e não são alegados."
     },
     {
       "id": 25,
       "title": "Acesso ao comprovante",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
+        "apps/api/logistics-handler.js",
         "tests/receipt-records.test.mjs",
+        "tests/admin-proof-review.test.mjs",
+        "tests/delivery-proof-http-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "docs/beta-validation-2026-10-05.md",
+        "docs/proof-access-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Permissão e mídia privada implementadas para venda; prazos de retenção pendentes."
+      "evidence": "HTTP/PostgreSQL comprova autenticação, acesso exclusivo das partes, entregador atribuído e suporte autorizado, bloqueio sem exposição para terceiros, metadados sem chave interna, no-store e foto por leitura assinada privada.",
+      "reason": "Escopo de acesso aprovado concluído; retenção é deliberadamente definida em requisito separado e fornecedor/homologação reais permanecem externos."
     },
     {
       "id": 26,
@@ -406,11 +436,16 @@
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
+      "database/migrations/053_child_profile_data_minimization.sql",
       "apps/api/child-profile-service.js",
+      "database/child-profile-repository.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Fundação técnica permanece desativada; revisão de privacidade obrigatória antes de coleta ou uso."
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
+    "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
       "id": 27,
@@ -418,10 +453,14 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Perfil infantil não é obrigatório; qualquer ativação ou mudança depende de revisão."
+      "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
+    "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
     },
     {
       "id": 28,
@@ -431,10 +470,12 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "packages/contracts/child-age-band.js",
       "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "tests/family-profile-foundation.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Faixa derivada preparada sem expor data; coleta, ofertas e parceiros aguardam revisão."
+      "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
+    "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,
@@ -480,10 +521,11 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Estrutura separada e inativa preparada; ativação depende de revisão e não altera outros perfis."
+      "evidence": "HTTP/PostgreSQL comprova isolamento por responsável e recusa contas de entregador e administrador; o recurso continua desligado por padrão.",
+    "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
       "id": 32,
@@ -493,10 +535,11 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Múltiplos perfis preparados atrás de feature flag; coleta continua bloqueada até revisão."
+      "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
+    "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
       "id": 33,
@@ -507,10 +550,11 @@
       "database/child-profile-repository.js",
       "apps/api/child-profile-service.js",
       "apps/app/family-profile.js",
+      "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-    "reason": "Correção versionada e remoção que desativa personalização preparadas; retenção/purga aguardam revisão."
+      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
+    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
     },
     {
       "id": 34,
@@ -527,59 +571,68 @@
     {
       "id": 35,
       "title": "Contatos entre partes",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
-        "tests/approved-business-rules.test.mjs"
+        "database/operation-support-repository.js",
+        "database/payment-repository.js",
+        "tests/approved-business-rules.test.mjs",
+        "tests/paid-party-contact-http-postgres.test.mjs",
+        "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Chat exige operação paga; compartilhamento final autorizado não implementado."
+      "evidence": "HTTP/PostgreSQL comprova contato estruturado somente após webhook pago, canais verificados, isolamento de terceiros, auditoria sem valores e revogação no cancelamento assistido.",
+      "reason": "Escopo técnico concluído; comunicação externa, estorno no provedor e operação humana permanecem separados."
     },
     {
       "id": 36,
       "title": "Exceção logística de contato",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/logistics-repository.js",
         "apps/api/logistics-service.js",
         "apps/api/logistics-handler.js",
         "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "tests/logistics-contact-http-postgres.test.mjs",
         "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "Regra local testada sem HTTP: somente o entregador atribuído recebe telefone verificado durante coleta ou entrega, com auditoria sem o valor do contato.",
-      "reason": "Fluxo local implementado; validação PostgreSQL/HTTP e operação logística real continuam pendentes."
+      "evidence": "HTTP/PostgreSQL comprova que somente o entregador atribuído vê o telefone verificado da parte correta durante coleta/entrega, com encerramento do acesso e auditoria sem o valor.",
+      "reason": "Escopo técnico concluído; chamadas, entrega e operação logística reais permanecem externas."
     },
     {
       "id": 37,
       "title": "Autorização de contatos",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/034_paid_contact_and_supported_cancellation.sql",
+        "database/migrations/054_transaction_contact_authorization.sql",
         "database/operation-support-repository.js",
         "database/payment-repository.js",
         "apps/api/marketplace-service.js",
+        "apps/app/chat.html",
         "apps/app/negotiation.js",
         "tests/paid-contact-and-supported-cancellation.test.mjs",
+        "tests/paid-party-contact-http-postgres.test.mjs",
         "docs/paid-contact-and-supported-cancellation-beta.md"
       ],
-      "evidence": "Pagamento confirmado libera contato estruturado e auditado entre as partes; cancelamento pós-pagamento exige suporte, calcula taxas registradas e revoga o acesso.",
-      "reason": "Fluxo local implementado; estorno no provedor, validação PostgreSQL/HTTP e homologação financeira continuam pendentes."
+      "evidence": "HTTP/PostgreSQL comprova que pagamento apenas habilita a escolha: cada titular autoriza e revoga seus canais com confirmação e versão; terceiros e versões antigas são recusados.",
+      "reason": "Autorização expressa por titular e canal concluída no escopo técnico; comunicação e estorno externos permanecem separados."
     },
     {
       "id": 38,
       "title": "Avaliações",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/reviews-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Avaliação persistida exige finalização e partes; proteção de conteúdo em padrões testados, ocultação/denúncia específicas e validação real deste lote pendentes."
+      "evidence": "HTTP/PostgreSQL comprova finalização e participação obrigatórias, idempotência, bloqueio de contato, consulta pública mínima, denúncia, ocultação provisória e decisão moderada.",
+      "reason": "Escopo técnico concluído; moderação humana e operação real continuam externas."
     },
     {
       "id": 39,
@@ -604,7 +657,7 @@
     {
       "id": 40,
       "title": "Contatos no chat",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
@@ -614,10 +667,11 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/chat-contact-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Chat privado persistido e filtro compartilhado de disfarces; validação nativa do lote e revisão de falsos negativos pendentes."
+      "evidence": "HTTP/PostgreSQL comprova liberação somente após pagamento, bloqueio de e-mail, telefone e convite externo sem persistir os textos, idempotência e exceção revisada vinculada ao conteúdo exato.",
+      "reason": "Escopo técnico dos padrões aprovados concluído; moderação humana e evolução contínua contra novos disfarces permanecem operacionais."
     },
     {
       "id": 41,
@@ -676,7 +730,7 @@
     {
       "id": 44,
       "title": "Suspensão e pendências",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
@@ -690,10 +744,11 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
+        "tests/suspension-pending-http-postgres.test.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
-      "reason": "Novas operações bloqueadas por suspensão; acompanhamento/suporte preservados. Validação nativa deste lote pendente."
+      "evidence": "HTTP/PostgreSQL comprova suspensão temporária: anúncio livre pausado, novas publicações e compras bloqueadas, enquanto operação existente e suporte permanecem acessíveis.",
+      "reason": "Escopo técnico concluído; decisão humana, capacidade da equipe e operação real continuam externas."
     },
     {
       "id": 45,

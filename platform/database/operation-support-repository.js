@@ -41,28 +41,66 @@ export function createOperationSupportRepository(database) {
       return database.transaction(async client => {
         const result=await client.query(`SELECT t.id,t.status,l.kind,
           peer.display_name,peer.email,peer.phone,peer.email_verified_at,peer.phone_verified_at,
-          a.unlocked_at,a.revoked_at
+          a.unlocked_at,a.revoked_at,consent.email_allowed,consent.phone_allowed
           FROM transactions t JOIN listings l ON l.id=t.listing_id
           JOIN transaction_contact_access a ON a.transaction_id=t.id
           JOIN users peer ON peer.id=CASE WHEN t.buyer_id=$2 THEN t.seller_id ELSE t.buyer_id END
+          JOIN transaction_contact_authorizations consent ON consent.transaction_id=t.id AND consent.holder_id=peer.id
           WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) AND l.kind='sale'
-            AND a.revoked_at IS NULL AND t.status NOT IN ('cancelled','refunded')
+            AND a.revoked_at IS NULL AND consent.revoked_at IS NULL AND t.status NOT IN ('cancelled','refunded')
             AND EXISTS (SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN ('paid','disputed'))`,[transactionId,actorId]);
         const row=result.rows[0];
-        if(!row)throw fail('contact_not_available',409,'O contato fica disponível somente após a confirmação do pagamento.');
+        if(!row)throw fail('contact_not_available',409,'O contato exige pagamento confirmado e autorização expressa da outra parte.');
         const contact={displayName:row.display_name,unlockedAt:row.unlocked_at};
-        if(row.phone_verified_at&&row.phone)contact.phone=row.phone;
-        if(row.email_verified_at&&row.email)contact.email=row.email;
+        if(row.phone_allowed&&row.phone_verified_at&&row.phone)contact.phone=row.phone;
+        if(row.email_allowed&&row.email_verified_at&&row.email)contact.email=row.email;
         if(!contact.phone&&!contact.email)throw fail('verified_contact_unavailable',409,'A outra parte ainda não possui contato verificado disponível.');
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'transaction.contact.read','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({channels:Object.keys(contact).filter(key=>['phone','email'].includes(key))})]);
         return contact;
       });
     },
+    async authorizeTransactionContact({actorId,transactionId,emailAllowed,phoneAllowed,expectedVersion}) {
+      return database.transaction(async client => {
+        const access=(await client.query(`SELECT t.id FROM transactions t JOIN listings l ON l.id=t.listing_id
+          JOIN transaction_contact_access a ON a.transaction_id=t.id
+          WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) AND l.kind='sale' AND a.revoked_at IS NULL
+          AND t.status NOT IN ('cancelled','refunded')
+          AND EXISTS(SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN ('paid','disputed'))
+          FOR UPDATE OF t`,[transactionId,actorId])).rows[0];
+        if(!access)throw fail('contact_authorization_not_available',409,'A autorização exige uma venda com pagamento confirmado.');
+        const current=(await client.query('SELECT * FROM transaction_contact_authorizations WHERE transaction_id=$1 AND holder_id=$2 FOR UPDATE',[transactionId,actorId])).rows[0];
+        const version=current?.version??0;
+        if(version!==expectedVersion)throw fail('contact_authorization_version_conflict',409,'A autorização mudou; consulte novamente.');
+        const revoked=!emailAllowed&&!phoneAllowed;
+        const row=(await client.query(`INSERT INTO transaction_contact_authorizations
+          (transaction_id,holder_id,email_allowed,phone_allowed,version,authorized_at,revoked_at)
+          VALUES($1,$2,$3,$4,1,CASE WHEN $5 THEN NULL ELSE now() END,CASE WHEN $5 THEN now() ELSE NULL END)
+          ON CONFLICT(transaction_id,holder_id) DO UPDATE SET email_allowed=EXCLUDED.email_allowed,
+          phone_allowed=EXCLUDED.phone_allowed,version=transaction_contact_authorizations.version+1,
+          authorized_at=CASE WHEN $5 THEN transaction_contact_authorizations.authorized_at ELSE now() END,
+          revoked_at=CASE WHEN $5 THEN now() ELSE NULL END,updated_at=now() RETURNING *`,
+          [transactionId,actorId,emailAllowed,phoneAllowed,revoked])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,$2,'transaction',$3,$4::jsonb)`,[actorId,revoked?'transaction.contact.authorization.revoked':'transaction.contact.authorization.changed',transactionId,JSON.stringify({channels:[...(emailAllowed?['email']:[]),...(phoneAllowed?['phone']:[])],version:row.version})]);
+        return {emailAllowed:row.email_allowed,phoneAllowed:row.phone_allowed,version:row.version,revoked:Boolean(row.revoked_at)};
+      });
+    },
+    async transactionContactAuthorization({actorId,transactionId}) {
+      const result=await database.query(`SELECT consent.email_allowed,consent.phone_allowed,consent.version,consent.revoked_at
+        FROM transactions t JOIN listings l ON l.id=t.listing_id JOIN transaction_contact_access a ON a.transaction_id=t.id
+        LEFT JOIN transaction_contact_authorizations consent ON consent.transaction_id=t.id AND consent.holder_id=$2
+        WHERE t.id=$1 AND $2 IN(t.buyer_id,t.seller_id) AND l.kind='sale' AND a.revoked_at IS NULL
+        AND t.status NOT IN('cancelled','refunded') AND EXISTS(SELECT 1 FROM payment_intents p WHERE p.id=a.payment_intent_id AND p.status IN('paid','disputed'))`,[transactionId,actorId]);
+      if(!result.rows.length)throw fail('contact_authorization_not_available',409,'A autorização exige uma venda com pagamento confirmado.');
+      const row=result.rows[0];
+      return {emailAllowed:Boolean(row.email_allowed),phoneAllowed:Boolean(row.phone_allowed),version:row.version??0,revoked:Boolean(row.revoked_at)};
+    },
     async supportCancellationDecision({ actorId,ticketId,reason }) {
       return database.transaction(async client => {
         const found=await client.query(`SELECT st.id AS ticket_id,st.transaction_id,st.category,st.status AS ticket_status,
-          t.status AS transaction_status,p.id AS payment_intent_id,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents
+          t.status AS transaction_status,t.address_shared_at,p.id AS payment_intent_id,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,
+          EXISTS(SELECT 1 FROM shipments s WHERE s.transaction_id=t.id AND (s.status IN ('picked_up','in_transit','delivered') OR EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN ('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id))) AS collected
           FROM support_tickets st JOIN transactions t ON t.id=st.transaction_id
           JOIN payment_intents p ON p.transaction_id=t.id AND p.status='paid'
           WHERE st.id=$1 AND st.category='cancellation'
@@ -72,39 +110,83 @@ export function createOperationSupportRepository(database) {
         if(['completed','cancelled','refunded'].includes(row.transaction_status))throw fail('transaction_not_cancellable',409,'A operação já foi encerrada.');
         const existing=await client.query('SELECT * FROM supported_cancellations WHERE transaction_id=$1',[row.transaction_id]);
         if(existing.rows[0])return {cancellation:existing.rows[0],reused:true};
-        const refund=row.amount_cents-row.platform_fee_cents-row.delivery_fee_cents;
+        const phase=row.collected===false&&!row.address_shared_at?'pre_collection':'post_milestone';
+        const retainedPlatformFee=phase==='pre_collection'?0:row.platform_fee_cents;
+        const refund=row.amount_cents-retainedPlatformFee-row.delivery_fee_cents;
         const created=await client.query(`INSERT INTO supported_cancellations
-          (transaction_id,support_ticket_id,payment_intent_id,decided_by,gross_amount_cents,retained_platform_fee_cents,retained_delivery_fee_cents,refund_amount_cents,reason)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[row.transaction_id,ticketId,row.payment_intent_id,actorId,row.amount_cents,row.platform_fee_cents,row.delivery_fee_cents,refund,reason]);
+          (transaction_id,support_ticket_id,payment_intent_id,decided_by,gross_amount_cents,retained_platform_fee_cents,retained_delivery_fee_cents,refund_amount_cents,reason,cancellation_phase)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[row.transaction_id,ticketId,row.payment_intent_id,actorId,row.amount_cents,retainedPlatformFee,row.delivery_fee_cents,refund,reason,phase]);
         await client.query("UPDATE transactions SET status='disputed',updated_at=now() WHERE id=$1",[row.transaction_id]);
         await client.query("UPDATE support_tickets SET status='under_review',updated_at=now() WHERE id=$1",[ticketId]);
         await client.query(`UPDATE transaction_contact_access SET revoked_at=now(),revoked_by=$2,revocation_reason='supported_cancellation'
           WHERE transaction_id=$1 AND revoked_at IS NULL`,[row.transaction_id,actorId]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES($1,'transaction.supported_cancellation.decided','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({supportTicketId:ticketId,grossAmountCents:row.amount_cents,retainedPlatformFeeCents:row.platform_fee_cents,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:refund})]);
+          VALUES($1,'transaction.supported_cancellation.decided','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({supportTicketId:ticketId,phase,grossAmountCents:row.amount_cents,retainedPlatformFeeCents:retainedPlatformFee,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:refund})]);
         return {cancellation:created.rows[0],reused:false};
       });
+    },
+    async supportCancellationPreview({actorId,ticketId}) {
+      const result=await database.query(`SELECT st.id AS ticket_id,t.id AS transaction_id,t.address_shared_at,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,
+        EXISTS(SELECT 1 FROM shipments s WHERE s.transaction_id=t.id AND (s.status IN ('picked_up','in_transit','delivered') OR EXISTS(SELECT 1 FROM shipment_events e WHERE e.shipment_id=s.id AND e.status IN ('picked_up','in_transit','delivered')) OR EXISTS(SELECT 1 FROM delivery_proofs dp WHERE dp.shipment_id=s.id))) AS collected
+        FROM support_tickets st JOIN transactions t ON t.id=st.transaction_id JOIN payment_intents p ON p.transaction_id=t.id AND p.status='paid'
+        WHERE st.id=$1 AND st.category='cancellation' ORDER BY p.updated_at DESC LIMIT 1`,[ticketId]);
+      const row=result.rows[0];if(!row)throw fail('supported_cancellation_not_available',409,'O pedido precisa estar ligado a uma operação com pagamento confirmado.');
+      const phase=row.collected===false&&!row.address_shared_at?'pre_collection':'post_milestone',retainedPlatformFeeCents=phase==='pre_collection'?0:row.platform_fee_cents;
+      const preview={phase,grossAmountCents:row.amount_cents,refundedPlatformFeeCents:row.platform_fee_cents-retainedPlatformFeeCents,retainedPlatformFeeCents,retainedDeliveryFeeCents:row.delivery_fee_cents,refundAmountCents:row.amount_cents-retainedPlatformFeeCents-row.delivery_fee_cents,providerStatus:'pending'};
+      await database.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'transaction.supported_cancellation.previewed','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({phase})]);return preview;
     },
     async createSupportTicket(input) {
       return database.transaction(async client => {
         const existing = await client.query('SELECT * FROM support_tickets WHERE idempotency_key=$1',[input.idempotencyKey]);
         if (existing.rows[0]) {
           if (existing.rows[0].requester_id !== input.requesterId) throw fail('support_key_conflict',409,'Use uma nova chave para este pedido.');
+          if(existing.rows[0].category==='receipt_problem'||input.category==='receipt_problem'){
+            const occurrence=await client.query('SELECT kind FROM transaction_occurrences WHERE support_ticket_id=$1',[existing.rows[0].id]);
+            if(existing.rows[0].category!==input.category||existing.rows[0].transaction_id!==input.transactionId||existing.rows[0].subject!==input.subject||existing.rows[0].details!==input.details||occurrence.rows[0]?.kind!==input.occurrenceKind)throw fail('support_key_conflict',409,'A chave já foi usada para outra ocorrência.');
+          }
           return { ticket:existing.rows[0], reused:true };
         }
+        let transaction=null;
         if (input.transactionId) {
-          const access = await client.query(`SELECT id FROM transactions WHERE id=$1 AND $2 IN (buyer_id,seller_id) FOR UPDATE`,[input.transactionId,input.requesterId]);
-          if (!access.rows[0]) throw fail('transaction_not_found',404,'Transação não encontrada.');
+          const access = await client.query(`SELECT id,status FROM transactions WHERE id=$1 AND $2 IN (buyer_id,seller_id) FOR UPDATE`,[input.transactionId,input.requesterId]);
+          transaction=access.rows[0];
+          if (!transaction) throw fail('transaction_not_found',404,'Transação não encontrada.');
+          if(input.category==='receipt_problem'&&!['paid','in_delivery','completed'].includes(transaction.status))throw fail('occurrence_not_available',409,'A ocorrência exige uma operação paga ou em entrega.');
         }
         const created = await client.query(`INSERT INTO support_tickets
           (requester_id,transaction_id,category,subject,details,idempotency_key)
           VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (idempotency_key) DO NOTHING RETURNING *`,
           [input.requesterId,input.transactionId,input.category,input.subject,input.details,input.idempotencyKey]);
         if (!created.rows[0]) throw fail('support_key_conflict',409,'Atualize o acompanhamento do pedido ou tente novamente.');
+        if(input.category==='receipt_problem'){
+          await client.query(`INSERT INTO transaction_occurrences(support_ticket_id,transaction_id,opened_by,kind,prior_transaction_status)
+            VALUES($1,$2,$3,$4,$5::transaction_status)`,[created.rows[0].id,input.transactionId,input.requesterId,input.occurrenceKind,transaction.status]);
+          await client.query("UPDATE transactions SET status='disputed',updated_at=now() WHERE id=$1 AND status<>'refunded'",[input.transactionId]);
+        }
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.created','support_ticket',$2,$3::jsonb)`,
-          [input.requesterId,created.rows[0].id,JSON.stringify({category:input.category})]);
+          [input.requesterId,created.rows[0].id,JSON.stringify({category:input.category,...(input.occurrenceKind?{occurrenceKind:input.occurrenceKind}:{})})]);
         return {ticket:created.rows[0],reused:false};
+      });
+    },
+    async supportOccurrenceDecision({actorId,ticketId,outcome,reason}) {
+      return database.transaction(async client=>{
+        const found=await client.query(`SELECT o.*,t.status AS transaction_status FROM transaction_occurrences o
+          JOIN transactions t ON t.id=o.transaction_id WHERE o.support_ticket_id=$1 FOR UPDATE OF o,t`,[ticketId]);
+        const occurrence=found.rows[0];
+        if(!occurrence)throw fail('occurrence_not_found',404,'Ocorrência não encontrada.');
+        if(occurrence.status==='resolved'){
+          if(occurrence.outcome!==outcome||occurrence.decision_reason!==reason)throw fail('occurrence_already_decided',409,'A ocorrência já possui outra decisão.');
+          return {occurrence,reused:true};
+        }
+        if(occurrence.transaction_status!=='disputed')throw fail('occurrence_state_conflict',409,'A operação não está bloqueada para decisão.');
+        const decided=await client.query(`UPDATE transaction_occurrences SET status='resolved',outcome=$2,decision_reason=$3,decided_by=$4,decided_at=now(),updated_at=now()
+          WHERE id=$1 RETURNING *`,[occurrence.id,outcome,reason,actorId]);
+        if(outcome==='dismissed')await client.query('UPDATE transactions SET status=$2::transaction_status,updated_at=now() WHERE id=$1',[occurrence.transaction_id,occurrence.prior_transaction_status]);
+        await client.query("UPDATE support_tickets SET status='resolved',updated_at=now() WHERE id=$1",[ticketId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'transaction.occurrence.decided','transaction_occurrence',$2,$3::jsonb)`,[actorId,occurrence.id,JSON.stringify({outcome})]);
+        return {occurrence:decided.rows[0],reused:false};
       });
     },
     async supportTickets({userId,reviewer=false,limit=100,offset=0,status=null,category=null,q=null,assignment=null,sort='newest'}) {
@@ -162,8 +244,10 @@ export function createOperationSupportRepository(database) {
     },
     async replySupportTicket({actorId,ticketId,body,status,idempotencyKey}) {
       return database.transaction(async client => {
-        const found = await client.query('SELECT id FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId]);
+        const found = await client.query(`SELECT st.id,st.category,EXISTS(SELECT 1 FROM transaction_occurrences o WHERE o.support_ticket_id=st.id AND o.status='under_review') AS occurrence_pending
+          FROM support_tickets st WHERE st.id=$1 FOR UPDATE`,[ticketId]);
         if (!found.rows[0]) throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
+        if(status==='resolved'&&found.rows[0].category==='receipt_problem'&&found.rows[0].occurrence_pending)throw fail('occurrence_decision_required',409,'Registre a decisão da ocorrência antes de encerrar o atendimento.');
         const replay=row=>{
           if(row.ticket_id!==ticketId||row.body!==body||row.requested_status!==status)throw fail('support_reply_key_conflict',409,'A chave já foi usada para outra resposta. Consulte o protocolo.');
           return {id:ticketId,status:row.requested_status,messageId:row.id,reused:true};

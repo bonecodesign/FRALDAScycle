@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 export async function checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture,requestAuthCode}) {
   const layouts=[];
-  const enter=async()=>{for(const type of ['keyDown','keyUp'])await call('Input.dispatchKeyEvent',{type,key:'Enter',code:'Enter',windowsVirtualKeyCode:13,...(type==='keyDown'?{text:'\r'}:{})});};
+  const enter=async()=>{for(const type of ['keyDown','keyUp'])await call('Input.dispatchKeyEvent',{type,key:'Enter',code:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:13,...(type==='keyDown'?{text:'\r',unmodifiedText:'\r'}:{})});};
   const navigate=async(path,form,origin=surfaceOrigin)=>{
     await call('Page.navigate',{url:origin+path});
     await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.querySelector(${JSON.stringify(form)}))`),path);
@@ -14,7 +14,13 @@ export async function checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOri
   const submit=async(form,values)=>{
     await evaluate(`(()=>{const f=document.querySelector(${JSON.stringify(form)});const inputs=[...f.querySelectorAll('input:not([type=checkbox])')];${JSON.stringify(values)}.forEach((v,i)=>inputs[i].value=v);f.querySelectorAll('input[type=checkbox]').forEach(i=>i.checked=true);f.querySelector('button[type=submit]').focus();})()`);await enter();
   };
-  const path=expected=>until(()=>evaluate(`location.pathname===${JSON.stringify(expected)}&&document.readyState==='complete'`),expected);
+  const path=async expected=>{
+    try { await until(()=>evaluate(`location.pathname===${JSON.stringify(expected)}&&document.readyState==='complete'`),expected); }
+    catch(error){
+      const diagnostic=await evaluate(`({path:location.pathname,ready:document.readyState,focused:document.activeElement?.outerHTML?.slice(0,240),feedback:[...document.querySelectorAll('[role=status],.field-error')].map(node=>node.textContent).filter(Boolean)})`);
+      throw new Error(error.message+': '+JSON.stringify(diagnostic));
+    }
+  };
   const error=form=>until(()=>evaluate(`Boolean(document.querySelector(${JSON.stringify(form+' .field-error')})?.textContent)&&!document.querySelector(${JSON.stringify(form+' button[type=submit]')}).disabled`),'invalid credential rejected');
   const status=()=>evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/session')},{credentials:'include'}).then(r=>r.status)`);
   const logout=()=>evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/auth/logout')},{method:'POST',credentials:'include'}).then(r=>r.status)`);

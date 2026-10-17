@@ -37,4 +37,8 @@ Com dependências travadas instaladas e PostgreSQL/Chrome já disponíveis: `nod
 
 Para superfícies locais, o padrão é API `http://127.0.0.1:4200`. Se a porta mudar, iniciar a superfície com `SURFACE_API_ORIGIN` apontando para a origem de loopback correspondente; permitir a mesma origem da superfície no CORS da API. Não usar configurações demonstrativas em produção.
 
+## Complemento: comprovante mínimo — 15 de outubro de 2026
+
+`tests/delivery-proof-http-postgres.test.mjs` cobre por HTTP e PostgreSQL o registro idempotente pelo entregador atribuído, vínculo a recebedor e localização, leitura restrita às partes autorizadas e revisão administrativa, além da obtenção da foto privada por URL assinada. Pessoa externa recebe resposta sem exposição e o provedor não é chamado; chave de mídia e nome do recebedor não entram na auditoria. A mídia, a entrega e o fornecedor usados no teste são fictícios: não há alegação de homologação real.
+
 Matriz permanece 6/70 = 8,57% concluídos, 35 parciais, 17 pendentes e 12 bloqueados. Testes adicionais não alteram esse numerador automaticamente. NO-GO do piloto humano e bloqueios de produção permanecem: fornecedores, privacidade infantil, termos/retenção revisados, duas entregas da troca, instituição/recusa de doação, Premium persistido, moderação/recurso e testes humanos/dispositivos/leitor de tela. Item 12 em standby.

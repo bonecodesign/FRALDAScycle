@@ -79,6 +79,18 @@ export async function handleMarketplace(request, response, {
     const result=await marketplaceService.supportCancellationDecision(actor,cancellationDecision[1],await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const cancellationPreview=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/cancellation-preview$/i);
+  if(cancellationPreview&&request.method==='GET'){
+    const actor=await authenticatedUser(request,authService);
+    const preview=await marketplaceService.supportCancellationPreview(actor,cancellationPreview[1]);
+    sendJson(response,200,{preview,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const occurrenceDecision=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/occurrence-decision$/i);
+  if(occurrenceDecision&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.supportOccurrenceDecision(actor,occurrenceDecision[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
     const items = await marketplaceService.search(Object.fromEntries(url.searchParams));
@@ -137,6 +149,17 @@ export async function handleMarketplace(request, response, {
     const user=await authenticatedUser(request,authService);
     const contact=await marketplaceService.transactionContact(user.id,contactAccess[1]);
     sendJson(response,200,{contact,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const contactAuthorization=url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/contact-authorization$/i);
+  if(request.method==='GET'&&contactAuthorization){
+    const user=await authenticatedUser(request,authService);
+    const authorization=await marketplaceService.transactionContactAuthorization(user.id,contactAuthorization[1]);
+    sendJson(response,200,{authorization,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  if(request.method==='PUT'&&contactAuthorization){
+    const user=await authenticatedUser(request,authService);
+    const authorization=await marketplaceService.authorizeTransactionContact(user.id,contactAuthorization[1],await readJson(request));
+    sendJson(response,200,{authorization,requestId},{...headers,'cache-control':'no-store'});return true;
   }
 
   const transactionAction = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/(cancel|complete)$/i);
