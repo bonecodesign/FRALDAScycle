@@ -230,10 +230,12 @@
         "apps/api/logistics-handler.js",
         "apps/admin/proof-review.js",
         "tests/courier-payout-eligibility.test.mjs",
-        "docs/courier-payout-eligibility-beta.md"
+        "docs/courier-payout-eligibility-beta.md",
+        "tests/courier-payout-http-postgres.test.mjs",
+        "docs/courier-payout-obligation-beta.md"
       ],
-      "evidence": "Cinco testes locais validam pré-requisitos, split 95/5, idempotência, autorização e bloqueio de transferência real.",
-      "reason": "Ledger e elegibilidade locais implementados; cobrança de frete, KYC, provedor, conciliação e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova isolamento, autorização administrativa, cálculo 95/5, idempotência, auditoria e obrigação local sem transferência.",
+      "reason": "Ledger, elegibilidade e preparação local comprovados por HTTP/PostgreSQL; cobrança do frete, KYC, fornecedor, transferência e conciliação reais permanecem pendentes."
     },
     {
       "id": 16,
