@@ -137,13 +137,15 @@
       "status": "parcial",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
+        "database/migrations/056_exchange_logistics_responsibility.sql",
         "database/exchange-repository.js",
         "apps/api/exchange-service.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Operação bilateral cria duas pernas logísticas identificadas, uma para cada pacote, sem cobrança ou provedor.",
-      "reason": "Duas rotas e endereços privados por perna implementados; preço, cobrança individual, provedor e validação PostgreSQL/HTTP permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova duas pernas opostas, destinatários responsáveis por seus respectivos fretes e restrição contra atribuição ao remetente.",
+      "reason": "Duas rotas, endereços privados e responsabilidade individual persistidos; preço, cobrança individual e provedor permanecem pendentes."
     },
     {
       "id": 10,
