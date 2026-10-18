@@ -42,8 +42,8 @@ test("production doctor treats provider activation acknowledgments as separate r
   assert.equal(report.ready, false);
   assert.deepEqual(report.integrations.payments.missing, ["PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
   assert.deepEqual(report.integrations.logistics.missing, ["LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
-  assert.match(report.blockers.join("\\n"), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
-  assert.match(report.blockers.join("\\n"), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.match(report.blockers.join("\n"), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.match(report.blockers.join("\n"), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
 });
 
 test("production doctor reports missing bundles without exposing secrets", () => {
@@ -66,6 +66,6 @@ test("production doctor rejects an invalid external secrets contract", () => {
     SECRETS_PROVIDER_URL: "https://user:password@vault.vendor.dev/v1",
   });
   assert.equal(report.ready, false);
-  assert.match(report.blockers.join("\\n"), /must not contain credentials/);
+  assert.match(report.blockers.join("\n"), /must not contain credentials/);
   assert.equal(JSON.stringify(report).includes("password"), false);
 });
