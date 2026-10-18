@@ -6,7 +6,7 @@ Depois de pagamento confirmado, entrega concluída, aprovação do recebedor e v
 
 ## Limite deliberado
 
-A consulta não libera dinheiro: retorna sempre `payoutAllowed: false` e `payoutStatus: not_configured`. Ela não expõe identificadores financeiros, valores do vendedor ou referências de fornecedor. Nenhuma transferência, conciliação ou alteração do estado da operação ocorre durante a leitura.
+O prazo de 72 horas é calculado a partir da mais tardia entre a aprovação do recebedor e a validação independente. O vencimento apenas marca `targetOverdue`; silêncio não aprova o recebimento nem libera o repasse. A consulta retorna sempre `payoutAllowed: false` e `payoutStatus: not_configured`. Ela não expõe identificadores financeiros, valores do vendedor ou referências de fornecedor. Nenhuma transferência, conciliação ou alteração do estado da operação ocorre durante a leitura.
 
 ## Evidência automatizada
 
