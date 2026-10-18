@@ -417,7 +417,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Retirada registrada')`),'donation pickup keyboard');
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#donation-share fieldset').disabled`),'owned donation address');
-    await evaluate(`document.querySelector('#donation-share input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await evaluate(`document.querySelector('#donation-share input').focus()`);await key(' ','Space',32);await evaluate(`document.querySelector('#donation-share button[type=submit]').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Endereço compartilhado')`),'donation address consent keyboard');
     const browserDonationShipment=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/donations/')}+${JSON.stringify(browserDonationTransaction)},{credentials:'include'}).then(r=>r.json()).then(r=>r.donation.shipment_id)`);
     const donationLayouts=[];
