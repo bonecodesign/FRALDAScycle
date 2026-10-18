@@ -30,6 +30,12 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   let socket;
   let requestClose = null;
   const pending = new Map();
+  const networkRequests = new Map();
+  const networkDiagnostics = [];
+  const recordNetwork = entry => {
+    networkDiagnostics.push(entry);
+    if (networkDiagnostics.length > 40) networkDiagnostics.shift();
+  };
   try {
     const endpoint = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Chrome DevTools não iniciou.')), devtoolsWaitMs);
@@ -57,6 +63,19 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
         if (!operation) return;
         clearTimeout(operation.timer); pending.delete(message.id);
         if (message.error) operation.reject(new Error(message.error.message)); else operation.resolve(message.result);
+      } else if (message.method === 'Network.requestWillBeSent') {
+        const request = message.params.request;
+        const url = new URL(request.url);
+        if (url.protocol === 'http:' && url.hostname === '127.0.0.1') {
+          networkRequests.set(message.params.requestId, { url: url.origin + url.pathname, method: request.method });
+        }
+      } else if (message.method === 'Network.responseReceived') {
+        const request = networkRequests.get(message.params.requestId);
+        if (request) recordNetwork({ ...request, status: message.params.response.status });
+      } else if (message.method === 'Network.loadingFailed') {
+        const request = networkRequests.get(message.params.requestId);
+        if (request) recordNetwork({ ...request, failed: message.params.errorText, blockedReason: message.params.blockedReason ?? null, canceled: message.params.canceled });
+        networkRequests.delete(message.params.requestId);
       } else if (message.method === 'Fetch.requestPaused') {
         const url = new URL(message.params.request.url);
         const allowed = url.protocol === 'http:' && url.hostname === '127.0.0.1';
@@ -528,6 +547,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       if (chrome.exitCode === null && chrome.signalCode === null) { try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* Grupo já encerrado. */ } await stopped; }
     }
     await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  } catch (error) {
+    throw new Error(`${error.message}\nLocal browser request diagnostics: ${JSON.stringify(networkDiagnostics)}`);
   }
 }
 if (isMainModule(import.meta.url)) {
