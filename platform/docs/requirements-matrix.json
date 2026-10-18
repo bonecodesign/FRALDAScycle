@@ -804,10 +804,12 @@
       "references": [
         "apps/api/account-consent-service.js",
         "database/account-consent-repository.js",
-        "tests/account-consents.test.mjs"
+        "tests/account-consents.test.mjs",
+        "tests/account-terms-http-postgres.test.mjs",
+        "docs/account-terms-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Estrutura e testes sintéticos existem; nenhum termo real foi ativado."
+      "evidence": "HTTP/PostgreSQL comprova aceite vinculado à versão e hash, snapshot documental, histórico privado, idempotência e separação de preferências; usa apenas termos sintéticos.",
+      "reason": "Registro e consulta do histórico comprovados com fixtures; os documentos legais reais continuam em rascunho, sem ativação ou aceite operacional."
     },
     {
       "id": 48,
