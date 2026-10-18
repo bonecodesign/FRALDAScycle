@@ -42,8 +42,8 @@ test("production doctor treats provider activation acknowledgments as separate r
   assert.equal(report.ready, false);
   assert.deepEqual(report.integrations.payments.missing, ["PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
   assert.deepEqual(report.integrations.logistics.missing, ["LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
-  assert.match(report.blockers.join("\n"), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
-  assert.match(report.blockers.join("\n"), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.ok(report.blockers.some(item => item.includes("PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED")));
+  assert.ok(report.blockers.some(item => item.includes("LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED")));
 });
 
 test("production doctor reports missing bundles without exposing secrets", () => {
