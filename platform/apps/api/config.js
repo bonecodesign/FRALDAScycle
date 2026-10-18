@@ -60,6 +60,11 @@ export function loadConfig(env = process.env) {
   if (nodeEnv === "production" && logisticsProviderUrl && !logisticsWebhookSecret) {
     throw new Error("LOGISTICS_WEBHOOK_SECRET is required with a production logistics provider");
   }
+  const logisticsProviderActivationAcknowledged =
+    env.LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED === "true";
+  if (nodeEnv === "production" && logisticsProviderUrl && !logisticsProviderActivationAcknowledged) {
+    throw new Error("LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true is required with a production logistics provider");
+  }
   const paymentProviderUrl = env.PAYMENT_PROVIDER_URL ?? null;
   const paymentProviderSecret = env.PAYMENT_PROVIDER_SECRET ?? null;
   const paymentWebhookSecret = env.PAYMENT_WEBHOOK_SECRET ?? null;
@@ -82,6 +87,11 @@ export function loadConfig(env = process.env) {
   }
   if (nodeEnv === "production" && paymentProviderUrl && !paymentWebhookSecret) {
     throw new Error("PAYMENT_WEBHOOK_SECRET is required with a production payment provider");
+  }
+  const paymentProviderActivationAcknowledged =
+    env.PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED === "true";
+  if (nodeEnv === "production" && paymentProviderUrl && !paymentProviderActivationAcknowledged) {
+    throw new Error("PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true is required with a production payment provider");
   }
   const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
   const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
@@ -134,9 +144,11 @@ export function loadConfig(env = process.env) {
     logisticsProviderUrl,
     logisticsProviderSecret,
     logisticsWebhookSecret,
+    logisticsProviderActivationAcknowledged,
     paymentProviderUrl,
     paymentProviderSecret,
     paymentWebhookSecret,
+    paymentProviderActivationAcknowledged,
     paymentProviderSdkUrl,
     paymentProviderSdkIntegrity,
     notificationWebhookUrl: notification.url,
