@@ -66,6 +66,6 @@ test("production doctor rejects an invalid external secrets contract", () => {
     SECRETS_PROVIDER_URL: "https://user:password@vault.vendor.dev/v1",
   });
   assert.equal(report.ready, false);
-  assert.match(report.blockers.join("\n"), /must not contain credentials/);
+  assert.match(report.blockers.join("\\n"), /must not contain credentials/);
   assert.equal(JSON.stringify(report).includes("password"), false);
 });
