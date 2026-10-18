@@ -14,11 +14,13 @@ const complete = {
   PAYMENT_PROVIDER_URL: "https://pay.vendor.dev/v1",
   PAYMENT_PROVIDER_SECRET: "payment-secret",
   PAYMENT_WEBHOOK_SECRET: "payment-hook-secret",
+  PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true",
   PAYMENT_PROVIDER_SDK_URL: "https://pay.vendor.dev/sdk.js",
   PAYMENT_PROVIDER_SDK_INTEGRITY: "sha384-valid-integrity",
   LOGISTICS_PROVIDER_URL: "https://logistics.vendor.dev/v1",
   LOGISTICS_PROVIDER_SECRET: "logistics-secret",
   LOGISTICS_WEBHOOK_SECRET: "logistics-hook-secret",
+  LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true",
   RATE_LIMIT_PROVIDER_URL: "https://limits.vendor.dev/v1",
   RATE_LIMIT_PROVIDER_SECRET: "limits-secret",
   TELEMETRY_PROVIDER_URL: "https://telemetry.vendor.dev/v1",
@@ -32,6 +34,16 @@ test("production doctor approves a complete provider contract", () => {
   const report = inspectProductionReadiness(complete);
   assert.equal(report.ready, true);
   assert.deepEqual(report.blockers, []);
+});
+
+test("production doctor treats provider activation acknowledgments as separate readiness gates", () => {
+  const { PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED, LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED, ...withoutAcknowledgments } = complete;
+  const report = inspectProductionReadiness(withoutAcknowledgments);
+  assert.equal(report.ready, false);
+  assert.deepEqual(report.integrations.payments.missing, ["PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
+  assert.deepEqual(report.integrations.logistics.missing, ["LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED"]);
+  assert.match(report.blockers.join("\\n"), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.match(report.blockers.join("\\n"), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
 });
 
 test("production doctor reports missing bundles without exposing secrets", () => {
