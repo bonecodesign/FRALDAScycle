@@ -57,3 +57,10 @@ Esta decisão reduz o próximo ciclo de homologação a uma opção recomendada 
 ## Próximo portão
 
 Nenhuma integração avança automaticamente. O próximo estado permitido é “diligência aprovada”, com respostas comerciais, jurídicas, de segurança e privacidade anexadas fora do repositório e sem segredos. Somente depois pode existir sandbox; produção permanece bloqueada até a homologação integral.
+
+
+## Portão técnico para ativação em produção
+
+Credenciais e endpoints de pagamentos e logística são configuração sensível, não uma ordem de ativação. Em produção, os bundles agora também exigem `PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true` ou `LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true`, respectivamente; sem essa confirmação, a API falha no início. A confirmação sozinha não configura o adaptador: URL, segredo e segredo do webhook continuam obrigatórios.
+
+Essas variáveis devem permanecer ausentes ou falsas no ambiente de produção até autorização operacional específica, contratação e diligência aprovadas, homologação sandbox concluída e validações jurídicas, financeiras, segurança e privacidade finalizadas. O campo é um bloqueio técnico, não comprovação dessas aprovações. A preparação não configura frete, preço, pagador, cobrança, repasse nem tráfego real e não altera o standby comercial.
