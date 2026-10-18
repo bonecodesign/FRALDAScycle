@@ -247,7 +247,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution binding load');
     await evaluate(`document.querySelector('#institution-access-list button').focus()`);await key('Enter','Enter',13);
     assert.equal(await evaluate('document.activeElement.name'),'confirmed');
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await key(' ','Space',32);await evaluate(`document.querySelector('#institution-access-accept button[type=submit]')?.focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Aceite registrado')`),'institution acceptance keyboard');
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
