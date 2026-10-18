@@ -418,7 +418,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#donation-share fieldset').disabled`),'owned donation address');
     await evaluate(`document.querySelector('#donation-share input').focus()`);await key(' ','Space',32);await evaluate(`document.querySelector('#donation-share button[type=submit]').focus()`);await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Endereço compartilhado')`),'donation address consent keyboard');
+    try { await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Endereço compartilhado')`),'donation address consent keyboard'); }
+    catch(error){throw new Error(error.message+': '+JSON.stringify(await evaluate(`({feedback:document.getElementById('donation-feedback')?.textContent,fieldsetDisabled:document.querySelector('#donation-share fieldset')?.disabled,addressCount:document.querySelector('#donation-share select[name=addressId]')?.options.length,addressId:document.querySelector('#donation-share select[name=addressId]')?.value,confirmed:document.querySelector('#donation-share input[name=confirmed]')?.checked,active:document.activeElement?.outerHTML})`)));}
     const browserDonationShipment=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/donations/')}+${JSON.stringify(browserDonationTransaction)},{credentials:'include'}).then(r=>r.json()).then(r=>r.donation.shipment_id)`);
     const donationLayouts=[];
     for(const width of [320,375,768,1280]){
