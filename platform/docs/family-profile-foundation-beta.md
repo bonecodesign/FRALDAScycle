@@ -8,7 +8,7 @@ O cadastro exige declaração explícita e versionada `FC-AGE-1`, sem coletar da
 
 A fundação suporta múltiplos perfis por conta familiar, somente data de nascimento privada, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. Contas de entregador, moderador e administrador não podem usar essa área. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças não integram os sinais de ofertas nem podem ser expostos a parceiros.
 
-`CHILD_PROFILES_ENABLED` é falso por padrão. Enquanto estiver desligado, o serviço retorna `404` antes de consultar ou escrever no banco e a interface infantil não é criada. Nenhuma coleta infantil fica ativa nesta entrega.
+`CHILD_PROFILES_ENABLED` é falso por padrão. Em produção, habilitá-lo exige também `CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true`; definir somente a flag de recurso interrompe a inicialização. Esse segundo valor é um controle operacional explícito e não substitui revisão jurídica, aprovação de privacidade ou decisão formal. Enquanto a flag estiver desligada, o serviço retorna `404` antes de consultar ou escrever no banco e a interface infantil não é criada. Nenhuma coleta infantil fica ativa nesta entrega.
 
 ## Condições para ativação futura
 
