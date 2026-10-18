@@ -170,6 +170,16 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
       const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
       const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', RATE_LIMIT_MAX: '1000', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,institutionService:createInstitutionService(createInstitutionRepository(database)),donationService });
+      const apiRequestDiagnostics = [];
+      api.on('request', (request, response) => {
+        const pathname = new URL(request.url, 'http://localhost').pathname.replace(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/gi, ':uuid');
+        const entry = { method: request.method, path: pathname };
+        apiRequestDiagnostics.push(entry);
+        if (apiRequestDiagnostics.length > 80) apiRequestDiagnostics.shift();
+        let finished = false;
+        response.once('finish', () => { finished = true; entry.status = response.statusCode; entry.outcome = 'finished'; });
+        response.once('close', () => { if (!finished) entry.outcome = 'closed-before-finish'; });
+      });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
@@ -207,7 +217,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
         browser.stderr.on('data', chunk => { errors += chunk; });
         browser.stdin.end(JSON.stringify({ authFixture, loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
-        assert.equal(code, 0, errors);
+        assert.equal(code, 0, `${errors}\\nSynthetic API request diagnostics: ${JSON.stringify(apiRequestDiagnostics.slice(-40))}`);
         const result = JSON.parse(output);
         assert.equal(result.authentication.externalDelivery,false);
         assert.equal(result.authentication.layouts.length,24);
