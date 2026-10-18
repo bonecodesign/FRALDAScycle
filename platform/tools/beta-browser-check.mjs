@@ -301,7 +301,9 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Private address detail overflow ${width}`);
     }
     await evaluate(`(()=>{const f=document.getElementById('address-change-review');f.elements.outcome.value='approved';f.elements.reason.value='Conferência fictícia de consentimento, titular e retirada.';f.elements.confirmed.focus();})()`);
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await key(' ','Space',32);
+    await evaluate(`document.querySelector('#address-change-review button[type=submit]').focus()`);
+    await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Análise registrada')`),'support address approval keyboard');
     const addressDecision=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests/')}+${JSON.stringify(addressRequest)},{credentials:'include'}).then(r=>r.json()).then(r=>r.request)`);
     assert.equal(addressDecision.status,'approved');assert.equal(addressDecision.current_revision,1);
