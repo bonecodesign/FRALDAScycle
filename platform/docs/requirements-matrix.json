@@ -455,7 +455,7 @@
         "tests/child-profile-http-postgres.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
@@ -470,7 +470,7 @@
         "tests/family-profile-foundation.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
     },
     {
@@ -485,7 +485,7 @@
         "tests/family-profile-foundation.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
@@ -535,7 +535,7 @@
         "tests/child-profile-http-postgres.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova isolamento por responsável e recusa contas de entregador e administrador; o recurso continua desligado por padrão.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
@@ -549,7 +549,7 @@
         "tests/child-profile-http-postgres.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
@@ -564,7 +564,7 @@
         "tests/child-profile-http-postgres.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
+      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
       "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
     },
     {

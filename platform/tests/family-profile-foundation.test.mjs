@@ -25,10 +25,15 @@ test("child age derivation returns only a band and rejects future or adult dates
   assert.throws(() => childAgeBand("2008-10-07", reference));
 });
 
-test("child profiles remain disabled unless explicitly enabled", () => {
+test("child profiles stay off by default and production requires a second explicit activation acknowledgment", () => {
   assert.equal(loadConfig({ NODE_ENV: "test" }).childProfilesEnabled, false);
   assert.equal(loadConfig({ NODE_ENV: "test", CHILD_PROFILES_ENABLED: "false" }).childProfilesEnabled, false);
   assert.equal(loadConfig({ NODE_ENV: "test", CHILD_PROFILES_ENABLED: "true" }).childProfilesEnabled, true);
+  const production = { NODE_ENV: "production", DATABASE_URL: "postgres://fixture", SESSION_SECRET: "s".repeat(32), NOTIFICATION_WEBHOOK_URL: "https://notify.example.test", NOTIFICATION_WEBHOOK_SECRET: "synthetic-only" };
+  assert.equal(loadConfig(production).childProfilesEnabled, false);
+  assert.throws(() => loadConfig({ ...production, CHILD_PROFILES_ENABLED: "true" }), /CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.equal(loadConfig({ ...production, CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED: "true" }).childProfilesEnabled, false);
+  assert.equal(loadConfig({ ...production, CHILD_PROFILES_ENABLED: "true", CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED: "true" }).childProfilesEnabled, true);
 });
 
 test("schema keeps adult and child consent separate and exact birth date private", async () => {
