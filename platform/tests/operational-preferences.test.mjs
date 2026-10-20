@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateOperationalPreferences, optionalReminderIsQuiet } from '../apps/api/operational-preferences.js';
+import { validateOperationalPreferences, optionalReminderIsQuiet, notificationDispatchDecision } from '../apps/api/operational-preferences.js';
 import { createAccountConsentService } from '../apps/api/account-consent-service.js';
 import { createOperationalPreferenceRepository } from '../database/operational-preference-repository.js';
 import { createNotificationService } from '../apps/api/notifications.js';
@@ -108,4 +108,20 @@ test('security notices are independent from quiet hours and promotional preferen
   await service.verification({ email: 'synthetic@example.test', token: 'test' });
   await service.passwordRecovery({ email: 'synthetic@example.test', token: 'test' });
   assert.deepEqual(jobs.map(job => job.kind), ['email_verification', 'password_recovery']);
+});
+
+test('approved quiet-hours policy exempts security, payment, cancellation and delivery exception notices', () => {
+  const preferences = { configured: true, ...input() };
+  for (const kind of ['email_verification', 'password_recovery', 'admin_login_mfa', 'security_alert', 'payment_status', 'payment_dispute', 'transaction_cancellation', 'delivery_exception']) {
+    assert.equal(notificationDispatchDecision(kind, preferences, '2026-10-05T02:00:00Z'), 'deliver', kind);
+  }
+});
+
+test('approved optional reminders defer only inside quiet hours and unknown kinds are not silently held', () => {
+  const preferences = { configured: true, ...input() };
+  for (const kind of ['payment_reminder', 'delivery_reminder', 'general_reminder']) {
+    assert.equal(notificationDispatchDecision(kind, preferences, '2026-10-05T02:00:00Z'), 'defer', kind);
+    assert.equal(notificationDispatchDecision(kind, preferences, '2026-10-05T12:00:00Z'), 'deliver', kind);
+  }
+  assert.equal(notificationDispatchDecision('future_notice', preferences, '2026-10-05T02:00:00Z'), 'unclassified');
 });
