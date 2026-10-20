@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasScope, requireScope } from "../apps/api/authorization.js";
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { hasScope, requireScope, ROLE_SCOPES } from "../apps/api/authorization.js";
 import { createAdminService } from "../apps/api/admin-service.js";
 import { createAdminRepository } from "../database/admin-repository.js";
 import { createApiServer } from "../apps/api/server.js";
@@ -15,6 +17,22 @@ test("RBAC grants only scopes assigned to each approved role", () => {
   assert.equal(hasScope({ role: "moderator" }, "admin:roles:write"), false);
   assert.equal(hasScope({ role: "admin" }, "admin:roles:write"), true);
   assert.throws(() => requireScope({ role: "customer" }, "admin:audit:read"), (error) => error.code === "forbidden");
+});
+
+test("admin scopes are finite and cover every administrative scope referenced by API modules", async () => {
+  assert.ok(!Object.values(ROLE_SCOPES).some(scopes => scopes.includes("*")), "role wildcard would grant future capabilities implicitly");
+  const root = new URL("../apps/api/", import.meta.url);
+  async function files(directory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    const nested = await Promise.all(entries.map(entry => entry.isDirectory()
+      ? files(join(directory, entry.name))
+      : entry.isFile() && entry.name.endsWith(".js") ? [join(directory, entry.name)] : []));
+    return nested.flat();
+  }
+  const source = (await Promise.all(await files(root.pathname).then(paths => paths.map(path => readFile(path, "utf8"))))).join("\n");
+  const used = new Set([...source.matchAll(/["'](admin:[a-z]+(?::[a-z]+)*)["']/g)].map(match => match[1]));
+  assert.ok(used.size >= 10, "scope scan must cover the current API surface");
+  for (const scope of used) assert.ok(ROLE_SCOPES.admin.includes(scope), `admin scope is not explicitly granted: ${scope}`);
 });
 
 test("admin service validates roles and prevents accidental self-demotion", async () => {
@@ -173,7 +191,7 @@ test("live user directory, status mutation and CSV export enforce scopes", async
   };
   const authService = { async session(token) { return users[token] ?? null; } };
   const adminService = {
-    async users() { return [{ id: targetId, display_name: "Ana Souza", role: "customer" }]; },
+    async users() { return [{ id: targetId, display_name: "Ana Souza", email: "ana@example.test", phone: "+550000000001", role: "customer" }]; },
     async setUserStatus(actor, id, input) { return { id, disabled_at: input.status === "suspended" ? new Date() : null, actor: actor.id }; },
     async auditCsv() { return "\uFEFF\"Data\",\"Ação\"\r\n\"2026-08-03\",\"user.suspended\""; },
   };
@@ -186,7 +204,10 @@ test("live user directory, status mutation and CSV export enforce scopes", async
 
   const directory = await fetch(`${origin}/v1/admin/users`, { headers: { cookie: "fc_session=moderator" } });
   assert.equal(directory.status, 200);
-  assert.equal((await directory.json()).items.length, 1);
+  const directoryBody = await directory.json();
+  assert.equal(directoryBody.items.length, 1);
+  assert.equal(directoryBody.items[0].email, "ana@example.test");
+  assert.equal(directoryBody.items[0].phone, "+550000000001");
 
   const denied = await fetch(`${origin}/v1/admin/users/${targetId}/status`, {
     method: "PATCH", headers: { "content-type": "application/json", cookie: "fc_session=moderator" },
