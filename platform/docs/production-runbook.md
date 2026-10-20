@@ -28,6 +28,21 @@ Esse comando valida sintaxe de produção, testes da plataforma, manifesto neutr
 
 Os itens desta seção permanecem em standby até a retomada explícita das integrações externas.
 
+## Contrato do cofre de credenciais
+
+O adaptador `apps/api/secrets.js` exige HTTPS sem credenciais na URL, token de autenticação e uma lista explícita em `SECRETS_PROVIDER_KEYS`. As chaves aceitas são as listadas em `.env.example`: conexão do banco, segredo de sessão e segredos dos provedores/webhooks. Configurações gerais, como `NODE_ENV`, domínios e URLs de serviços, não podem ser sobrescritas pelo cofre. O token de acesso ao próprio cofre deve ser injetado pelo ambiente.
+
+O adaptador envia `POST` com `{ "keys": [...] }` e espera `{ "secrets": { "CHAVE_SOLICITADA": "valor" } }`. Campos não solicitados são ignorados. Falhas de comunicação, JSON inválido e segredos solicitados ausentes ou vazios interrompem a resolução, sem recorrer aos valores antigos do ambiente. Erros de leitura da resposta não expõem seu conteúdo.
+
+Validação local, sem conexão ao fornecedor:
+
+```sh
+node --test-name-pattern='external secrets' tests/observability.test.mjs
+node tests/production-doctor.test.mjs
+```
+
+Esses testes usam respostas simuladas. A homologação do requisito 59 ainda depende do cofre real, das identidades e permissões do ambiente e da validação operacional de rotação/revogação. O diagnóstico estático `production:doctor` verifica configuração; ele não comprova conectividade nem homologação dos fornecedores.
+
 ## Empacotamento reproduzível
 
 O arquivo `compose.production.example.yaml` define API, worker de notificações, Site, App e Admin em processos independentes. Copie-o para a ferramenta de orquestração escolhida e injete `platform/.env.production` pelo cofre de segredos; esse arquivo real nunca deve entrar no Git.

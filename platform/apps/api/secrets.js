@@ -1,5 +1,21 @@
 const SECRET_KEY_PATTERN = /^[A-Z][A-Z0-9_]{1,127}$/;
 
+// The remote resolver may only supply values that are secrets at runtime.
+// A vault response must never be able to override general configuration.
+const RUNTIME_SECRET_KEYS = new Set([
+  "DATABASE_URL",
+  "SESSION_SECRET",
+  "NOTIFICATION_WEBHOOK_SECRET",
+  "MEDIA_PROVIDER_SECRET",
+  "GEOCODING_PROVIDER_SECRET",
+  "PAYMENT_PROVIDER_SECRET",
+  "PAYMENT_WEBHOOK_SECRET",
+  "LOGISTICS_PROVIDER_SECRET",
+  "LOGISTICS_WEBHOOK_SECRET",
+  "RATE_LIMIT_PROVIDER_SECRET",
+  "TELEMETRY_PROVIDER_SECRET",
+]);
+
 export function validateSecretsProviderConfig(env = process.env) {
   const endpoint = env.SECRETS_PROVIDER_URL;
   const token = env.SECRETS_PROVIDER_TOKEN;
@@ -14,8 +30,11 @@ export function validateSecretsProviderConfig(env = process.env) {
   try { url = new URL(endpoint); } catch { throw new Error("SECRETS_PROVIDER_URL must be a valid URL"); }
   if (url.protocol !== "https:") throw new Error("SECRETS_PROVIDER_URL must use HTTPS");
   if (url.username || url.password) throw new Error("SECRETS_PROVIDER_URL must not contain credentials");
-  if (keys.some((key) => !SECRET_KEY_PATTERN.test(key)) || new Set(keys).size !== keys.length) {
-    throw new Error("SECRETS_PROVIDER_KEYS contains an invalid or duplicate key");
+  if (
+    keys.some((key) => !SECRET_KEY_PATTERN.test(key) || !RUNTIME_SECRET_KEYS.has(key)) ||
+    new Set(keys).size !== keys.length
+  ) {
+    throw new Error("SECRETS_PROVIDER_KEYS contains an invalid, unsupported or duplicate key");
   }
   return Object.freeze({ url, token, keys: Object.freeze(keys) });
 }
@@ -41,7 +60,13 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   }
   if (!response.ok) throw new Error("External secrets provider rejected the request");
 
-  const payload = await response.json();
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    // Parsing and stream errors may contain fragments of the secret response.
+    throw new Error("External secrets provider returned an invalid response");
+  }
   const resolved = { ...env };
   for (const key of keys) {
     const value = payload?.secrets?.[key];
