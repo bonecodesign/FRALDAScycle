@@ -248,7 +248,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution binding load');
     await evaluate(`document.querySelector('#institution-access-list button').focus()`);await key('Enter','Enter',13);
     assert.equal(await evaluate('document.activeElement.name'),'confirmed');
-    await key(' ','Space',32);await evaluate(`document.querySelector('#address-change-form button[type=submit]').focus()`);await key('Enter','Enter',13);
+    await key(' ','Space',32);
+    try { await until(()=>evaluate(`location.pathname==='/app/address-changes'&&Boolean(document.querySelector('#address-change-form button[type=submit]'))`),'address submit ready'); }
+    catch(error) { throw new Error(error.message+': '+JSON.stringify(await evaluate(`({route:location.pathname,feedback:document.getElementById('address-change-feedback')?.textContent,formPresent:Boolean(document.getElementById('address-change-form')),focused:document.activeElement?.tagName})`))); }
+    await evaluate(`document.querySelector('#address-change-form button[type=submit]').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Aceite registrado')`),'institution acceptance keyboard');
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
