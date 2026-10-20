@@ -36,3 +36,5 @@ npm run db:restore
 ```
 
 Credenciais são passadas ao cliente PostgreSQL por variáveis de ambiente e nunca aparecem nos argumentos do processo. O arquivo de backup não deve entrar no Git nem ser armazenado sem criptografia.
+
+As URLs do utilitário aceitam somente `sslmode` como parâmetro de query (e apenas valores reconhecidos pelo PostgreSQL); opções desconhecidas ou repetidas são rejeitadas para não serem silenciosamente ignoradas. IPv6 e nomes de banco percent-encoded são normalizados. O subprocesso recebe variáveis `PG*` derivadas e caminhos explícitos de certificados TLS, não as URLs completas de origem/destino nem variáveis herdadas que alterem o alvo da conexão.
