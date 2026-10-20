@@ -205,7 +205,9 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#address-change-form fieldset').disabled`),'owned shared address');
     await evaluate(`(()=>{const f=document.getElementById('address-change-form');f.elements.addressId.value=${JSON.stringify(browserAddress.addressId)};f.elements.reason.value='Correção fictícia solicitada pelo titular no navegador.';f.elements.confirmed.focus();})()`);
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await until(()=>evaluate(`location.pathname==='/app/address-changes'&&document.activeElement===document.querySelector('#address-change-form input[name=confirmed]')`),'address confirmation focus');
+    await key(' ','Space',32);
+    assert.equal(await evaluate(`location.pathname==='/app/address-changes'&&document.querySelector('#address-change-form input[name=confirmed]')?.checked`),true,'Address confirmation must be checked by keyboard');await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Pedido registrado — protocolo FC-S-')`),'address request keyboard');
     const addressRequest=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].id)`);
     const addressLayouts=[];
