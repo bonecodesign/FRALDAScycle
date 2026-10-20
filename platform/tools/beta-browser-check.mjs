@@ -31,6 +31,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   let requestClose = null;
   const pending = new Map();
   const browserEvents = [];
+  const requestPaths = new Map();
   const recordEvent = (type, details) => {
     browserEvents.push({ type, ...details });
     if (browserEvents.length > 12) browserEvents.shift();
@@ -62,15 +63,17 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
         if (!operation) return;
         clearTimeout(operation.timer); pending.delete(message.id);
         if (message.error) operation.reject(new Error(message.error.message)); else operation.resolve(message.result);
+      } else if (message.method === 'Network.requestWillBeSent') {
+        const url = new URL(message.params.request.url);
+        if (url.hostname === '127.0.0.1') requestPaths.set(message.params.requestId, url.pathname);
+      } else if (message.method === 'Network.loadingFinished') {
+        requestPaths.delete(message.params.requestId);
       } else if (message.method === 'Network.loadingFailed') {
-        recordEvent('network-failure', { error: message.params.errorText });
+        recordEvent('network-failure', { path: requestPaths.get(message.params.requestId), error: message.params.errorText, canceled: message.params.canceled ?? false });
+        requestPaths.delete(message.params.requestId);
       } else if (message.method === 'Network.responseReceived' && message.params.response.status >= 400) {
         const url = new URL(message.params.response.url);
         if (url.hostname === '127.0.0.1') recordEvent('http-error', { path: url.pathname, status: message.params.response.status });
-      } else if (message.method === 'Fetch.requestPaused') {
-        const url = new URL(message.params.request.url);
-        const allowed = url.protocol === 'http:' && url.hostname === '127.0.0.1';
-        void send(allowed ? 'Fetch.continueRequest' : 'Fetch.failRequest', { requestId: message.params.requestId, ...(allowed ? {} : { errorReason: 'BlockedByClient' }) }, message.sessionId).catch(() => {});
       }
     });
     const version = await send('Browser.getVersion');
@@ -87,7 +90,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       recentEvents: browserEvents.slice(-8)
     }));
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
-    await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
     const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
     const loginLayouts=[];
     if(loginFixture){
@@ -329,6 +331,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
     await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution authorized review');
     await evaluate(`(()=>{const article=[...document.querySelectorAll('#institution-access-list article')].find(a=>a.textContent.includes('Aceito, aguardando conferência'));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.querySelector('#institution-access-review fieldset')?.disabled===false&&document.activeElement?.name==='reason'`),'institution review form ready');
     await evaluate(`(()=>{const f=document.getElementById('institution-access-review');f.elements.outcome.value='verified';f.elements.reason.value='Conferência fictícia do vínculo aceita pelo representante.';f.elements.confirmed.focus();})()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Conferência registrada')`),'institution verification keyboard');

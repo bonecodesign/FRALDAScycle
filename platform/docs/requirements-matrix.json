@@ -212,15 +212,15 @@
     {
       "id": 14,
       "title": "Prazo e silêncio",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
         "tests/seller-settlement-http-postgres.test.mjs",
         "docs/seller-settlement-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL com prova datada confirma prazo de referência de 72 horas a partir da decisão mais tardia; atraso e silêncio não aprovam recebimento nem liberam repasse.",
-      "reason": "Prazo de referência e bloqueio por silêncio comprovados localmente; homologação do prazo externo e integração/repasse real permanecem pendentes."
+      "evidence": "Em 2026-10-18, oito testes passaram sem skips; HTTP/PostgreSQL com aprovação sintética de cinco dias atrás confirma prazo local vencido, silêncio sem aprovação inferida, ausência de obrigação/repasse e isolamento.",
+      "reason": "Contrato técnico concluído: 72 horas são somente referência local e nunca liberam recebimento ou dinheiro por silêncio. SLA externo e transferência reais permanecem fora do escopo e bloqueados no item 13."
     },
     {
       "id": 15,
@@ -800,16 +800,16 @@
     {
       "id": 47,
       "title": "Histórico de aceite",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/account-consent-service.js",
         "database/account-consent-repository.js",
         "tests/account-consents.test.mjs",
         "tests/account-terms-http-postgres.test.mjs",
-        "docs/account-terms-beta.md"
+        "docs/account-terms-history-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova aceite vinculado à versão e hash, snapshot documental, histórico privado, idempotência e separação de preferências; usa apenas termos sintéticos.",
-      "reason": "Registro e consulta do histórico comprovados com fixtures; os documentos legais reais continuam em rascunho, sem ativação ou aceite operacional."
+      "evidence": "Em 2026-10-18, prova HTTP/PostgreSQL local com fixture sintética aprovou sessão, versão/hash, snapshot persistido, histórico privado, isolamento entre contas, idempotência e auditoria única; sem skips.",
+      "reason": "Mecanismo técnico de histórico concluído com documento sintético. Termos legais reais não foram ativados e permanecem bloqueados para revisão no requisito 46."
     },
     {
       "id": 48,
@@ -872,33 +872,36 @@
     {
       "id": 52,
       "title": "Privacidade via suporte",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
         "database/privacy-request-repository.js",
         "apps/api/privacy-request-service.js",
+        "tests/privacy-request-service.test.mjs",
+        "tests/privacy-deletion-http-postgres.test.mjs",
         "apps/app/privacy.html",
         "tools/beta-privacy-check.mjs",
         "docs/privacy-requests-beta.md"
       ],
-      "evidence": "PR #79, commit 458cea3: CI 273 testes, 83 verificações, sintaxe 98; PostgreSQL e Chrome 154 com solicitação/consulta/análise via teclado e quatro larguras, job 111801394929. Limites em privacy-requests-beta.md.",
-      "reason": "Pedidos tipados identificados pela sessão e protocolados, com acompanhamento/análise privada. E-mail oficial, verificação humana de identidade e atendimento integral pendentes."
+      "evidence": "Em 2026-10-18, HTTP/PostgreSQL nativo validou os três tipos de pedido (acesso, correção e exclusão), protocolo, privacidade, análise independente, isolamento e ausência de purga. CI anterior também aprovou a jornada Chrome/teclado em quatro larguras; limites em privacy-requests-beta.md.",
+      "reason": "Mecanismo técnico de pedido, protocolo, acompanhamento e análise privada concluído. E-mail oficial, verificação humana de identidade e atendimento externo seguem gates de operação/ativação, sem serem simulados como concluídos."
     },
     {
       "id": 53,
       "title": "Acesso administrativo",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/authorization.js",
         "database/admin-repository.js",
         "tests/admin-rbac.test.mjs",
+        "docs/admin-rbac-scope-review-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Escopos e auditoria existem; homologação e revisão integral de menor privilégio pendentes."
+      "evidence": "Em 2026-10-18, 12 testes admin-rbac passaram sem skips; lista finita de escopos substitui wildcard, teste estático verifica todos os escopos admin usados na API e teste HTTP cobre leitura aprovada de e-mail/telefone por moderador sem permissão de escrita.",
+      "reason": "Escopos mínimos de código e acesso de moderadores ao diretório concluídos conforme aprovação do responsável. Homologação de identidades, sessões e permissões do ambiente real continua gate de ativação."
     },
     {
       "id": 54,
