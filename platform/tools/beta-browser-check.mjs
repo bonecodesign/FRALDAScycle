@@ -190,7 +190,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.equal(await evaluate('document.activeElement.name'),'body');
     await evaluate(`document.querySelector('#moderation-appeal-form textarea').value='Solicito revisão do bloqueio fictício sem dados privados.';document.querySelector('#moderation-appeal-form button[type=submit]').focus()`);
     await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.getElementById('moderation-feedback').textContent.includes('Contestação registrada')`),'appeal keyboard submission');
+    try { await until(()=>evaluate(`document.getElementById('moderation-feedback').textContent.includes('Contestação registrada')`),'appeal keyboard submission'); }
+    catch(error) { throw new Error(error.message+': '+JSON.stringify(await evaluate(`({feedback:document.getElementById('moderation-feedback')?.textContent,disabled:document.querySelector('#moderation-appeal-form fieldset')?.disabled,decisionId:document.querySelector('#moderation-appeal-form input[name=decisionId]')?.value,invalid:[...document.querySelector('#moderation-appeal-form').elements].filter(c=>c.validity&&!c.validity.valid).map(c=>({name:c.name,message:c.validationMessage})),focused:document.activeElement?.tagName})`))); }
     const appealedDecision=await evaluate(`document.querySelector('#moderation-list p:nth-child(2)').textContent.replace('Registro: ','')`);
     const moderationLayouts=[];
     for(const width of [320,375,768,1280]){
@@ -247,7 +248,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution binding load');
     await evaluate(`document.querySelector('#institution-access-list button').focus()`);await key('Enter','Enter',13);
     assert.equal(await evaluate('document.activeElement.name'),'confirmed');
-    await key(' ','Space',32);await evaluate(`document.querySelector('#institution-access-accept button[type=submit]')?.focus()`);await key('Enter','Enter',13);
+    await key(' ','Space',32);await evaluate(`document.querySelector('#address-change-form button[type=submit]').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Aceite registrado')`),'institution acceptance keyboard');
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
