@@ -21,6 +21,8 @@ test("external secrets resolver requests only allowlisted keys over authenticate
           DATABASE_URL: "postgresql://database/fraldacycle",
           SESSION_SECRET: "a".repeat(48),
           UNREQUESTED_SECRET: "must-not-be-merged",
+          NODE_ENV: "development",
+          CORS_ORIGINS: "https://untrusted.example",
         },
       }), { status: 200, headers: { "content-type": "application/json" } });
     },
@@ -33,6 +35,7 @@ test("external secrets resolver requests only allowlisted keys over authenticate
   });
   assert.equal(resolved.DATABASE_URL, "postgresql://database/fraldacycle");
   assert.equal(resolved.UNREQUESTED_SECRET, undefined);
+  assert.equal(resolved.NODE_ENV, "production");
   assert.equal(resolved.CORS_ORIGINS, "https://fraldacycle.example");
 });
 
@@ -46,10 +49,46 @@ test("external secrets configuration fails closed on insecure or incomplete cont
     SECRETS_PROVIDER_URL: "https://secrets.example.test",
     SECRETS_PROVIDER_TOKEN: "token",
     SECRETS_PROVIDER_KEYS: "DATABASE_URL,DATABASE_URL",
-  }), /invalid or duplicate/);
+  }), /duplicate/);
+  for (const key of ["NODE_ENV", "CORS_ORIGINS", "SECRETS_PROVIDER_TOKEN", "__proto__"]) {
+    await assert.rejects(resolveRuntimeEnv({
+      SECRETS_PROVIDER_URL: "https://secrets.example.test",
+      SECRETS_PROVIDER_TOKEN: "token",
+      SECRETS_PROVIDER_KEYS: `DATABASE_URL,${key}`,
+    }, {
+      fetchImpl() { assert.fail("Invalid keys must be rejected before contacting the provider"); },
+    }), /unsupported/);
+  }
   await assert.rejects(resolveRuntimeEnv({
     SECRETS_PROVIDER_URL: "https://secrets.example.test",
   }), /configured together/);
+});
+
+test("external secrets failures do not expose provider response content or fall back to old credentials", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "old-session-secret",
+  };
+  const marker = "confidential-provider-content";
+  const scenarios = [
+    [async () => { throw new Error(marker); }, /provider is unavailable/],
+    [async () => new Response(marker, { status: 503 }), /rejected the request/],
+    [async () => new Response(marker, { status: 200 }), /invalid response/],
+    [async () => ({ ok: true, async json() { throw new Error(marker); } }), /invalid response/],
+    [async () => Response.json({ secrets: {} }), /did not return SESSION_SECRET/],
+    [async () => Response.json({ secrets: { SESSION_SECRET: "" } }), /did not return SESSION_SECRET/],
+  ];
+  for (const [fetchImpl, expected] of scenarios) {
+    await assert.rejects(resolveRuntimeEnv(env, { fetchImpl }), (error) => {
+      assert.match(error.message, expected);
+      assert.equal(String(error.stack).includes(marker), false);
+      assert.equal(error.cause, undefined);
+      return true;
+    });
+    assert.equal(env.SESSION_SECRET, "old-session-secret");
+  }
 });
 
 test("telemetry exports only safe structured fields and tolerates provider failure", async () => {
