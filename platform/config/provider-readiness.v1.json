@@ -60,7 +60,8 @@
         "PAYMENT_PROVIDER_SECRET",
         "PAYMENT_WEBHOOK_SECRET",
         "PAYMENT_PROVIDER_SDK_URL",
-        "PAYMENT_PROVIDER_SDK_INTEGRITY"
+        "PAYMENT_PROVIDER_SDK_INTEGRITY",
+        "PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED"
       ],
       "contractChecks": [
         "https",
@@ -79,7 +80,8 @@
       "requiredEnvironment": [
         "LOGISTICS_PROVIDER_URL",
         "LOGISTICS_PROVIDER_SECRET",
-        "LOGISTICS_WEBHOOK_SECRET"
+        "LOGISTICS_WEBHOOK_SECRET",
+        "LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED"
       ],
       "contractChecks": [
         "https",

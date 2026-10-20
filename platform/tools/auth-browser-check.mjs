@@ -17,7 +17,18 @@ export async function checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOri
   const path=async expected=>{
     try { await until(()=>evaluate(`location.pathname===${JSON.stringify(expected)}&&document.readyState==='complete'`),expected); }
     catch(error){
-      const diagnostic=await evaluate(`({path:location.pathname,ready:document.readyState,focused:document.activeElement?.outerHTML?.slice(0,240),feedback:[...document.querySelectorAll('[role=status],.field-error')].map(node=>node.textContent).filter(Boolean)})`);
+      const diagnostic=await evaluate(`(() => {
+        const authRequests=performance.getEntriesByType('resource')
+          .filter(entry => entry.name.includes('/v1/auth/login'))
+          .slice(-3)
+          .map(entry => {
+            const url=new URL(entry.name);
+            return { origin:url.origin, path:url.pathname, durationMs:Math.round(entry.duration), responseStartMs:Math.round(entry.responseStart), responseStatus:entry.responseStatus ?? null, transferSize:entry.transferSize };
+          });
+        return { path:location.pathname, ready:document.readyState, apiOrigin:document.documentElement.dataset.apiOrigin ?? null,
+          authRequests, focused:document.activeElement?.outerHTML?.slice(0,240),
+          feedback:[...document.querySelectorAll('[role=status],.field-error')].map(node=>node.textContent).filter(Boolean) };
+      })()`);
       throw new Error(error.message+': '+JSON.stringify(diagnostic));
     }
   };

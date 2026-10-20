@@ -36,6 +36,36 @@ test("child profiles stay off by default and production requires a second explic
   assert.equal(loadConfig({ ...production, CHILD_PROFILES_ENABLED: "true", CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED: "true" }).childProfilesEnabled, true);
 });
 
+test("production provider credentials require explicit activation acknowledgments", () => {
+  const production = { NODE_ENV: "production", DATABASE_URL: "postgres://fixture", SESSION_SECRET: "s".repeat(32), NOTIFICATION_WEBHOOK_URL: "https://notify.example.test", NOTIFICATION_WEBHOOK_SECRET: "synthetic-only" };
+  const payment = {
+    PAYMENT_PROVIDER_URL: "https://payments.example.test/v1",
+    PAYMENT_PROVIDER_SECRET: "synthetic-only",
+    PAYMENT_WEBHOOK_SECRET: "synthetic-only",
+  };
+  const logistics = {
+    LOGISTICS_PROVIDER_URL: "https://logistics.example.test/v1",
+    LOGISTICS_PROVIDER_SECRET: "synthetic-only",
+    LOGISTICS_WEBHOOK_SECRET: "synthetic-only",
+  };
+
+  assert.equal(loadConfig(production).paymentProviderUrl, null);
+  assert.equal(loadConfig(production).logisticsProviderUrl, null);
+  assert.throws(() => loadConfig({ ...production, ...payment }), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.throws(() => loadConfig({ ...production, ...logistics }), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+
+  const paymentsReady = loadConfig({
+    ...production, ...payment, PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true",
+  });
+  const logisticsReady = loadConfig({
+    ...production, ...logistics, LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true",
+  });
+  assert.equal(paymentsReady.paymentProviderActivationAcknowledged, true);
+  assert.equal(logisticsReady.logisticsProviderActivationAcknowledged, true);
+  assert.equal(loadConfig({ ...production, PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" }).paymentProviderUrl, null);
+  assert.equal(loadConfig({ ...production, LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" }).logisticsProviderUrl, null);
+});
+
 test("schema keeps adult and child consent separate and exact birth date private", async () => {
   const migration = await readFile(new URL("../database/migrations/033_age_and_child_profile_foundation.sql", import.meta.url), "utf8");
   assert.match(migration, /adult_declaration_version = 'FC-AGE-1'/);
