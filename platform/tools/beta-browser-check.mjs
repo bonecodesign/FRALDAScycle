@@ -11,16 +11,16 @@ export function nativeChrome() {
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync) ?? null;
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-// The shared GitHub runner can pause a headless page while PostgreSQL-heavy
-// scenarios are still active. Keep the assertion strict, but let the browser
-// use half of the 10-minute Node test budget before declaring a transition
-// absent. Local feedback remains capped at two minutes.
-const browserWaitMs = process.env.CI ? 300000 : 120000;
+// A healthy transition finishes in seconds. Fail a stalled step promptly so the
+// browser job does not consume five minutes for each broken interaction.
+const browserWaitMs = 45000;
 const devtoolsWaitMs = process.env.CI ? 30000 : 12000;
-async function until(operation, label) {
+async function waitUntil(operation, label, diagnostics) {
   const deadline = Date.now() + browserWaitMs;
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
-  throw new Error(`Browser check timed out: ${label}`);
+  let details = {};
+  try { details = await diagnostics(); } catch (error) { details = { diagnosticError: error.message }; }
+  throw new Error(`Browser check timed out: ${label}: ${JSON.stringify(details)}`);
 }
 export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
@@ -30,6 +30,11 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   let socket;
   let requestClose = null;
   const pending = new Map();
+  const browserEvents = [];
+  const recordEvent = (type, details) => {
+    browserEvents.push({ type, ...details });
+    if (browserEvents.length > 12) browserEvents.shift();
+  };
   try {
     const endpoint = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Chrome DevTools não iniciou.')), devtoolsWaitMs);
@@ -57,6 +62,11 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
         if (!operation) return;
         clearTimeout(operation.timer); pending.delete(message.id);
         if (message.error) operation.reject(new Error(message.error.message)); else operation.resolve(message.result);
+      } else if (message.method === 'Network.loadingFailed') {
+        recordEvent('network-failure', { error: message.params.errorText });
+      } else if (message.method === 'Network.responseReceived' && message.params.response.status >= 400) {
+        const url = new URL(message.params.response.url);
+        if (url.hostname === '127.0.0.1') recordEvent('http-error', { path: url.pathname, status: message.params.response.status });
       } else if (message.method === 'Fetch.requestPaused') {
         const url = new URL(message.params.request.url);
         const allowed = url.protocol === 'http:' && url.hostname === '127.0.0.1';
@@ -72,6 +82,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       if (result.exceptionDetails) throw new Error(`Browser evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}; expression: ${expression.slice(0,240)}`);
       return result.result.value;
     };
+    const until = (operation, label) => waitUntil(operation, label, async () => ({
+      page: await evaluate(`({route:location.pathname,ready:document.readyState,focused:{tag:document.activeElement?.tagName,id:document.activeElement?.id,name:document.activeElement?.getAttribute('name')},feedback:[...document.querySelectorAll('[id$=feedback]')].filter(node=>node.textContent.trim()).slice(0,3).map(node=>({id:node.id,text:node.textContent.trim().slice(0,160)})),invalid:[...document.querySelectorAll('input,textarea,select')].filter(node=>node.willValidate&&!node.validity.valid).slice(0,5).map(node=>node.name||node.id)})`),
+      recentEvents: browserEvents.slice(-8)
+    }));
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
     await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
     const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
