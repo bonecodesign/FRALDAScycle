@@ -74,10 +74,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       } else if (message.method === 'Network.responseReceived' && message.params.response.status >= 400) {
         const url = new URL(message.params.response.url);
         if (url.hostname === '127.0.0.1') recordEvent('http-error', { path: url.pathname, status: message.params.response.status });
-      } else if (message.method === 'Fetch.requestPaused') {
-        const url = new URL(message.params.request.url);
-        const allowed = url.protocol === 'http:' && url.hostname === '127.0.0.1';
-        void send(allowed ? 'Fetch.continueRequest' : 'Fetch.failRequest', { requestId: message.params.requestId, ...(allowed ? {} : { errorReason: 'BlockedByClient' }) }, message.sessionId).catch(() => {});
       }
     });
     const version = await send('Browser.getVersion');
@@ -94,7 +90,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       recentEvents: browserEvents.slice(-8)
     }));
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
-    await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
     const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
     const loginLayouts=[];
     if(loginFixture){
