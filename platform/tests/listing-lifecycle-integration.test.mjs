@@ -16,3 +16,24 @@ test('price-adjustment pause still occupies a free-plan slot until expiry', asyn
   assert.match(source,/status='paused' AND pause_reason='price_adjustment_required'/);
   assert.match(source,/expires_at IS NULL OR expires_at>now\(\)/);
 });
+
+
+test('price adjustment reactivation preserves the original lifecycle dates', () => {
+  const pricing = readFileSync(new URL('../database/monthly-pricing-repository.js', import.meta.url), 'utf8');
+  assert.match(pricing, /price_cents=\$3,status='published',pause_reason=NULL,updated_at=now\(\)/);
+  assert.doesNotMatch(pricing, /price_cents=\$3,status='published',pause_reason=NULL,published_at=/);
+  assert.doesNotMatch(pricing, /price_cents=\$3,status='published',pause_reason=NULL[^\n]*expires_at=/);
+  assert.match(pricing, /listing_price_above_ceiling/);
+  assert.match(pricing, /listing_expired/);
+});
+
+test('generic publication cannot bypass a mandatory price adjustment', () => {
+  const premium = readFileSync(new URL('../database/premium-repository.js', import.meta.url), 'utf8');
+  assert.match(premium, /pause_reason === 'price_adjustment_required'/);
+  assert.match(premium, /listing_price_adjustment_required/);
+});
+
+test('resubmission clears the previous publication lifecycle', () => {
+  const marketplace = readFileSync(new URL('../database/marketplace-repository.js', import.meta.url), 'utf8');
+  assert.match(marketplace, /published_at=NULL,expires_at=NULL,pause_reason=NULL/);
+});
