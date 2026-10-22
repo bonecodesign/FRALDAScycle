@@ -55,7 +55,7 @@ export function createMarketplaceRepository(database) {
           );
         }
         const updated = (await client.query(
-          "UPDATE listings SET title=$2,description=$3,status='review',published_at=NULL,updated_at=now() WHERE id=$1 RETURNING id,status,updated_at",
+          "UPDATE listings SET title=$2,description=$3,status='review',published_at=NULL,expires_at=NULL,pause_reason=NULL,updated_at=now() WHERE id=$1 RETURNING id,status,updated_at",
           [listingId, title, description],
         )).rows[0];
         await client.query(
