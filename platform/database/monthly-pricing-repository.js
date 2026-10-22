@@ -17,6 +17,39 @@ export function createMonthlyPricingRepository(database) {
       return result.rows[0];
     },
 
+    async adjustPausedListingPrice({ sellerId, listingId, priceCents }) {
+      return database.transaction(async client => {
+        if (!Number.isInteger(priceCents) || priceCents < 0) throw Object.assign(new Error('Preço inválido.'), { code:'listing_price_invalid', status:422 });
+        const listing=(await client.query(`SELECT id,seller_id,price_cents,status,pause_reason,published_at,expires_at,price_reference_key
+          FROM listings WHERE id=$1 AND seller_id=$2 FOR UPDATE`,[listingId,sellerId])).rows[0];
+        if(!listing) throw Object.assign(new Error('Anúncio não encontrado.'),{code:'listing_not_found',status:404});
+        if(listing.status!=='paused' || listing.pause_reason!=='price_adjustment_required')
+          throw Object.assign(new Error('Este anúncio não aguarda ajuste obrigatório de preço.'),{code:'listing_price_adjustment_unavailable',status:409});
+        if(!listing.expires_at || new Date(listing.expires_at).getTime()<=Date.now())
+          throw Object.assign(new Error('O anúncio expirou e precisa ser republicado em um novo ciclo.'),{code:'listing_expired',status:409});
+        const active=(await client.query(`SELECT 1 FROM transactions WHERE listing_id=$1
+          AND status=ANY($2::transaction_status[]) LIMIT 1`,[listingId,protectedTransactionStatuses])).rowCount>0;
+        if(active) throw Object.assign(new Error('O anúncio possui uma operação protegida em andamento.'),{code:'listing_operation_active',status:409});
+        const reference=(await client.query(`SELECT * FROM market_price_reference_cycles
+          WHERE reference_key=$1 AND status IN('active','extended') AND valid_from<=CURRENT_DATE AND valid_until>CURRENT_DATE
+          ORDER BY valid_from DESC LIMIT 1 FOR SHARE`,[listing.price_reference_key])).rows[0];
+        if(!reference) throw Object.assign(new Error('Referência de preço vigente indisponível.'),{code:'price_reference_unavailable',status:409});
+        if(priceCents>reference.effective_ceiling_cents)
+          throw Object.assign(new Error('O preço continua acima do teto vigente.'),{code:'listing_price_above_ceiling',status:422,ceilingCents:reference.effective_ceiling_cents});
+        const economy=productEconomyBasisPoints({prmCents:reference.prm_cents,listingPriceCents:priceCents});
+        const updated=(await client.query(`UPDATE listings SET price_cents=$3,status='published',pause_reason=NULL,updated_at=now()
+          WHERE id=$1 AND seller_id=$2 RETURNING id,price_cents,status,published_at,expires_at`,[listingId,sellerId,priceCents])).rows[0];
+        await client.query(`INSERT INTO listing_price_history
+          (listing_id,reference_cycle_id,previous_price_cents,new_price_cents,prm_cents,lowest_retail_cents,economy_basis_points,reason,actor_user_id)
+          VALUES($1,$2,$3,$4,$5,$6,$7,'seller_price_adjustment',$8)`,
+          [listingId,reference.id,listing.price_cents,priceCents,reference.prm_cents,reference.lowest_retail_cents,economy,sellerId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'listing.price_adjusted','listing',$2,$3::jsonb)`,
+          [sellerId,listingId,JSON.stringify({referenceCycleId:reference.id,previousPriceCents:listing.price_cents,newPriceCents:priceCents,ceilingCents:reference.effective_ceiling_cents})]);
+        return { listing:updated, reference:{ id:reference.id,prmCents:reference.prm_cents,ceilingCents:reference.effective_ceiling_cents }, economyBasisPoints:economy };
+      });
+    },
+
     async reconcileReference({ referenceKey, validFrom }) {
       return database.transaction(async client => {
         const reference=(await client.query(`SELECT * FROM market_price_reference_cycles
