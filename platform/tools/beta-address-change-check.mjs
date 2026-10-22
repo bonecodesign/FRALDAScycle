@@ -16,7 +16,7 @@ export async function validateSyntheticAddressChange(database,{service,repositor
   assert.throws(()=>changes.review({id:other,role:'customer'},requests[0].id,{}),e=>e.status===403);
   const review={confirmed:true,outcome:'approved',reason:'Conferência sintética do titular, consentimento e retirada.'};
   await assert.rejects(changes.review({id:user,role:'admin'},requests[0].id,review),e=>e.code==='independent_address_review_required');
-  await assert.rejects(changes.review(adminActor,requests[0].id,review),e=>e.code==='address_provider_update_not_configured'&&e.status===503);
+  await assert.rejects(changes.review(adminActor,requests[0].id,review),e=>e.code==='address_provider_update_not_configured'&&e.status===409);
   await changes.review(adminActor,requests[0].id,{...review,outcome:'rejected',reason:'Alteração rejeitada até a homologação do fornecedor de entrega.'});
   const unchanged=(await service.sharedAddresses(other,shipment.id))[0];assert.equal(unchanged.revision,0);assert.equal(unchanged.address_snapshot.street,address.street);assert.equal(String(unchanged.shared_at),String(share.shared_at));
   assert.equal((await database.query('SELECT count(*)::int AS count FROM shipment_address_revisions WHERE share_id=$1',[share.id])).rows[0].count,0);
