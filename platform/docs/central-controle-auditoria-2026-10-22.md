@@ -77,3 +77,11 @@ Consolidar os módulos administrativos existentes, sem criar painel paralelo, co
 - Esses controles foram verificados no roteador `platform/apps/api/admin-handler.js`; a efetividade depende também da implementação de `requireScope`, sessão e matriz de papéis, que precisam de teste de autorização negativa.
 - A CI #1356 passou nos quatro jobs (foundation, listing-postgres, containers, browser-postgres) para o commit `68b7b6f86181a2d151d022c326fbfbd3d2025316`.
 - A soma de `payment_intents.amount_cents` em estado `paid` é volume de pagamentos confirmados, **não** receita líquida, comissão auferida ou repasse efetivado.
+
+## Quinta rodada — homologação automatizada e revisão pré-merge
+- A CI #1359, referente ao commit `c0a117d89050d2385246f5128e9a73aaaf755e01`, foi aprovada após nova execução: `foundation`, `containers`, `listing-postgres` e `browser-postgres` concluíram com sucesso. Evidência: https://github.com/bonecodesign/FRALDAScycle/actions/runs/39868651600
+- Na primeira tentativa, `browser-postgres` falhou por não iniciar o Chrome DevTools; a repetição do job foi aprovada. Não classificar esse incidente como defeito comprovado nas permissões.
+- Os testes de escopo verificam respostas de autorização 401/403 e impedimento de invocação do serviço em rotas administrativas para perfis não autorizados; são testes automatizados com sessões simuladas, **não** substituem homologação humana nem auditoria de segurança independente.
+- Comparação com `main` antes desta atualização: 15 commits à frente, zero atrás, seis arquivos modificados/adicionados. Não há reviews nem threads formais registrados no PR #130.
+- Os seis arquivos são: `admin-overview.js`, `index.html`, este relatório, `admin-authorization-scopes.test.mjs`, `admin-overview-consultation.test.mjs` e `courier-eligibility-http-postgres.test.mjs`.
+- Pendências de decisão: revisão humana formal do PR, confirmação de privacidade do repositório, investigação do rótulo legado `reserved`, validação funcional com contas/perfis de teste e checagem da matriz de requisitos. Não efetuar merge nem publicação por aprovação de CI isoladamente.
