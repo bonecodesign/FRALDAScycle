@@ -47,9 +47,8 @@ export function createMonthlyPricingRepository(database) {
         const listing=(await client.query(`SELECT id,seller_id,kind,price_cents,status,published_at,expires_at,price_reference_key
           FROM listings WHERE id=$1 AND seller_id=$2 FOR UPDATE`,[listingId,sellerId])).rows[0];
         if(!listing) throw Object.assign(new Error('Anúncio não encontrado.'),{code:'listing_not_found',status:404});
-        const latestAudit=(await client.query(`SELECT action FROM audit_events WHERE entity_type='listing' AND entity_id=$1
-          ORDER BY created_at DESC,id DESC LIMIT 1`,[listingId])).rows[0];
-        if(listing.status!=='removed' || latestAudit?.action!=='listing.expired')
+        const expirationAudit=(await client.query(`SELECT 1 FROM audit_events WHERE entity_type='listing' AND entity_id=$1 AND action='listing.expired' LIMIT 1`,[listingId])).rowCount>0;
+        if(listing.status!=='removed' || !expirationAudit)
           throw Object.assign(new Error('Somente anúncios expirados podem ser republicados por este fluxo.'),{code:'listing_republish_unavailable',status:409});
         if(listing.kind!=='sale') throw Object.assign(new Error('Republicação com referência mensal de preço disponível apenas para anúncios de venda.'),{code:'listing_republish_kind_unavailable',status:409});
         const active=(await client.query(`SELECT 1 FROM transactions WHERE listing_id=$1
