@@ -13,6 +13,8 @@ const ELIGIBLE=new Set(["paid","in_delivery"]);
 function publicShipment(row){return {
   id:row.id,transactionId:row.transaction_id,mode:row.mode,insured:row.insured,
   status:row.status,estimatedDeliveryAt:row.estimated_delivery_at??null,events:row.events??[],
+  logisticsResponsibility:row.logistics_payer_id===row.buyer_id?'buyer':null,
+  freightCents:null,freightChargeAvailable:false,
 }}
 export function createLogisticsService(repository,provider,mediaProvider,{pilotBh=null}={}){
   return Object.freeze({
