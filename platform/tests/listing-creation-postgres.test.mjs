@@ -39,10 +39,10 @@ test('PostgreSQL applies listing identity upgrade and deduplicates concurrent re
     await assert.rejects(service.create(owner,{...input,quantity:51}),error=>error.code==='listing_creation_conflict');
     const another=await service.create(other,{...input,mediaKeys:[`listings/${other}/photo.webp`]});
     assert.notEqual(another.id,results[0].id);
-    await database.query("UPDATE listings SET status='published',published_at=now() WHERE id=$1",[results[0].id]);
+    await database.query("UPDATE listings SET status='published',published_at=now(),expires_at=now()+interval '30 days' WHERE id=$1",[results[0].id]);
     assert.equal((await service.create(owner,input)).status,'published');
     const swim=await service.create(owner,{...input,title:'Fralda Splashers para piscina',description:'Pacote descartável para piscina, fechado e protegido.',category:'swim',model:'Splashers',size:'RN+',quantity:12,idempotencyKey:'20000000-0000-4000-8000-000000000003',mediaKeys:[`listings/${owner}/swim.webp`]});
-    await database.query("UPDATE listings SET status='published',published_at=now() WHERE id=$1",[swim.id]);
+    await database.query("UPDATE listings SET status='published',published_at=now(),expires_at=now()+interval '30 days' WHERE id=$1",[swim.id]);
     assert.deepEqual((await service.search({category:'swim',size:'RN+'})).map(item=>item.id),[swim.id]);
     assert.deepEqual(await service.search({category:'infant',size:'RN+'}),[]);
     console.log('20 envios simultâneos: 1 anúncio e 1 foto; filtro PostgreSQL de categoria e tamanho verificado.');

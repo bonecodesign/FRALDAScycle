@@ -55,7 +55,7 @@ export function createMarketplaceRepository(database) {
           );
         }
         const updated = (await client.query(
-          "UPDATE listings SET title=$2,description=$3,status='review',published_at=NULL,updated_at=now() WHERE id=$1 RETURNING id,status,updated_at",
+          "UPDATE listings SET title=$2,description=$3,status='review',published_at=NULL,expires_at=NULL,pause_reason=NULL,updated_at=now() WHERE id=$1 RETURNING id,status,updated_at",
           [listingId, title, description],
         )).rows[0];
         await client.query(
@@ -97,7 +97,7 @@ export function createMarketplaceRepository(database) {
               )))
             END AS distance_km
           FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
-          WHERE l.status = 'published' AND (l.kind<>'donation' OR i.status='active')
+          WHERE l.status = 'published' AND l.expires_at IS NOT NULL AND l.expires_at > now() AND (l.kind<>'donation' OR i.status='active')
             AND ($1::text IS NULL OR to_tsvector('portuguese', l.title || ' ' || l.description) @@ plainto_tsquery('portuguese', $1))
             AND ($2::transaction_kind IS NULL OR l.kind = $2)
             AND ($3::text IS NULL OR l.size = $3)
@@ -120,7 +120,7 @@ export function createMarketplaceRepository(database) {
             ORDER BY m.position) FILTER (WHERE m.id IS NOT NULL), '[]') AS media
          FROM listings l JOIN users u ON u.id = l.seller_id LEFT JOIN institutions i ON i.id = l.institution_id
          LEFT JOIN listing_media m ON m.listing_id = l.id
-         WHERE l.id = $1 AND l.status = 'published' AND (l.kind<>'donation' OR i.status='active')
+         WHERE l.id = $1 AND l.status = 'published' AND l.expires_at IS NOT NULL AND l.expires_at > now() AND (l.kind<>'donation' OR i.status='active')
          GROUP BY l.id, u.id, i.id`,
         [id],
       );
@@ -173,7 +173,7 @@ export function createMarketplaceRepository(database) {
         `SELECT ${publicColumns} FROM favorites f
          JOIN listings l ON l.id = f.listing_id JOIN users u ON u.id = l.seller_id
          LEFT JOIN institutions i ON i.id = l.institution_id
-         WHERE f.user_id = $1 AND l.status = 'published' AND (l.kind<>'donation' OR i.status='active') ORDER BY f.created_at DESC`,
+         WHERE f.user_id = $1 AND l.status = 'published' AND l.expires_at IS NOT NULL AND l.expires_at > now() AND (l.kind<>'donation' OR i.status='active') ORDER BY f.created_at DESC`,
         [userId],
       );
       return result.rows;
@@ -202,6 +202,7 @@ export function createMarketplaceRepository(database) {
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()
            WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind = 'sale'
+             AND expires_at IS NOT NULL AND expires_at > now()
            RETURNING id, seller_id, kind, price_cents`,
           [listingId, buyerId],
         );

@@ -17,7 +17,7 @@ export async function lockPremiumAccount(client, userId) {
 }
 
 async function ownedListings(client, userId) {
-  const result = await client.query(`SELECT l.id,l.seller_id,l.title,l.status,l.published_at,
+  const result = await client.query(`SELECT l.id,l.seller_id,l.title,l.status,l.published_at,l.expires_at,l.pause_reason,
     EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=l.id AND t.status NOT IN ('cancelled','refunded','completed')) AS ongoing
     FROM listings l WHERE l.seller_id=$1 ORDER BY l.published_at DESC NULLS LAST,l.id FOR UPDATE OF l`, [userId]);
   return result.rows;
@@ -47,7 +47,7 @@ export async function adjustFreeListings(client, userId, context) {
 export async function freePublicationAvailable(client, userId, context) {
   if (!await newOperationsAllowed(client,userId)) return false;
   if (context.entitlement.benefitsActive) return true;
-  const result = await client.query("SELECT count(*)::integer AS count FROM listings WHERE seller_id=$1 AND status='published'", [userId]);
+  const result = await client.query("SELECT count(*)::integer AS count FROM listings WHERE seller_id=$1 AND (status='published' OR (status='paused' AND pause_reason='price_adjustment_required')) AND (expires_at IS NULL OR expires_at>now())", [userId]);
   return result.rows[0].count < FREE_LISTING_LIMIT;
 }
 
@@ -116,10 +116,12 @@ export function createPremiumRepository(database) {
         if (!listing) throw Object.assign(new Error('Anúncio não encontrado.'), { code: 'listing_not_found', status: 404 });
         if (listing.ongoing || !['published','paused'].includes(listing.status)) throw fail('listing_operation_pending', 'Anúncio ligado a operação ou em revisão não pode ser alterado aqui.');
         if (listing.status === status) return { reused: true, listing: { id: listingId, status } };
+        if (status === 'published' && listing.pause_reason === 'price_adjustment_required') throw fail('listing_price_adjustment_required', 'Ajuste o preço ao teto vigente antes de republicar o anúncio.');
+        if (status === 'published' && listing.expires_at && new Date(listing.expires_at).getTime() <= Date.now()) throw fail('listing_expired', 'O anúncio expirou e precisa ser republicado em um novo ciclo.');
         if (listing.status !== expectedStatus) throw fail('listing_status_conflict', 'O anúncio mudou. Carregue novamente.');
         if (status === 'published') await requireNewOperations(client,userId);
         if (status === 'published' && !await freePublicationAvailable(client, userId, context)) throw fail('free_listing_limit', 'O plano gratuito permite até três anúncios publicados.');
-        await client.query('UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1', [listingId, status]);
+        await client.query(`UPDATE listings SET status=$2::listing_status,pause_reason=CASE WHEN $2::listing_status='paused' THEN pause_reason ELSE NULL END,updated_at=now() WHERE id=$1`, [listingId, status]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'listing.publication.changed','listing',$2,$3::jsonb)`, [userId, listingId, JSON.stringify({ status })]);
         return { reused: false, listing: { id: listingId, status } };

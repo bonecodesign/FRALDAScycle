@@ -97,8 +97,10 @@ export function createAdminRepository(database) {
       }
       const listing = (await client.query(
         `UPDATE listings SET status=$2::listing_status,
-           published_at=CASE WHEN $2='published' THEN now() ELSE NULL END,updated_at=now()
-         WHERE id=$1 RETURNING id,status,published_at,updated_at`, [listingId, outcome],
+           published_at=CASE WHEN $2='published' THEN now() ELSE NULL END,
+           expires_at=CASE WHEN $2='published' THEN now()+interval '30 days' ELSE NULL END,
+           pause_reason=NULL,updated_at=now()
+         WHERE id=$1 RETURNING id,status,published_at,expires_at,updated_at`, [listingId, outcome],
       )).rows[0];
       await client.query(
         `INSERT INTO listing_review_decisions(listing_id,reviewer_id,outcome,reason)
