@@ -36,5 +36,5 @@ export async function validateSyntheticAddressChange(database,{service,repositor
   await assert.rejects(service.shareAddress(user,shipment.id,{addressId:next.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'}),e=>e.code==='address_share_not_allowed');
   await database.query('DELETE FROM shipment_events WHERE id=$1',[event.id]); // Cleanup of the exclusively synthetic historical fixture.
   const audit=await database.query('SELECT metadata FROM audit_events');assert.equal(JSON.stringify(audit.rows).includes(next.street),false);
-  console.log('BETA_ADDRESS_CHANGE: protocolo, consentimento, isolamento, revisão independente concorrente, histórico imutável, versão, bloqueio após coleta e cancelamento preservado em PostgreSQL; retirada sintética, sem fornecedor.');
+  console.log('BETA_ADDRESS_CHANGE: protocolo, consentimento, isolamento, revisão independente concorrente, histórico imutável, versão, bloqueio após coleta e cancelamento preservado em PostgreSQL; entrega parceira sintética, sem fornecedor real.');
 }
