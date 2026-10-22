@@ -47,14 +47,14 @@ export function setupSupport({admin=false}={}){
     const answer=body.value.trim(),status=state.value;
     if(answer.length<10||answer.length>2000||!Object.hasOwn(statusLabels,status)){say('Preencha uma resposta de 10 a 2000 caracteres e um estado válido.');return;}
     replying=true;lock(true);lockList(true);refresh.disabled=true;lockPages();
-    try{const idempotencyKey=await supportReplyKey(id,answer,status);const result=await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body:answer,status,idempotencyKey}});if(result?.id!==id||result?.status!==status)throw new Error('Não foi possível confirmar a resposta registrada.');clearSupportReplyKey(id,idempotencyKey);say('Resposta registrada. Nenhum pagamento ou cancelamento foi executado.');await openTicket(id,true);}
+    try{const idempotencyKey=await supportReplyKey(id,answer,status);const result=await apiRequest('/v1/support/tickets/'+id+'/reply',{method:'POST',body:{body:answer,status,idempotencyKey}});if(result?.id!==id||result?.status!==status)throw new Error('Não foi possível confirmar a resposta registrada.');clearSupportReplyKey(id,idempotencyKey);say('Resposta registrada. Nenhum pagamento ou cancelamento foi executado.');await load(page,true);await openTicket(id,true);}
     catch(error){detailGeneration++;say((error.message||'Não foi possível registrar a resposta.')+' Consulte o protocolo novamente antes de reenviar e confira se a resposta já foi registrada.');}
     finally{replying=false;lockList(false);refresh.disabled=replying;lockPages();}
    });
   }catch(error){if(generation===detailGeneration){detail.replaceChildren();say(error.message||'Não foi possível consultar o atendimento.');}}
  }
- async function load(target=1){
-  if(replying||noteSaving)return;
+ async function load(target=1,afterReply=false){
+  if((replying&&!afterReply)||noteSaving)return;
   const generation=++listGeneration;listBusy=true;lockPages();refresh.disabled=true;list.replaceChildren();say('Consultando pedidos...');
   try{
    const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(admin&&sortFilter?.value&&sortFilter.value!=='newest')params.set('sort',sortFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;const {items}=result;
@@ -87,7 +87,15 @@ export function setupSupport({admin=false}={}){
     const ticket=result?.ticket;if(!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status))throw new Error('Não foi possível confirmar o pedido. Confira o acompanhamento antes de tentar novamente.');
     if(ticket.subject!==input.subject||ticket.details!==input.details||ticket.category!==input.category||(ticket.transaction_id??null)!==input.transactionId){rotateKey();throw new Error('A chave corresponde a um pedido anterior. O rascunho foi preservado para um novo envio; confira o acompanhamento.');}
     rotateKey();form.elements.subject.value='';form.elements.details.value='';await load();await openTicket(ticket.id);
-    say('Pedido registrado: FC-S-'+ticket.protocol+'.');
+    const policy=result?.supportPolicy;
+    const serviceMessage=policy?.firstResponseTargetBusinessDays===2&&policy?.resolutionGuaranteed===false
+      ? policy.queueState==='received_outside_service_hours'
+        ? ' Recebido fora do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+        : policy.queueState==='within_service_hours'
+          ? ' Recebido dentro do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+          : ''
+      : '';
+    say('Pedido registrado: FC-S-'+ticket.protocol+'.'+serviceMessage);
    }catch(error){say(error.message||'Não foi possível registrar o pedido.');}
    finally{creating=false;lockCreation(false);}
   });

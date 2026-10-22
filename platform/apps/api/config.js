@@ -1,3 +1,5 @@
+import { pilotBhConfig } from "./pilot-bh.js";
+
 const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
 
 function integer(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
@@ -111,12 +113,6 @@ export function loadConfig(env = process.env) {
     }
   }
 
-  const childProfilesRequested = env.CHILD_PROFILES_ENABLED === "true";
-  const childProfilesActivationAcknowledged = env.CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED === "true";
-  if (nodeEnv === "production" && childProfilesRequested && !childProfilesActivationAcknowledged) {
-    throw new Error("CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true is required with CHILD_PROFILES_ENABLED=true in production");
-  }
-
   return Object.freeze({
     nodeEnv,
     host: env.API_HOST ?? "127.0.0.1",
@@ -145,7 +141,8 @@ export function loadConfig(env = process.env) {
     mediaProviderSecret: media.secret,
     geocodingProviderUrl: geocoding.url,
     geocodingProviderSecret: geocoding.secret,
-    childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
+    childProfilesEnabled: env.CHILD_PROFILES_ENABLED === "true",
+    pilotBh: pilotBhConfig(env),
     corsOrigins: allowedCorsOrigins,
   });
 }

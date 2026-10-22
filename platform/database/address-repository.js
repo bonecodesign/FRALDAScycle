@@ -1,7 +1,8 @@
 import {verifiedInstitutionRepresentative} from './institution-access-repository.js';
+import {pilotBhLocation,pilotBhPostalCode} from '../apps/api/pilot-bh.js';
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 const fields='id,label,postal_code,street,number,complement,district,city,state';
-export function createAddressRepository(database) {
+export function createAddressRepository(database,{pilotBh=null}={}) {
   return Object.freeze({
     async ownAddresses(userId) {
       return database.transaction(async client=>{
@@ -48,6 +49,7 @@ export function createAddressRepository(database) {
         if(!recipientId)throw fail('address_recipient_pending',409,'Aguarde a definição de quem fará a entrega ou retirada.');
         const owned=await client.query(`SELECT ${fields} FROM addresses WHERE id=$1 AND user_id=$2`,[addressId,actorId]);
         if(!owned.rows[0])throw fail('address_not_found',404,'Endereço não encontrado.');
+        if(!pilotBhLocation(pilotBh,owned.rows[0].city,owned.rows[0].state)||!pilotBhPostalCode(pilotBh,owned.rows[0].postal_code))throw fail('pilot_outside_bh',403,'O piloto aceita somente endereços de Belo Horizonte, MG, com CEP da capital.');
         const existing=await client.query(`SELECT a.id,COALESCE(v.address_id,a.address_id) AS address_id,a.shared_at FROM shipment_address_shares a LEFT JOIN LATERAL (SELECT address_id FROM shipment_address_revisions WHERE share_id=a.id ORDER BY revision DESC LIMIT 1) v ON true WHERE shipment_id=$1 AND owner_id=$2 AND recipient_id=$3`,[shipmentId,actorId,recipientId]);
         if(existing.rows[0]) {
           if(existing.rows[0].address_id!==addressId)throw fail('address_change_requires_support',409,'O endereço já compartilhado só pode ser alterado pelo suporte.');

@@ -1,6 +1,7 @@
 import { institutionTransitionAllowed } from "../../packages/contracts/institution-status.js";
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
+import { pilotBhLocation, pilotBhPostalCode } from "./pilot-bh.js";
 export class InstitutionError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -12,12 +13,12 @@ const STATUSES = new Set(["pending", "under_review", "active", "suspended", "doc
 
 const text = (value) => String(value ?? "").trim();
 
-export function createInstitutionService(repository) {
+export function createInstitutionService(repository, { pilotBh = null } = {}) {
   return Object.freeze({
     async active(params = {}) {
       return repository.listActive({
-        state: text(params.state).toUpperCase() || null,
-        city: text(params.city).slice(0, 100) || null,
+        state: pilotBh?.enabled ? "MG" : text(params.state).toUpperCase() || null,
+        city: pilotBh?.enabled ? "Belo Horizonte" : text(params.city).slice(0, 100) || null,
         ...pagination(params),
       });
     },
@@ -46,6 +47,7 @@ export function createInstitutionService(repository) {
       if (!/^\d{14}$/.test(data.taxId)) throw new InstitutionError("invalid_tax_id", 422, "Informe um CNPJ com 14 dígitos.");
       if (data.representativeName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.representativeEmail)) throw new InstitutionError("invalid_representative", 422, "Informe o representante e um e-mail válido.");
       if (!data.city || !/^[A-Z]{2}$/.test(data.state) || data.addressLine.length < 5 || data.postalCode.length !== 8) throw new InstitutionError("invalid_address", 422, "Informe o endereço institucional completo.");
+      if (!pilotBhLocation(pilotBh, data.city, data.state) || !pilotBhPostalCode(pilotBh, data.postalCode)) throw new InstitutionError("pilot_outside_bh", 403, "O piloto aceita somente instituições de Belo Horizonte, MG, com CEP da capital.");
       if (data.documentKeys.length === 0 || data.documentKeys.some((key) => !/^[a-zA-Z0-9/_-]{8,512}$/.test(key))) throw new InstitutionError("institution_documents_required", 422, "Envie ao menos um documento institucional válido.");
       try {
         return await repository.createApplication(data);
@@ -63,7 +65,15 @@ export function createInstitutionService(repository) {
       const current = await repository.detailAdmin(institutionId);
       if (!current) throw new InstitutionError("institution_not_found", 404, "Instituição não encontrada.");
       if (!institutionTransitionAllowed(current.status,status)) throw new InstitutionError("invalid_status_transition", 409, "Esta mudança de estado institucional não é permitida.");
-      return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason, expectedStatus:current.status });
+      if (status === "active" && (!pilotBhLocation(pilotBh, current.city, current.state) || !pilotBhPostalCode(pilotBh, current.postal_code ?? current.postalCode))) throw new InstitutionError("pilot_outside_bh", 403, "O piloto aceita somente instituições de Belo Horizonte, MG, com CEP da capital.");
+      const verification = input?.verification;
+      if (status === "active" && (
+        !verification || verification.documentsChecked !== true ||
+        verification.representativeChecked !== true || verification.capacityChecked !== true ||
+        !Array.isArray(current.document_keys) || current.document_keys.length === 0
+      )) throw new InstitutionError("institution_verification_required", 422, "Confirme documentos, representante e capacidade antes de ativar a instituição.");
+      return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason, expectedStatus:current.status,
+        verification: status === "active" ? { documentsChecked: true, representativeChecked: true, capacityChecked: true } : null });
     },
   });
 }

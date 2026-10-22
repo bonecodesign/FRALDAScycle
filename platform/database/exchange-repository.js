@@ -1,9 +1,11 @@
+import {pilotBhLocation} from '../apps/api/pilot-bh.js';
 const fail=(code,status,message,extra={})=>Object.assign(new Error(message),{code,status,...extra});
-export function createExchangeRepository(database){return Object.freeze({
+export function createExchangeRepository(database,{pilotBh=null}={}){return Object.freeze({
  async propose({actorId,requestedListingId,offeredListingId}){return database.transaction(async client=>{
-  const listings=(await client.query(`SELECT id,seller_id,kind,status,package_condition FROM listings WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE`,[[requestedListingId,offeredListingId]])).rows;
+  const listings=(await client.query(`SELECT id,seller_id,kind,status,package_condition,city,state FROM listings WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE`,[[requestedListingId,offeredListingId]])).rows;
   const requested=listings.find(x=>x.id===requestedListingId),offered=listings.find(x=>x.id===offeredListingId);
   if(!requested||!offered||requested.kind!=='exchange'||offered.kind!=='exchange'||requested.status!=='published'||offered.status!=='published'||requested.package_condition!=='sealed'||offered.package_condition!=='sealed'||offered.seller_id!==actorId||requested.seller_id===actorId)throw fail('exchange_listings_not_eligible',409,'Escolha dois anúncios de troca publicados, lacrados e pertencentes às partes corretas.');
+  if(!pilotBhLocation(pilotBh,requested.city,requested.state)||!pilotBhLocation(pilotBh,offered.city,offered.state))throw fail('pilot_outside_bh',403,'O piloto aceita somente trocas em Belo Horizonte, MG.');
   const transaction=(await client.query(`INSERT INTO transactions(listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,'proposed',NULL) RETURNING *`,[requestedListingId,actorId,requested.seller_id])).rows[0];
   const operation=(await client.query(`INSERT INTO exchange_operations(transaction_id,requested_listing_id,offered_listing_id,requester_id,owner_id) VALUES($1,$2,$3,$4,$5) RETURNING *`,[transaction.id,requestedListingId,offeredListingId,actorId,requested.seller_id])).rows[0];
   await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.proposed','transaction',$2,$3::jsonb)`,[actorId,transaction.id,JSON.stringify({requestedListingId,offeredListingId,version:1})]);return operation;

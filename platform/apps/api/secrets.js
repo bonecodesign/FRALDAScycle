@@ -26,10 +26,14 @@ export function validateSecretsProviderConfig(env = process.env) {
   if (!endpoint || !token || keys.length === 0) {
     throw new Error("SECRETS_PROVIDER_URL, SECRETS_PROVIDER_TOKEN and SECRETS_PROVIDER_KEYS must be configured together");
   }
+  if (typeof token !== "string" || token.trim() !== token || token.length < 8 || /[\u0000-\u001f\u007f]/.test(token)) {
+    throw new Error("SECRETS_PROVIDER_TOKEN must be a non-empty opaque token without surrounding whitespace or control characters");
+  }
   let url;
   try { url = new URL(endpoint); } catch { throw new Error("SECRETS_PROVIDER_URL must be a valid URL"); }
   if (url.protocol !== "https:") throw new Error("SECRETS_PROVIDER_URL must use HTTPS");
   if (url.username || url.password) throw new Error("SECRETS_PROVIDER_URL must not contain credentials");
+  if (url.search || url.hash) throw new Error("SECRETS_PROVIDER_URL must not contain query parameters or fragments");
   if (
     keys.some((key) => !SECRET_KEY_PATTERN.test(key) || !RUNTIME_SECRET_KEYS.has(key)) ||
     new Set(keys).size !== keys.length
@@ -70,7 +74,7 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   const resolved = { ...env };
   for (const key of keys) {
     const value = payload?.secrets?.[key];
-    if (typeof value !== "string" || value.length === 0) {
+    if (typeof value !== "string" || value.length === 0 || value.trim().length === 0 || /[\u0000\r\n]/.test(value)) {
       throw new Error(`External secrets provider did not return ${key}`);
     }
     resolved[key] = value;

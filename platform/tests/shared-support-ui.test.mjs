@@ -30,11 +30,38 @@ test('creation blocks duplicate submit/cancel and rotates key only after a confi
 test('creation failure preserves key and fields for idempotent retry',async()=>{
  const app=await harness(async()=>{throw new Error('Sem conexão')},{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();await app.send();assert.equal(app.calls[0].options.body.idempotencyKey,app.calls[1].options.body.idempotencyKey);assert.equal(app.values.get('fc.supportDraftKey'),old);assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');
 });
+test('creation explains outside-hours queue without promising resolution',async()=>{
+ const app=await harness(async(path,options)=>options?.method==='POST'?{ticket:ticket(one),supportPolicy:{queueState:'received_outside_service_hours',firstResponseTargetBusinessDays:2,resolutionGuaranteed:false}}:path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)},{client:true});
+ await app.send();
+ assert.match(app.elements['support-feedback'].textContent,/fora do horário de atendimento/);
+ assert.match(app.elements['support-feedback'].textContent,/primeira resposta em até 2 dias úteis/);
+ assert.match(app.elements['support-feedback'].textContent,/não garante a resolução/);
+});
 test('reused key returning another draft does not discard fields or claim creation',async()=>{
  const app=await harness(async()=>({ticket:{...ticket(one),subject:'Pedido anterior'}}),{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');assert.notEqual(app.values.get('fc.supportDraftKey'),old);assert.match(app.elements['support-feedback'].textContent,/pedido anterior/);
 });
 test('admin reply cannot duplicate or switch tickets and uses confirmed target',async()=>{
  let finish;const app=await harness(async(path,options)=>options?.method==='POST'?new Promise(resolve=>finish=resolve):path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:{ticket:ticket(one)},{admin:true});await app.refresh();await app.open(0);const form=app.elements['support-detail'].children.at(-1),body=form.children[1],state=form.children[2];body.value='Resposta fictícia por teste';state.value='under_review';const send=()=>form.handlers.submit({preventDefault(){}});const pending=send();await send();await app.open(1);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);assert.equal(app.calls.at(-1).path,'/v1/support/tickets/'+one+'/reply');finish({id:one,status:'under_review'});await pending;assert.equal(app.elements['support-refresh'].disabled,false);
+});
+test('confirmed reply refreshes the current filtered page with the new status',async()=>{
+ let status='open';
+ const app=await harness(async(path,options,actual)=>{
+  if(options?.method==='POST'){status=options.body.status;return {id:one,status};}
+  if(path==='/v1/support/tickets')return {items:[{...ticket(one),status}],page:Number(new URL(actual,'https://support.test').searchParams.get('page')),hasMore:true};
+  return {ticket:{...ticket(one),status}};
+ },{admin:true});
+ app.elements['support-filter-category'].value='privacy';
+ await app.refresh();await app.elements['support-next'].handlers.click();await app.open(0);
+ const form=app.elements['support-detail'].children.at(-1);
+ form.children[1].value='Atendimento concluído pela equipe';form.children[2].value='resolved';
+ await form.handlers.submit({preventDefault(){}});
+ assert.match(app.elements['support-list'].children[0].textContent,/Resolvido/);
+ assert.equal(app.elements['support-page'].textContent,'Página 2');
+ const queries=app.calls.filter(call=>call.path.includes('?page='));
+ const query=new URL(queries.at(-1).path,'https://support.test');
+ assert.equal(query.searchParams.get('page'),'2');
+ assert.equal(query.searchParams.get('category'),'privacy');
+ assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);
 });
 test('reply failure keeps draft disabled and blocks another send until fresh consultation',async()=>{
  const app=await harness(async(path,options)=>{if(options?.method==='POST')throw new Error('Sem conexão');return path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)}},{admin:true});await app.refresh();await app.open(0);const form=app.elements['support-detail'].children.at(-1);form.children[1].value='Resposta fictícia preservada';const send=()=>form.handlers.submit({preventDefault(){}});await send();await send();assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);assert.equal(form.children[1].disabled,true);assert.match(app.elements['support-feedback'].textContent,/Consulte o protocolo/);

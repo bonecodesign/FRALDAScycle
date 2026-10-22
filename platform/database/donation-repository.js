@@ -2,6 +2,7 @@ import {verifiedInstitutionRepresentative} from './institution-access-repository
 import {requireNewOperations} from './moderation-repository.js';
 import {institutionPublicationAllowed} from './institution-publication.js';
 import {freePublicationAvailable,lockPremiumAccount} from './premium-repository.js';
+import {pilotBhLocation} from '../apps/api/pilot-bh.js';
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 async function audit(client,actor,action,id,metadata={}){await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,$2,'donation',$3,$4::jsonb)`,[actor,action,id,JSON.stringify(metadata)]);}
 async function authorized(client,institutionId,representativeId,{capacityRequired=false}={}){
@@ -12,7 +13,7 @@ async function authorized(client,institutionId,representativeId,{capacityRequire
 const columns=`d.transaction_id,d.listing_id,d.institution_id,d.donor_id,d.representative_id,d.version,d.donor_confirmed_at,d.representative_confirmed_at,d.refused_at,d.refused_by,d.refusal_reason,d.refusal_note,d.refusal_evidence_key,d.donor_decision,d.donor_decided_at,d.donor_decision_institution_id,t.status AS transaction_status,l.title,l.status AS listing_status,i.public_name AS institution_name,s.id AS shipment_id,s.status AS shipment_status`;
 const joins=`JOIN transactions t ON t.id=d.transaction_id JOIN listings l ON l.id=d.listing_id JOIN institutions i ON i.id=d.institution_id LEFT JOIN shipments s ON s.transaction_id=t.id`;
 function exposed(row){return {...row,logisticsResponsibility:'donor',paymentAllowed:false,payoutAllowed:false,externalActionsEnabled:false};}
-export function createDonationRepository(database){return Object.freeze({
+export function createDonationRepository(database,{pilotBh=null}={}){return Object.freeze({
  async listings(actorId){return database.transaction(async client=>{
   const items=await client.query(`SELECT l.id,l.title,l.institution_id,i.public_name AS institution_name,l.status FROM listings l JOIN institutions i ON i.id=l.institution_id WHERE l.seller_id=$1 AND l.kind='donation' AND l.status='published' ORDER BY l.created_at DESC LIMIT 100`,[actorId]);
   await audit(client,actorId,'donation.listings.read','list');return items.rows;
@@ -20,8 +21,13 @@ export function createDonationRepository(database){return Object.freeze({
  async list(actorId){return database.transaction(async client=>{const items=await client.query(`SELECT ${columns} FROM donation_operations d ${joins} WHERE $1 IN(d.donor_id,d.representative_id) ORDER BY d.donor_confirmed_at DESC LIMIT 100`,[actorId]);await audit(client,actorId,'donations.read','list');return items.rows.map(exposed);});},
  async detail(actorId,transactionId){return database.transaction(async client=>{const item=(await client.query(`SELECT ${columns} FROM donation_operations d ${joins} WHERE d.transaction_id=$1 AND $2 IN(d.donor_id,d.representative_id)`,[transactionId,actorId])).rows[0];if(!item)throw fail('donation_not_found',404,'Doação não encontrada.');await audit(client,actorId,'donation.read',transactionId);return exposed(item);});},
  async create({actorId,listingId,idempotencyKey}){return database.transaction(async client=>{
-  const reference=(await client.query('SELECT institution_id FROM listings WHERE id=$1 AND seller_id=$2 AND kind=\'donation\'',[listingId,actorId])).rows[0];
+  const reference=(await client.query(pilotBh?.enabled
+    ? `SELECT l.institution_id,l.city,l.state,i.city AS institution_city,i.state AS institution_state
+       FROM listings l JOIN institutions i ON i.id=l.institution_id
+       WHERE l.id=$1 AND l.seller_id=$2 AND l.kind='donation'`
+    : 'SELECT institution_id FROM listings WHERE id=$1 AND seller_id=$2 AND kind=\'donation\'',[listingId,actorId])).rows[0];
   if(!reference)throw fail('donation_listing_not_found',404,'Anúncio de doação não encontrado.');
+  if(!pilotBhLocation(pilotBh,reference.city,reference.state)||!pilotBhLocation(pilotBh,reference.institution_city,reference.institution_state))throw fail('pilot_outside_bh',403,'O piloto aceita somente doações em Belo Horizonte, MG.');
   const early=(await client.query(`SELECT d.*,t.status AS transaction_status FROM donation_operations d JOIN transactions t ON t.id=d.transaction_id WHERE d.idempotency_key=$1`,[idempotencyKey])).rows[0];
   if(early){if(early.donor_id!==actorId||early.listing_id!==listingId)throw fail('donation_key_conflict',409,'Chave já usada em outra solicitação.');return {...exposed(early),reused:true};}
   const representative=await verifiedInstitutionRepresentative(client,reference.institution_id);

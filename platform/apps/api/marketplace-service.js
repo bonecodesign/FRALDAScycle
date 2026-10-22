@@ -4,6 +4,8 @@ import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
 import { hasScope, requireScope } from "./authorization.js";
+import { pilotBhLocation } from "./pilot-bh.js";
+import { internalSupportPolicy } from "../../packages/contracts/support-hours.js";
 
 export class MarketplaceError extends ServiceError {
   constructor(code, status, message) {
@@ -22,7 +24,7 @@ function validListingId(value) {
   }
 }
 
-export function createMarketplaceService(repository, moderation = null, mediaProvider = null) {
+export function createMarketplaceService(repository, moderation = null, mediaProvider = null, { pilotBh = null, now = () => new Date() } = {}) {
   async function verifyMedia(userId, mediaKeys) {
     if (!mediaProvider?.verifyListingMedia) throw new MarketplaceError("media_verification_unavailable", 503, "Não foi possível confirmar o processamento das fotos.");
     await mediaProvider.verifyListingMedia(userId, mediaKeys);
@@ -70,7 +72,8 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
           (category !== "receipt_problem" && occurrenceKind)) {
         throw new MarketplaceError("invalid_support_ticket",422,"Informe categoria, assunto, descrição e operação quando necessária.");
       }
-      return repository.createSupportTicket({requesterId:userId,transactionId,category,subject,details,occurrenceKind,idempotencyKey});
+      const result=await repository.createSupportTicket({requesterId:userId,transactionId,category,subject,details,occurrenceKind,idempotencyKey});
+      return {...result,supportPolicy:internalSupportPolicy(now())};
     },
     async supportTickets(actor) {
       return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
@@ -150,14 +153,14 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       return repository.search({
         query: query || null,
         size: size || null,
-        category,
+        category, pilotBh: pilotBh?.enabled === true,
         kind, latitude, longitude, radiusKm, limit, offset,
       });
     },
 
     async detail(id) {
       const listing = await repository.detail(id);
-      if (!listing) throw new MarketplaceError("listing_not_found", 404, "Anúncio não encontrado.");
+      if (!listing || !pilotBhLocation(pilotBh, listing.city, listing.state)) throw new MarketplaceError("listing_not_found", 404, "Anúncio não encontrado.");
       return listing;
     },
 
@@ -208,6 +211,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       if (size && size.length > 40) throw new MarketplaceError("invalid_size", 422, "Informe um tamanho válido.");
       if (city && (city.length < 2 || city.length > 120)) throw new MarketplaceError("invalid_city", 422, "Informe uma cidade válida.");
       if (state && !/^[A-Z]{2}$/.test(state)) throw new MarketplaceError("invalid_state", 422, "Informe uma UF válida.");
+      if (!pilotBhLocation(pilotBh, city, state)) throw new MarketplaceError("pilot_outside_bh", 403, "O piloto aceita somente anúncios de Belo Horizonte, MG.");
       if (hasLatitude !== hasLongitude || (hasLatitude && (
         !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
         !Number.isFinite(longitude) || longitude < -180 || longitude > 180
@@ -242,6 +246,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async startTransaction(userId, listingId) {
       validListingId(listingId);
       const listing=await repository.detail(listingId);
+      if (listing && !pilotBhLocation(pilotBh, listing.city, listing.state)) throw new MarketplaceError("pilot_outside_bh", 403, "O piloto aceita somente operações de Belo Horizonte, MG.");
       if(listing?.kind==='exchange')throw new MarketplaceError('exchange_offer_required',409,'Escolha o anúncio que você oferece e use o fluxo bilateral de troca.');
       return repository.startTransaction({ buyerId: userId, listingId });
     },
