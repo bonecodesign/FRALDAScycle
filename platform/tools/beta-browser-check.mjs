@@ -204,7 +204,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#address-change-form fieldset').disabled`),'owned shared address');
     await evaluate(`(()=>{const f=document.getElementById('address-change-form');f.elements.addressId.value=${JSON.stringify(browserAddress.addressId)};f.elements.reason.value='Correção fictícia solicitada pelo titular no navegador.';f.elements.confirmed.focus();})()`);
-    await key(' ','Space',32);await evaluate(`document.querySelector('#institution-access-accept button[type=submit]')?.focus()`);await key('Enter','Enter',13);
+    await key(' ','Space',32);await evaluate(`document.querySelector('#address-change-form button[type=submit]').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Pedido registrado — protocolo FC-S-')`),'address request keyboard');
     const addressRequest=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].id)`);
     const addressLayouts=[];
