@@ -25,7 +25,7 @@ test('PostgreSQL enforces monthly price reconciliation, seller adjustment and 30
     const now=new Date();
     const validFrom=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)).toISOString().slice(0,10);
     const validUntil=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1)).toISOString().slice(0,10);
-    await repository.saveReference({referenceKey:'brand-test|line-test|m|40',validFrom,validUntil,prmCents:10000,lowestRetailCents:9500,collectedAt:new Date().toISOString(),metadata:{synthetic:true}});
+    await repository.saveReference({referenceKey:'brand-test|line-test|m|40',validFrom,validUntil,prmCents:10000,lowestRetailCents:8000,collectedAt:new Date().toISOString(),metadata:{synthetic:true}});
     const before=(await database.query('SELECT published_at,expires_at FROM listings WHERE id=$1',[listing])).rows[0];
     const reconciled=await repository.reconcileReference({referenceKey:'brand-test|line-test|m|40',validFrom});
     assert.equal(reconciled.paused,1);
@@ -34,7 +34,7 @@ test('PostgreSQL enforces monthly price reconciliation, seller adjustment and 30
     assert.equal(new Date(row.published_at).toISOString(),new Date(before.published_at).toISOString());
     assert.equal(new Date(row.expires_at).toISOString(),new Date(before.expires_at).toISOString());
     await assert.rejects(repository.adjustPausedListingPrice({sellerId:seller,listingId:listing,priceCents:9600}),e=>e.code==='listing_price_above_ceiling');
-    const adjusted=await repository.adjustPausedListingPrice({sellerId:seller,listingId:listing,priceCents:9000});
+    const adjusted=await repository.adjustPausedListingPrice({sellerId:seller,listingId:listing,priceCents:7500});
     assert.equal(adjusted.listing.status,'published');
     assert.equal(new Date(adjusted.listing.published_at).toISOString(),new Date(before.published_at).toISOString());
     assert.equal(new Date(adjusted.listing.expires_at).toISOString(),new Date(before.expires_at).toISOString());
@@ -46,7 +46,7 @@ test('PostgreSQL enforces monthly price reconciliation, seller adjustment and 30
     row=(await database.query('SELECT status,pause_reason FROM listings WHERE id=$1',[listing])).rows[0];
     assert.equal(row.status,'removed');assert.equal(row.pause_reason,null);
     await assert.rejects(repository.republishExpiredListing({sellerId:seller,listingId:listing,priceCents:9600}),e=>e.code==='listing_price_above_ceiling');
-    const republished=await repository.republishExpiredListing({sellerId:seller,listingId:listing,priceCents:9000});
+    const republished=await repository.republishExpiredListing({sellerId:seller,listingId:listing,priceCents:7500});
     assert.equal(republished.listing.status,'published');
     const republishedAt=new Date(republished.listing.published_at);const republishedExpiry=new Date(republished.listing.expires_at);
     assert.ok(republishedExpiry.getTime()-republishedAt.getTime()>=30*24*60*60*1000-5000);
