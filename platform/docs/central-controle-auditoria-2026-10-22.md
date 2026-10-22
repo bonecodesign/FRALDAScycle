@@ -36,3 +36,25 @@ Consolidar os módulos administrativos existentes, sem criar painel paralelo, co
 - Executar testes existentes e registrar resultados, sem afirmar aprovação antecipadamente.
 - Propor primeiro incremento pequeno da Central, preferencialmente somente leitura.
 - Medir avanço apenas com evidências; relatório de 09/10 aponta 8/70 requisitos formalmente concluídos, 50 parciais e 12 bloqueados.
+
+
+## Segunda rodada — contratos e permissões observados
+- `admin-overview.js` usa `GET /v1/admin/overview-snapshot?limit=50` por `apiRequest`; popula indicadores de usuários, anúncios, transações, pagamentos e entregas, além de transações recentes e alertas derivados.
+- O cliente apresenta mensagens distintas para HTTP 401 e 403; a proteção efetiva do endpoint deve ser confirmada no backend (ocultar links não equivale a autorização).
+- `auth.js` define papéis administrativos `admin` e `moderator`, com navegação diferente. O login administrativo requer desafio de segundo fator no fluxo examinado; testes de servidor e sessão ainda não foram executados.
+- `finance.html` mantém consultas somente leitura. Não associar consulta a liberação automática de repasses.
+- `security.html` oferece consulta de sessões ativas e opção de revogar outras sessões; não inferir localização, identidade do dispositivo ou confiança a partir do agente do cliente.
+- `launch.html` declara piloto interno, sem acesso público, dados pessoais reais, transações reais ou integrações externas.
+- O resumo administrativo contém o rótulo legado `reserved: "Reservada"`. Investigar origem e estados do backend; **não** reintroduzir a funcionalidade de reserva aprovada para remoção.
+
+## Primeiro incremento recomendado (somente leitura)
+1. Exibir origem e momento da última consulta bem-sucedida, distinguindo claramente de atualização do dado na origem.
+2. Preservar indisponibilidade e falta de permissão sem converter ausência em zero.
+3. Revisar rótulos legados e adicionar regressões para regras comerciais e papéis.
+4. Não criar novo endpoint nem ampliar autorização até a auditoria do backend.
+
+## Evidências ainda necessárias
+- Definições de rota, middleware de autenticação/autorização e contratos de `overview-snapshot`.
+- Matriz de requisitos atualizada e diferenças desde 09/10.
+- Testes unitários/integração, CI da branch e resultado do PR.
+- Confirmação da visibilidade privada do repositório e resolução de eventual divergência.
