@@ -47,7 +47,7 @@ export async function adjustFreeListings(client, userId, context) {
 export async function freePublicationAvailable(client, userId, context) {
   if (!await newOperationsAllowed(client,userId)) return false;
   if (context.entitlement.benefitsActive) return true;
-  const result = await client.query("SELECT count(*)::integer AS count FROM listings WHERE seller_id=$1 AND status='published'", [userId]);
+  const result = await client.query("SELECT count(*)::integer AS count FROM listings WHERE seller_id=$1 AND (status='published' OR (status='paused' AND pause_reason='price_adjustment_required')) AND (expires_at IS NULL OR expires_at>now())", [userId]);
   return result.rows[0].count < FREE_LISTING_LIMIT;
 }
 
