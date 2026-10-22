@@ -55,7 +55,7 @@ test("courier clearance rejection is enforced over HTTP and PostgreSQL", {
       const repository = createCourierEligibilityRepository(database);
       const service = createCourierEligibilityService(repository, {
         featureEnabled: true,
-        clock: () => Date.parse("2026-10-22T12:00:00.000Z"),
+        clock: () => Date.parse("2026-10-22T20:00:00.000Z"),
       });
       const actors = {
         courier: { id: ids.courier, role: "courier" },

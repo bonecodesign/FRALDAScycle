@@ -11,7 +11,7 @@ import {nativePostgresTools,withNativeTestPostgres} from '../tools/native-postgr
 const native=await nativePostgresTools();
 const ids={seller:'11111111-1111-4111-8111-111111111111',buyer:'22222222-2222-4222-8222-222222222222',listing:'33333333-3333-4333-8333-333333333333',transaction:'44444444-4444-4444-8444-444444444444'};
 
-test('sale shipment records buyer freight responsibility without inventing a quote or charge over HTTP/PostgreSQL',{
+test('local pickup stays unavailable over HTTP/PostgreSQL without creating freight records',{
   skip:!native&&!process.env.CI?'PostgreSQL nativo ausente neste ambiente.':false,timeout:60000,
 },async()=>{
   await withNativeTestPostgres(async databaseUrl=>{
@@ -30,14 +30,14 @@ test('sale shipment records buyer freight responsibility without inventing a quo
       await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({'content-type':'application/json',cookie:`fc_session=${token}`});
       const payload={transactionId:ids.transaction,mode:'pickup',insured:false,idempotencyKey:'sale-freight-responsibility-http'};
-      const denied=await fetch(`${origin}/v1/shipments`,{method:'POST',headers:headers('seller'),body:JSON.stringify(payload)});assert.equal(denied.status,404);
-      const response=await fetch(`${origin}/v1/shipments`,{method:'POST',headers:headers('buyer'),body:JSON.stringify(payload)});const body=await response.json();assert.equal(response.status,201,JSON.stringify(body));
-      assert.equal(body.shipment.logisticsResponsibility,'buyer');assert.equal(body.shipment.freightCents,null);assert.equal(body.shipment.freightChargeAvailable,false);
-      const stored=(await database.query('SELECT buyer_id,logistics_payer_id,provider_reference FROM shipments WHERE transaction_id=$1',[ids.transaction])).rows[0];
-      assert.deepEqual(stored,{buyer_id:ids.buyer,logistics_payer_id:ids.buyer,provider_reference:null});
+      for(const actor of ['seller','buyer']){
+        const response=await fetch(`${origin}/v1/shipments`,{method:'POST',headers:headers(actor),body:JSON.stringify(payload)});
+        const body=await response.json();
+        assert.equal(response.status,422,JSON.stringify(body));
+        assert.equal(body.error.code,'invalid_shipment_mode');
+      }
+      assert.equal((await database.query('SELECT count(*)::integer AS n FROM shipments WHERE transaction_id=$1',[ids.transaction])).rows[0].n,0);
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM payment_intents WHERE transaction_id=$1',[ids.transaction])).rows[0].n,0);
-      const audit=(await database.query("SELECT metadata FROM audit_events WHERE action='shipment.created' AND entity_id=$1",[body.shipment.id])).rows[0].metadata;
-      assert.equal(audit.logisticsResponsibility,'buyer');assert.equal(audit.freightCharged,false);
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });

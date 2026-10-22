@@ -26,7 +26,8 @@ function repository(status = "pending") {
     calls,
     async listActive(input) { calls.push(["listActive", input]); return []; },
     async listAdmin(input) { calls.push(["listAdmin", input]); return []; },
-    async detailAdmin(id) { return id === INSTITUTION_ID ? { id, status, document_keys: validApplication.documentKeys } : null; },
+    async detailAdmin(id) { return id === INSTITUTION_ID ? { id, status, document_keys: validApplication.documentKeys,
+      city: validApplication.city, state: "MG", postal_code: "30110000" } : null; },
     async createApplication(input) { calls.push(["create", input]); return { id: INSTITUTION_ID, status: "pending", ...input }; },
     async changeStatus(input) { calls.push(["status", input]); return { id: input.institutionId, status: input.status }; },
   };
@@ -70,7 +71,7 @@ test("institution review enforces the explicit status transition graph", async (
 
 test("individual activation requires three explicit checks and records their attestation", async () => {
   const store = repository("under_review");
-  const service = createInstitutionService(store);
+  const service = createInstitutionService(store, { pilotBh: { enabled: true } });
   const input = { status: "active", reason: "Documentos e capacidade conferidos individualmente." };
   await assert.rejects(service.changeStatus(USER_ID, INSTITUTION_ID, input),
     error => error.code === "institution_verification_required");
