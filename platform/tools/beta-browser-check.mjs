@@ -187,8 +187,12 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#moderation-list button').focus()`);await key('Enter','Enter',13);
     assert.equal(await evaluate('document.activeElement.name'),'body');
     await evaluate(`document.querySelector('#moderation-appeal-form textarea').value='Solicito revisão do bloqueio fictício sem dados privados.';document.querySelector('#moderation-appeal-form button[type=submit]').focus()`);
-    await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.getElementById('moderation-feedback').textContent.includes('Contestação registrada')`),'appeal keyboard submission');
+    assert.equal(await evaluate(`document.activeElement.matches('#moderation-appeal-form button[type=submit]:not(:disabled)')`),true);
+    // Space activation is deterministic for focused buttons in headless Chromium;
+    // Enter can be consumed as implicit form submission before the key-up event.
+    await key(' ','Space',32);
+    try { await until(()=>evaluate(`document.getElementById('moderation-feedback').textContent.includes('Contestação registrada')`),'appeal keyboard submission'); }
+    catch(error) { throw new Error(error.message+': '+JSON.stringify(await evaluate(`({feedback:document.getElementById('moderation-feedback')?.textContent,active:document.activeElement?.outerHTML?.slice(0,240),disabled:document.querySelector('#moderation-appeal-form fieldset')?.disabled})`))); }
     const appealedDecision=await evaluate(`document.querySelector('#moderation-list p:nth-child(2)').textContent.replace('Registro: ','')`);
     const moderationLayouts=[];
     for(const width of [320,375,768,1280]){
