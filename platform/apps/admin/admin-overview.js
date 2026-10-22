@@ -85,7 +85,7 @@ async function loadOverview() {
   try {
     currentResult = await apiRequest("/v1/admin/overview-snapshot?limit=50");
     renderSummary(currentResult.summary ?? {}); renderTransactions(currentResult.items ?? []); renderAlerts(currentResult.summary ?? {});
-    status.textContent = `Consulta concluída: ${count(currentResult.items?.length)} transação(ões) recente(s) exibida(s).`;
+    status.textContent = `Consulta concluída: ${count(currentResult.items?.length)} transação(ões) recente(s) exibida(s). Última consulta bem-sucedida nesta tela: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date())}. Este horário não indica atualização dos dados na origem.`;
     if (exportButton) exportButton.disabled = false;
   } catch (error) { currentResult = null; status.textContent = unavailable(error); }
   finally { refresh.disabled = false; }
