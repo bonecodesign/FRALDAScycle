@@ -5,6 +5,7 @@ import { chmod, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:events";
+import { createHash } from "node:crypto";
 import { createBackupPlan, createRestorePlan, executeBackupPlan, executePlan, executeRestorePlan } from "../database/recovery.js";
 
 test("backup uses custom compressed format without exposing credentials in arguments", () => {
@@ -148,12 +149,14 @@ test("backup publishes a private dump atomically and never overwrites an existin
     await executeBackupPlan(plan, { spawnImpl });
     assert.equal((await readFile(destination, "utf8")), "synthetic dump");
     assert.equal((await stat(destination)).mode & 0o077, 0);
-    assert.deepEqual(await readdir(root), ["safe.dump"]);
+    assert.match(await readFile(`${destination}.sha256`, "utf8"), /^[a-f0-9]{64}\n$/);
+    assert.equal((await stat(`${destination}.sha256`)).mode & 0o077, 0);
+    assert.deepEqual((await readdir(root)).sort(), ["safe.dump", "safe.dump.sha256"]);
 
     await writeFile(destination, "preserve this backup");
     await assert.rejects(executeBackupPlan(plan, { spawnImpl }), error => error.code === "EEXIST");
     assert.equal(await readFile(destination, "utf8"), "preserve this backup");
-    assert.deepEqual(await readdir(root), ["safe.dump"]);
+    assert.deepEqual((await readdir(root)).sort(), ["safe.dump", "safe.dump.sha256"]);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -195,7 +198,11 @@ test("restore accepts only a present non-empty private regular dump before spawn
     await chmod(dump, 0o644);
     await assert.rejects(executeRestorePlan(plan, { spawnImpl }), /non-empty private regular file/);
     await chmod(dump, 0o600);
+    await writeChecksum(dump);
     await executeRestorePlan(plan, { spawnImpl });
+    assert.equal(calls, 1);
+    await writeFile(dump, "tampered dump", { mode: 0o600 });
+    await assert.rejects(executeRestorePlan(plan, { spawnImpl }), /checksum mismatch/);
     assert.equal(calls, 1);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -214,4 +221,10 @@ test("restore refuses symlinked dumps without contacting pg_restore", async () =
 function requireWrite(path) {
   // Simulate pg_dump creating its output, while retaining the child process contract.
   writeFileSync(path, "synthetic dump", { mode: 0o600 });
+}
+
+async function writeChecksum(path) {
+  const content = await readFile(path);
+  const digest = createHash("sha256").update(content).digest("hex");
+  await writeFile(`${path}.sha256`, `${digest}\n`, { mode: 0o600 });
 }

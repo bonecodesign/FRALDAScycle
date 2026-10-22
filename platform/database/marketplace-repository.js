@@ -83,7 +83,7 @@ export function createMarketplaceRepository(database) {
     async search({
       query = null, kind = null, size = null, category = null,
       latitude = null, longitude = null, radiusKm = null,
-      limit = 24, offset = 0,
+      limit = 24, offset = 0, pilotBh = false,
     }) {
       const result = await database.query(
         `WITH candidates AS (
@@ -102,12 +102,13 @@ export function createMarketplaceRepository(database) {
             AND ($2::transaction_kind IS NULL OR l.kind = $2)
             AND ($3::text IS NULL OR l.size = $3)
             AND ($4::text IS NULL OR l.category = $4)
+            AND ($10::boolean = false OR (lower(l.city) = 'belo horizonte' AND l.state = 'MG'))
         )
         SELECT * FROM candidates
         WHERE ($5::double precision IS NULL OR distance_km <= $7::double precision)
         ORDER BY distance_km ASC NULLS LAST, published_at DESC NULLS LAST, created_at DESC
         LIMIT $8 OFFSET $9`,
-        [query, kind, size, category, latitude, longitude, radiusKm, limit, offset],
+        [query, kind, size, category, latitude, longitude, radiusKm, limit, offset, pilotBh],
       );
       return result.rows;
     },

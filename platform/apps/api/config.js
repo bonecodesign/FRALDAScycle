@@ -1,3 +1,5 @@
+import { pilotBhConfig } from "./pilot-bh.js";
+
 const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
 
 function integer(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
@@ -146,6 +148,7 @@ export function loadConfig(env = process.env) {
     geocodingProviderUrl: geocoding.url,
     geocodingProviderSecret: geocoding.secret,
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
+    pilotBh: pilotBhConfig(env),
     corsOrigins: allowedCorsOrigins,
   });
 }

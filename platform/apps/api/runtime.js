@@ -54,28 +54,29 @@ export async function startRuntime(config = null) {
   await migrate(database);
   const authService = createAuthService(createAuthRepository(database), {
     sessionTtlSeconds: config.sessionTtlSeconds,
+    pilotBh: config.pilotBh,
   });
   const moderationRepository = createModerationRepository(database);
-  const donationService = createDonationService(createDonationRepository(database));
+  const donationService = createDonationService(createDonationRepository(database,{pilotBh:config.pilotBh}));
   const institutionAccessService = createInstitutionAccessService(createInstitutionAccessRepository(database));
   const reviewModerationService = createReviewModerationService(createReviewModerationRepository(database),moderationRepository);
   const moderationService = createModerationService(moderationRepository);
   const communicationsService = createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
   const marketplaceProviders = createMarketplaceProviders(config);
-  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository,marketplaceProviders);
+  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository,marketplaceProviders,{pilotBh:config.pilotBh});
   const premiumService = createPremiumService(createPremiumRepository(database));
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
-  const institutionService = createInstitutionService(createInstitutionRepository(database));
+  const institutionService = createInstitutionService(createInstitutionRepository(database),{pilotBh:config.pilotBh});
   const adminService = createAdminService(createAdminRepository(database),marketplaceProviders, { reviewSecret: config.sessionSecret });
   const operationalControlService = createOperationalControlService(createOperationalControlRepository(database));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
-  const exchangeService = createExchangeService(createExchangeRepository(database));
+  const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
-  const logisticsRepository = createLogisticsRepository(database);
-  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders);
+  const logisticsRepository = createLogisticsRepository(database,{pilotBh:config.pilotBh});
+  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh});
   const privacyRequestService = createPrivacyRequestService(createPrivacyRequestRepository(database));
   const addressChangeService = createAddressChangeService(logisticsRepository.addressChanges);
   const realtimeService = createRealtimeService(createRealtimeRepository(database));

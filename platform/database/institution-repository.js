@@ -61,7 +61,7 @@ export function createInstitutionRepository(database) {
       });
     },
 
-    async changeStatus({ actorUserId, institutionId, status, reason, expectedStatus }) {
+    async changeStatus({ actorUserId, institutionId, status, reason, expectedStatus, verification = null }) {
       return database.transaction(async (client) => {
         const current = await client.query(
           "SELECT id, status FROM institutions WHERE id = $1 FOR UPDATE",
@@ -84,7 +84,7 @@ export function createInstitutionRepository(database) {
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1, 'institution.status.changed', 'institution', $2, $3::jsonb)`,
-          [actorUserId, institutionId, JSON.stringify({ previousStatus, newStatus: status, reason })],
+          [actorUserId, institutionId, JSON.stringify({ previousStatus, newStatus: status, reason, ...(verification ? { verification } : {}) })],
         );
         return updated.rows[0];
       });

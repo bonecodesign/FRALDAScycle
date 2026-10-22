@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createSessionToken, createVerificationCode, hashPassword, verifyPassword } from "./security.js";
 import { adultDeclaration } from "../../packages/contracts/account-age.js";
+import { pilotBhInvited } from "./pilot-bh.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -67,6 +68,7 @@ function publicUser(user) {
 export function createAuthService(repository, {
   sessionTtlSeconds = 2_592_000,
   maxLoginAttempts = 5,
+  pilotBh = null,
 } = {}) {
   async function createSession(user, context) {
     const token = createSessionToken();
@@ -84,6 +86,7 @@ export function createAuthService(repository, {
       try { age = adultDeclaration({ confirmed: input?.adultConfirmed, version: input?.adultDeclarationVersion }); }
       catch { throw new AuthError("adult_declaration_required", 422, "Confirme que você tem 18 anos ou mais."); }
       const { email, phone } = contactFromInput(input);
+      if (!pilotBhInvited(pilotBh, email)) throw new AuthError("pilot_invitation_required", 403, "O piloto está disponível somente para contas convidadas.");
       const displayName = String(input?.displayName ?? "").trim();
       const password = passwordFromInput(input?.password);
       if (displayName.length < 2 || displayName.length > 100) throw new AuthError("invalid_display_name", 422, "Informe seu nome.");
@@ -116,8 +119,8 @@ export function createAuthService(repository, {
       const user = await repository.findUserByContact(contact);
       const candidateHash = user?.password_hash ?? await hashPassword("fraldacycle-dummy-password");
       const valid = await verifyPassword(String(input?.password ?? ""), candidateHash);
-      await repository.recordLoginAttempt({ emailHash: identityHash, succeeded: Boolean(valid && user && !user.disabled_at) });
-      if (!valid || !user || user.disabled_at) throw new AuthError("invalid_credentials", 401, "E-mail ou senha inválidos.");
+      await repository.recordLoginAttempt({ emailHash: identityHash, succeeded: Boolean(valid && user && !user.disabled_at && pilotBhInvited(pilotBh, user.email)) });
+      if (!valid || !user || user.disabled_at || !pilotBhInvited(pilotBh, user.email)) throw new AuthError("invalid_credentials", 401, "E-mail ou senha inválidos.");
 
       if (ELEVATED_ROLES.has(user.role)) {
         const challenge = createSessionToken();
@@ -150,13 +153,14 @@ export function createAuthService(repository, {
       if (!result.user) {
         throw new AuthError("invalid_mfa_code", 422, "Código de segurança inválido ou expirado.");
       }
+      if (!pilotBhInvited(pilotBh, result.user.email)) throw new AuthError("invalid_mfa_code", 422, "Código de segurança inválido ou expirado.");
       return {token,expiresAt,user:publicUser(result.user)};
     },
 
     async session(token) {
       if (!token) return null;
       const record = await repository.findActiveSession(hashSessionToken(token));
-      return record ? publicUser(record) : null;
+      return record && pilotBhInvited(pilotBh, record.email) ? publicUser(record) : null;
     },
 
     async logout(token) {

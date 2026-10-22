@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { isMainModule } from "../packages/contracts/main-module.js";
-import { chmod, link, lstat, mkdtemp, rm, stat } from "node:fs/promises";
+import { chmod, link, lstat, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 const PG_TLS_ENVIRONMENT = new Set([
@@ -60,6 +62,12 @@ function databaseIdentity(value) {
   return `${canonicalHost}:${environment.PGPORT}/${environment.PGDATABASE}`;
 }
 
+async function sha256File(path) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  return hash.digest("hex");
+}
+
 export function createBackupPlan(env = process.env) {
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL is required");
   return Object.freeze({
@@ -117,8 +125,18 @@ export async function executeBackupPlan(plan, options = {}) {
     if (!output.isFile() || output.size === 0 || (output.mode & 0o077) !== 0) {
       throw new Error("Backup output must be a non-empty private file");
     }
+    const digest = await sha256File(temporaryDump);
+    const temporaryChecksum = `${temporaryDump}.sha256`;
+    await writeFile(temporaryChecksum, `${digest}\n`, { mode: 0o600, flag: "wx" });
     // link() publishes atomically and fails if the destination already exists.
     await link(temporaryDump, destination);
+    try {
+      await link(temporaryChecksum, `${destination}.sha256`);
+    } catch (error) {
+      // The dump was created by this execution and is unusable without its checksum.
+      await rm(destination, { force: true });
+      throw error;
+    }
   } finally {
     await rm(privateDirectory, { recursive: true, force: true });
   }
@@ -135,6 +153,18 @@ export async function executeRestorePlan(plan, options = {}) {
   catch { throw new Error("Restore dump is unavailable"); }
   if (!dump.isFile() || dump.size === 0 || (dump.mode & 0o077) !== 0) {
     throw new Error("Restore dump must be a non-empty private regular file");
+  }
+  const checksumFile = `${dumpFile}.sha256`;
+  let checksumMetadata, expected;
+  try { [checksumMetadata, expected] = await Promise.all([lstat(checksumFile), readFile(checksumFile, "utf8")]); }
+  catch { throw new Error("Restore checksum is unavailable"); }
+  if (!checksumMetadata.isFile() || (checksumMetadata.mode & 0o077) !== 0 || !/^[a-f0-9]{64}\n?$/.test(expected)) {
+    throw new Error("Restore checksum must be a private SHA-256 file");
+  }
+  const actual = await sha256File(dumpFile);
+  const normalized = expected.trim();
+  if (!timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(normalized, "hex"))) {
+    throw new Error("Restore dump checksum mismatch");
   }
   return executePlan(plan, options);
 }

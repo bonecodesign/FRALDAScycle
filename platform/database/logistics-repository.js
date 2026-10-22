@@ -2,6 +2,7 @@ import {verifiedInstitutionRepresentative} from "./institution-access-repository
 import { createReceiptRepository } from "./receipt-repository.js";
 import { createAddressChangeRepository } from "./address-change-repository.js";
 import { createAddressRepository } from "./address-repository.js";
+import { pilotBhLocation } from "../apps/api/pilot-bh.js";
 
 function conflict(code, message) { return Object.assign(new Error(message), { code, status: 409 }); }
 function verifyReplay(row, input) {
@@ -10,12 +11,12 @@ function verifyReplay(row, input) {
   }
   return row;
 }
-export function createLogisticsRepository(database) {
+export function createLogisticsRepository(database,{pilotBh=null}={}) {
   const shipmentColumns = `s.id, s.transaction_id, s.buyer_id, s.seller_id, s.courier_id,
     s.mode, s.insured, s.logistics_payer_id, s.provider_reference, s.status, s.estimated_delivery_at, s.created_at, s.updated_at`;
   return Object.freeze({
     ...createReceiptRepository(database),
-    ...createAddressRepository(database),
+    ...createAddressRepository(database,{pilotBh}),
     addressChanges: createAddressChangeRepository(database),
     async courierHistory(courierId,{limit=50,offset=0}={}) {
       const result = await database.query(`SELECT id,status,mode,updated_at
@@ -54,6 +55,10 @@ export function createLogisticsRepository(database) {
           [input.transactionId,input.buyerId],
         );
         if (!locked.rows[0]) throw Object.assign(new Error('Transação não encontrada.'), {code:'transaction_not_found',status:404});
+        if(pilotBh?.enabled){
+          const location=(await client.query(`SELECT l.city,l.state FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1`,[input.transactionId])).rows[0];
+          if(!location||!pilotBhLocation(pilotBh,location.city,location.state))throw Object.assign(new Error('O piloto aceita somente entregas em Belo Horizonte, MG.'),{code:'pilot_outside_bh',status:403});
+        }
         const replay = await client.query('SELECT * FROM shipments WHERE idempotency_key=$1', [input.idempotencyKey]);
         if (replay.rows[0]) return {...verifyReplay(replay.rows[0], input), reused:true};
         if (!['paid','in_delivery'].includes(locked.rows[0].status)) throw conflict('shipment_not_allowed','Esta transação ainda não permite entrega.');
@@ -170,8 +175,19 @@ export function createLogisticsRepository(database) {
     async assignCourier({ shipmentId, courierId }) {
       return database.transaction(async (client) => {
         const assigned = await client.query(
-          `UPDATE shipments SET courier_id=$2,status='assigned',updated_at=now()
-           WHERE id=$1 AND courier_id IS NULL AND status IN ('awaiting_pickup','assigned')
+          `UPDATE shipments s SET courier_id=$2,status='assigned',updated_at=now()
+           WHERE s.id=$1 AND s.courier_id IS NULL AND s.status IN ('awaiting_pickup','assigned')
+             AND EXISTS (SELECT 1 FROM users u WHERE u.id=$2 AND u.role='courier' AND u.disabled_at IS NULL)
+             AND EXISTS (SELECT 1 FROM transactions t JOIN listings l ON l.id=t.listing_id
+               LEFT JOIN exchange_operations e ON e.transaction_id=t.id
+               WHERE t.id=s.transaction_id AND (
+                 (s.exchange_leg IS NOT NULL AND l.kind='exchange' AND t.status='in_delivery' AND e.status IN ('accepted','in_delivery')) OR
+                 (s.exchange_leg IS NULL AND l.kind='sale' AND t.status IN ('paid','in_delivery')) OR
+                 (s.exchange_leg IS NULL AND l.kind='donation' AND t.status='donation_confirmed'))
+               AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
+                 AND st.status<>'resolved' AND st.category IN ('cancellation','receipt_problem'))
+               AND NOT EXISTS (SELECT 1 FROM payment_cases pc JOIN payment_intents p ON p.id=pc.payment_intent_id
+                 WHERE p.transaction_id=t.id AND pc.status<>'rejected'))
            RETURNING *`,
           [shipmentId,courierId],
         );

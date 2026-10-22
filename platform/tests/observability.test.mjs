@@ -42,18 +42,18 @@ test("external secrets resolver requests only allowlisted keys over authenticate
 test("external secrets configuration fails closed on insecure or incomplete contracts", async () => {
   await assert.rejects(resolveRuntimeEnv({
     SECRETS_PROVIDER_URL: "http://secrets.example.test",
-    SECRETS_PROVIDER_TOKEN: "token",
+    SECRETS_PROVIDER_TOKEN: "valid-token",
     SECRETS_PROVIDER_KEYS: "DATABASE_URL",
   }), /must use HTTPS/);
   await assert.rejects(resolveRuntimeEnv({
     SECRETS_PROVIDER_URL: "https://secrets.example.test",
-    SECRETS_PROVIDER_TOKEN: "token",
+    SECRETS_PROVIDER_TOKEN: "valid-token",
     SECRETS_PROVIDER_KEYS: "DATABASE_URL,DATABASE_URL",
   }), /duplicate/);
   for (const key of ["NODE_ENV", "CORS_ORIGINS", "SECRETS_PROVIDER_TOKEN", "__proto__"]) {
     await assert.rejects(resolveRuntimeEnv({
       SECRETS_PROVIDER_URL: "https://secrets.example.test",
-      SECRETS_PROVIDER_TOKEN: "token",
+      SECRETS_PROVIDER_TOKEN: "valid-token",
       SECRETS_PROVIDER_KEYS: `DATABASE_URL,${key}`,
     }, {
       fetchImpl() { assert.fail("Invalid keys must be rejected before contacting the provider"); },
@@ -62,6 +62,16 @@ test("external secrets configuration fails closed on insecure or incomplete cont
   await assert.rejects(resolveRuntimeEnv({
     SECRETS_PROVIDER_URL: "https://secrets.example.test",
   }), /configured together/);
+  for (const invalid of [
+    { SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve?token=unsafe", SECRETS_PROVIDER_TOKEN: "valid-token" },
+    { SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve#fragment", SECRETS_PROVIDER_TOKEN: "valid-token" },
+    { SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve", SECRETS_PROVIDER_TOKEN: " token-with-space" },
+    { SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve", SECRETS_PROVIDER_TOKEN: "short" },
+  ]) {
+    await assert.rejects(resolveRuntimeEnv({ ...invalid, SECRETS_PROVIDER_KEYS: "DATABASE_URL" }, {
+      fetchImpl() { assert.fail("Invalid provider configuration must fail before a request"); },
+    }), /must not contain|opaque token/);
+  }
 });
 
 test("external secrets failures do not expose provider response content or fall back to old credentials", async () => {
@@ -79,6 +89,8 @@ test("external secrets failures do not expose provider response content or fall 
     [async () => ({ ok: true, async json() { throw new Error(marker); } }), /invalid response/],
     [async () => Response.json({ secrets: {} }), /did not return SESSION_SECRET/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "" } }), /did not return SESSION_SECRET/],
+    [async () => Response.json({ secrets: { SESSION_SECRET: "   " } }), /did not return SESSION_SECRET/],
+    [async () => Response.json({ secrets: { SESSION_SECRET: "secret\nsmuggled" } }), /did not return SESSION_SECRET/],
   ];
   for (const [fetchImpl, expected] of scenarios) {
     await assert.rejects(resolveRuntimeEnv(env, { fetchImpl }), (error) => {
