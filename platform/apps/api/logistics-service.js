@@ -8,7 +8,7 @@ export class LogisticsError extends ServiceError {
     super(code, status, message);
   }
 }
-const MODES=new Set(["pickup","partner","postal","express"]);
+const MODES=new Set(["partner"]);
 const ELIGIBLE=new Set(["paid","in_delivery"]);
 function publicShipment(row){return {
   id:row.id,transactionId:row.transaction_id,mode:row.mode,insured:row.insured,
@@ -136,7 +136,6 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
       if(!ELIGIBLE.has(transaction.status))throw new LogisticsError("shipment_not_allowed",409,"Esta transação ainda não permite entrega.");
       const created=await repository.createShipment({transactionId,buyerId,sellerId:transaction.seller_id,mode,insured,idempotencyKey});
       if(created.reused)return {shipment:publicShipment(created),reused:true};
-      if(mode==="pickup")return {shipment:publicShipment(created),reused:false};
       const remote=await provider.createShipment({shipmentId:created.id,transactionId,mode,insured,idempotencyKey});
       const attached=await repository.attachProvider({shipmentId:created.id,...remote});
       return {shipment:publicShipment(attached),reused:false};

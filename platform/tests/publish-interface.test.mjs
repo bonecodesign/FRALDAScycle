@@ -9,7 +9,7 @@ import { preparePublicationAttempt,publicationAttemptFailed } from '../packages/
 
 async function appHarness(publishListing, withPhoto=true, draft={kind:'sale',priceCents:4200}) {
   const source=(await readFile(new URL('../apps/app/publish.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'');
-  const values=new Map([['fc.publishDraft',JSON.stringify({category:'infant',brand:'Pampers',model:'Confort Sec',size:'M',quantity:'50',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Retirada no local',postalCode:'50000-000',neighborhood:'Boa Vista',priceCents:4200,city:'Recife',state:'PE',...draft})]]);
+  const values=new Map([['fc.publishDraft',JSON.stringify({category:'infant',brand:'Pampers',model:'Confort Sec',size:'M',quantity:'50',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Entrega por parceiro',postalCode:'50000-000',neighborhood:'Boa Vista',priceCents:4200,city:'Recife',state:'PE',...draft})]]);
   if(withPhoto)values.set('fc.publishMediaKey','listings/owner/photo.webp');
   let click;
   const button={disabled:false,addEventListener(event,handler){click=handler}};
@@ -91,7 +91,7 @@ test('processing failure retains photo and draft for retry without success scree
 });
 
 test('submitted title and description match the review text and never substitute example product data',async()=>{
-  const draft={kind:'sale',category:'infant',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Retirada no local',postalCode:'50000-000',neighborhood:'Boa Vista'};
+  const draft={kind:'sale',category:'infant',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Entrega por parceiro',postalCode:'50000-000',neighborhood:'Boa Vista'};
   let body;
   const app=await appHarness(async input=>{body=input;return {listing:{id:'actual-id',status:'review'}}},true,draft);
   await app.click();

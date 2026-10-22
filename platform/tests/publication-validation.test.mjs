@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {validatePublicationDraft,parsePublicationRegion} from '../packages/contracts/publication-validation.js';
-const draft={kind:'sale',category:'infant',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Retirada no local',priceCents:3700,postalCode:'50000-000',neighborhood:'Boa Vista',city:'Recife',state:'PE'};
+const draft={kind:'sale',category:'infant',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',description:'Pacote lacrado, armazenado em lugar seco.',expiry:'08/2027',delivery:'Entrega por parceiro',priceCents:3700,postalCode:'50000-000',neighborhood:'Boa Vista',city:'Recife',state:'PE'};
 const options={mediaKeys:['listings/owner/photo.webp']};
 
 test('valid sale, exchange and institution donation can proceed with explicit draft fields',()=>{

@@ -16,12 +16,12 @@ async function render(draft,options){
   const context={document:{createElement:tag=>new Element(tag)},listingPrice,saleSplit,Intl};vm.createContext(context);vm.runInContext(source,context);
   const root=new Element('section');root.append(new Element('old-placeholder'));context.renderPublicationReview(root,draft,options);return root;
 }
-const draft={kind:'sale',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',priceCents:3700,expiry:'08/2027',delivery:'Retirada no local',location:'Boa Vista',description:'Pacote lacrado, armazenado em lugar seco.'};
+const draft={kind:'sale',brand:'Babysec',model:'Premium',size:'G',quantity:'32',packageCondition:'sealed',priceCents:3700,expiry:'08/2027',delivery:'Entrega por parceiro',location:'Boa Vista',description:'Pacote lacrado, armazenado em lugar seco.'};
 
 test('review uses actual product, condition, price and description and replaces old sample content',async()=>{
   const root=await render(draft,{hasPhoto:true});
   const text=allText(root);
-  for(const actual of ['Babysec Premium G · 32 unidades','Pacote fechado e lacrado','08/2027','Retirada no local','Boa Vista','37,00','2,96','34,04',publicationText(draft).description])assert.ok(text.includes(actual));
+  for(const actual of ['Babysec Premium G · 32 unidades','Pacote fechado e lacrado','08/2027','Entrega por parceiro','Boa Vista','37,00','2,96','34,04',publicationText(draft).description])assert.ok(text.includes(actual));
   assert.equal(root.children.some(node=>node.tag==='old-placeholder'),false);
   assert.doesNotMatch(text,/Pampers|Funcionários|10\/2026/);
 });

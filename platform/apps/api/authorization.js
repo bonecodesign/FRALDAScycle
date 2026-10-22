@@ -9,6 +9,7 @@ export const ROLE_SCOPES = Object.freeze({
     "admin:finance:read", "admin:institutions:read", "admin:institutions:write", "admin:moderate",
     "admin:operations:read", "admin:operations:write", "admin:privacy:review", "admin:roles:write",
     "admin:security:write", "admin:support:write", "admin:users:read", "admin:users:write",
+    "admin:couriers:review",
   ]),
 });
 

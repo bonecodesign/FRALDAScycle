@@ -22,7 +22,7 @@ export async function validateSyntheticDonation(database,{user,other}){
  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin'},courier='10000000-0000-4000-8000-000000000004',donor={id:user,role:'customer'},representative={id:other,role:'customer'};
  const institutions=createInstitutionService(createInstitutionRepository(database)),access=createInstitutionAccessService(createInstitutionAccessRepository(database));
  const institutionId=await seedSyntheticInstitution(database,other,'22222222222222');
- await institutions.changeStatus(admin.id,institutionId,{status:'active',reason:'Instituição fictícia ativa para validar doação.'});
+ await institutions.changeStatus(admin.id,institutionId,{status:'active',reason:'Instituição fictícia ativa para validar doação.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
  await access.assign(admin,institutionId,{userId:other,expectedVersion:0,confirmed:true,reason:'Indicação fictícia da conta do representante.'});
  await access.accept(representative,institutionId,{expectedVersion:1,confirmed:true});
  await access.review(admin,institutionId,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Autorização fictícia conferida para o ensaio.'});
@@ -50,6 +50,10 @@ export async function validateSyntheticDonation(database,{user,other}){
  await access.assign(admin,institutionId,{userId:other,expectedVersion:4,confirmed:true,reason:'Novo vínculo fictício para continuar o teste.'});
  await access.accept(representative,institutionId,{expectedVersion:5,confirmed:true});
  await access.review(admin,institutionId,{expectedVersion:6,confirmed:true,outcome:'verified',reason:'Nova conferência fictícia para continuar a operação.'});
+ await database.query("UPDATE transactions SET status='disputed' WHERE id=$1",[transaction]);
+ await assert.rejects(logistics.assign(courier,shipment.id),error=>error.code==='shipment_not_available');
+ assert.equal((await database.query('SELECT courier_id FROM shipments WHERE id=$1',[shipment.id])).rows[0].courier_id,null);
+ await database.query("UPDATE transactions SET status='donation_confirmed' WHERE id=$1",[transaction]);
  await logistics.assign(courier,shipment.id);
  await assert.rejects(logistics.collect(user,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),e=>e.status===403);
  const collections=await Promise.all([logistics.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),logistics.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'})]);assert.equal(collections.filter(x=>!x.reused).length,1); // Explicit recording with synthetic actors, no physical/human test.

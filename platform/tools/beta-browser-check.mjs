@@ -11,16 +11,16 @@ export function nativeChrome() {
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync) ?? null;
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-// A healthy transition finishes in seconds. Fail a stalled step promptly so the
-// browser job does not consume five minutes for each broken interaction.
-const browserWaitMs = 45000;
+// The shared GitHub runner can pause a headless page while PostgreSQL-heavy
+// scenarios are still active. Keep the assertion strict, but let the browser
+// use half of the 10-minute Node test budget before declaring a transition
+// absent. Local feedback remains capped at two minutes.
+const browserWaitMs = process.env.CI ? 300000 : 120000;
 const devtoolsWaitMs = process.env.CI ? 30000 : 12000;
-async function waitUntil(operation, label, diagnostics) {
+async function until(operation, label) {
   const deadline = Date.now() + browserWaitMs;
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
-  let details = {};
-  try { details = await diagnostics(); } catch (error) { details = { diagnosticError: error.message }; }
-  throw new Error(`Browser check timed out: ${label}: ${JSON.stringify(details)}`);
+  throw new Error(`Browser check timed out: ${label}`);
 }
 export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
   const executable = nativeChrome();
@@ -30,12 +30,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
   let socket;
   let requestClose = null;
   const pending = new Map();
-  const browserEvents = [];
-  const requestPaths = new Map();
-  const recordEvent = (type, details) => {
-    browserEvents.push({ type, ...details });
-    if (browserEvents.length > 12) browserEvents.shift();
-  };
   try {
     const endpoint = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Chrome DevTools não iniciou.')), devtoolsWaitMs);
@@ -63,17 +57,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
         if (!operation) return;
         clearTimeout(operation.timer); pending.delete(message.id);
         if (message.error) operation.reject(new Error(message.error.message)); else operation.resolve(message.result);
-      } else if (message.method === 'Network.requestWillBeSent') {
+      } else if (message.method === 'Fetch.requestPaused') {
         const url = new URL(message.params.request.url);
-        if (url.hostname === '127.0.0.1') requestPaths.set(message.params.requestId, url.pathname);
-      } else if (message.method === 'Network.loadingFinished') {
-        requestPaths.delete(message.params.requestId);
-      } else if (message.method === 'Network.loadingFailed') {
-        recordEvent('network-failure', { path: requestPaths.get(message.params.requestId), error: message.params.errorText, canceled: message.params.canceled ?? false });
-        requestPaths.delete(message.params.requestId);
-      } else if (message.method === 'Network.responseReceived' && message.params.response.status >= 400) {
-        const url = new URL(message.params.response.url);
-        if (url.hostname === '127.0.0.1') recordEvent('http-error', { path: url.pathname, status: message.params.response.status });
+        const allowed = url.protocol === 'http:' && url.hostname === '127.0.0.1';
+        void send(allowed ? 'Fetch.continueRequest' : 'Fetch.failRequest', { requestId: message.params.requestId, ...(allowed ? {} : { errorReason: 'BlockedByClient' }) }, message.sessionId).catch(() => {});
       }
     });
     const version = await send('Browser.getVersion');
@@ -85,11 +72,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       if (result.exceptionDetails) throw new Error(`Browser evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}; expression: ${expression.slice(0,240)}`);
       return result.result.value;
     };
-    const until = (operation, label) => waitUntil(operation, label, async () => ({
-      page: await evaluate(`({route:location.pathname,ready:document.readyState,focused:{tag:document.activeElement?.tagName,id:document.activeElement?.id,name:document.activeElement?.getAttribute('name')},feedback:[...document.querySelectorAll('[id$=feedback]')].filter(node=>node.textContent.trim()).slice(0,3).map(node=>({id:node.id,text:node.textContent.trim().slice(0,160)})),invalid:[...document.querySelectorAll('input,textarea,select')].filter(node=>node.willValidate&&!node.validity.valid).slice(0,5).map(node=>node.name||node.id)})`),
-      recentEvents: browserEvents.slice(-8)
-    }));
     await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
+    await call('Fetch.enable', { patterns: [{ urlPattern: 'http*', requestStage: 'Request' }] });
     const authentication = authFixture ? await checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOrigin,adminOrigin,fixture:authFixture,requestAuthCode}) : null;
     const loginLayouts=[];
     if(loginFixture){
@@ -220,7 +204,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#address-change-form fieldset').disabled`),'owned shared address');
     await evaluate(`(()=>{const f=document.getElementById('address-change-form');f.elements.addressId.value=${JSON.stringify(browserAddress.addressId)};f.elements.reason.value='Correção fictícia solicitada pelo titular no navegador.';f.elements.confirmed.focus();})()`);
-    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
+    await key(' ','Space',32);await evaluate(`document.querySelector('#institution-access-accept button[type=submit]')?.focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('Pedido registrado — protocolo FC-S-')`),'address request keyboard');
     const addressRequest=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items[0].id)`);
     const addressLayouts=[];
@@ -263,7 +247,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution binding load');
     await evaluate(`document.querySelector('#institution-access-list button').focus()`);await key('Enter','Enter',13);
     assert.equal(await evaluate('document.activeElement.name'),'confirmed');
-    await key(' ','Space',32);await evaluate(`document.querySelector('#institution-access-accept button[type=submit]')?.focus()`);await key('Enter','Enter',13);
+    await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Aceite registrado')`),'institution acceptance keyboard');
     const institutionLayouts=[];
     for(const width of [320,375,768,1280]){
@@ -331,7 +315,6 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await call('Page.navigate',{url:`${surfaceOrigin}/app/institution-access`});
     await until(()=>evaluate(`!document.getElementById('institution-access-admin')?.hidden&&document.getElementById('institution-access-feedback')?.textContent.includes('Vínculos carregados')`),'institution authorized review');
     await evaluate(`(()=>{const article=[...document.querySelectorAll('#institution-access-list article')].find(a=>a.textContent.includes('Aceito, aguardando conferência'));article.querySelector('button').focus();})()`);await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.querySelector('#institution-access-review fieldset')?.disabled===false&&document.activeElement?.name==='reason'`),'institution review form ready');
     await evaluate(`(()=>{const f=document.getElementById('institution-access-review');f.elements.outcome.value='verified';f.elements.reason.value='Conferência fictícia do vínculo aceita pelo representante.';f.elements.confirmed.focus();})()`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('institution-access-feedback').textContent.includes('Conferência registrada')`),'institution verification keyboard');

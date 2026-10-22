@@ -6,8 +6,10 @@ Depois de pagamento confirmado, entrega concluída, aprovação do recebedor e v
 
 ## Limite deliberado
 
-O prazo de 72 horas é calculado a partir da mais tardia entre a aprovação do recebedor e a validação independente. O vencimento apenas marca `targetOverdue`; silêncio não aprova o recebimento nem libera o repasse. A consulta retorna sempre `payoutAllowed: false` e `payoutStatus: not_configured`. Ela não expõe identificadores financeiros, valores do vendedor ou referências de fornecedor. Nenhuma transferência, conciliação ou alteração do estado da operação ocorre durante a leitura.
+A janela de 72 horas é uma referência técnica local, contada a partir da decisão mais tardia; não é SLA prometido por provedor nem prazo de transferência. Silêncio, aprovação ausente ou prazo vencido nunca aprovam recebimento. A consulta retorna sempre `payoutAllowed: false` e `payoutStatus: not_configured`; não expõe identificadores financeiros, valores do vendedor ou referências de fornecedor. Nenhuma transferência, conciliação ou alteração do estado da operação ocorre durante a leitura.
 
 ## Evidência automatizada
 
-`tests/seller-settlement-http-postgres.test.mjs` executa a rota privada contra PostgreSQL totalmente migrado e comprova isolamento, cabeçalhos sem cache, requisitos de prontidão, auditoria e ausência de qualquer repasse configurado.
+Em 2026-10-18, `node --test tests/settlement-readiness.test.mjs tests/seller-settlement-http-postgres.test.mjs` passou com 8 testes sem skips. A prova HTTP/PostgreSQL usa aprovações sintéticas de cinco dias atrás para confirmar prazo vencido, confirmação não inferida e ausência de repasse/obrigação; também cobre isolamento, cabeçalhos sem cache e auditoria.
+
+O contrato técnico de prazo e silêncio está concluído. Homologação futura de um SLA externo e qualquer repasse real continuam fora deste requisito e bloqueados por fornecedor/ativação (item 13).

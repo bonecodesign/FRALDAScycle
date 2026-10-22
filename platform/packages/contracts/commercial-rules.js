@@ -18,7 +18,20 @@ export function exchangeFee(offeredPackageCents) {
 
 export function deliverySplit(freightCents) {
   const platformCents = percent(freightCents, 500);
-  return { freightCents, platformCents, courierCents: freightCents - platformCents };
+  return {
+    freightCents,
+    platformCents,
+    customerTotalCents: freightCents + platformCents,
+    courierCents: freightCents,
+  };
+}
+
+export function freightResponsibility(kind, { subsidyApproved = false } = {}) {
+  if (subsidyApproved) return "platform_subsidy";
+  if (kind === "sale") return "buyer";
+  if (kind === "exchange") return "receiving_participant_per_leg";
+  if (kind === "donation") return "beneficiary";
+  throw new RangeError("Invalid transaction kind for freight responsibility");
 }
 
 export function parsePrice(value) {

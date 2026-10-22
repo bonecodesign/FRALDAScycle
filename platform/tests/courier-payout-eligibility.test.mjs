@@ -31,6 +31,17 @@ test('status is visible only to assigned courier or authorized reviewer and neve
  const status=await service.courierPayoutStatus({id:'courier',role:'courier'},shipmentId);assert.equal(status.eligible,true);assert.equal(status.payoutAllowed,false);assert.equal(status.status,'not_prepared');
 });
 
+test('exchange leg does not display a transaction-level payment as its own freight',async()=>{
+ const exchange={...ready,kind:'exchange',delivery_fee_cents:2000,platform_fee_cents:100,courier_amount_cents:1900,payout_status:'provider_pending'};
+ const service=createLogisticsService({async courierPayoutStatus({shipmentId:requested}){assert.equal(requested,shipmentId);return exchange;}});
+ const status=await service.courierPayoutStatus({id:'courier',role:'courier'},shipmentId);
+ assert.equal(status.eligible,false);
+ assert.deepEqual(status.blockers,['exchange_freight_not_configured']);
+ assert.deepEqual([status.freightCents,status.platformFeeCents,status.courierAmountCents,status.preparedAt],[null,null,null,null]);
+ assert.equal(status.status,'not_prepared');
+ assert.equal(status.payoutAllowed,false);
+});
+
 test('only delivery reviewer can prepare and explicit confirmation is mandatory',async()=>{
  const service=createLogisticsService({prepareCourierPayout:()=>assert.fail('must not persist')});
  await assert.rejects(service.prepareCourierPayout({id:'courier',role:'courier'},shipmentId,{confirmed:true}),error=>error.code==='forbidden');

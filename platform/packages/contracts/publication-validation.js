@@ -19,7 +19,7 @@ export function validatePublicationDraft(draft,{mediaKeys=[],surface='app'}={}){
   if(!/^(?:\d{4}-(?:0[1-9]|1[0-2])|(?:0[1-9]|1[0-2])\/\d{4})$/.test(draft.expiry||''))add(4,'expiry','Informe mês e ano válidos na etapa Condição.');
   if(typeof draft.description!=='string'||draft.description.trim().length<20||text.description.length>4000)add(4,'description','Descreva o produto com pelo menos 20 caracteres; o texto completo deve ter até 4.000.');
   if(draft.kind==='sale'&&(!Number.isSafeInteger(draft.priceCents)||draft.priceCents<=0))add(5,'price','Informe um preço válido na etapa Preço.');
-  if(!['Retirada no local','Entrega por parceiro','Correios'].includes(draft.delivery))add(6,'delivery','Escolha a preferência de entrega na etapa Entrega.');
+  if(draft.delivery!=='Entrega por parceiro')add(6,'delivery','No piloto, selecione a entrega por parceiro.');
   if(surface==='app'&&(!/^\d{8}$/.test(String(draft.postalCode||'').replace(/\D/g,''))||!String(draft.neighborhood||'').trim()))add(7,'region','Informe um CEP válido e o bairro na etapa Localização.');
   if(typeof draft.city!=='string'||draft.city.trim().length<2||draft.city.trim().length>120||!states.has(String(draft.state||'').toUpperCase()))add(7,'city','Informe cidade e uma UF brasileira na etapa Localização.');
   return issues;

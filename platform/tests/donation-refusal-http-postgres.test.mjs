@@ -24,7 +24,7 @@ async function prepareInstitution(database,{representative,taxId},admin){
  const institutions=createInstitutionService(createInstitutionRepository(database));
  const access=createInstitutionAccessService(createInstitutionAccessRepository(database));
  const institution=await seedSyntheticInstitution(database,representative.id,taxId);
- await institutions.changeStatus(admin.id,institution,{status:'active',reason:'Ativação fictícia para teste integrado de recusa.'});
+ await institutions.changeStatus(admin.id,institution,{status:'active',reason:'Ativação fictícia para teste integrado de recusa.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
  await access.assign(admin,institution,{userId:representative.id,expectedVersion:0,confirmed:true,reason:'Vínculo fictício para teste integrado de recusa.'});
  await access.accept(representative,institution,{expectedVersion:1,confirmed:true});
  await access.review(admin,institution,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Conferência fictícia independente para o teste.'});

@@ -58,8 +58,8 @@ function setupPublishValidation(){
   }
   if(step===6){
     const choices=[...content.querySelectorAll('input[name="delivery"]')];
-    choices.forEach((input,index)=>{input.value=index===0?'Retirada no local':'Entrega por parceiro';input.checked=input.value===(draft.delivery||'Retirada no local');input.addEventListener('change',()=>saveDraft({delivery:input.value}))});
-    saveDraft({delivery:draft.delivery||'Retirada no local'});
+    choices.forEach(input=>{input.value='Entrega por parceiro';input.checked=true;input.addEventListener('change',()=>saveDraft({delivery:input.value}))});
+    saveDraft({delivery:'Entrega por parceiro'});
   }
   if(step===7){
     const inputs=content.querySelectorAll('.form-group input');

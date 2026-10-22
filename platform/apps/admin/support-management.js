@@ -1,4 +1,5 @@
 import '/apps/admin/auth.js';
+import '/apps/admin/navigation.js';
 import { apiRequest } from '/packages/contracts/api-client.js';
 import { supportReplyKey, clearSupportReplyKey } from '/packages/contracts/support-reply-key.js';
 const dateTime=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'});

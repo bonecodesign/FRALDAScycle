@@ -1,4 +1,5 @@
 import "/apps/admin/auth.js";
+import "/apps/admin/navigation.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });

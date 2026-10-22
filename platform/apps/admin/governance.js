@@ -1,4 +1,5 @@
 import "/apps/admin/auth.js";
+import "/apps/admin/navigation.js";
 import { apiOrigin, apiRequest } from "/packages/contracts/api-client.js";
 
 const pageSize = 25;

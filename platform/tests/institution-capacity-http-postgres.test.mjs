@@ -32,7 +32,7 @@ test('institution capacity pause and resume cross HTTP and PostgreSQL without ab
    const institutions=createInstitutionService(createInstitutionRepository(database));
    const repository=createInstitutionAccessRepository(database),access=createInstitutionAccessService(repository);
    const institution=await seedSyntheticInstitution(database,ids.representative,'44444444444444');
-   await institutions.changeStatus(ids.admin,institution,{status:'active',reason:'Ativação fictícia para validar capacidade institucional.'});
+   await institutions.changeStatus(ids.admin,institution,{status:'active',reason:'Ativação fictícia para validar capacidade institucional.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
    await access.assign(actors.admin,institution,{userId:ids.representative,expectedVersion:0,confirmed:true,reason:'Vínculo fictício para controle de capacidade.'});
    await access.accept(actors.representative,institution,{expectedVersion:1,confirmed:true});
    await access.review(actors.admin,institution,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Conferência independente fictícia do representante.'});

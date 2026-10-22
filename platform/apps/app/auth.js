@@ -37,6 +37,8 @@ function setupAppIconography() {
   document.querySelectorAll(".phone-nav a, .app-menu a").forEach(link => {
     const marker = link.querySelector("span");
     if (marker) marker.innerHTML = icon(routeIcon(link.getAttribute("href") ?? ""));
+    if (link.classList.contains("active")) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   });
 
   const actionIcons = { Trocar: "swap", Doar: "gift", Comprar: "cart", Favoritos: "heart" };

@@ -6,7 +6,7 @@ const feedback=document.getElementById('courier-details-feedback');
 let pending=false,generation=0;
 const clear=()=>{generation++;output.replaceChildren();feedback.textContent='';};
 const labels={not_prepared:'Obrigação de repasse ainda não preparada',provider_pending:'Obrigação preparada; processamento externo pendente'};
-const blockers={unsupported_transaction_kind:'Modalidade de operação sem repasse disponível',delivery_proof_pending:'Entrega ou comprovante pendente',transaction_not_eligible:'Operação ainda não elegível',payment_not_confirmed:'Pagamento não confirmado',freight_not_charged:'Frete não cobrado',financial_case_pending:'Análise financeira pendente',receiver_approval_pending:'Aprovação do recebedor pendente',proof_validation_pending:'Validação do comprovante pendente',courier_not_assigned:'Entregador não atribuído'};
+const blockers={unsupported_transaction_kind:'Modalidade de operação sem repasse disponível',exchange_freight_not_configured:'Cobrança do frete desta entrega ainda não configurada',delivery_proof_pending:'Entrega ou comprovante pendente',transaction_not_eligible:'Operação ainda não elegível',payment_not_confirmed:'Pagamento não confirmado',freight_not_charged:'Frete não cobrado',financial_case_pending:'Análise financeira pendente',receiver_approval_pending:'Aprovação do recebedor pendente',proof_validation_pending:'Validação do comprovante pendente',courier_not_assigned:'Entregador não atribuído'};
 function line(text){const node=document.createElement('p');node.textContent=text;output.append(node);}
 function contact(result){
  const data=result?.contact;

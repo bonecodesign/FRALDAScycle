@@ -45,6 +45,18 @@ export async function validateSyntheticSale(database, { user, other, transaction
   await assert.rejects(support.cancelTransaction(other, transaction), error => error.code === 'cancellation_requires_support');
   await assert.rejects(service.approveReceipt(other, shipment.id, { approved: true }), error => error.code === 'receipt_not_ready');
   await validateSyntheticAddressChange(database,{service,repository,user,other,admin,shipment,address});
+  await database.query("UPDATE transactions SET status='disputed' WHERE id=$1",[transaction]);
+  await assert.rejects(service.assign(courier,shipment.id),error=>error.code==='shipment_not_available');
+  assert.equal((await database.query('SELECT courier_id FROM shipments WHERE id=$1',[shipment.id])).rows[0].courier_id,null);
+  await database.query("UPDATE transactions SET status='paid' WHERE id=$1",[transaction]);
+  const pendingCancellation=await support.createSupportTicket(other,{category:'cancellation',subject:'Cancelamento fictício antes da coleta',details:'Pendência fictícia para impedir a atribuição enquanto o suporte analisa.',transactionId:transaction,idempotencyKey:'synthetic-pre-assignment-cancellation'});
+  await assert.rejects(service.assign(courier,shipment.id),error=>error.code==='shipment_not_available');
+  await database.query("UPDATE support_tickets SET status='resolved' WHERE id=$1",[pendingCancellation.ticket.id]);
+  const paymentIntentId=(await database.query('SELECT id FROM payment_intents WHERE transaction_id=$1',[transaction])).rows[0].id;
+  const pendingFinancialCase=(await database.query(`INSERT INTO payment_cases(payment_intent_id,requester_id,kind,idempotency_key,reason,details)
+    VALUES($1,$2,'dispute','synthetic-pre-assignment-financial-case','Disputa fictícia','Pendência fictícia para impedir atribuição logística.') RETURNING id`,[paymentIntentId,other])).rows[0].id;
+  await assert.rejects(service.assign(courier,shipment.id),error=>error.code==='shipment_not_available');
+  await database.query("UPDATE payment_cases SET status='rejected' WHERE id=$1",[pendingFinancialCase]);
   await service.assign(courier, shipment.id);
   await assert.rejects(service.sharedAddresses(courier, shipment.id), error => error.status === 404);
   const collected=await Promise.all([service.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),service.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'})]);

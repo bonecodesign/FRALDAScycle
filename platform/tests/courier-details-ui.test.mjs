@@ -22,6 +22,13 @@ test('payout is informational, preserves missing amounts and never sends prepara
  const app=await harness(async(path,options)=>{assert.equal(path,'/v1/shipments/'+id+'/courier-payout');assert.equal(options.method,undefined);return {payout}});
  await app.payout.handlers.click();assert.match(app.text(),/Aprovação do recebedor pendente/);assert.match(app.text(),/Comissão registrada: Não informado/);assert.match(app.text(),/Não confirma pagamento/);assert.equal(app.values.get('fc.activeShipmentId'),id);
 });
+test('exchange freight appears as pending per delivery without inventing an amount',async()=>{
+ const exchange={...payout,blockers:['exchange_freight_not_configured'],freightCents:null};
+ const app=await harness(async()=>({payout:exchange}));
+ await app.payout.handlers.click();
+ assert.match(app.text(),/Cobrança do frete desta entrega ainda não configurada/);
+ assert.match(app.text(),/Frete registrado: Não informado/);
+});
 test('duplicate clicks are blocked and failure clears previously disclosed contact',async()=>{
  let calls=0,finish;const app=await harness(async()=>{calls++;if(calls===1)return {contact};return new Promise((_,reject)=>finish=reject)});
  await app.contact.handlers.click();const pending=app.payout.handlers.click();await app.contact.handlers.click();assert.equal(calls,2);assert.equal(app.output.children.length,0);assert.equal(app.contact.disabled,true);finish(new Error('Acesso revogado'));await pending;assert.equal(app.output.children.length,0);assert.equal(app.contact.disabled,false);assert.equal(app.feedback.textContent,'Acesso revogado');
