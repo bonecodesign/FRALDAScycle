@@ -58,3 +58,13 @@ Consolidar os módulos administrativos existentes, sem criar painel paralelo, co
 - Matriz de requisitos atualizada e diferenças desde 09/10.
 - Testes unitários/integração, CI da branch e resultado do PR.
 - Confirmação da visibilidade privada do repositório e resolução de eventual divergência.
+
+## Terceira rodada — implementação e evidências de CI
+- A Central permanece baseada no endpoint persistido `GET /v1/admin/overview-snapshot?limit=50`, sem API paralela ou integração externa.
+- O dashboard agora diferencia consulta bem-sucedida de atualização dos dados na origem; em falha, limpa indicadores, transações e alertas e impede exportação do resultado anterior.
+- Valores nulos ou ausentes são mostrados como `—`, sem confundir indisponibilidade com zero confirmado.
+- Os elementos `verified-alert-list`, `verified-alert-empty` e `alert-count` foram incluídos no HTML para que os alertas derivados sejam realmente visíveis.
+- O teste de integração de entregadores passou a usar datas de submissão coerentes com o relógio fixo da decisão, eliminando a violação de integridade reproduzida na CI.
+- Evidência de CI aprovada no commit `8408ae84321c08cbdc6eddb48d90b193022a016f`: execução GitHub Actions #1353, jobs `foundation`, `listing-postgres`, `containers` e `browser-postgres` com sucesso.
+- **A aprovação da execução #1353 não homologa commits posteriores.** A CI do commit `250968dc7ea91951e6a3f6a4033db12ce5d05190` foi detectada como pendente (execução #1355) na consulta inicial; aguardar resultado antes de considerar merge.
+- Revisão de permissão, comportamento no navegador, consistência financeira e visibilidade privada do repositório continuam pontos de decisão.
