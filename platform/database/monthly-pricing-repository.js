@@ -17,6 +17,25 @@ export function createMonthlyPricingRepository(database) {
       return result.rows[0];
     },
 
+    async expireListings() {
+      return database.transaction(async client => {
+        const expired=(await client.query(`UPDATE listings l SET status='removed',pause_reason=NULL,updated_at=now()
+          WHERE l.status IN('published','paused') AND l.expires_at IS NOT NULL AND l.expires_at<=now()
+            AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=l.id
+              AND t.status=ANY($1::transaction_status[]))
+          RETURNING l.id,l.seller_id,l.title,l.expires_at`,[protectedTransactionStatuses])).rows;
+        for(const listing of expired){
+          const user=(await client.query('SELECT email FROM users WHERE id=$1',[listing.seller_id])).rows[0];
+          if(user?.email) await client.query(`INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
+            VALUES('general_reminder'::auth_token_kind,$1,$2::jsonb,$3)`,
+            [user.email,JSON.stringify({channel:'email',event:'listing_expired',listingId:listing.id,title:listing.title,expiredAt:listing.expires_at}),listing.seller_id]);
+          await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+            VALUES(NULL,'listing.expired','listing',$1,$2::jsonb)`,[listing.id,JSON.stringify({expiredAt:listing.expires_at})]);
+        }
+        return { expired:expired.length, listingIds:expired.map(item=>item.id) };
+      });
+    },
+
     async adjustPausedListingPrice({ sellerId, listingId, priceCents }) {
       return database.transaction(async client => {
         if (!Number.isInteger(priceCents) || priceCents < 0) throw Object.assign(new Error('Preço inválido.'), { code:'listing_price_invalid', status:422 });
@@ -56,8 +75,8 @@ export function createMonthlyPricingRepository(database) {
           WHERE reference_key=$1 AND valid_from=$2 AND status IN('active','extended') FOR UPDATE`,[referenceKey,validFrom])).rows[0];
         if(!reference) return { checked:0, paused:0, protected:0, listingIds:[] };
 
-        const rows=(await client.query(`SELECT l.id,l.seller_id,l.price_cents,l.status,l.expires_at
-          FROM listings l
+        const rows=(await client.query(`SELECT l.id,l.seller_id,l.price_cents,l.status,l.expires_at,u.email AS seller_email
+          FROM listings l JOIN users u ON u.id=l.seller_id
           WHERE l.kind='sale' AND l.status='published' AND l.price_cents IS NOT NULL
             AND l.price_reference_key=$1
             AND (l.expires_at IS NULL OR l.expires_at>now())
@@ -80,6 +99,8 @@ export function createMonthlyPricingRepository(database) {
           await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
             VALUES(NULL,'listing.price_adjustment_required','listing',$1,$2::jsonb)`,
             [listing.id,JSON.stringify({referenceCycleId:reference.id,ceilingCents:reference.effective_ceiling_cents})]);
+          await client.query(`INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
+            VALUES('general_reminder'::auth_token_kind,$1,$2::jsonb,$3)`,[listing.seller_email,JSON.stringify({channel:'email',event:'listing_price_adjustment_required',listingId:listing.id,referenceCycleId:reference.id,prmCents:reference.prm_cents,ceilingCents:reference.effective_ceiling_cents,expiresAt:listing.expires_at}),listing.seller_id]);
           paused++; listingIds.push(listing.id);
         }
         return { checked:rows.length, paused, protected:protectedCount, listingIds };
