@@ -26,7 +26,7 @@ export function createMonthlyPricingRepository(database) {
         const rows=(await client.query(`SELECT l.id,l.seller_id,l.price_cents,l.status,l.expires_at
           FROM listings l
           WHERE l.kind='sale' AND l.status='published' AND l.price_cents IS NOT NULL
-            AND COALESCE(l.metadata->>'referenceKey','')=$1
+            AND l.price_reference_key=$1
             AND (l.expires_at IS NULL OR l.expires_at>now())
           FOR UPDATE OF l`,[referenceKey])).rows;
 
