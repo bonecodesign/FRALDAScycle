@@ -68,3 +68,12 @@ Consolidar os módulos administrativos existentes, sem criar painel paralelo, co
 - Evidência de CI aprovada no commit `8408ae84321c08cbdc6eddb48d90b193022a016f`: execução GitHub Actions #1353, jobs `foundation`, `listing-postgres`, `containers` e `browser-postgres` com sucesso.
 - **A aprovação da execução #1353 não homologa commits posteriores.** A CI do commit `250968dc7ea91951e6a3f6a4033db12ce5d05190` foi detectada como pendente (execução #1355) na consulta inicial; aguardar resultado antes de considerar merge.
 - Revisão de permissão, comportamento no navegador, consistência financeira e visibilidade privada do repositório continuam pontos de decisão.
+
+## Quarta rodada — verificação de autorização no backend
+- A rota `GET /v1/admin/overview-snapshot` exige `admin:operations:read` no servidor antes da consulta.
+- A rota `GET /v1/admin/finance-snapshot` exige `admin:finance:read`; a rota logística exige `admin:deliveries:validate`.
+- `GET /v1/admin/audit-events` e a exportação CSV exigem `admin:audit:read`.
+- Alterações de usuário e papel exigem, respectivamente, `admin:users:write` e `admin:roles:write`.
+- Esses controles foram verificados no roteador `platform/apps/api/admin-handler.js`; a efetividade depende também da implementação de `requireScope`, sessão e matriz de papéis, que precisam de teste de autorização negativa.
+- A CI #1356 passou nos quatro jobs (foundation, listing-postgres, containers, browser-postgres) para o commit `68b7b6f86181a2d151d022c326fbfbd3d2025316`.
+- A soma de `payment_intents.amount_cents` em estado `paid` é volume de pagamentos confirmados, **não** receita líquida, comissão auferida ou repasse efetivado.
