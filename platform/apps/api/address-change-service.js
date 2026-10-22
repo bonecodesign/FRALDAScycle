@@ -16,6 +16,17 @@ export function createAddressChangeService(repository){return Object.freeze({
   review(actor,requestId,input){
     requireScope(actor,'admin:support:write');strict(input,['confirmed','outcome','reason']);
     if(input.confirmed!==true||!['approved','rejected'].includes(input.outcome))throw fail('invalid_address_review','Confirme explicitamente o resultado da análise.');
-    return repository.review({actorId:actor.id,requestId,outcome:input.outcome,reason:reason(input)});
+    const providerGate = error => {
+      if (error?.code === 'address_provider_update_not_configured' && error?.status === 503) {
+        return new ServiceError(error.code,409,error.message);
+      }
+      return error;
+    };
+    try {
+      return Promise.resolve(repository.review({actorId:actor.id,requestId,outcome:input.outcome,reason:reason(input)}))
+        .catch(error => { throw providerGate(error); });
+    } catch (error) {
+      throw providerGate(error);
+    }
   }
 });}
