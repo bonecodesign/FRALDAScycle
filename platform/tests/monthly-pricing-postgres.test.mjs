@@ -45,6 +45,14 @@ test('PostgreSQL enforces monthly price reconciliation, seller adjustment and 30
     assert.ok(expired.listingIds.includes(listing));
     row=(await database.query('SELECT status,pause_reason FROM listings WHERE id=$1',[listing])).rows[0];
     assert.equal(row.status,'removed');assert.equal(row.pause_reason,null);
+    await assert.rejects(repository.republishExpiredListing({sellerId:seller,listingId:listing,priceCents:9600}),e=>e.code==='listing_price_above_ceiling');
+    const republished=await repository.republishExpiredListing({sellerId:seller,listingId:listing,priceCents:9000});
+    assert.equal(republished.listing.status,'published');
+    const republishedAt=new Date(republished.listing.published_at);const republishedExpiry=new Date(republished.listing.expires_at);
+    assert.ok(republishedExpiry.getTime()-republishedAt.getTime()>=30*24*60*60*1000-5000);
+    assert.ok(republishedExpiry.getTime()-republishedAt.getTime()<=30*24*60*60*1000+5000);
+    assert.equal((await database.query(`SELECT count(*)::int AS count FROM listing_price_history WHERE listing_id=$1 AND reason='seller_republication'`,[listing])).rows[0].count,1);
+    assert.equal((await database.query(`SELECT count(*)::int AS count FROM audit_events WHERE entity_id=$1 AND action='listing.republished'`,[listing])).rows[0].count,1);
   }finally{
     await database.query('DELETE FROM notification_outbox WHERE recipient_user_id=$1',[seller]).catch(()=>{});
     await database.query('DELETE FROM listings WHERE id=$1',[listing]).catch(()=>{});
