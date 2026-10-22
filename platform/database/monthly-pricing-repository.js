@@ -1,4 +1,6 @@
 import { effectivePriceCeiling, productEconomyBasisPoints } from '../packages/contracts/monthly-pricing-rules.js';
+import { lockPremiumAccount, adjustFreeListings, freePublicationAvailable } from './premium-repository.js';
+import { requireNewOperations } from './moderation-repository.js';
 
 const protectedTransactionStatuses = ['reserved','payment_pending','paid','in_delivery','donation_confirmed','disputed'];
 
@@ -33,6 +35,48 @@ export function createMonthlyPricingRepository(database) {
             VALUES(NULL,'listing.expired','listing',$1,$2::jsonb)`,[listing.id,JSON.stringify({expiredAt:listing.expires_at})]);
         }
         return { expired:expired.length, listingIds:expired.map(item=>item.id) };
+      });
+    },
+
+    async republishExpiredListing({ sellerId, listingId, priceCents = null }) {
+      return database.transaction(async client => {
+        await client.query('SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE',[sellerId]);
+        await requireNewOperations(client,sellerId);
+        const premium=await lockPremiumAccount(client,sellerId);
+        await adjustFreeListings(client,sellerId,premium);
+        const listing=(await client.query(`SELECT id,seller_id,kind,price_cents,status,published_at,expires_at,price_reference_key
+          FROM listings WHERE id=$1 AND seller_id=$2 FOR UPDATE`,[listingId,sellerId])).rows[0];
+        if(!listing) throw Object.assign(new Error('Anúncio não encontrado.'),{code:'listing_not_found',status:404});
+        const latestAudit=(await client.query(`SELECT action FROM audit_events WHERE entity_type='listing' AND entity_id=$1
+          ORDER BY created_at DESC,id DESC LIMIT 1`,[listingId])).rows[0];
+        if(listing.status!=='removed' || latestAudit?.action!=='listing.expired')
+          throw Object.assign(new Error('Somente anúncios expirados podem ser republicados por este fluxo.'),{code:'listing_republish_unavailable',status:409});
+        if(listing.kind!=='sale') throw Object.assign(new Error('Republicação com referência mensal de preço disponível apenas para anúncios de venda.'),{code:'listing_republish_kind_unavailable',status:409});
+        const active=(await client.query(`SELECT 1 FROM transactions WHERE listing_id=$1
+          AND status=ANY($2::transaction_status[]) LIMIT 1`,[listingId,protectedTransactionStatuses])).rowCount>0;
+        if(active) throw Object.assign(new Error('O anúncio possui uma operação protegida em andamento.'),{code:'listing_operation_active',status:409});
+        const reference=(await client.query(`SELECT * FROM market_price_reference_cycles
+          WHERE reference_key=$1 AND status IN('active','extended') AND valid_from<=CURRENT_DATE AND valid_until>CURRENT_DATE
+          ORDER BY valid_from DESC LIMIT 1 FOR SHARE`,[listing.price_reference_key])).rows[0];
+        if(!reference) throw Object.assign(new Error('Referência de preço vigente indisponível.'),{code:'price_reference_unavailable',status:409});
+        const nextPrice=priceCents ?? listing.price_cents;
+        if(!Number.isInteger(nextPrice) || nextPrice<0) throw Object.assign(new Error('Preço inválido.'),{code:'listing_price_invalid',status:422});
+        if(nextPrice>reference.effective_ceiling_cents)
+          throw Object.assign(new Error('O preço precisa ser ajustado ao teto vigente antes da republicação.'),{code:'listing_price_above_ceiling',status:422,ceilingCents:reference.effective_ceiling_cents,prmCents:reference.prm_cents});
+        if(!await freePublicationAvailable(client,sellerId,premium))
+          throw Object.assign(new Error('O plano gratuito permite até três anúncios ativos.'),{code:'free_listing_limit',status:409});
+        const economy=productEconomyBasisPoints({prmCents:reference.prm_cents,listingPriceCents:nextPrice});
+        const updated=(await client.query(`UPDATE listings SET price_cents=$3,status='published',pause_reason=NULL,
+          published_at=now(),expires_at=now()+interval '30 days',updated_at=now()
+          WHERE id=$1 AND seller_id=$2 RETURNING id,price_cents,status,published_at,expires_at`,[listingId,sellerId,nextPrice])).rows[0];
+        await client.query(`INSERT INTO listing_price_history
+          (listing_id,reference_cycle_id,previous_price_cents,new_price_cents,prm_cents,lowest_retail_cents,economy_basis_points,reason,actor_user_id)
+          VALUES($1,$2,$3,$4,$5,$6,$7,'seller_republication',$8)`,
+          [listingId,reference.id,listing.price_cents,nextPrice,reference.prm_cents,reference.lowest_retail_cents,economy,sellerId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'listing.republished','listing',$2,$3::jsonb)`,
+          [sellerId,listingId,JSON.stringify({referenceCycleId:reference.id,previousPriceCents:listing.price_cents,newPriceCents:nextPrice,ceilingCents:reference.effective_ceiling_cents})]);
+        return {listing:updated,reference:{id:reference.id,prmCents:reference.prm_cents,ceilingCents:reference.effective_ceiling_cents},economyBasisPoints:economy};
       });
     },
 
