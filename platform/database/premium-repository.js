@@ -121,7 +121,7 @@ export function createPremiumRepository(database) {
         if (listing.status !== expectedStatus) throw fail('listing_status_conflict', 'O anúncio mudou. Carregue novamente.');
         if (status === 'published') await requireNewOperations(client,userId);
         if (status === 'published' && !await freePublicationAvailable(client, userId, context)) throw fail('free_listing_limit', 'O plano gratuito permite até três anúncios publicados.');
-        await client.query('UPDATE listings SET status=$2::listing_status,pause_reason=CASE WHEN $2::listing_status='paused' THEN pause_reason ELSE NULL END,updated_at=now() WHERE id=$1', [listingId, status]);
+        await client.query(`UPDATE listings SET status=$2::listing_status,pause_reason=CASE WHEN $2::listing_status='paused' THEN pause_reason ELSE NULL END,updated_at=now() WHERE id=$1`, [listingId, status]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'listing.publication.changed','listing',$2,$3::jsonb)`, [userId, listingId, JSON.stringify({ status })]);
         return { reused: false, listing: { id: listingId, status } };
