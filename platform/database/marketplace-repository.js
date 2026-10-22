@@ -202,6 +202,7 @@ export function createMarketplaceRepository(database) {
         const listing = await client.query(
           `UPDATE listings SET status = 'unavailable', updated_at = now()
            WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind = 'sale'
+             AND expires_at IS NOT NULL AND expires_at > now()
            RETURNING id, seller_id, kind, price_cents`,
           [listingId, buyerId],
         );
