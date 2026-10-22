@@ -11,11 +11,9 @@ export function nativeChrome() {
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync) ?? null;
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-// The shared GitHub runner can pause a headless page while PostgreSQL-heavy
-// scenarios are still active. Keep the assertion strict, but let the browser
-// use half of the 10-minute Node test budget before declaring a transition
-// absent. Local feedback remains capped at two minutes.
-const browserWaitMs = process.env.CI ? 300000 : 120000;
+// A browser transition must either expose a new UI state promptly or fail with
+// a diagnostic. Long waits hide wrong focus/submit targets and waste CI time.
+const browserWaitMs = process.env.CI ? 30000 : 30000;
 const devtoolsWaitMs = process.env.CI ? 30000 : 12000;
 async function until(operation, label) {
   const deadline = Date.now() + browserWaitMs;
@@ -282,8 +280,10 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,`Private address detail overflow ${width}`);
     }
     await evaluate(`(()=>{const f=document.getElementById('address-change-review');f.elements.outcome.value='approved';f.elements.reason.value='Conferência fictícia de consentimento, titular e entrega parceira.';f.elements.confirmed.focus();})()`);
+    const addressReviewFeedbackBefore=await evaluate(`document.getElementById('address-change-feedback').textContent`);
     await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent.includes('ainda não foi homologada')`),'support address provider gate keyboard');
+    await until(()=>evaluate(`document.getElementById('address-change-feedback').textContent!==${JSON.stringify(addressReviewFeedbackBefore)}`),'support address provider gate keyboard');
+    assert.match(await evaluate(`document.getElementById('address-change-feedback').textContent`),/ainda não foi homologada/i);
     const addressDecision=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/address-change-requests/')}+${JSON.stringify(addressRequest)},{credentials:'include'}).then(r=>r.json()).then(r=>r.request)`);
     assert.equal(addressDecision.status,'pending');assert.equal(addressDecision.current_revision,0);
     for(const width of [320,375,768,1280]){
