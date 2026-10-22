@@ -37,3 +37,18 @@ test('resubmission clears the previous publication lifecycle', () => {
   const marketplace = readFileSync(new URL('../database/marketplace-repository.js', import.meta.url), 'utf8');
   assert.match(marketplace, /published_at=NULL,expires_at=NULL,pause_reason=NULL/);
 });
+
+
+test('monthly reconciliation queues an existing general reminder instead of a parallel notification kind', () => {
+  const pricing = readFileSync(new URL('../database/monthly-pricing-repository.js', import.meta.url), 'utf8');
+  assert.match(pricing, /'general_reminder'::auth_token_kind/);
+  assert.match(pricing, /listing_price_adjustment_required/);
+  assert.match(pricing, /listing_expired/);
+});
+
+test('expiration removes only elapsed listings and protects ongoing operations', () => {
+  const pricing = readFileSync(new URL('../database/monthly-pricing-repository.js', import.meta.url), 'utf8');
+  assert.match(pricing, /expires_at<=now\(\)/);
+  assert.match(pricing, /NOT EXISTS\(SELECT 1 FROM transactions/);
+  assert.match(pricing, /status='removed',pause_reason=NULL/);
+});
