@@ -30,7 +30,7 @@ try{
     if(!ready)throw new Error('O PostgreSQL temporário não ficou disponível.');
   }finally{await database.close()}
   console.log('Validando migrações, publicação, MFA e recuperação concorrentes em PostgreSQL temporário.');
-  const result=await execute(process.execPath,['--test','--test-concurrency=1','tests/listing-creation-postgres.test.mjs','tests/admin-mfa-postgres.test.mjs','tests/password-recovery-postgres.test.mjs','tests/notification-token-postgres.test.mjs','tests/account-verification-postgres.test.mjs','tests/chat-payment-postgres.test.mjs'],{
+  const result=await execute(process.execPath,['--test','--test-concurrency=1','tests/listing-creation-postgres.test.mjs','tests/admin-mfa-postgres.test.mjs','tests/password-recovery-postgres.test.mjs','tests/notification-token-postgres.test.mjs','tests/account-verification-postgres.test.mjs','tests/chat-payment-postgres.test.mjs','tests/monthly-pricing-postgres.test.mjs'],{
     cwd:root,env:{...process.env,FC_LISTING_TEST_DATABASE_URL:databaseUrl},timeout:90000,maxBuffer:1024*1024,
   });
   process.stdout.write(result.stdout);
