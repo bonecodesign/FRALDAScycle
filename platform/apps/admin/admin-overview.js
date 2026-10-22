@@ -87,7 +87,18 @@ async function loadOverview() {
     renderSummary(currentResult.summary ?? {}); renderTransactions(currentResult.items ?? []); renderAlerts(currentResult.summary ?? {});
     status.textContent = `Consulta concluída: ${count(currentResult.items?.length)} transação(ões) recente(s) exibida(s). Última consulta bem-sucedida nesta tela: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date())}. Este horário não indica atualização dos dados na origem.`;
     if (exportButton) exportButton.disabled = false;
-  } catch (error) { currentResult = null; status.textContent = unavailable(error); }
+  } catch (error) {
+    currentResult = null;
+    status.textContent = unavailable(error);
+    for (const id of ["overview-users", "overview-listings", "overview-transactions", "overview-volume", "overview-completed", "overview-active", "overview-exceptions", "overview-shipments", "overview-delivered", "overview-shipment-exceptions", "overview-payment-exceptions", "overview-payment-cases", "overview-paused"]) set(id, "—");
+    document.getElementById("overview-rows")?.replaceChildren();
+    document.getElementById("verified-alert-list")?.replaceChildren();
+    const emptyTransactions = document.getElementById("overview-empty");
+    if (emptyTransactions) emptyTransactions.hidden = true;
+    const emptyAlerts = document.getElementById("verified-alert-empty");
+    if (emptyAlerts) emptyAlerts.hidden = true;
+    set("alert-count", "Pendências indisponíveis nesta consulta.");
+  }
   finally { refresh.disabled = false; }
 }
 
