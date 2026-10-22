@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const source = await readFile(new URL("../apps/admin/admin-overview.js", import.meta.url), "utf8");
+const markup = await readFile(new URL("../apps/admin/index.html", import.meta.url), "utf8");
 
 test("dashboard distingue momento da consulta de atualização na origem", () => {
   assert.match(source, /Última consulta bem-sucedida nesta tela:/);
@@ -26,4 +27,10 @@ test("exportação fica indisponível durante erro e sem resultado válido", () 
 test("indicadores ausentes não são apresentados como zero financeiro ou operacional", () => {
   assert.match(source, /value == null \? "—" : Number\(value\)\.toLocaleString/);
   assert.match(source, /value == null \? "—" : money\.format/);
+});
+
+test("painel possui destinos reais para os alertas operacionais", () => {
+  for (const id of ["verified-alert-list", "verified-alert-empty", "alert-count"]) {
+    assert.match(markup, new RegExp('id="' + id + '"'));
+  }
 });
