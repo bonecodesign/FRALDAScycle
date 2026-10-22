@@ -12,13 +12,17 @@ export async function validateSyntheticSale(database, { user, other, transaction
     VALUES($1,'synthetic-admin@example.test','synthetic-unusable-hash','Admin fictício','admin'),
           ($2,'synthetic-courier@example.test','synthetic-unusable-hash','Entregador fictício','courier')`, [admin, courier]);
   const repository = createLogisticsRepository(database);
-  const service = createLogisticsService(repository, null, null);
+  const service = createLogisticsService(repository, {
+    async createShipment() {
+      return { providerReference: 'synthetic-registered-courier-routing', status: 'awaiting_pickup', estimatedDeliveryAt: null };
+    },
+  }, null);
   const support = createMarketplaceService(createMarketplaceRepository(database));
   // Exclusivamente uma fixture no banco efêmero: nenhum adaptador financeiro é chamado.
   await database.query(`UPDATE transactions SET status='paid' WHERE id=$1`, [transaction]);
   await database.query(`INSERT INTO payment_intents(transaction_id,buyer_id,idempotency_key,method,amount_cents,platform_fee_cents,delivery_fee_cents,seller_amount_cents,provider_reference,status)
     VALUES($1,$2,'synthetic-native-paid-intent','pix',10000,800,0,9200,'synthetic-only-paid-reference','paid')`, [transaction, other]);
-  const shipmentInput = { transactionId: transaction, mode: 'pickup', insured: false, idempotencyKey: 'synthetic-native-pickup' };
+  const shipmentInput = { transactionId: transaction, mode: 'partner', insured: false, idempotencyKey: 'synthetic-native-partner' };
   const creations = await Promise.all([service.create(other, shipmentInput), service.create(other, shipmentInput)]);
   assert.equal(creations.filter(x=>!x.reused).length,1);
   const { shipment } = creations[0];
@@ -26,10 +30,10 @@ export async function validateSyntheticSale(database, { user, other, transaction
   await assert.rejects(service.create(user,shipmentInput),e=>e.code==='shipment_idempotency_conflict');
   await assert.rejects(service.create(other,{...shipmentInput,insured:true}),e=>e.code==='shipment_idempotency_conflict');
   await assert.rejects(service.create(other,{...shipmentInput,transactionId:'90000000-0000-4000-8000-000000000099'}),e=>e.code==='shipment_idempotency_conflict');
-  await assert.rejects(service.create(other,{...shipmentInput,idempotencyKey:'synthetic-second-pickup-key'}),e=>e.code==='shipment_already_exists');
+  await assert.rejects(service.create(other,{...shipmentInput,idempotencyKey:'synthetic-second-partner-key'}),e=>e.code==='shipment_already_exists');
   // Simulate the stale preflight explicitly: final insertion must reject a cancelled transaction.
   await database.query("UPDATE transactions SET status='cancelled' WHERE id=$1",[transaction]);
-  await assert.rejects(repository.createShipment({...shipmentInput,buyerId:other,sellerId:user,idempotencyKey:'synthetic-cancelled-pickup'}),e=>e.code==='shipment_not_allowed');
+  await assert.rejects(repository.createShipment({...shipmentInput,buyerId:other,sellerId:user,idempotencyKey:'synthetic-cancelled-partner'}),e=>e.code==='shipment_not_allowed');
   await database.query("UPDATE transactions SET status='paid' WHERE id=$1",[transaction]);
   const address = await service.createAddress(user, { label: 'Fixture interna', postalCode: '00000000', street: 'Rua fictícia da fixture', number: 'S/N', district: 'Bairro fictício', city: 'Belo Horizonte', state: 'MG' });
   await assert.rejects(service.shareAddress(user, shipment.id, { addressId: address.id, confirmed: false, noticeVersion: 'FC-ADDRESS-1' }), error => error.status === 422);
