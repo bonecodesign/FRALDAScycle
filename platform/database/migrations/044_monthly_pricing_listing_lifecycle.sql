@@ -3,6 +3,7 @@
 
 ALTER TABLE listings
   ADD COLUMN expires_at timestamptz,
+  ADD COLUMN price_reference_key text,
   ADD COLUMN pause_reason text,
   ADD CONSTRAINT listings_expiry_after_publication
     CHECK (expires_at IS NULL OR (published_at IS NOT NULL AND expires_at > published_at)),
@@ -12,6 +13,10 @@ ALTER TABLE listings
 UPDATE listings
 SET expires_at = published_at + interval '30 days'
 WHERE published_at IS NOT NULL AND expires_at IS NULL;
+
+CREATE INDEX listings_price_reference_idx
+  ON listings (price_reference_key)
+  WHERE kind='sale' AND price_reference_key IS NOT NULL;
 
 CREATE INDEX listings_expiry_idx
   ON listings (expires_at)
