@@ -22,3 +22,8 @@ test("exportação fica indisponível durante erro e sem resultado válido", () 
   assert.match(source, /if \(!currentResult\) return;/);
   assert.match(source, /if \(exportButton\) exportButton.disabled = true;/);
 });
+
+test("indicadores ausentes não são apresentados como zero financeiro ou operacional", () => {
+  assert.match(source, /value == null \? "—" : Number\(value\)\.toLocaleString/);
+  assert.match(source, /value == null \? "—" : money\.format/);
+});
