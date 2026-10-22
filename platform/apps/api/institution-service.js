@@ -67,13 +67,13 @@ export function createInstitutionService(repository, { pilotBh = null } = {}) {
       if (!institutionTransitionAllowed(current.status,status)) throw new InstitutionError("invalid_status_transition", 409, "Esta mudança de estado institucional não é permitida.");
       if (status === "active" && (!pilotBhLocation(pilotBh, current.city, current.state) || !pilotBhPostalCode(pilotBh, current.postal_code ?? current.postalCode))) throw new InstitutionError("pilot_outside_bh", 403, "O piloto aceita somente instituições de Belo Horizonte, MG, com CEP da capital.");
       const verification = input?.verification;
-      if (status === "active" && (
+      if (pilotBh?.enabled && status === "active" && (
         !verification || verification.documentsChecked !== true ||
         verification.representativeChecked !== true || verification.capacityChecked !== true ||
         !Array.isArray(current.document_keys) || current.document_keys.length === 0
       )) throw new InstitutionError("institution_verification_required", 422, "Confirme documentos, representante e capacidade antes de ativar a instituição.");
       return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason, expectedStatus:current.status,
-        verification: status === "active" ? { documentsChecked: true, representativeChecked: true, capacityChecked: true } : null });
+        verification: pilotBh?.enabled && status === "active" ? { documentsChecked: true, representativeChecked: true, capacityChecked: true } : null });
     },
   });
 }
