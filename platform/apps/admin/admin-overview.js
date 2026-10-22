@@ -7,8 +7,8 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyl
 const labels = Object.freeze({ sale: "Venda", exchange: "Troca", donation: "Doação", proposed: "Proposta", reserved: "Reservada", payment_pending: "Pagamento pendente", paid: "Paga", in_delivery: "Em entrega", donation_confirmed: "Doação confirmada", completed: "Concluída", cancelled: "Cancelada", disputed: "Em disputa", refunded: "Reembolsada" });
 let currentResult = null;
 
-function count(value) { return Number(value ?? 0).toLocaleString("pt-BR"); }
-function currency(value) { return money.format(Number(value ?? 0) / 100); }
+function count(value) { return value == null ? "—" : Number(value).toLocaleString("pt-BR"); }
+function currency(value) { return value == null ? "—" : money.format(Number(value) / 100); }
 function set(id, value) { const element = document.getElementById(id); if (element) element.textContent = value; }
 function cell(row, value) { const element = document.createElement("td"); element.textContent = value; row.append(element); }
 function csvCell(value) { let text = String(value ?? ""); if (/^[=+\-@]/.test(text)) text = `'${text}`; return `"${text.replaceAll('"', '""')}"`; }
