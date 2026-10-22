@@ -118,6 +118,13 @@ test('customer Site pages load one shared footer and retain their own status not
   assert.match(css, /@media \(max-width: 575px\)/);
 });
 
+test('Site publication preserves the entered sale price in its final payload', async () => {
+  const publish = await read('../apps/site/publish.js');
+  assert.match(publish, /const numericPrice = parsePrice\(data\.price\);/);
+  assert.match(publish, /priceCents: kind === 'sale' \? numericPrice : null/);
+  assert.doesNotMatch(publish, /priceCents:\s*4200/);
+});
+
 test('mobile Site navigation opens with focus, traps Tab, closes on link/Escape and restores focus', () => {
   const state = fixture();
   state.button.dispatch('click');

@@ -29,7 +29,7 @@ test('institution brand authorization crosses HTTP and PostgreSQL with represent
    const institutions=createInstitutionService(createInstitutionRepository(database));
    const repository=createInstitutionAccessRepository(database),access=createInstitutionAccessService(repository);
    const institution=await seedSyntheticInstitution(database,ids.representative,'33333333333333');
-   await institutions.changeStatus(ids.admin,institution,{status:'active',reason:'Ativação fictícia para autorizar marca no teste.'});
+   await institutions.changeStatus(ids.admin,institution,{status:'active',reason:'Ativação fictícia para autorizar marca no teste.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
    await access.assign(actors.admin,institution,{userId:ids.representative,expectedVersion:0,confirmed:true,reason:'Vínculo fictício para autorização de marca.'});
    await access.accept(actors.representative,institution,{expectedVersion:1,confirmed:true});
    await access.review(actors.admin,institution,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Conferência independente fictícia do representante.'});

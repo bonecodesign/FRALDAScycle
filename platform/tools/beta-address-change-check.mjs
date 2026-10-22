@@ -16,25 +16,12 @@ export async function validateSyntheticAddressChange(database,{service,repositor
   assert.throws(()=>changes.review({id:other,role:'customer'},requests[0].id,{}),e=>e.status===403);
   const review={confirmed:true,outcome:'approved',reason:'Conferência sintética do titular, consentimento e retirada.'};
   await assert.rejects(changes.review({id:user,role:'admin'},requests[0].id,review),e=>e.code==='independent_address_review_required');
-  const stale=await changes.request({id:user,role:'customer'},{...input,idempotencyKey:'synthetic-address-change-stale'});
-  const approved=await Promise.all([changes.review(adminActor,requests[0].id,review),changes.review(adminActor,requests[0].id,review)]);
-  assert.equal(approved.filter(x=>!x.reused).length,1);
-  await assert.rejects(changes.review(adminActor,stale.id,review),e=>e.code==='address_revision_conflict');
-  await changes.review(adminActor,stale.id,{...review,outcome:'rejected'});
-  const revised=(await service.sharedAddresses(other,shipment.id))[0];assert.equal(revised.revision,1);assert.equal(revised.address_snapshot.street,next.street);assert.equal(String(revised.shared_at),String(share.shared_at));
-  const original=(await database.query('SELECT address_snapshot FROM shipment_address_shares WHERE id=$1',[share.id])).rows[0];assert.equal(original.address_snapshot.street,address.street);
-  assert.equal((await database.query('SELECT count(*)::int AS count FROM shipment_address_revisions WHERE share_id=$1',[share.id])).rows[0].count,1);
+  await assert.rejects(changes.review(adminActor,requests[0].id,review),e=>e.code==='address_provider_update_not_configured'&&e.status===409);
+  await changes.review(adminActor,requests[0].id,{...review,outcome:'rejected',reason:'Alteração rejeitada até a homologação do fornecedor de entrega.'});
+  const unchanged=(await service.sharedAddresses(other,shipment.id))[0];assert.equal(unchanged.revision,0);assert.equal(unchanged.address_snapshot.street,address.street);assert.equal(String(unchanged.shared_at),String(share.shared_at));
+  assert.equal((await database.query('SELECT count(*)::int AS count FROM shipment_address_revisions WHERE share_id=$1',[share.id])).rows[0].count,0);
   assert.equal((await changes.request({id:user,role:'customer'},input)).reused,true);
   await assert.rejects(changes.request({id:user,role:'customer'},{...input,reason:'Motivo diferente em uma repetição.'}),e=>e.code==='address_change_idempotency_conflict');
-  await assert.rejects(service.shareAddress(user,shipment.id,{addressId:address.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'}),e=>e.code==='address_change_requires_support');
-  assert.equal((await service.shareAddress(user,shipment.id,{addressId:next.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'})).reused,true);
-  await database.query("UPDATE shipments SET status='picked_up' WHERE id=$1",[shipment.id]);
-  await assert.rejects(changes.request({id:user,role:'customer'},{...input,addressId:address.id,expectedRevision:1,idempotencyKey:'synthetic-address-after-collection'}),e=>e.code==='address_change_not_allowed');
-  await database.query("UPDATE shipments SET status='awaiting_pickup' WHERE id=$1",[shipment.id]);
-  const event=(await database.query("INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'picked_up','Coleta histórica fictícia') RETURNING id",[shipment.id])).rows[0];
-  await assert.rejects(changes.request({id:user,role:'customer'},{...input,addressId:address.id,expectedRevision:1,idempotencyKey:'synthetic-address-historical-collection'}),e=>e.code==='address_change_not_allowed');
-  await assert.rejects(service.shareAddress(user,shipment.id,{addressId:next.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'}),e=>e.code==='address_share_not_allowed');
-  await database.query('DELETE FROM shipment_events WHERE id=$1',[event.id]); // Cleanup of the exclusively synthetic historical fixture.
   const audit=await database.query('SELECT metadata FROM audit_events');assert.equal(JSON.stringify(audit.rows).includes(next.street),false);
-  console.log('BETA_ADDRESS_CHANGE: protocolo, consentimento, isolamento, revisão independente concorrente, histórico imutável, versão, bloqueio após coleta e cancelamento preservado em PostgreSQL; retirada sintética, sem fornecedor.');
+  console.log('BETA_ADDRESS_CHANGE: protocolo, consentimento, isolamento, revisão independente e bloqueio seguro até homologação do fornecedor preservados em PostgreSQL.');
 }

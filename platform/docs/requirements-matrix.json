@@ -167,16 +167,11 @@
       "references": [
         "packages/contracts/commercial-rules.js",
         "apps/api/payment-service.js",
-        "apps/api/logistics-service.js",
-        "database/logistics-repository.js",
-        "database/migrations/057_sale_freight_responsibility.sql",
         "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs",
-        "tests/logistics.test.mjs",
-        "tests/sale-freight-responsibility-http-postgres.test.mjs"
+        "tests/payments.test.mjs"
       ],
-      "evidence": "Prova HTTP/PostgreSQL confirma que somente o comprador cria a entrega, fica registrado como responsável pelo frete e não recebe cotação nem cobrança fictícia.",
-      "reason": "Responsabilidade do comprador persistida e produto/frete separados; cotação, exibição antes da confirmação, cobrança e fornecedor permanecem pendentes com o item 12 em standby."
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
+      "reason": "Produto e frete separados no contrato; checkout com entrega bloqueado."
     },
     {
       "id": 12,
@@ -202,12 +197,10 @@
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md",
-        "tests/seller-settlement-http-postgres.test.mjs",
-        "docs/seller-settlement-beta.md"
+        "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova consulta privada de prontidão, isolamento, auditoria, prazo de referência e ausência de valores ou transferência.",
-      "reason": "Prontidão local e consulta privada comprovadas por HTTP/PostgreSQL; fornecedor, conciliação, transferência, prazo externo e autorização de repasse real permanecem pendentes."
+      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
+      "reason": "Decisões separadas e consulta existem; não autorizam nem executam repasse."
     },
     {
       "id": 14,
@@ -231,15 +224,16 @@
         "database/migrations/036_courier_payout_obligations.sql",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
+        "apps/app/courier-details.js",
         "apps/api/logistics-handler.js",
         "apps/admin/proof-review.js",
         "tests/courier-payout-eligibility.test.mjs",
-        "docs/courier-payout-eligibility-beta.md",
         "tests/courier-payout-http-postgres.test.mjs",
+        "docs/courier-payout-eligibility-beta.md",
         "docs/courier-payout-obligation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova isolamento, autorização administrativa, cálculo 95/5, idempotência, auditoria e obrigação local sem transferência.",
-      "reason": "Ledger, elegibilidade e preparação local comprovados por HTTP/PostgreSQL; cobrança do frete, KYC, fornecedor, transferência e conciliação reais permanecem pendentes."
+      "evidence": "Em 2026-10-18, seis testes locais passaram sem skips, incluindo HTTP/PostgreSQL nativo: autorização, isolamento, split 95/5, persistência, idempotência e ausência de transferência; teste sintético validou pré-requisitos e bloqueios.",
+      "reason": "Preparação e elegibilidade locais comprovadas por HTTP/PostgreSQL. Cobrança de frete, KYC, provedor, transferência e conciliação reais continuam pendentes."
     },
     {
       "id": 16,
@@ -266,11 +260,17 @@
         "database/exchange-repository.js",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
+        "apps/app/courier-details.js",
+        "apps/api/logistics-handler.js",
+        "database/logistics-repository.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
+        "tests/courier-payout-eligibility.test.mjs",
+        "tests/courier-details-ui.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "Cada perna possui shipment, remetente, recebedor, entregador, comprovante e decisões próprios.",
-      "reason": "Independência estrutural implementada; seleção real, disponibilidade, remuneração e provedor permanecem pendentes."
+      "evidence": "Cada perna possui shipment, remetente, recebedor, entregador, comprovante e decisões próprios. HTTP/PostgreSQL local comprovou atribuição independente a dois entregadores ativos distintos e consulta de repasse isolada, sem inventar frete nem permitir repasse. Administrador, entregador suspenso, transação em disputa e segunda atribuição são recusados.",
+      "reason": "Seleção local e independência estrutural comprovadas; disponibilidade operacional, remuneração, fornecedor e entregas reais permanecem pendentes."
     },
     {
       "id": 18,
@@ -445,48 +445,48 @@
       "title": "Dados do bebê",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "database/migrations/033_age_and_child_profile_foundation.sql",
-        "database/migrations/053_child_profile_data_minimization.sql",
-        "apps/api/child-profile-service.js",
-        "database/child-profile-repository.js",
-        "apps/app/family-profile.js",
-        "tests/family-profile-foundation.test.mjs",
-        "tests/child-profile-http-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "database/migrations/053_child_profile_data_minimization.sql",
+      "apps/api/child-profile-service.js",
+      "database/child-profile-repository.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "tests/child-profile-http-postgres.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
+    "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
       "id": 27,
       "title": "Obrigatoriedade do dado infantil",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "apps/api/child-profile-service.js",
-        "apps/api/child-profile-handler.js",
-        "apps/app/family-profile.js",
-        "tests/family-profile-foundation.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
+      "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
+    "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
     },
     {
       "id": 28,
       "title": "Parceiros e idade",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "packages/contracts/child-age-band.js",
-        "apps/api/child-profile-service.js",
-        "apps/api/child-profile-handler.js",
-        "tests/family-profile-foundation.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "packages/contracts/child-age-band.js",
+      "apps/api/child-profile-service.js",
+      "apps/api/child-profile-handler.js",
+      "tests/family-profile-foundation.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
+      "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
+    "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,
@@ -505,67 +505,67 @@
     {
       "id": 30,
       "title": "Maioridade",
-      "status": "concluido",
+    "status": "concluido",
       "references": [
         "apps/api/auth-service.js",
         "database/auth-repository.js",
         "tests/identity.test.mjs",
-        "tests/session.test.mjs",
-        "database/migrations/033_age_and_child_profile_foundation.sql",
-        "packages/contracts/account-age.js",
-        "apps/api/adult-declaration-service.js",
-        "database/adult-declaration-repository.js",
-        "apps/app/auth.js",
-        "apps/app/family-profile.js",
-        "tests/family-profile-foundation.test.mjs",
-        "tests/adult-declaration-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "tests/session.test.mjs",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "packages/contracts/account-age.js",
+      "apps/api/adult-declaration-service.js",
+      "database/adult-declaration-repository.js",
+      "apps/app/auth.js",
+      "apps/app/family-profile.js",
+      "tests/family-profile-foundation.test.mjs",
+      "tests/adult-declaration-postgres.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
-      "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam declaração FC-AGE-1, rejeição de versão inválida, idempotência, auditoria única e bloqueio/liberação de operação sensível.",
+    "reason": "Controle explícito, versionado e restrito à própria conta concluído no escopo beta, sem coleta de data de nascimento do adulto."
     },
     {
       "id": 31,
       "title": "Perfis distintos",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "database/migrations/033_age_and_child_profile_foundation.sql",
-        "apps/api/child-profile-service.js",
-        "tests/child-profile-http-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
+      "evidence": "HTTP/PostgreSQL comprova isolamento por responsável e recusa contas de entregador e administrador; o recurso continua desligado por padrão.",
+    "reason": "Perfis familiares e operacionais estão tecnicamente separados; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
       "id": 32,
       "title": "Mais de um bebê",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "database/migrations/033_age_and_child_profile_foundation.sql",
-        "apps/api/child-profile-service.js",
-        "tests/child-profile-http-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/migrations/033_age_and_child_profile_foundation.sql",
+      "apps/api/child-profile-service.js",
+      "tests/child-profile-http-postgres.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
+      "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
+    "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
       "id": 33,
       "title": "Correção/remoção de datas",
       "status": "bloqueado",
       "references": [
-        "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
-        "database/child-profile-repository.js",
-        "apps/api/child-profile-service.js",
-        "apps/app/family-profile.js",
-        "tests/child-profile-http-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+      "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "database/child-profile-repository.js",
+      "apps/api/child-profile-service.js",
+      "apps/app/family-profile.js",
+      "tests/child-profile-http-postgres.test.mjs",
+      "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Flag infantil desligada por padrão; produção exige CHILD_PROFILES_ENABLED e CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED juntos, com teste de falha fechada. Nenhuma coleta foi ativada; revisão jurídica e de privacidade continua pendente.",
-      "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
+      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
+    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
     },
     {
       "id": 34,
@@ -715,12 +715,10 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
-        "docs/moderation-beta.md",
-        "tests/moderation-appeal-http-postgres.test.mjs",
-        "docs/moderation-appeal-beta.md"
+        "docs/moderation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova suspensão temporária, recurso, revisão independente, reversão e auditoria sem banimento automático.",
-      "reason": "Suspensão temporária e recurso independente comprovados; punição automática, banimento definitivo, comunicação externa e equipe humana permanecem pendentes."
+      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
+      "reason": "Suspensão temporária com motivo, término e recurso; sem punição automática ou banimento definitivo, revisão/equipe pendentes."
     },
     {
       "id": 43,
@@ -776,12 +774,10 @@
         "apps/api/privacy-request-service.js",
         "apps/app/privacy.html",
         "tools/beta-privacy-check.mjs",
-        "docs/privacy-requests-beta.md",
-        "tests/privacy-deletion-http-postgres.test.mjs",
-        "docs/privacy-deletion-beta.md"
+        "docs/privacy-requests-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova pedido privado de exclusão, análise independente, idempotência, auditoria e preservação da conta.",
-      "reason": "Pedido e análise privada comprovados; encerramento, purga, prazo, retenção, identidade humana e atendimento integral dependem de revisão jurídica e operação."
+      "evidence": "PR #79, commit 458cea3: CI 273 testes, 83 verificações, sintaxe 98; PostgreSQL e Chrome 154 com solicitação/consulta/análise via teclado e quatro larguras, job 111801394929. Limites em privacy-requests-beta.md.",
+      "reason": "Pedido de acesso/correção/exclusão, protocolo e análise privada de pendências. Encerramento/purga, prazos/fundamentos de retenção, identidade humana e atendimento integral dependem da revisão/operação."
     },
     {
       "id": 46,
@@ -836,12 +832,14 @@
         "apps/api/operational-preferences.js",
         "database/operational-preference-repository.js",
         "tests/operational-preferences.test.mjs",
+        "database/migrations/059_optional_reminder_dispatch.sql",
+        "tests/notification-reminder-dispatch-postgres.test.mjs",
         "docs/operational-preferences-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Verificação/recuperação independem de publicidade; preferências e janela silenciosa registráveis; despacho dos demais avisos e exceções do silêncio pendentes."
+      "evidence": "Preferências e janela silenciosa possuem prova PostgreSQL/Chrome em CI. A migração 057 associa lembretes opcionais à conta; testes locais com PostgreSQL comprovam adiamento sem tentativa, releitura da preferência alterada depois de enfileirar, cancelamento por canal desativado, destino divergente e conta suspensa, além de entrega simulada ao e-mail verificado da conta. Push permanece sem despacho por não haver dispositivo vinculado. Avisos necessários não são adiados; nenhum envio externo real.",
+      "reason": "Integração com o outbox limitada a lembretes opcionais concluída localmente. Ativação de fornecedor, entrega real, geração automática, cadastro de dispositivo push e homologação das demais categorias operacionais permanecem pendentes."
     },
     {
       "id": 50,
@@ -854,8 +852,8 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Protocolo, histórico e acompanhamento implementados; horários e capacidade indefinidos."
+      "evidence": "Horário e meta de primeira resposta aprovados pelo responsável do projeto em 2026-10-18 e publicados na interface; registro/acompanhamento continuam disponíveis fora do horário e a meta não promete resolução. Protocolo, histórico e acompanhamento implementados.",
+      "reason": "Definição de horário e meta de resposta concluída. Capacidade efetiva da equipe e operação humana ainda precisam ser confirmadas antes do piloto."
     },
     {
       "id": 51,
@@ -946,6 +944,9 @@
       "title": "Incidentes",
       "status": "parcial",
       "references": [
+        "docs/incident-drill-local.md",
+        "apps/api/operational-control.js",
+        "tests/operational-control.test.mjs",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
@@ -964,8 +965,8 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-recovery-validation.md"
       ],
-      "evidence": "PR #85, commit da31f94: pg_dump/pg_restore nativos, todas as tabelas/sequências, integridade e repetição comprovadas; CI 283 testes sem skips, 83 verificações, sintaxe 119, Chrome 154 nas jornadas existentes. Job 112041780070; limites em docs/beta-recovery-validation.md.",
-      "reason": "Restauração PostgreSQL nativa, integridade de transações/auditoria/sequências e isolamento comprovados com fixtures; armazenamento protegido, acesso operacional, frequência e recuperação em infraestrutura real ainda não homologados."
+      "evidence": "PR #85, commit da31f94: pg_dump/pg_restore nativos, todas as tabelas/sequências, integridade e repetição comprovadas; CI 283 testes sem skips, 83 verificações, sintaxe 119, Chrome 154 nas jornadas existentes. Job 112041780070. Doze testes locais atuais cobrem publicação atômica, arquivo privado, recusa de sobrescrita, limpeza após falha, validação do dump, identidade de origem/destino, URLs PostgreSQL rigorosas e filtragem das variáveis de conexão herdadas; pg_dump/pg_restore são simulados nesta rodada, sem dump PostgreSQL real.",
+      "reason": "Restauração PostgreSQL nativa, integridade de transações/auditoria/sequências e isolamento comprovados com fixtures. O backup grava em diretório temporário privado e publica arquivo completo sem sobrescrever; a restauração valida o dump e compara host/porta/banco, normalizando caixa, ponto DNS final e aliases comuns de loopback. URL aceita apenas sslmode conhecido entre parâmetros de query; nomes de bancos percent-encoded e IPv6 são normalizados. Alias DNS arbitrário não é resolvido automaticamente. Os subprocessos recebem parâmetros PG* da URL e caminhos explícitos de certificados TLS; DATABASE_URL/RESTORE_DATABASE_URL e variáveis PostgreSQL herdadas de conexão são filtradas. Armazenamento protegido, acesso operacional, frequência e recuperação em infraestrutura real ainda não homologados."
     },
     {
       "id": 58,
@@ -1008,11 +1009,14 @@
       "title": "Seguro e garantias",
       "status": "parcial",
       "references": [
+        "apps/app/delivery-options.html",
+        "apps/app/delivery-proof.html",
+        "apps/site/help.html",
         "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
         "docs/product-readiness-plan.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Glossário e ressalvas existem; revisão integral da cópia ainda necessária."
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Revisão local da cópia das três superfícies em outubro de 2026 removeu afirmação de cobertura ativa e a opção marcada de seguro nas telas de entrega; regressão navegável 83/83 e contratos visuais 11/11 aprovados.",
+      "reason": "Cópia local revisada sem prometer cobertura ativa; contratação, limites, exclusões e homologação do seguro ainda pendentes."
     },
     {
       "id": 62,
@@ -1032,7 +1036,7 @@
         "docs/institution-access-beta.md"
       ],
       "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
-      "reason": "Instituição ativa e pacote aberto conferidos; estado revalidado sob trava e autoridade vinculada à conta. Documentos, identidade humana e capacidade real pendentes."
+      "reason": "Ativação individual exige atestação explícita de documentos, representante e capacidade na auditoria; estado e autoridade continuam revalidados sob trava. Conferência humana e capacidade real pendentes."
     },
     {
       "id": 63,
@@ -1117,47 +1121,50 @@
       "title": "Piloto BH",
       "status": "parcial",
       "references": [
+        "apps/api/pilot-bh.js",
+        "tests/pilot-bh.test.mjs",
+        "docs/pilot-bh-technical-gate.md",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
       "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Plano e NO-GO registrados; convite e restrição geográfica ainda exigem comprovação."
+      "reason": "Modo local por lista privada de e-mails e bloqueios BH/MG iniciado, desligado por padrão. Prova HTTP/PostgreSQL completa, destinos/CEP, emissão de convites e decisão humana de início ainda pendentes; NO-GO mantido."
     },
     {
       "id": 68,
       "title": "Pausa operacional",
-      "status": "concluido",
-      "references": [
-        "database/migrations/031_operational_control.sql",
-        "database/operational-control-repository.js",
-        "apps/api/operational-control.js",
-        "apps/admin/operations.html",
-        "tests/operational-control.test.mjs",
-        "tests/operational-control-postgres.test.mjs",
-        "docs/operational-control-beta.md"
-      ],
-      "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
-      "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
+    "status": "concluido",
+    "references": [
+      "database/migrations/031_operational_control.sql",
+      "database/operational-control-repository.js",
+      "apps/api/operational-control.js",
+      "apps/admin/operations.html",
+      "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
+      "docs/operational-control-beta.md"
+    ],
+    "evidence": "HTTP real e PostgreSQL temporário comprovam autenticação administrativa, pausa persistida, auditoria atômica e bloqueio fail-closed de novos compromissos; contratos unitários preservados.",
+    "reason": "Pausa global e por domínio, auditoria e preservação das jornadas existentes implementadas e comprovadas no escopo beta."
     },
     {
       "id": 69,
       "title": "Retomada",
-      "status": "concluido",
+    "status": "concluido",
       "references": [
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
-        "tests/pilot-session.test.mjs",
-        "database/migrations/031_operational_control.sql",
-        "database/operational-control-repository.js",
-        "apps/api/operational-control.js",
-        "apps/admin/operations.html",
-        "tests/operational-control.test.mjs",
-        "tests/operational-control-postgres.test.mjs",
-        "docs/operational-control-beta.md"
+      "tests/pilot-session.test.mjs",
+      "database/migrations/031_operational_control.sql",
+      "database/operational-control-repository.js",
+      "apps/api/operational-control.js",
+      "apps/admin/operations.html",
+      "tests/operational-control.test.mjs",
+      "tests/operational-control-postgres.test.mjs",
+      "docs/operational-control-beta.md"
       ],
-      "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
-      "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
+    "evidence": "HTTP real e PostgreSQL temporário comprovam retomada confirmada, versão persistida, trilha de auditoria e liberação do domínio; piloto permanece NO-GO.",
+    "reason": "Retomada persistente e auditada está concluída no escopo beta; isso não autoriza piloto ou operação real."
     },
     {
       "id": 70,

@@ -10,11 +10,17 @@ test('address change binds identity to session and requires versioned explicit c
   assert.throws(()=>s.request({id:'owner'},{...input,expectedRevision:0.5}),e=>e.code==='invalid_address_change');
   s.request({id:'owner'},input);assert.equal(captured.actorId,'owner');assert.equal(captured.expectedRevision,0);
 });
-test('address change review requires support scope before reading payload',()=>{
+test('address change review requires support scope before reading payload',async()=>{
   const s=createAddressChangeService({review(v){return v;},list(v){return v;}});
   assert.throws(()=>s.review({id:'x',role:'moderator'},id,null),e=>e.status===403);
   assert.throws(()=>s.review({id:'x',role:'admin'},id,{confirmed:false,outcome:'approved',reason:input.reason}),e=>e.code==='invalid_address_review');
   assert.equal(s.list({id:'x',role:'customer'}).reviewer,false);
   assert.equal(s.list({id:'x',role:'admin'}).reviewer,true);
-  assert.equal(s.review({id:'x',role:'admin'},id,{confirmed:true,outcome:'rejected',reason:input.reason}).actorId,'x');
+  assert.equal((await s.review({id:'x',role:'admin'},id,{confirmed:true,outcome:'rejected',reason:input.reason})).actorId,'x');
+});
+
+test('provider update gate remains a safe public service error',async()=>{
+  const service=createAddressChangeService({async review(){throw Object.assign(new Error('A alteração junto ao fornecedor de entrega ainda não foi homologada.'),{code:'address_provider_update_not_configured',status:503});}});
+  await assert.rejects(service.review({id:'reviewer',role:'admin'},id,{confirmed:true,outcome:'approved',reason:'Conferência registrada pelo suporte.'}),error=>
+    error.code==='address_provider_update_not_configured'&&error.status===409);
 });

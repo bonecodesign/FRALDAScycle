@@ -89,7 +89,8 @@
       "platform/apps/admin/core.js",
       "platform/apps/admin/intelligence.js",
       "platform/apps/admin/governance.js",
-      "platform/apps/admin/growth.js"
+      "platform/apps/admin/growth.js",
+      "platform/apps/admin/courier-eligibility-admin.js"
     ]
   },
   "strategy": "latest approved route renderers transferred to independent destination routes with shared admin behavior",

@@ -35,9 +35,6 @@ test('seller settlement status is private and remains informational over HTTP/Po
         VALUES($1,$2,$3,'proofs/settlement.webp','Pessoa fictícia',-19.9,-43.9)`,[ids.proof,ids.shipment,ids.courier]);
       await database.query('INSERT INTO delivery_receipt_approvals(proof_id,approver_id) VALUES($1,$2)',[ids.proof,ids.buyer]);
       await database.query("INSERT INTO delivery_proof_validations(proof_id,validator_id,reason) VALUES($1,$2,'Comprovante sintético validado para consulta.')",[ids.proof,ids.admin]);
-      const confirmedAt=new Date(Date.now()-4*24*60*60*1000);
-      await database.query('UPDATE delivery_receipt_approvals SET approved_at=$2 WHERE proof_id=$1',[ids.proof,new Date(confirmedAt.getTime()-60*1000)]);
-      await database.query('UPDATE delivery_proof_validations SET validated_at=$2 WHERE proof_id=$1',[ids.proof,confirmedAt]);
       const service=createLogisticsService(createLogisticsRepository(database),null,null);
       const actors={seller:{id:ids.seller,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),logisticsService:service,authService:{async session(token){return actors[token]??null;}}});
@@ -46,9 +43,15 @@ test('seller settlement status is private and remains informational over HTTP/Po
       const forbidden=await fetch(endpoint,{headers:headers('outsider')});assert.equal(forbidden.status,404);
       const response=await fetch(endpoint,{headers:headers('seller')});const body=await response.json();assert.equal(response.status,200,JSON.stringify(body));assert.equal(response.headers.get('cache-control'),'no-store');
       assert.equal(body.settlement.requirementsMet,true);assert.equal(body.settlement.payoutAllowed,false);assert.equal(body.settlement.payoutStatus,'not_configured');assert.equal(body.settlement.deadlineStatus,'provider_confirmation_pending');
-      assert.equal(body.settlement.confirmedAt,confirmedAt.toISOString());assert.equal(body.settlement.targetDeadline,new Date(confirmedAt.getTime()+72*60*60*1000).toISOString());assert.equal(body.settlement.targetOverdue,true);
       assert.equal(body.settlement.paymentIntentId,undefined);assert.equal(body.settlement.providerReference,undefined);assert.equal(body.settlement.sellerAmountCents,undefined);
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM audit_events WHERE action=\'shipment.proof.read\' AND entity_id=$1',[ids.shipment])).rows[0].n,1);
+      assert.equal((await database.query('SELECT count(*)::integer AS n FROM courier_payout_obligations WHERE shipment_id=$1',[ids.shipment])).rows[0].n,0);
+      await database.query("UPDATE delivery_receipt_approvals SET approved_at=now()-interval '5 days' WHERE proof_id=$1",[ids.proof]);
+      await database.query("UPDATE delivery_proof_validations SET validated_at=now()-interval '5 days' WHERE proof_id=$1",[ids.proof]);
+      const overdueResponse=await fetch(endpoint,{headers:headers('seller')});const overdue=await overdueResponse.json();
+      assert.equal(overdueResponse.status,200);assert.equal(overdue.settlement.targetOverdue,true);
+      assert.equal(overdue.settlement.requirementsMet,true);assert.equal(overdue.settlement.payoutAllowed,false);
+      assert.equal(overdue.settlement.deadlineStatus,'provider_confirmation_pending');
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM courier_payout_obligations WHERE shipment_id=$1',[ids.shipment])).rows[0].n,0);
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });

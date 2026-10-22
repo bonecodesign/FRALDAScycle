@@ -17,3 +17,5 @@ Validação local: 25 testes selecionados aprovados, sem skips, incluindo consul
 Comando: `node --test tests/courier-dashboard-ui.test.mjs tests/courier-dashboard.test.mjs tests/courier-proof-ui.test.mjs tests/collection-ui.test.mjs tests/postgres-beta.test.mjs`.
 
 Limites preservados: foto e coordenadas sintéticas, ausência de fornecedor/entrega física, repasse indisponível, paginação limitada às 50 recentes e homologação humana pendente. A revisão e os testes automatizados não equivalem à homologação de produção.
+
+Atualização local de 18 de outubro: a atribuição consulta o estado da operação e recusa conta de entregador suspensa, transação em disputa, chamado aberto de cancelamento/recebimento e caso financeiro pendente. A prova de venda em `tools/beta-sale-check.mjs` altera cada condição antes da atribuição e confirma que a operação elegível continua possível após a pendência ser resolvida na fixture. O teste integrado `tests/postgres-beta.test.mjs` passou com PostgreSQL e Chrome; sem atribuição, coleta ou pagamento reais.

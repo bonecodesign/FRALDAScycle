@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { saleSplit, deliverySplit, exchangeFee, parsePrice, listingPrice } from "../packages/contracts/commercial-rules.js";
+import { saleSplit, deliverySplit, exchangeFee, freightResponsibility, parsePrice, listingPrice } from "../packages/contracts/commercial-rules.js";
 
 test("approved financial examples keep freight separate and exchange per participant", () => {
   assert.deepEqual(saleSplit(10000), { productCents: 10000, platformCents: 800, sellerCents: 9200 });
-  assert.deepEqual(deliverySplit(2000), { freightCents: 2000, platformCents: 100, courierCents: 1900 });
+  assert.deepEqual(deliverySplit(2000), {
+    freightCents: 2000, platformCents: 100, customerTotalCents: 2100, courierCents: 2000,
+  });
+  assert.equal(freightResponsibility("sale"), "buyer");
+  assert.equal(freightResponsibility("exchange"), "receiving_participant_per_leg");
+  assert.equal(freightResponsibility("donation"), "beneficiary");
+  assert.equal(freightResponsibility("donation", { subsidyApproved: true }), "platform_subsidy");
+  assert.throws(() => freightResponsibility("unknown"), RangeError);
   assert.equal(exchangeFee(10000), 250);
   assert.equal(exchangeFee(8000), 200);
   for (const amount of [0, 1, 6, 99, 10001, Number.MAX_SAFE_INTEGER]) {
@@ -13,6 +20,7 @@ test("approved financial examples keep freight separate and exchange per partici
   }
   for (const invalid of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     assert.throws(() => saleSplit(invalid), RangeError);
+    assert.throws(() => deliverySplit(invalid), RangeError);
   }
 });
 

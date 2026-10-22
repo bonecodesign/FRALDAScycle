@@ -97,13 +97,15 @@ test('app preserves five mobile destinations with one SVG icon family', async ()
   }
   assert.match(appRuntime, /function setupAppIconography\(\)/);
   assert.match(appRuntime, /class="fc-icon"/);
+  assert.match(appRuntime, /link\.setAttribute\("aria-current", "page"\)/);
   assert.match(appRuntime, /setupAppIconography\(\);/);
 });
 
 test('admin preserves the approved route architecture with one accessible SVG icon family', async () => {
-  const [dashboard, adminRuntime] = await Promise.all([
+  const [dashboard, adminRuntime, navigation] = await Promise.all([
     read('../apps/admin/index.html'),
     read('../apps/admin/core.js'),
+    read('../apps/admin/navigation.js'),
   ]);
   const sidebar = dashboard.match(/<nav class="admin-sidebar"[\s\S]*?<\/nav>/)?.[0] ?? '';
 
@@ -117,6 +119,15 @@ test('admin preserves the approved route architecture with one accessible SVG ic
   assert.match(adminRuntime, /class="fc-icon admin-nav-icon"/);
   assert.match(adminRuntime, /aria-current/);
   assert.match(adminRuntime, /setupAdminIconography\(\);/);
+  assert.match(navigation, /function setupAdminNavigation\(\)/);
+  assert.match(navigation, /aria-current/);
+  for (const entrypoint of [
+    'account-management.js', 'admin-overview.js', 'governance.js', 'growth.js',
+    'intelligence.js', 'security-management.js', 'truthful-operations.js',
+    'support-management.js', 'moderation-management.js', 'proof-review.js',
+  ]) {
+    assert.match(await read(`../apps/admin/${entrypoint}`), /import ['"]\/apps\/admin\/navigation\.js['"]/);
+  }
 });
 
 test('all three navigable surfaces explicitly identify their data maturity', async () => {

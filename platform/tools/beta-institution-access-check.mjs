@@ -15,7 +15,7 @@ export async function validateSyntheticInstitutionAccess(database,{user,other}){
  const results=await Promise.allSettled(['active','rejected'].map(status=>repository.changeStatus({actorUserId:admin.id,institutionId,status,expectedStatus:'under_review',reason:'Revisão institucional exclusivamente fictícia.'})));
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.filter(r=>r.status==='rejected'&&r.reason.code==='institution_status_conflict').length,1);
  if((await repository.detailAdmin(institutionId)).status==='rejected')await institutions.changeStatus(admin.id,institutionId,{status:'under_review',reason:'Reabertura sintética para preparar a representação.'});
- if((await repository.detailAdmin(institutionId)).status==='under_review')await institutions.changeStatus(admin.id,institutionId,{status:'active',reason:'Ativação sintética sem afirmar revisão humana real.'});
+ if((await repository.detailAdmin(institutionId)).status==='under_review')await institutions.changeStatus(admin.id,institutionId,{status:'active',reason:'Ativação sintética sem afirmar revisão humana real.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
  const input={userId:other,expectedVersion:0,reason:'Conta fictícia conferida como representante institucional.',confirmed:true};
  await assert.rejects(access.assign(admin,institutionId,{...input,userId:user}),e=>e.code==='institution_representative_identity_pending');
  await assert.rejects(access.assign({id:other,role:'admin'},institutionId,input),e=>e.code==='institution_independent_reviewer_required');

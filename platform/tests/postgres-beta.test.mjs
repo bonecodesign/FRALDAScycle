@@ -131,10 +131,13 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const {createPrivacyRequestService}=await import('../apps/api/privacy-request-service.js');
       const {createPrivacyRequestRepository}=await import('../database/privacy-request-repository.js');
       const privacyRequestService=createPrivacyRequestService(createPrivacyRequestRepository(database));
-      const logisticsRepository=createLogisticsRepository(database),logisticsService=createLogisticsService(logisticsRepository,null,null);
+      const logisticsRepository=createLogisticsRepository(database),logisticsService=createLogisticsService(logisticsRepository,{
+        async createShipment(){return {providerReference:'synthetic-browser-registered-courier-routing',status:'awaiting_pickup',estimatedDeliveryAt:null};}
+      },null);
       const addressChangeService=createAddressChangeService(logisticsRepository.addressChanges);
       const addressTransaction=await seedBrowserCommunication(database,user,currentSession.id);
-      const addressShipment=(await logisticsService.create(user,{transactionId:addressTransaction,mode:'pickup',insured:false,idempotencyKey:'synthetic-browser-address-pickup'})).shipment;
+      const addressShipment=(await logisticsService.create(user,{transactionId:addressTransaction,mode:'partner',insured:false,idempotencyKey:'synthetic-browser-address-partner'})).shipment;
+      await database.query("UPDATE shipments SET courier_id='10000000-0000-4000-8000-000000000004',status='assigned' WHERE id=$1",[addressShipment.id]);
       const addressFields={label:'Endereço fictício navegador',postalCode:'00000000',street:'Rua inicial fictícia',number:'S/N',district:'Bairro fictício',city:'Belo Horizonte',state:'MG'};
       const browserOldAddress=await logisticsService.createAddress(currentSession.id,addressFields);
       const browserNewAddress=await logisticsService.createAddress(currentSession.id,{...addressFields,label:'Novo endereço fictício',street:'Rua nova fictícia'});

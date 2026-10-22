@@ -203,6 +203,7 @@
       "platform/apps/app/logistics.js",
       "platform/apps/app/profile.js",
       "platform/apps/app/courier.js",
+      "platform/apps/app/courier-eligibility.js",
       "platform/apps/app/listing.js",
       "platform/apps/app/exchange.js"
     ]

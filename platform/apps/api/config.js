@@ -118,6 +118,17 @@ export function loadConfig(env = process.env) {
   if (nodeEnv === "production" && childProfilesRequested && !childProfilesActivationAcknowledged) {
     throw new Error("CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true is required with CHILD_PROFILES_ENABLED=true in production");
   }
+  const courierEligibilityRequested = env.COURIER_ELIGIBILITY_ENABLED === "true";
+  const courierEligibilityActivationAcknowledged = env.COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED === "true";
+  if (nodeEnv === "production" && courierEligibilityRequested && !courierEligibilityActivationAcknowledged) {
+    throw new Error("COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED=true is required with COURIER_ELIGIBILITY_ENABLED=true in production");
+  }
+  const courierRetentionPolicyVersion = env.COURIER_CLEARANCE_RETENTION_POLICY_VERSION ?? null;
+  const courierRetentionLegalApproverId = env.COURIER_CLEARANCE_RETENTION_LEGAL_APPROVER_ID ?? null;
+  if (courierEligibilityRequested && (!courierRetentionPolicyVersion ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(courierRetentionLegalApproverId ?? ""))) {
+    throw new Error("Approved courier clearance retention policy configuration is required before activation");
+  }
 
   return Object.freeze({
     nodeEnv,
@@ -148,6 +159,12 @@ export function loadConfig(env = process.env) {
     geocodingProviderUrl: geocoding.url,
     geocodingProviderSecret: geocoding.secret,
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
+    courierEligibilityEnabled: courierEligibilityRequested &&
+      (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
+    courierClearanceRetentionPolicyVersion: courierRetentionPolicyVersion,
+    courierClearanceRetentionLegalApproverId: courierRetentionLegalApproverId,
+    courierEligibilityMaintenanceSeconds: Math.max(60,
+      integer(env.COURIER_ELIGIBILITY_MAINTENANCE_SECONDS, 300, 3_600)),
     pilotBh: pilotBhConfig(env),
     corsOrigins: allowedCorsOrigins,
   });

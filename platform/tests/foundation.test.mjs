@@ -349,7 +349,7 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
 
 test("transfers the complete approved App logistics journey", async () => {
   const routes = [
-    ["delivery-options", /Como deseja receber\?/],
+    ["delivery-options", /Entrega por parceiro/],
     ["delivery", /Acompanhar entrega/],
     ["delivery-reschedule", /Reagendar entrega/],
     ["delivery-proof", /Prova de entrega/],
@@ -382,7 +382,8 @@ test("transfers the complete approved App logistics journey", async () => {
   assert.doesNotMatch(actions, /Avaliação enviada com sucesso|Entrega reagendada com sucesso/);
   assert.doesNotMatch(behavior, /entregador a 0,8 km/);
   const options = await readFile(resolve(root, "apps/app/delivery-options.html"), "utf8");
-  assert.equal((options.match(/name="delivery-option"/g) ?? []).length, 4);
+  assert.equal((options.match(/name="delivery-option"/g) ?? []).length, 1);
+  assert.doesNotMatch(options, /Retirada local|Correios/);
   for (const name of ["appDeliveryOptions", "appDelivery", "appDeliveryProof", "appDeliveryRate", "setupDeliveryTracking"]) {
     assert.ok(provenance.source.functions.includes(name));
   }

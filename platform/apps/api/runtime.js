@@ -47,6 +47,10 @@ import { createChildProfileRepository } from '../../database/child-profile-repos
 import { createChildProfileService } from './child-profile-service.js';
 import { createExchangeRepository } from '../../database/exchange-repository.js';
 import { createExchangeService } from './exchange-service.js';
+import { createCourierEligibilityRepository } from '../../database/courier-eligibility-repository.js';
+import { createCourierEligibilityService } from './courier-eligibility-service.js';
+import { createCourierEligibilityMaintenanceWorker } from './courier-eligibility-maintenance.js';
+import { createCourierEligibilityMaintenanceLoop } from './courier-eligibility-maintenance-loop.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -72,6 +76,25 @@ export async function startRuntime(config = null) {
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
+  const courierEligibilityRepository = createCourierEligibilityRepository(database);
+  const courierEligibilityService = createCourierEligibilityService(
+    courierEligibilityRepository, {
+      featureEnabled: config.courierEligibilityEnabled,
+      retentionPolicy: config.courierEligibilityEnabled ? {
+        status: 'approved',
+        version: config.courierClearanceRetentionPolicyVersion,
+        legalApproverId: config.courierClearanceRetentionLegalApproverId,
+      } : null,
+    },
+  );
+  const courierEligibilityMaintenance = config.courierEligibilityEnabled
+    ? createCourierEligibilityMaintenanceLoop({
+      repository: courierEligibilityRepository,
+      worker: createCourierEligibilityMaintenanceWorker(courierEligibilityRepository),
+      intervalMs: config.courierEligibilityMaintenanceSeconds * 1000,
+      onError(error) { console.error('Courier eligibility maintenance failed', error); },
+    })
+    : null;
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
   const logisticsProvider = createLogisticsProvider(config);
@@ -107,15 +130,18 @@ export async function startRuntime(config = null) {
     adultDeclarationService,
     childProfileService,
     exchangeService,
+    courierEligibilityService,
     telemetry,
   });
 
   server.listen(config.port, config.host, () => {
     console.log(`FraldaCycle API: http://${config.host}:${config.port}`);
+    courierEligibilityMaintenance?.start();
   });
 
   async function shutdown(signal) {
     console.log(`Stopping FraldaCycle API after ${signal}`);
+    courierEligibilityMaintenance?.stop();
     server.close(async () => {
       await database.close();
       process.exitCode = 0;
@@ -123,7 +149,7 @@ export async function startRuntime(config = null) {
   }
   process.once("SIGTERM", () => shutdown("SIGTERM"));
   process.once("SIGINT", () => shutdown("SIGINT"));
-  return { server, database };
+  return { server, database, courierEligibilityMaintenance };
 }
 
 if (isMainModule(import.meta.url)) {

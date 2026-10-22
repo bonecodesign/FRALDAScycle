@@ -14,3 +14,29 @@ export function deliveryExceptionReview({ reason, supportTicket, paymentDisputed
     payoutAllowed: false,
   });
 }
+
+export function deliveryExceptionFinancialReview({
+  responsibility,
+  providerFeeCents,
+  providerEvidence,
+  supportDecisionConfirmed = false,
+}) {
+  const blockers = [];
+  if (!["provider", "user", "unresolved"].includes(responsibility)) blockers.push("invalid_responsibility");
+  if (!Number.isSafeInteger(providerFeeCents) || providerFeeCents < 0) blockers.push("invalid_provider_fee");
+  if (!providerEvidence?.reference || providerEvidence.charged !== (providerFeeCents > 0)) {
+    blockers.push("provider_fee_evidence_required");
+  }
+  if (!supportDecisionConfirmed) blockers.push("support_decision_required");
+  if (responsibility === "unresolved") blockers.push("responsibility_unresolved");
+
+  const ready = blockers.length === 0;
+  return Object.freeze({
+    ready,
+    automaticDeductionAllowed: false,
+    outcome: !ready ? "under_support_review" : responsibility === "provider" ? "refund_payer" : "charge_user_provider_fee_only",
+    chargeableUserCents: ready && responsibility === "user" ? providerFeeCents : 0,
+    refundRequired: ready && responsibility === "provider",
+    blockers: Object.freeze(blockers),
+  });
+}

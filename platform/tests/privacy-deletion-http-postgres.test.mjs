@@ -11,7 +11,7 @@ import {nativePostgresTools,withNativeTestPostgres} from '../tools/native-postgr
 const native=await nativePostgresTools();
 const ids={owner:'11111111-1111-4111-8111-111111111111',outsider:'22222222-2222-4222-8222-222222222222',admin:'33333333-3333-4333-8333-333333333333'};
 
-test('deletion request is private, assessed independently and never erases an account over HTTP/PostgreSQL',{
+test('privacy requests are private, typed, assessed independently and never erase an account over HTTP/PostgreSQL',{
   skip:!native&&!process.env.CI?'PostgreSQL nativo ausente neste ambiente.':false,timeout:60000,
 },async()=>{
   await withNativeTestPostgres(async databaseUrl=>{
@@ -29,12 +29,17 @@ test('deletion request is private, assessed independently and never erases an ac
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({'content-type':'application/json',cookie:`fc_session=${token}`});
       const payload={kind:'deletion',details:'Solicito análise da exclusão da minha conta fictícia.',confirmed:true,idempotencyKey:'privacy-deletion-http-postgres'};
       const created=await fetch(`${origin}/v1/privacy-requests`,{method:'POST',headers:headers('owner'),body:JSON.stringify(payload)});const first=await created.json();assert.equal(created.status,201,JSON.stringify(first));assert.equal(first.request.kind,'deletion');assert.equal(first.request.closureAllowed,false);assert.equal(first.request.erasureAllowed,false);const requestId=first.request.id;
+      for(const [kind,key] of [['access','privacy-access-http-postgres'],['correction','privacy-correction-http-postgres']]){
+        const response=await fetch(`${origin}/v1/privacy-requests`,{method:'POST',headers:headers('owner'),body:JSON.stringify({...payload,kind,idempotencyKey:key})});
+        const body=await response.json();assert.equal(response.status,201,JSON.stringify(body));assert.equal(body.request.kind,kind);assert.equal(body.request.closureAllowed,false);assert.equal(body.request.erasureAllowed,false);
+      }
       const replay=await fetch(`${origin}/v1/privacy-requests`,{method:'POST',headers:headers('owner'),body:JSON.stringify(payload)});assert.equal(replay.status,200);assert.equal((await replay.json()).request.reused,true);
       const forbidden=await fetch(`${origin}/v1/privacy-requests/${requestId}`,{headers:headers('outsider')});assert.equal(forbidden.status,404);
       const ownAssessment=await fetch(`${origin}/v1/privacy-requests/${requestId}/assessment`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:0,reason:'Tentativa fictícia do próprio titular de analisar seu pedido.',confirmed:true})});assert.equal(ownAssessment.status,403);
       const assessed=await fetch(`${origin}/v1/privacy-requests/${requestId}/assessment`,{method:'POST',headers:headers('admin'),body:JSON.stringify({expectedVersion:0,reason:'Análise independente fictícia das pendências e retenções.',confirmed:true})});const assessment=await assessed.json();assert.equal(assessed.status,201,JSON.stringify(assessment));assert.equal(assessment.request.status,'under_review');assert.equal(assessment.request.version,1);assert.equal(assessment.request.closureAllowed,false);assert.equal(assessment.request.erasureAllowed,false);
       const detail=await fetch(`${origin}/v1/privacy-requests/${requestId}`,{headers:headers('owner')});const body=await detail.json();assert.equal(detail.status,200,JSON.stringify(body));assert.equal(body.request.status,'under_review');assert.equal(body.request.assessments.length,1);assert.equal(body.request.currentObligations.retentionPolicyStatus,'awaiting_review');assert.equal(body.request.erasureAllowed,false);
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM users WHERE id=$1',[ids.owner])).rows[0].n,1);
+      assert.equal((await database.query('SELECT count(*)::integer AS n FROM privacy_requests WHERE requester_id=$1',[ids.owner])).rows[0].n,3);
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM privacy_request_assessments WHERE request_id=$1',[requestId])).rows[0].n,1);
       assert.equal((await database.query("SELECT count(*)::integer AS n FROM audit_events WHERE action='privacy.request.assessed' AND entity_id=$1",[requestId])).rows[0].n,1);
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}

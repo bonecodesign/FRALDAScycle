@@ -10,34 +10,32 @@ import { loadConfig } from "../apps/api/config.js";
 const transactionId = "11111111-1111-4111-8111-111111111111";
 const shipmentId = "22222222-2222-4222-8222-222222222222";
 
-test("logistics creates pickup locally and external delivery through provider", async () => {
+test("logistics creates only partner delivery and rejects retired pilot modes", async () => {
   const createdInputs = [];
   const repository = {
     async context() { return { existing: false, transaction: { id: transactionId, seller_id: "seller-1", status: "paid" } }; },
     async createShipment(input) {
       createdInputs.push(input);
-      return { id: shipmentId, transaction_id: transactionId, buyer_id:input.buyerId, logistics_payer_id:input.buyerId, mode: input.mode, insured: input.insured, status: input.mode === "pickup" ? "awaiting_pickup" : "provider_pending" };
+      return { id: shipmentId, transaction_id: transactionId, mode: input.mode, insured: input.insured, status: "provider_pending" };
     },
     async attachProvider(input) {
-      return { id: input.shipmentId, transaction_id: transactionId, buyer_id:'buyer-1', logistics_payer_id:'buyer-1', mode: "partner", insured: true, status: input.status, estimated_delivery_at: input.estimatedDeliveryAt };
+      return { id: input.shipmentId, transaction_id: transactionId, mode: "partner", insured: true, status: input.status, estimated_delivery_at: input.estimatedDeliveryAt };
     },
   };
   const provider = {
     async createShipment() { return { providerReference: "remote-1", status: "assigned", estimatedDeliveryAt: new Date("2030-01-01") }; },
   };
   const service = createLogisticsService(repository, provider);
-  const pickup = await service.create("buyer-1", {
-    transactionId, mode: "pickup", insured: false, idempotencyKey: "shipment-pickup-0001",
-  });
-  assert.equal(pickup.shipment.status, "awaiting_pickup");
+  for (const mode of ["pickup", "postal", "express"]) {
+    await assert.rejects(service.create("buyer-1", {
+      transactionId, mode, insured: false, idempotencyKey: `shipment-retired-${mode}-0001`,
+    }), error => error.code === "invalid_shipment_mode");
+  }
   const partner = await service.create("buyer-1", {
     transactionId, mode: "partner", insured: true, idempotencyKey: "shipment-partner-0001",
   });
   assert.equal(partner.shipment.status, "assigned");
-  assert.equal(createdInputs[1].sellerId, "seller-1");
-  assert.equal(partner.shipment.logisticsResponsibility,"buyer");
-  assert.equal(partner.shipment.freightCents,null);
-  assert.equal(partner.shipment.freightChargeAvailable,false);
+  assert.equal(createdInputs[0].sellerId, "seller-1");
 });
 
 test("logistics provider uses HTTPS authentication and idempotency", async () => {
