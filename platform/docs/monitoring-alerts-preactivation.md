@@ -9,3 +9,5 @@ Uma leitura só pode retornar `ok` quando contém as oito métricas, possui valo
 Mesmo uma leitura local completa e saudável não autoriza lançamento. Antes da ativação real ainda são necessários: coletor no ambiente homologado, retenção aprovada, canal oficial de alerta, destinatários e escalonamento aceitos, teste humano de recebimento e prova de que dados pessoais e segredos não são exportados.
 
 Validação sintética: `tests/infrastructure-alerts.test.mjs`. Os cenários não representam métricas de produção.
+
+Durante a regressão remota deste pacote, a prova PostgreSQL de backup e restauração passou, mas a etapa posterior de navegador revelou seleção instável na lista de doações: o ensaio acionava o primeiro botão mesmo quando havia várias operações. Os botões agora expõem somente identificadores técnicos de transação/remessa em `data-*`, e o ensaio seleciona a remessa exata criada pelo cenário. Nenhum contato, endereço ou documento é colocado nesses atributos.
