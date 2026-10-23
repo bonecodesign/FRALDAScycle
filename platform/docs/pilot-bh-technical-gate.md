@@ -6,4 +6,8 @@ O modo bloqueia cadastro por telefone sem e-mail convidado, login de contas não
 
 Esta é uma cerca técnica inicial, não a comprovação final do requisito 67. A faixa de CEP é uma validação sintática e não comprova geocodificação nem localização física; destinos ainda exigem validação completa de ponta a ponta. A emissão dos convites, revisão das contas, teste HTTP/PostgreSQL do modo habilitado e decisão humana de início ainda não ocorreram. Mantenha `PILOT_BH_ENABLED=false` fora de uma sessão privada autorizada. A opção de piloto permanece parcial e o NO-GO continua válido.
 
-Validação local: `node tests/pilot-bh.test.mjs` e `node tests/institutions.test.mjs`.
+## Fundação do convite administrado
+
+O contrato local `packages/contracts/pilot-invitation.js` prepara a próxima substituição da lista estática. Ele exige e-mail normalizado, finalidade registrada e vencimento futuro explícito; diferencia convite emitido, consumido, revogado e expirado; impede reutilização para outra conta; e não afirma que qualquer mensagem externa foi entregue. A migração `061_pilot_invitations.sql` e o repositório correspondente persistem somente o hash do token, emissão idempotente, consumo único, revogação e auditoria. A API administrativa permite listar, emitir e revogar somente com os escopos de contas existentes; o token aparece apenas na primeira emissão e a resposta declara `delivered: false`. O cadastro valida o hash e cria a conta, a verificação e o consumo do convite na mesma transação; a admissão consumida preserva login e sessões dessa conta. Nenhuma dessas camadas envia mensagens ou ativa o piloto. A próxima camada deve oferecer a interface administrativa e a entrada do token na interface de cadastro.
+
+Validação local: `node --test tests/pilot-invitation.test.mjs tests/pilot-invitation-foundation.test.mjs tests/pilot-invitation-service.test.mjs tests/pilot-invitation-http.test.mjs tests/pilot-bh.test.mjs tests/institutions.test.mjs`.
