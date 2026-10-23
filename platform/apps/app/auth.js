@@ -126,6 +126,7 @@ function setupAuthValidation() {
 
   const register = document.getElementById("register-form");
   if (register) {
+    register.querySelector('input[type="password"]')?.closest('.form-group')?.insertAdjacentHTML('beforebegin','<div class="form-group"><label for="register-invitation">Código de convite do piloto (se recebido)</label><input id="register-invitation" name="pilotInvitationToken" class="input" minlength="43" maxlength="43" autocomplete="one-time-code" placeholder="Cole o código de 43 caracteres"></div>');
     register.querySelector('.terms')?.insertAdjacentHTML('beforebegin','<label class="terms" data-adult-declaration><input type="checkbox" required> Confirmo que tenho 18 anos ou mais.</label>');
     register.addEventListener("submit", async event => {
     event.preventDefault();
@@ -134,18 +135,20 @@ function setupAuthValidation() {
     const contact = inputs[1].value.trim();
     if (inputs[0].value.trim().length < 3) return showError(register, "Informe seu nome completo.");
     if (!contactValid(contact)) return showError(register, "Informe um e-mail ou telefone válido.");
-    if (!validPassword(inputs[2].value)) return showError(register, "A senha precisa ter entre 12 e 1024 caracteres e não pode conter apenas espaços.");
-    if (inputs[2].value !== inputs[3].value) return showError(register, "As senhas precisam ser iguais.");
-    if (!inputs[4].checked) return showError(register, "Confirme que você tem 18 anos ou mais.");
-    if (!inputs[5].checked) return showError(register, "Aceite os Termos de Uso e a Política de Privacidade.");
+    const invitationToken = inputs[2].value.trim();
+    if (invitationToken && !/^[A-Za-z0-9_-]{43}$/.test(invitationToken)) return showError(register, "O código de convite deve ter 43 caracteres válidos.");
+    if (!validPassword(inputs[3].value)) return showError(register, "A senha precisa ter entre 12 e 1024 caracteres e não pode conter apenas espaços.");
+    if (inputs[3].value !== inputs[4].value) return showError(register, "As senhas precisam ser iguais.");
+    if (!inputs[5].checked) return showError(register, "Confirme que você tem 18 anos ou mais.");
+    if (!inputs[6].checked) return showError(register, "Aceite os Termos de Uso e a Política de Privacidade.");
     const restore = submitState(register, "Criando conta...");
     showError(register, "");
     try {
-      const password = inputs[2].value;
-      inputs[2].value = ''; inputs[3].value = '';
+      const password = inputs[3].value;
+      inputs[3].value = ''; inputs[4].value = '';
       const result = await apiRequest("/v1/auth/register", {
         method: "POST",
-        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password, adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1" },
+        body: { displayName: inputs[0].value.trim(), ...contactPayload(contact), password, adultConfirmed: true, adultDeclarationVersion: "FC-AGE-1", ...(invitationToken ? { pilotInvitationToken: invitationToken } : {}) },
       });
       sessionStorage.setItem('fc.auth.verificationChallenge', checkedChallenge(result));
       sessionStorage.setItem("fc.auth.contact", contact);

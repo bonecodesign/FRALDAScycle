@@ -8,7 +8,7 @@ assert.ok(start >= 0 && end > start);
 class ApiError extends Error { constructor(code, message, status) { super(message); Object.assign(this, { code, status }); } }
 function fixture(id, request, stored = {}) {
   const input = value => ({ value, checked: true, handlers: {}, classList: { toggle() {} }, checkValidity() { return true; }, focus() {}, addEventListener(name, callback) { this.handlers[name] = callback; } });
-  const fields = { 'login-form': ['active@example.test','synthetic-password'], 'register-form': ['Pessoa fictícia','active@example.test','synthetic-password','synthetic-password','',''],
+  const fields = { 'login-form': ['active@example.test','synthetic-password'], 'register-form': ['Pessoa fictícia','active@example.test','','synthetic-password','synthetic-password','',''],
     'recovery-form': ['active@example.test'], 'reset-password-form': ['new-synthetic-password','new-synthetic-password'], 'verify-form': Array(6).fill('') };
   const inputs = fields[id].map(input), error = { textContent: '' }, button = { disabled: false, textContent: 'Continuar' };
   const resend = { disabled: false, handlers: {}, addEventListener(name, callback) { this.handlers[name] = callback; } };
@@ -49,12 +49,20 @@ test('client login requires a real user response before opening home', async () 
 test('client registration submits once, clears passwords and saves only a valid challenge', async () => {
   let finish; const state=fixture('register-form',()=>new Promise(resolve=>{finish=resolve;}));
   const first=state.fire(); await state.fire(); assert.equal(state.calls.length,1);
-  assert.equal(state.calls[0][1].body.password,'synthetic-password'); assert.equal(state.inputs[2].value,''); assert.equal(state.inputs[3].value,'');
+  assert.equal(state.calls[0][1].body.password,'synthetic-password'); assert.equal(state.inputs[3].value,''); assert.equal(state.inputs[4].value,'');
   finish({challenge}); await first; assert.equal(state.location.pathname,'/app/verify');
   assert.equal(state.storage.get('fc.auth.verificationChallenge'),challenge);
   assert.ok(![...state.storage.values()].includes('synthetic-password'));
   const invalid=fixture('register-form',async()=>({challenge:'bad'})); await invalid.fire();
   assert.equal(invalid.location.pathname,'/initial'); assert.equal(invalid.storage.has('fc.auth.verificationChallenge'),false);
+});
+
+test('client registration forwards a valid pilot invitation without storing it', async () => {
+  const state=fixture('register-form',async()=>({challenge})); state.inputs[2].value='c'.repeat(43);
+  await state.fire(); assert.equal(state.calls[0][1].body.pilotInvitationToken,'c'.repeat(43));
+  assert.ok(![...state.storage.values()].includes('c'.repeat(43)));
+  const invalid=fixture('register-form',async()=>({challenge})); invalid.inputs[2].value='short';
+  await invalid.fire(); assert.equal(invalid.calls.length,0); assert.match(invalid.error.textContent,/43 caracteres/);
 });
 
 test('client verification serializes confirmation with resend and requires verified API response', async () => {
