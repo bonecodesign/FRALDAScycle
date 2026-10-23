@@ -25,7 +25,8 @@ for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY
 const docker=(...args)=>execute('docker',['--host=unix:///var/run/docker.sock',...args],{env:dockerEnvironment,timeout:30000,maxBuffer:1024*1024});
 let activeTestContainer;
 export function spawnPostgresTestTool(bin,command,args,options) {
-  if(bin!=='docker')return spawn(join(bin,command),args,options);
+  const boundedOptions={...options,timeout:120000,killSignal:'SIGKILL'};
+  if(bin!=='docker')return spawn(join(bin,command),args,boundedOptions);
   if(!activeTestContainer||!['pg_dump','pg_restore'].includes(command))throw new Error('Ferramenta restrita ao contêiner temporário.');
   const adjusted=[...args];
   const fileIndex=command==='pg_dump'?adjusted.indexOf('--file')+1:adjusted.length-1;
@@ -39,6 +40,7 @@ export function spawnPostgresTestTool(bin,command,args,options) {
   try {
     child=spawn('docker',['--host=unix:///var/run/docker.sock',...flags,activeTestContainer,command,...adjusted],{
       env:environment,shell:false,stdio:command==='pg_dump'?['ignore',descriptor,'inherit']:[descriptor,'inherit','inherit'],
+      timeout:120000,killSignal:'SIGKILL',
     });
   } finally { closeSync(descriptor); }
   return child;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
+import { statSync, writeFileSync } from "node:fs";
 import { chmod, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -141,6 +141,7 @@ test("backup publishes a private dump atomically and never overwrites an existin
       assert.equal(options.umask, 0o077);
       const output = args[args.indexOf("--file") + 1];
       assert.notEqual(output, destination);
+      assert.equal(statSync(output).mode & 0o777, 0o600);
       requireWrite(output);
       const child = new EventEmitter();
       queueMicrotask(() => child.emit("exit", 0));
