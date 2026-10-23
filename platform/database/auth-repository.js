@@ -30,6 +30,35 @@ async function insertTokenAndNotification(client, { userId, kind, tokenHash, exp
 
 export function createAuthRepository(database) {
   return Object.freeze({
+    async createInvitedUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification, invitation }) {
+      return database.transaction(async client => {
+        const admitted = (await client.query(`SELECT id FROM pilot_invitations
+          WHERE email=$1 AND token_hash=$2 AND consumed_at IS NULL AND revoked_at IS NULL
+            AND expires_at>now() FOR UPDATE`, [email, invitation.tokenHash])).rows[0];
+        if (!admitted) throw Object.assign(new Error('Pilot invitation unavailable'), { code: 'pilot_invitation_unavailable' });
+        const result = await client.query(
+          `INSERT INTO users (email, phone, password_hash, display_name, adult_declaration_version, adult_declared_at)
+           VALUES ($1, $2, $3, $4, $5, now())
+           RETURNING id, email, phone, display_name, role, email_verified_at, adult_declaration_version, adult_declared_at, created_at`,
+          [email, phone, passwordHash, displayName, adultDeclarationVersion],
+        );
+        const user = result.rows[0];
+        if (verification.identityHash && !await reserveCodeRequest(client, verification.identityHash)) {
+          throw Object.assign(new Error('Verification request limit reached'), { code: 'verification_request_limited' });
+        }
+        await insertTokenAndNotification(client, { userId: user.id, kind: 'email_verification',
+          tokenHash: verification.tokenHash, expiresAt: verification.expiresAt,
+          notification: { token: verification.token }, account: user });
+        const consumed = await client.query(`UPDATE pilot_invitations SET consumed_by=$2,consumed_at=now()
+          WHERE id=$1 AND consumed_at IS NULL AND revoked_at IS NULL RETURNING id`, [admitted.id, user.id]);
+        if (consumed.rowCount !== 1) throw Object.assign(new Error('Pilot invitation unavailable'), { code: 'pilot_invitation_unavailable' });
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'pilot.invitation.consumed','pilot_invitation',$2,$3::jsonb)`,
+        [user.id, admitted.id, JSON.stringify({ email })]);
+        return user;
+      });
+    },
+
     async createUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification }) {
       return database.transaction(async client => {
         const result = await client.query(
@@ -69,6 +98,12 @@ export function createAuthRepository(database) {
         [userId],
       );
       return result.rows[0] ?? null;
+    },
+
+    async pilotAdmissionForUser(userId) {
+      const result = await database.query(`SELECT 1 FROM pilot_invitations
+        WHERE consumed_by=$1 AND consumed_at IS NOT NULL AND revoked_at IS NULL LIMIT 1`, [userId]);
+      return result.rowCount > 0;
     },
 
     async createSession({ userId, tokenHash, expiresAt, userAgent = null }) {

@@ -51,6 +51,8 @@ import { createCourierEligibilityRepository } from '../../database/courier-eligi
 import { createCourierEligibilityService } from './courier-eligibility-service.js';
 import { createCourierEligibilityMaintenanceWorker } from './courier-eligibility-maintenance.js';
 import { createCourierEligibilityMaintenanceLoop } from './courier-eligibility-maintenance-loop.js';
+import { createPilotInvitationRepository } from '../../database/pilot-invitation-repository.js';
+import { createPilotInvitationService } from './pilot-invitation-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -75,6 +77,7 @@ export async function startRuntime(config = null) {
   const operationalControlService = createOperationalControlService(createOperationalControlRepository(database));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
+  const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -131,6 +134,7 @@ export async function startRuntime(config = null) {
     childProfileService,
     exchangeService,
     courierEligibilityService,
+    pilotInvitationService,
     telemetry,
   });
 

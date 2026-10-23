@@ -1,6 +1,7 @@
 const adminNavIcons={
   '/admin/dashboard':'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
   '/admin/users':'<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+  '/admin/pilot-invitations':'<path d="M21 12a9 9 0 1 1-9-9"/><path d="M15 3h6v6M21 3l-8 8"/>',
   '/admin/roles':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
   '/admin/ads':'<path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 8 9 5 9-5M3 13l9 5 9-5"/>',
   '/admin/operations':'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
@@ -23,7 +24,7 @@ const adminNavIcons={
 
 const adminNavGroups=[
   {label:'Visão geral',paths:['/admin/dashboard']},
-  {label:'Gestão',paths:['/admin/users','/admin/roles','/admin/ads','/admin/operations','/admin/logistics']},
+  {label:'Gestão',paths:['/admin/users','/admin/pilot-invitations','/admin/roles','/admin/ads','/admin/operations','/admin/logistics']},
   {label:'Financeiro',paths:['/admin/finance']},
   {label:'Inteligência',paths:['/admin/reports','/admin/data','/admin/forecast']},
   {label:'Estratégia',paths:['/admin/partnerships','/admin/innovation','/admin/launch']},
@@ -36,6 +37,11 @@ function setupAdminNavigation(){
   if(root?.dataset.adminNavigation==='true')return;
   const sidebar=document.querySelector('.admin-sidebar');
   if(!sidebar)return;
+  if(!sidebar.querySelector('a[href="/admin/pilot-invitations"]')){
+    const invitation=document.createElement('a');invitation.href='/admin/pilot-invitations';invitation.textContent='Convites piloto';
+    if(location.pathname.replace(/\.html$/,'')==='/admin/pilot-invitations')invitation.className='active';
+    sidebar.querySelector('a[href="/admin/users"]')?.after(invitation);
+  }
   const links=[...sidebar.querySelectorAll('a')];
   links.forEach(link=>{
     const path=new URL(link.href,window.location.origin).pathname.replace(/\.html$/,'');

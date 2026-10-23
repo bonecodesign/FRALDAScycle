@@ -25,6 +25,7 @@ import { handleAdultDeclaration } from './adult-declaration-handler.js';
 import { handleChildProfiles } from './child-profile-handler.js';
 import { handleExchanges } from './exchange-handler.js';
 import { handleCourierEligibility } from './courier-eligibility-handler.js';
+import { handlePilotInvitations } from './pilot-invitation-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -59,6 +60,7 @@ export function createApiServer({
   childProfileService = null,
   exchangeService = null,
   courierEligibilityService = null,
+  pilotInvitationService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -222,6 +224,9 @@ export function createApiServer({
       })) return;
       if (await handleCourierEligibility(request, response, {
         url, headers, requestId: id, authService, courierEligibilityService,
+      })) return;
+      if (await handlePilotInvitations(request, response, {
+        url, headers, requestId: id, authService, pilotInvitationService,
       })) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;

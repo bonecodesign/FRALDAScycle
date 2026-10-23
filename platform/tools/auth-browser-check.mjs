@@ -28,7 +28,7 @@ export async function checkAuthBrowser({call,evaluate,until,surfaceOrigin,apiOri
   const verify=code=>submit('#verify-form',code.split(''));
   await navigate('/app/register','#register-form');
   await until(()=>evaluate(`Boolean(document.querySelector('[data-adult-declaration]'))`),'adult declaration');
-  await submit('#register-form',[fixture.displayName,fixture.email,fixture.password,fixture.password]);await path('/app/verify');
+  await submit('#register-form',[fixture.displayName,fixture.email,'',fixture.password,fixture.password]);await path('/app/verify');
   await navigate('/app/verify','#verify-form');
   const verification=await requestAuthCode(fixture.email,'email_verification');
   await verify(wrong(verification));await error('#verify-form');assert.equal(await status(),401);
