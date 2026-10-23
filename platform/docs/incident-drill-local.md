@@ -19,6 +19,8 @@ Registre, antes da sessão, a versão do código, ambiente isolado, horário de 
 
 O registro pode ser validado localmente por `localIncidentDrill` em `packages/contracts/incident-drill.js`. O contrato exige ambiente isolado, dados exclusivamente sintéticos, três papéis definidos, classificação, evidência versionada de pausa, autorização e critério de retomada. Campos com nomes associados a senha, segredo, token, cookie ou documento são recusados para reduzir a captura acidental de dados sensíveis. Essa validação prepara o formulário do exercício; ela não substitui a sessão humana.
 
+O executor `runSyntheticIncidentDrill` em `apps/api/incident-drill-runner.js` encadeia a prova técnica sem efeitos externos. Ele pausa o domínio, confirma o bloqueio de novos compromissos, exige uma sonda separada para continuidade segura e outra para recuperação, retoma somente após autorização e reaplica automaticamente a pausa quando a verificação pós-retomada falha. Falhas anteriores à retomada deixam o domínio pausado. O registro acrescenta explicitamente que nenhum fornecedor, pagamento, usuário ou mensagem real foi acionado.
+
 | Campo | Resultado da sessão |
 | --- | --- |
 | Versão, ambiente e horário | Pendente |
@@ -31,4 +33,4 @@ O registro pode ser validado localmente por `localIncidentDrill` em `packages/co
 | Critério, autorização e prova da retomada | Pendente |
 | Achados, responsável e prazo | Pendente |
 
-Os testes `tests/incident-drill-contract.test.mjs`, `tests/operational-control.test.mjs` e `tests/operational-control-postgres.test.mjs` verificam o registro e os controles técnicos. A conclusão do requisito exige responsáveis aceitos, exercício observado e registros reais da sessão interna.
+Os testes `tests/incident-drill-contract.test.mjs`, `tests/incident-drill-runner.test.mjs`, `tests/operational-control.test.mjs` e `tests/operational-control-postgres.test.mjs` verificam o registro, a contenção, a retomada e o rollback seguro. A conclusão do requisito exige responsáveis aceitos, exercício observado e registros reais da sessão interna.
