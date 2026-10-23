@@ -50,7 +50,7 @@ test("courier clearance rejection is enforced over HTTP and PostgreSQL", {
       await database.query(`INSERT INTO courier_clearance_reviews
         (id,document_id,review_kind,method,submission_reference,submitted_at,due_at)
         VALUES($1,$2,'initial','official_police_civil_channel','police-civil-http-fixture',
-          now()-interval '1 hour',now()+interval '23 hours')`, [ids.review, ids.document]);
+          '2026-10-22T19:00:00.000Z','2026-10-23T19:00:00.000Z')`, [ids.review, ids.document]);
 
       const repository = createCourierEligibilityRepository(database);
       const service = createCourierEligibilityService(repository, {
