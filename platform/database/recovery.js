@@ -117,6 +117,10 @@ export async function executeBackupPlan(plan, options = {}) {
   try {
     await chmod(privateDirectory, 0o700);
     const temporaryDump = join(privateDirectory, basename(destination));
+    // pg_dump preserves the mode of an existing output file. Pre-creating it
+    // exclusively avoids relying on the parent process umask, which spawn()
+    // does not configure portably.
+    await writeFile(temporaryDump, "", { mode: 0o600, flag: "wx" });
     const args = [...plan.args];
     args[fileIndex + 1] = temporaryDump;
     await executePlan({ ...plan, args }, options);
