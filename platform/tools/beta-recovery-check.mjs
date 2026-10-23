@@ -3,7 +3,7 @@ import { mkdtemp, chmod, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDatabase } from '../database/client.js';
-import { createBackupPlan, createRestorePlan, executePlan } from '../database/recovery.js';
+import { createBackupPlan, createRestorePlan, executeBackupPlan, executeRestorePlan } from '../database/recovery.js';
 import { spawnPostgresTestTool } from './native-postgres.mjs';
 
 // Only called with the disposable cluster created by withNativeTestPostgres.
@@ -40,27 +40,25 @@ export async function validateSyntheticRecovery(database, databaseUrl, bin) {
     assert.ok(before.transactions.length > 0);
     assert.ok(before.audit_events.length > 0);
     assert.ok(before.schema_migrations.length > 0);
-    // Restrict permissions before pg_dump opens the file, not after writing.
-    const { writeFile } = await import('node:fs/promises');
-    await writeFile(dump, '', { mode: 0o600, flag: 'wx' });
-    await executePlan(createBackupPlan(env), { spawnImpl });
+    await executeBackupPlan(createBackupPlan(env), { spawnImpl });
     assert.equal((await stat(dump)).mode & 0o777, 0o600);
     assert.ok((await stat(dump)).size > 0);
+    assert.equal((await stat(`${dump}.sha256`)).mode & 0o777, 0o600);
     await database.query('CREATE DATABASE beta_restore');
     restored = createDatabase({ databaseUrl: target.toString(), databaseSsl: false });
-    await executePlan(createRestorePlan(env), { spawnImpl });
+    await executeRestorePlan(createRestorePlan(env), { spawnImpl });
     assert.deepEqual(await snapshot(restored), before);
     assert.deepEqual(await snapshot(database), before);
     // Destroy only synthetic data in the separate restore database.
     await restored.query("UPDATE transactions SET amount_cents=amount_cents+1");
     assert.notDeepEqual(await snapshot(restored), before);
     assert.deepEqual(await snapshot(database), before);
-    await executePlan(createRestorePlan(env), { spawnImpl });
+    await executeRestorePlan(createRestorePlan(env), { spawnImpl });
     assert.deepEqual(await snapshot(restored), before);
     const { discoverMigrations, migrate } = await import('../database/migrate.js');
     await migrate(restored, await discoverMigrations());
     assert.deepEqual(await snapshot(restored), before);
-    console.log('BETA_RECOVERY: pg_dump/pg_restore reais; todas as tabelas públicas, transações, auditoria e migrações iguais; segunda restauração e isolamento comprovados; arquivo temporário 0600.');
+    console.log('BETA_RECOVERY: pg_dump/pg_restore reais; publicação atômica e checksum SHA-256 validados; todas as tabelas públicas, transações, auditoria e migrações iguais; segunda restauração e isolamento comprovados; dump e checksum 0600.');
   } finally {
     if (restored) await restored.close();
     await rm(directory, { recursive: true, force: true });
