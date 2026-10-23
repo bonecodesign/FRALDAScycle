@@ -21,6 +21,10 @@ O registro pode ser validado localmente por `localIncidentDrill` em `packages/co
 
 O executor `runSyntheticIncidentDrill` em `apps/api/incident-drill-runner.js` encadeia a prova técnica sem efeitos externos. Ele pausa o domínio, confirma o bloqueio de novos compromissos, exige uma sonda separada para continuidade segura e outra para recuperação, retoma somente após autorização e reaplica automaticamente a pausa quando a verificação pós-retomada falha. Falhas anteriores à retomada deixam o domínio pausado. O registro acrescenta explicitamente que nenhum fornecedor, pagamento, usuário ou mensagem real foi acionado.
 
+Depois do ensaio, `createIncidentDrillEvidence` em `apps/api/incident-drill-evidence.js` pode empacotar o registro validado com um resumo SHA-256 determinístico. `verifyIncidentDrillEvidence` detecta alteração posterior do conteúdo. O envelope declara seus próprios limites: é evidência técnica local e não comprova sessão humana, go-live ou operação externa. Na sessão real, preserve também participantes, observação e aceite pelos canais internos aprovados; o hash não substitui esses registros.
+
+`assessIncidentDrillSignoff` em `apps/api/incident-drill-signoff.js` mantém esse limite verificável. O exercício humano só fica `complete` quando há evidência técnica íntegra, aceite individual e datado para triagem, responsável técnico e substituto, observador independente e decisão formal. Papéis acumulados, observação ausente, evidência alterada ou achado alto/crítico aberto impedem uma decisão `passed`. Mesmo completo, o resultado retorna `launchAuthorized: false`: o lançamento possui portão próprio e não é autorizado pelo ensaio.
+
 | Campo | Resultado da sessão |
 | --- | --- |
 | Versão, ambiente e horário | Pendente |
@@ -33,4 +37,4 @@ O executor `runSyntheticIncidentDrill` em `apps/api/incident-drill-runner.js` en
 | Critério, autorização e prova da retomada | Pendente |
 | Achados, responsável e prazo | Pendente |
 
-Os testes `tests/incident-drill-contract.test.mjs`, `tests/incident-drill-runner.test.mjs`, `tests/operational-control.test.mjs` e `tests/operational-control-postgres.test.mjs` verificam o registro, a contenção, a retomada e o rollback seguro. A conclusão do requisito exige responsáveis aceitos, exercício observado e registros reais da sessão interna.
+Os testes `tests/incident-drill-contract.test.mjs`, `tests/incident-drill-runner.test.mjs`, `tests/incident-drill-evidence.test.mjs`, `tests/incident-drill-signoff.test.mjs`, `tests/operational-control.test.mjs` e `tests/operational-control-postgres.test.mjs` verificam o registro, a integridade da evidência, o bloqueio de falso encerramento, a contenção, a retomada e o rollback seguro. A conclusão do requisito exige responsáveis aceitos, exercício observado e registros reais da sessão interna.
