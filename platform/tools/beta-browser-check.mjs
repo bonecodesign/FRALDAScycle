@@ -516,7 +516,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     assert.equal(await evaluate(`document.querySelectorAll('#courier-history-records .panel').length`),1);
     await call('Network.setCookie',{name:'fc_session',value:sessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/donations`});await until(()=>evaluate(`document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'institution receipt load');
-    await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`Array.from(document.querySelectorAll('#donation-list button')).some(button=>button.dataset.shipmentId===${JSON.stringify(browserDonationShipment)})`),'institution receipt target');
+    await evaluate(`Array.from(document.querySelectorAll('#donation-list button')).find(button=>button.dataset.shipmentId===${JSON.stringify(browserDonationShipment)}).focus()`);await key('Enter','Enter',13);
     await evaluate(`document.querySelector('#donation-receipt input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Recebimento institucional aprovado')`),'institution receipt keyboard');
     const donationReady=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/shipments/')}+${JSON.stringify(browserDonationShipment)}+'/settlement-status',{credentials:'include'}).then(r=>r.json()).then(r=>r.settlement)`);assert.equal(donationReady.payoutAllowed,false);assert.equal(donationReady.operationalRequirementsMet,false);
