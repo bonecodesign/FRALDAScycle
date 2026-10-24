@@ -28,7 +28,9 @@
     "pilot:evidence:validate": "node tools/pilot-evidence.mjs",
     "pilot:session:validate": "node tools/pilot-session.mjs",
     "worker:premium:local": "node workers/premium.js --once",
-    "worker:premium": "node workers/premium.js --serve"
+    "worker:premium": "node workers/premium.js --serve",
+    "worker:child-profiles:local": "node workers/child-profile-lifecycle.js --once",
+    "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve"
   },
   "dependencies": {
     "pg": "8.22.0"

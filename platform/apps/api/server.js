@@ -229,7 +229,7 @@ export function createApiServer({
         url, headers, requestId: id, authService, pilotInvitationService,
       })) return;
 
-      if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
+      if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService,childProfileService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;
       if (await handleReviewModeration(request,response,{url,headers,requestId:id,authService,reviewModerationService})) return;
       if (await handlePrivacyRequests(request,response,{url,headers,requestId:id,authService,privacyRequestService})) return;
@@ -256,10 +256,10 @@ export function createApiServer({
         url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, marketplaceProviders,
       })) return;
 
-      if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
+      if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService,childProfileService})) return;
 
       if (await handleMarketplace(request, response, {
-        url, headers, requestId: id, marketplaceService, marketplaceProviders, authService,
+        url, headers, requestId: id, marketplaceService, marketplaceProviders, authService, childProfileService,
       })) return;
 
       sendJson(response, 404, {

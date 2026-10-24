@@ -448,6 +448,8 @@
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "database/migrations/053_child_profile_data_minimization.sql",
+      "database/migrations/061_child_profile_active_only_retention.sql",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
       "apps/api/child-profile-service.js",
       "database/child-profile-repository.js",
       "apps/app/family-profile.js",
@@ -455,8 +457,8 @@
       "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
-    "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data e emoji controlado, elimina apelidos, limita idade a 12 anos, isola contas e apaga a data do banco ativo na remoção.",
+    "reason": "Decisão de produto e retenção ativa implementadas com feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
       "id": 27,
@@ -464,14 +466,15 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
       "apps/api/child-profile-service.js",
       "apps/api/child-profile-handler.js",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Contrato automatizado comprova data obrigatória somente ao criar perfil na área familiar; cadastro de conta e demais papéis permanecem independentes.",
-    "reason": "Regra técnica delimitada e inativa; tornar o cadastro familiar obrigatório depende de revisão jurídica/de privacidade e não pode bloquear acesso geral ou operações existentes."
+      "evidence": "Contrato automatizado comprova data e emoji obrigatórios ao criar perfil na área familiar e preserva a exigência de pelo menos um perfil ativo.",
+    "reason": "Regra técnica delimitada e inativa; ativação ainda depende de revisão jurídica/de privacidade."
     },
     {
       "id": 28,
@@ -479,6 +482,7 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
       "packages/contracts/child-age-band.js",
       "apps/api/child-profile-service.js",
       "apps/api/child-profile-handler.js",
@@ -486,7 +490,7 @@
       "docs/family-profile-foundation-beta.md"
       ],
       "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
-    "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
+    "reason": "Compartilhamento minimizado e decisão de produto registrados, mas coleta, contratos de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,
@@ -530,6 +534,7 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
       "tests/child-profile-http-postgres.test.mjs",
@@ -544,12 +549,13 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
       "database/migrations/033_age_and_child_profile_foundation.sql",
       "apps/api/child-profile-service.js",
       "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL cria e lista dois perfis privados distintos na mesma conta, sem nome, foto ou apelido.",
+      "evidence": "HTTP/PostgreSQL cria e lista perfis privados distintos na mesma conta, sem nome, foto ou apelido; limite aprovado é de cinco, com emoji exclusivo e datas iguais permitidas.",
     "reason": "Múltiplos perfis estão implementados atrás de feature flag; coleta continua bloqueada até revisão."
     },
     {
@@ -558,14 +564,19 @@
       "status": "bloqueado",
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
+      "docs/decisions/FC-DEC-2026-10-22-dados-infantis-retencao.md",
+      "database/migrations/061_child_profile_active_only_retention.sql",
+      "database/migrations/063_child_profile_lifecycle.sql",
       "database/child-profile-repository.js",
+      "database/child-profile-lifecycle-repository.js",
       "apps/api/child-profile-service.js",
       "apps/app/family-profile.js",
       "tests/child-profile-http-postgres.test.mjs",
+      "tests/child-profile-lifecycle-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
-    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
+      "evidence": "HTTP/PostgreSQL comprova correção versionada, purga imediata da data, recusa de exclusão manual do último perfil e encerramento idempotente aos 13 anos com avisos sem data infantil.",
+    "reason": "Retenção, purga e bloqueio técnico estão implementados; ativação aguarda revisão jurídica/de privacidade."
     },
     {
       "id": 34,

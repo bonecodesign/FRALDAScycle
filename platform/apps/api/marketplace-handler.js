@@ -4,7 +4,7 @@ import { sendJson } from "./http.js";
 import { requireAdultDeclaration } from "./adult-declaration-service.js";
 
 export async function handleMarketplace(request, response, {
-  url, headers, requestId, marketplaceService, marketplaceProviders, authService,
+  url, headers, requestId, marketplaceService, marketplaceProviders, authService, childProfileService,
 }) {
   if (!url.pathname.startsWith("/v1/")) return false;
 
@@ -107,6 +107,7 @@ export async function handleMarketplace(request, response, {
   if (request.method === "POST" && url.pathname === "/v1/listings") {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
+    await childProfileService?.requireForNewOperation(user);
     const listing = await marketplaceService.create(user.id, await readJson(request));
     sendJson(response, listing.reused?200:201, { listing, requestId }, {...headers,'cache-control':'no-store'});
     return true;
@@ -132,6 +133,7 @@ export async function handleMarketplace(request, response, {
   if (request.method === "POST" && startTransaction) {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
+    await childProfileService?.requireForNewOperation(user);
     const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1]);
     sendJson(response, 201, { transaction, requestId }, headers);
     return true;
