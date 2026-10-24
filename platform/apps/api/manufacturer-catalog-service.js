@@ -6,6 +6,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export function createManufacturerCatalogService(repository) {
   return Object.freeze({
+    async listBatches(actor) {
+      requireScope(actor, "admin:catalog:write");
+      return repository.listBatches({ limit: 50 });
+    },
     async importBatch(actor, input) {
       requireScope(actor, "admin:catalog:write");
       let catalog;

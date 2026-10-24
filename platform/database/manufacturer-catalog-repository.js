@@ -2,6 +2,14 @@ const fail = (code, status, message) => Object.assign(new Error(message), { code
 
 export function createManufacturerCatalogRepository(database) {
   return Object.freeze({
+    async listBatches({ limit = 50 }) {
+      const result = await database.query(`SELECT b.id,b.manufacturer,b.source_url,b.document_sha256,b.effective_date,
+        b.status,b.imported_by,b.first_reviewer_id,b.second_reviewer_id,b.rejected_by,b.rejection_reason,
+        b.version,b.created_at,b.activated_at,b.updated_at,count(e.*)::integer AS entry_count
+        FROM manufacturer_catalog_batches b LEFT JOIN manufacturer_catalog_entries e ON e.batch_id=b.id
+        GROUP BY b.id ORDER BY b.created_at DESC,b.id DESC LIMIT $1`, [limit]);
+      return result.rows;
+    },
     async importBatch({ actorId, catalog }) {
       return database.transaction(async client => {
         const batch = (await client.query(`INSERT INTO manufacturer_catalog_batches
