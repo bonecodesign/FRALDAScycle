@@ -3,6 +3,11 @@ export const MARKETPLACE_RANKING_WEIGHTS = Object.freeze({
   distanceBand: 0.5,
 });
 
+export const GENERAL_MARKETPLACE_WEIGHTS = Object.freeze({
+  quality: 0.5,
+  distanceBand: 0.5,
+});
+
 export const MARKETPLACE_DISTANCE_BANDS = Object.freeze([
   Object.freeze({ id: "up_to_5_km", maxKm: 5, score: 1 }),
   Object.freeze({ id: "from_5_to_15_km", maxKm: 15, score: 2 / 3 }),
@@ -40,6 +45,23 @@ export function personalizedMarketplaceScore({ profileScores, distanceKm }) {
   });
 }
 
+export function generalMarketplaceScore({ qualityScore, distanceKm }) {
+  const quality = boundedScore(qualityScore);
+  const distanceBand = marketplaceDistanceBand(distanceKm);
+  const distanceScore = distanceBand?.score ?? 0;
+  const score = GENERAL_MARKETPLACE_WEIGHTS.quality * quality
+    + GENERAL_MARKETPLACE_WEIGHTS.distanceBand * distanceScore;
+  return Object.freeze({
+    ready: true,
+    blocker: null,
+    score: Math.round(score * 1_000_000) / 1_000_000,
+    qualityScore: quality,
+    distanceScore,
+    distanceBand: distanceBand?.id ?? null,
+    readsProfiles: false,
+  });
+}
+
 function time(value) {
   const parsed = Date.parse(value ?? "");
   return Number.isFinite(parsed) ? parsed : 0;
@@ -58,6 +80,22 @@ export function rankPersonalizedMarketplace(listings) {
     if (quality !== 0) return quality;
     const recency = time(right.publishedAt) - time(left.publishedAt);
     if (recency !== 0) return recency;
+    return String(left.id).localeCompare(String(right.id));
+  }));
+}
+
+export function rankGeneralMarketplace(listings) {
+  if (!Array.isArray(listings)) throw new TypeError("Listings must be an array");
+  return Object.freeze(listings.map(listing => Object.freeze({
+    ...listing,
+    ranking: generalMarketplaceScore(listing),
+  })).sort((left, right) => {
+    const score = right.ranking.score - left.ranking.score;
+    if (score !== 0) return score;
+    const published = time(right.publishedAt ?? right.published_at) - time(left.publishedAt ?? left.published_at);
+    if (published !== 0) return published;
+    const created = time(right.createdAt ?? right.created_at) - time(left.createdAt ?? left.created_at);
+    if (created !== 0) return created;
     return String(left.id).localeCompare(String(right.id));
   }));
 }

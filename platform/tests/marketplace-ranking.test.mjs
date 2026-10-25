@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   MARKETPLACE_RANKING_WEIGHTS,
+  GENERAL_MARKETPLACE_WEIGHTS,
   balancedProfileCompatibility,
   marketplaceDistanceBand,
   marketplaceRankingMode,
   personalizedMarketplaceScore,
+  generalMarketplaceScore,
+  rankGeneralMarketplace,
   rankPersonalizedMarketplace,
 } from "../packages/contracts/marketplace-ranking.js";
 
@@ -57,4 +60,26 @@ test("missing official age guidance receives no age priority but remains rankabl
   assert.equal(result.ageScore, 0);
   assert.equal(result.score, 0.5);
   assert.equal(personalizedMarketplaceScore({ profileScores: [1], distanceKm: null }).ready, false);
+});
+
+test("general relevance balances objective quality and distance without reading profiles", () => {
+  assert.deepEqual(GENERAL_MARKETPLACE_WEIGHTS, { quality: 0.5, distanceBand: 0.5 });
+  assert.deepEqual(generalMarketplaceScore({ qualityScore: 0.8, distanceKm: 15 }), {
+    ready: true, blocker: null, score: 0.733333, qualityScore: 0.8,
+    distanceScore: 2 / 3, distanceBand: "from_5_to_15_km", readsProfiles: false,
+  });
+  const withoutDistance = generalMarketplaceScore({ qualityScore: 1, distanceKm: null });
+  assert.equal(withoutDistance.ready, true);
+  assert.equal(withoutDistance.score, 0.5);
+  assert.equal(withoutDistance.distanceBand, null);
+});
+
+test("general ranking is deterministic and never consults profile scores", () => {
+  const ranked = rankGeneralMarketplace([
+    { id: "far-quality", qualityScore: 1, distanceKm: 20, publishedAt: "2026-10-01T00:00:00Z", profileScores: [0] },
+    { id: "near-medium", qualityScore: 0.7, distanceKm: 4, publishedAt: "2026-09-01T00:00:00Z", profileScores: [1] },
+    { id: "near-medium-new", qualityScore: 0.7, distanceKm: 4, publishedAt: "2026-10-02T00:00:00Z", profileScores: [] },
+  ]);
+  assert.deepEqual(ranked.map(item => item.id), ["near-medium-new", "near-medium", "far-quality"]);
+  assert.ok(ranked.every(item => item.ranking.readsProfiles === false));
 });
