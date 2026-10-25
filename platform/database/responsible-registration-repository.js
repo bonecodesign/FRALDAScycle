@@ -71,7 +71,7 @@ export async function persistResponsibleRegistration(client, userId, input) {
 
   await client.query(
     `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-     VALUES($1,'account.responsible.registration.completed','user',$1::text,$2::jsonb)`,
+     VALUES($1::uuid,'account.responsible.registration.completed','user',$1::uuid::text,$2::jsonb)`,
     [userId, JSON.stringify({ truthVersion: input.truthDeclaration.version,
       termsVersion: input.terms.version, termsContentHash: input.terms.contentHash,
       addressId: address.id, addressVersion: address.version })],
