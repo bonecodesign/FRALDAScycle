@@ -30,8 +30,8 @@ test('exact address is private, stage-bound and makes cancellation support-only 
         VALUES($1,$2,'Casa fictícia','30110000','Rua Privada Fictícia','123','Apto 1','Centro','Belo Horizonte','MG')`,[ids.address,ids.buyer]);
       await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude)
         VALUES($1,$2,'Venda fictícia com endereço','Pacote fictício para entrega protegida.','infant','Pampers','Confort Sec','sealed',1,'sale',10000,'unavailable','Belo Horizonte','MG',-19.920000,-43.940000)`,[ids.listing,ids.seller]);
-      await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude,published_at,expires_at)
-        VALUES($1,$2,'Anúncio público fictício','Localização pública aproximada.','infant','Pampers','Confort Sec','sealed',1,'sale',9000,'published','Belo Horizonte','MG',-19.920000,-43.940000,now(),now()+interval '30 days')`,[ids.publicListing,ids.seller]);
+      await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude,published_at)
+        VALUES($1,$2,'Anúncio público fictício','Localização pública aproximada.','infant','Pampers','Confort Sec','sealed',1,'sale',9000,'published','Belo Horizonte','MG',-19.920000,-43.940000,now())`,[ids.publicListing,ids.seller]);
       await database.query("INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,$4,'paid',10000)",[ids.transaction,ids.listing,ids.buyer,ids.seller]);
       await database.query(`INSERT INTO payment_intents(id,transaction_id,buyer_id,idempotency_key,method,amount_cents,platform_fee_cents,delivery_fee_cents,seller_amount_cents,provider_reference,status)
         VALUES($1,$2,$3,'private-address-payment','pix',10000,800,0,9200,'private-address-provider','provider_pending')`,[ids.intent,ids.transaction,ids.buyer]);
@@ -54,7 +54,7 @@ test('exact address is private, stage-bound and makes cancellation support-only 
       await database.query("UPDATE shipments SET status='delivered' WHERE id=$1",[ids.shipment]);
       const expired=await fetch(addressUrl,{headers:headers('courier')});assert.equal(expired.status,404);assert.equal((await expired.json()).error.code,'shared_address_not_found');
       const marker=(await database.query('SELECT address_shared_at FROM transactions WHERE id=$1',[ids.transaction])).rows[0];assert.ok(marker.address_shared_at);
-      const audits=(await database.query("SELECT action,metadata FROM audit_events WHERE action IN('shipment.address.shared','shipment.address.read') AND entity_id=$1 ORDER BY id",[ids.shipment])).rows;assert.equal(audits.length,3);const serialized=JSON.stringify(audits);for(const secret of ['Rua Privada Fictícia','30110000','123','Apto 1'])assert.equal(serialized.includes(secret),false);
+      const audits=(await database.query("SELECT action,metadata FROM audit_events WHERE action IN('shipment.address.shared','shipment.address.read') AND entity_id=$1 ORDER BY id",[ids.shipment])).rows;assert.equal(audits.length,3);const serialized=JSON.stringify(audits);for(const secret of ['Rua Privada Fictícia','30110000','Apto 1'])assert.equal(serialized.includes(secret),false);for(const audit of audits){assert.equal('street' in audit.metadata,false);assert.equal('postal_code' in audit.metadata,false);assert.equal('number' in audit.metadata,false);assert.equal('complement' in audit.metadata,false);}
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });
