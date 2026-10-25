@@ -8,7 +8,7 @@ import { readMarketplaceCursor } from "../packages/contracts/marketplace-paginat
 const secret = "synthetic-marketplace-cursor-secret-0001";
 const clock = () => new Date("2026-10-25T12:00:00Z");
 const row = index => ({ id: `10000000-0000-4000-8000-${String(index).padStart(12,"0")}`,
-  distance_km: index, published_at: "2026-10-25T10:00:00Z", created_at: "2026-10-25T09:00:00Z" });
+  distance_km: index, general_score: Math.max(0, 1-index/100), published_at: "2026-10-25T10:00:00Z", created_at: "2026-10-25T09:00:00Z" });
 
 test("service fetches one extra row and emits a filter-bound next cursor", async () => {
   const calls = [];
@@ -25,6 +25,7 @@ test("service fetches one extra row and emits a filter-bound next cursor", async
       longitude: null, radiusKm: null, sort: "" }, now: clock(),
   });
   assert.equal(decoded.id, row(2).id);
+  assert.equal(decoded.generalScore, row(2).general_score);
   await service.searchPage({ category: "infant", kind: "sale", limit: "2", cursor: first.nextCursor });
   assert.equal(calls[1].cursor.id, row(2).id);
 });
@@ -33,10 +34,11 @@ test("repository applies keyset fields and immutable ordering without OFFSET", a
   let statement;
   const repository = createMarketplaceRepository({ async query(sql, values) { statement = { sql, values }; return { rows: [] }; } });
   await repository.searchPage({ category: "infant", limit: 25, cursor: {
-    id: row(2).id, distanceKm: 2, publishedAt: row(2).published_at, createdAt: row(2).created_at,
+    id: row(2).id, generalScore: row(2).general_score, distanceKm: 2,
+    publishedAt: row(2).published_at, createdAt: row(2).created_at,
   } });
   assert.match(statement.sql, /id>\$14::uuid/);
-  assert.match(statement.sql, /ORDER BY distance_km ASC NULLS LAST,published_at DESC,created_at DESC,id ASC/);
+  assert.match(statement.sql, /ORDER BY general_score DESC,published_at DESC,created_at DESC,id ASC/);
   assert.doesNotMatch(statement.sql, /OFFSET/);
   assert.equal(statement.values[9], true);
 });

@@ -13,7 +13,7 @@ export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
     l.package_condition, l.size, l.quantity,
     l.kind, l.price_cents, l.status, l.city, l.state, l.latitude, l.longitude,
-    l.published_at, l.created_at, u.id AS seller_id, u.display_name AS seller_name,
+    l.published_at, l.created_at, l.updated_at, u.id AS seller_id, u.display_name AS seller_name,
     l.institution_id, i.public_name AS institution_name`;
 
   return Object.freeze({
@@ -119,9 +119,14 @@ export function createMarketplaceRepository(database) {
       limit = 25, pilotBh = false, cursor = null,
     }) {
       const result = await database.query(
-        `WITH candidates AS (
+        `WITH raw_candidates AS (
           SELECT ${publicColumns},
             (SELECT storage_key FROM listing_media WHERE listing_id=l.id ORDER BY position LIMIT 1) AS cover_key,
+            (SELECT count(*)::integer FROM listing_media WHERE listing_id=l.id) AS photo_count,
+            EXISTS(SELECT 1 FROM manufacturer_catalog_entries mce
+              JOIN manufacturer_catalog_batches mcb ON mcb.id=mce.batch_id AND mcb.status='active'
+              WHERE lower(mce.category)=lower(l.category) AND lower(mce.brand)=lower(l.brand)
+                AND lower(mce.model)=lower(l.model) AND lower(mce.size)=lower(l.size)) AS official_catalog_match,
             CASE WHEN $5::double precision IS NULL THEN NULL ELSE
               6371 * acos(LEAST(1.0, GREATEST(-1.0,
                 sin(radians($5::double precision)) * sin(radians(l.latitude)) +
@@ -137,22 +142,37 @@ export function createMarketplaceRepository(database) {
             AND ($3::text IS NULL OR l.size=$3)
             AND ($4::text IS NULL OR l.category=$4)
             AND ($9::boolean=false OR (lower(l.city)='belo horizonte' AND l.state='MG'))
+        ), candidates AS (
+          SELECT *,
+            0.4 * ((CASE WHEN title<>'' THEN 1 ELSE 0 END + CASE WHEN description<>'' THEN 1 ELSE 0 END
+              + CASE WHEN kind IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN category<>'' THEN 1 ELSE 0 END
+              + CASE WHEN brand<>'' THEN 1 ELSE 0 END + CASE WHEN model<>'' THEN 1 ELSE 0 END
+              + CASE WHEN size<>'' THEN 1 ELSE 0 END + CASE WHEN quantity>0 THEN 1 ELSE 0 END
+              + CASE WHEN package_condition<>'' THEN 1 ELSE 0 END + CASE WHEN city<>'' THEN 1 ELSE 0 END
+              + CASE WHEN state<>'' THEN 1 ELSE 0 END + CASE WHEN kind<>'sale' OR price_cents>=0 THEN 1 ELSE 0 END) / 12.0)
+            + 0.3 * CASE WHEN photo_count>=3 THEN 1 WHEN photo_count=2 THEN 0.75 WHEN photo_count=1 THEN 0.5 ELSE 0 END
+            + 0.2 * CASE WHEN official_catalog_match THEN 1 ELSE 0 END
+            + 0.1 * CASE WHEN now()-updated_at<=interval '7 days' THEN 1 WHEN now()-updated_at<=interval '30 days' THEN 0.75
+              WHEN now()-updated_at<=interval '90 days' THEN 0.5 WHEN now()-updated_at<=interval '180 days' THEN 0.25 ELSE 0 END
+            AS quality_score
+          FROM raw_candidates
+        ), ranked AS (
+          SELECT *, round((0.5*quality_score + 0.5*CASE WHEN distance_km IS NULL THEN 0 WHEN distance_km<=5 THEN 1
+            WHEN distance_km<=15 THEN 2.0/3 WHEN distance_km<=30 THEN 1.0/3 ELSE 0 END)::numeric,6)::double precision AS general_score
+          FROM candidates
         )
-        SELECT * FROM candidates
+        SELECT * FROM ranked
         WHERE ($5::double precision IS NULL OR distance_km<=$7::double precision)
           AND ($10::boolean=false OR
-            ($11::double precision IS NOT NULL AND (distance_km IS NULL OR distance_km>$11 OR
-              (distance_km=$11 AND (published_at<$12::timestamptz OR
+            (general_score<$11::double precision OR
+              (general_score=$11::double precision AND (published_at<$12::timestamptz OR
                 (published_at=$12::timestamptz AND (created_at<$13::timestamptz OR
-                  (created_at=$13::timestamptz AND id>$14::uuid))))))) OR
-            ($11::double precision IS NULL AND distance_km IS NULL AND
-              (published_at<$12::timestamptz OR (published_at=$12::timestamptz AND
-                (created_at<$13::timestamptz OR (created_at=$13::timestamptz AND id>$14::uuid))))))
+                  (created_at=$13::timestamptz AND id>$14::uuid))))))
           )
-        ORDER BY distance_km ASC NULLS LAST,published_at DESC,created_at DESC,id ASC
+        ORDER BY general_score DESC,published_at DESC,created_at DESC,id ASC
         LIMIT $8`,
         [query,kind,size,category,latitude,longitude,radiusKm,limit,pilotBh,
-          Boolean(cursor),cursor?.distanceKm ?? null,cursor?.publishedAt ?? null,
+          Boolean(cursor),cursor?.generalScore ?? null,cursor?.publishedAt ?? null,
           cursor?.createdAt ?? null,cursor?.id ?? null],
       );
       return result.rows;

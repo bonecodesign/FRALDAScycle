@@ -3,7 +3,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 export const MARKETPLACE_CURSOR_TTL_SECONDS = 300;
 export const MARKETPLACE_CACHE_CONTROL = "private, max-age=300";
 
-const VERSION = 1;
+const VERSION = 2;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const allowedFilters = ["category", "kind", "latitude", "longitude", "query", "radiusKm", "size", "sort"];
 
@@ -20,12 +20,14 @@ function normalizedPosition(position) {
   const createdAt = new Date(position?.createdAt ?? position?.created_at ?? "");
   const distance = position?.distanceKm ?? position?.distance_km;
   const distanceKm = distance === null || distance === undefined ? null : Number(distance);
+  const generalScore = Number(position?.generalScore ?? position?.general_score);
   const id = String(position?.id ?? "");
   if (!UUID.test(id) || !Number.isFinite(publishedAt.getTime()) || !Number.isFinite(createdAt.getTime())
+      || !Number.isFinite(generalScore) || generalScore < 0 || generalScore > 1
       || distanceKm !== null && (!Number.isFinite(distanceKm) || distanceKm < 0)) {
     throw Object.assign(new Error("Invalid marketplace cursor position"), { code: "invalid_marketplace_cursor" });
   }
-  return { distanceKm, publishedAt: publishedAt.toISOString(), createdAt: createdAt.toISOString(), id };
+  return { generalScore, distanceKm, publishedAt: publishedAt.toISOString(), createdAt: createdAt.toISOString(), id };
 }
 
 export function createMarketplaceCursor({ secret, filters, position, now = new Date() }) {
@@ -63,9 +65,7 @@ export function readMarketplaceCursor(cursor, { secret, filters, now = new Date(
 export function compareMarketplacePositions(left, right) {
   const a = normalizedPosition(left);
   const b = normalizedPosition(right);
-  if (a.distanceKm === null && b.distanceKm !== null) return 1;
-  if (a.distanceKm !== null && b.distanceKm === null) return -1;
-  if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+  if (a.generalScore !== b.generalScore) return b.generalScore - a.generalScore;
   const published = Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
   if (published) return published;
   const created = Date.parse(b.createdAt) - Date.parse(a.createdAt);
