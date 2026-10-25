@@ -30,8 +30,8 @@ test('exact address is private, stage-bound and makes cancellation support-only 
         VALUES($1,$2,'Casa fictícia','30110000','Rua Privada Fictícia','123','Apto 1','Centro','Belo Horizonte','MG')`,[ids.address,ids.buyer]);
       await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude)
         VALUES($1,$2,'Venda fictícia com endereço','Pacote fictício para entrega protegida.','infant','Pampers','Confort Sec','sealed',1,'sale',10000,'unavailable','Belo Horizonte','MG',-19.920000,-43.940000)`,[ids.listing,ids.seller]);
-      await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude,published_at)
-        VALUES($1,$2,'Anúncio público fictício','Localização pública aproximada.','infant','Pampers','Confort Sec','sealed',1,'sale',9000,'published','Belo Horizonte','MG',-19.920000,-43.940000,now())`,[ids.publicListing,ids.seller]);
+      await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status,city,state,latitude,longitude,published_at,expires_at)
+        VALUES($1,$2,'Anúncio público fictício','Localização pública aproximada.','infant','Pampers','Confort Sec','sealed',1,'sale',9000,'published','Belo Horizonte','MG',-19.920000,-43.940000,now(),now()+interval '30 days')`,[ids.publicListing,ids.seller]);
       await database.query("INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,$4,'paid',10000)",[ids.transaction,ids.listing,ids.buyer,ids.seller]);
       await database.query(`INSERT INTO payment_intents(id,transaction_id,buyer_id,idempotency_key,method,amount_cents,platform_fee_cents,delivery_fee_cents,seller_amount_cents,provider_reference,status)
         VALUES($1,$2,$3,'private-address-payment','pix',10000,800,0,9200,'private-address-provider','provider_pending')`,[ids.intent,ids.transaction,ids.buyer]);
