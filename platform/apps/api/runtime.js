@@ -55,14 +55,25 @@ import { createPilotInvitationRepository } from '../../database/pilot-invitation
 import { createPilotInvitationService } from './pilot-invitation-service.js';
 import { createManufacturerCatalogRepository } from '../../database/manufacturer-catalog-repository.js';
 import { createManufacturerCatalogService } from './manufacturer-catalog-service.js';
+import { loadLegalTerms } from './legal-terms.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
   const database = createDatabase(config);
   await migrate(database);
+  const legalTerms = await loadLegalTerms();
+  if (config.responsibleRegistrationEnabled && legalTerms.status !== 'active') {
+    await database.close();
+    throw new Error('Responsible registration requires active, professionally approved Terms of Use');
+  }
   const authService = createAuthService(createAuthRepository(database), {
     sessionTtlSeconds: config.sessionTtlSeconds,
     pilotBh: config.pilotBh,
+    responsibleRegistration: {
+      enabled: config.responsibleRegistrationEnabled,
+      cpfHmacSecret: config.responsibleCpfHmacSecret,
+      terms: legalTerms,
+    },
   });
   const moderationRepository = createModerationRepository(database);
   const donationService = createDonationService(createDonationRepository(database,{pilotBh:config.pilotBh}));

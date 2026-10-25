@@ -1,3 +1,5 @@
+import { persistResponsibleRegistration } from "./responsible-registration-repository.js";
+
 async function reserveCodeRequest(client, identityHash) {
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`auth-code-request:${identityHash.toString('hex')}`]);
   const recent = (await client.query(
@@ -30,7 +32,7 @@ async function insertTokenAndNotification(client, { userId, kind, tokenHash, exp
 
 export function createAuthRepository(database) {
   return Object.freeze({
-    async createInvitedUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification, invitation }) {
+    async createInvitedUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification, invitation, responsibleRegistration = null }) {
       return database.transaction(async client => {
         const admitted = (await client.query(`SELECT id FROM pilot_invitations
           WHERE email=$1 AND token_hash=$2 AND consumed_at IS NULL AND revoked_at IS NULL
@@ -43,6 +45,7 @@ export function createAuthRepository(database) {
           [email, phone, passwordHash, displayName, adultDeclarationVersion],
         );
         const user = result.rows[0];
+        if (responsibleRegistration) await persistResponsibleRegistration(client, user.id, responsibleRegistration);
         if (verification.identityHash && !await reserveCodeRequest(client, verification.identityHash)) {
           throw Object.assign(new Error('Verification request limit reached'), { code: 'verification_request_limited' });
         }
@@ -59,7 +62,7 @@ export function createAuthRepository(database) {
       });
     },
 
-    async createUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification }) {
+    async createUserWithVerification({ email, passwordHash, displayName, phone = null, adultDeclarationVersion, verification, responsibleRegistration = null }) {
       return database.transaction(async client => {
         const result = await client.query(
           `INSERT INTO users (email, phone, password_hash, display_name, adult_declaration_version, adult_declared_at)
@@ -68,6 +71,7 @@ export function createAuthRepository(database) {
           [email, phone, passwordHash, displayName, adultDeclarationVersion],
         );
         const user = result.rows[0];
+        if (responsibleRegistration) await persistResponsibleRegistration(client, user.id, responsibleRegistration);
         if (verification.identityHash && !await reserveCodeRequest(client, verification.identityHash)) {
           throw Object.assign(new Error('Verification request limit reached'), { code: 'verification_request_limited' });
         }

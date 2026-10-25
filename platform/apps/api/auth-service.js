@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { createSessionToken, createVerificationCode, hashPassword, verifyPassword } from "./security.js";
-import { adultDeclaration } from "../../packages/contracts/account-age.js";
+import { ADULT_DECLARATION_VERSION, adultDeclaration } from "../../packages/contracts/account-age.js";
+import { validateResponsibleRegistration } from "../../packages/contracts/responsible-registration.js";
 import { pilotBhInvited } from "./pilot-bh.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -69,7 +70,11 @@ export function createAuthService(repository, {
   sessionTtlSeconds = 2_592_000,
   maxLoginAttempts = 5,
   pilotBh = null,
+  responsibleRegistration = Object.freeze({ enabled: false }),
 } = {}) {
+  if (responsibleRegistration.enabled && String(responsibleRegistration.cpfHmacSecret ?? "").length < 32) {
+    throw new Error("Responsible registration requires a dedicated CPF HMAC secret");
+  }
   async function pilotAccountAllowed(user) {
     if (!pilotBh?.enabled || pilotBhInvited(pilotBh, user?.email)) return true;
     return Boolean(user?.id && repository.pilotAdmissionForUser && await repository.pilotAdmissionForUser(user.id));
@@ -88,8 +93,22 @@ export function createAuthService(repository, {
   return Object.freeze({
     async register(input) {
       let age;
-      try { age = adultDeclaration({ confirmed: input?.adultConfirmed, version: input?.adultDeclarationVersion }); }
-      catch { throw new AuthError("adult_declaration_required", 422, "Confirme que você tem 18 anos ou mais."); }
+      let responsible = null;
+      if (responsibleRegistration.enabled) {
+        const validated = validateResponsibleRegistration(input?.responsible, {
+          expectedTerms: responsibleRegistration.terms,
+        });
+        const { cpf, ...safeResponsible } = validated;
+        responsible = Object.freeze({
+          ...safeResponsible,
+          cpfFingerprint: createHmac("sha256", responsibleRegistration.cpfHmacSecret).update(cpf).digest(),
+          terms: Object.freeze({ ...validated.terms, documents: responsibleRegistration.terms.documents }),
+        });
+        age = { version: ADULT_DECLARATION_VERSION };
+      } else {
+        try { age = adultDeclaration({ confirmed: input?.adultConfirmed, version: input?.adultDeclarationVersion }); }
+        catch { throw new AuthError("adult_declaration_required", 422, "Confirme que você tem 18 anos ou mais."); }
+      }
       const { email, phone } = contactFromInput(input);
       const staticInvitation = pilotBhInvited(pilotBh, email);
       const pilotInvitationToken = String(input?.pilotInvitationToken ?? "");
@@ -112,6 +131,7 @@ export function createAuthService(repository, {
           verification: { token, tokenHash: hashSessionToken(`account-verification:${challenge}.${token}`),
             identityHash: hashIdentifier(`account-verification-request:${email ? 'email' : 'phone'}:${email ?? phone}`),
             expiresAt: new Date(Date.now() + TOKEN_TTL_MS) },
+          ...(responsible ? { responsibleRegistration: responsible } : {}),
           ...(pilotBh?.enabled && !staticInvitation ? { invitation: { tokenHash: hashSessionToken(pilotInvitationToken) } } : {}),
         });
         return { user: publicUser(user), verificationRequired: true, challenge };
@@ -120,6 +140,9 @@ export function createAuthService(repository, {
         if (error?.code === 'pilot_invitation_unavailable') throw new AuthError('pilot_invitation_required', 403, 'Convite inválido, expirado, revogado ou já utilizado.');
         if (error?.code === "23505" && ['users_email_unique', 'users_phone_unique'].includes(error.constraint)) {
           throw new AuthError("account_exists", 409, "Já existe uma conta com esses dados.");
+        }
+        if (error?.code === "23505" && error.constraint === "users_cpf_fingerprint_unique") {
+          throw new AuthError("cpf_already_registered", 409, "Este CPF já está vinculado a uma conta.");
         }
         throw error;
       }

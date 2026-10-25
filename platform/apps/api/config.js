@@ -118,6 +118,14 @@ export function loadConfig(env = process.env) {
   if (nodeEnv === "production" && childProfilesRequested && !childProfilesActivationAcknowledged) {
     throw new Error("CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true is required with CHILD_PROFILES_ENABLED=true in production");
   }
+  const responsibleRegistrationEnabled = env.RESPONSIBLE_REGISTRATION_ENABLED === "true";
+  const responsibleCpfHmacSecret = env.RESPONSIBLE_CPF_HMAC_SECRET ?? null;
+  if (responsibleRegistrationEnabled && String(responsibleCpfHmacSecret ?? "").length < 32) {
+    throw new Error("RESPONSIBLE_CPF_HMAC_SECRET must contain at least 32 characters when responsible registration is enabled");
+  }
+  if (responsibleRegistrationEnabled && responsibleCpfHmacSecret === env.SESSION_SECRET) {
+    throw new Error("RESPONSIBLE_CPF_HMAC_SECRET must not reuse SESSION_SECRET");
+  }
   const courierEligibilityRequested = env.COURIER_ELIGIBILITY_ENABLED === "true";
   const courierEligibilityActivationAcknowledged = env.COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED === "true";
   if (nodeEnv === "production" && courierEligibilityRequested && !courierEligibilityActivationAcknowledged) {
@@ -159,6 +167,8 @@ export function loadConfig(env = process.env) {
     geocodingProviderUrl: geocoding.url,
     geocodingProviderSecret: geocoding.secret,
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
+    responsibleRegistrationEnabled,
+    responsibleCpfHmacSecret,
     courierEligibilityEnabled: courierEligibilityRequested &&
       (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
     courierClearanceRetentionPolicyVersion: courierRetentionPolicyVersion,
