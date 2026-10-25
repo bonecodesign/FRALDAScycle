@@ -3,6 +3,7 @@ import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 import { uploadListingMedia } from "/packages/contracts/marketplace-ui.js";
+import "/apps/app/responsible-profile-change.js";
 
 async function setupProfile() {
   const name = document.getElementById("profile-name");
