@@ -2,9 +2,10 @@ import { readJson } from "./body.js";
 import { authenticatedUser } from "./session.js";
 import { sendJson } from "./http.js";
 import { requireAdultDeclaration } from "./adult-declaration-service.js";
+import { MARKETPLACE_CACHE_CONTROL } from "../../packages/contracts/marketplace-pagination.js";
 
 export async function handleMarketplace(request, response, {
-  url, headers, requestId, marketplaceService, marketplaceProviders, authService, childProfileService,
+  url, headers, requestId, marketplaceService, marketplaceProviders, authService,
 }) {
   if (!url.pathname.startsWith("/v1/")) return false;
 
@@ -93,8 +94,10 @@ export async function handleMarketplace(request, response, {
   }
 
   if (request.method === "GET" && url.pathname === "/v1/listings") {
-    const items = await marketplaceService.search(Object.fromEntries(url.searchParams));
-    sendJson(response, 200, { items, requestId }, headers);
+    const result = marketplaceService.searchPage
+      ? await marketplaceService.searchPage(Object.fromEntries(url.searchParams))
+      : { items: await marketplaceService.search(Object.fromEntries(url.searchParams)), nextCursor: null, hasMore: false };
+    sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": MARKETPLACE_CACHE_CONTROL });
     return true;
   }
 
@@ -107,7 +110,6 @@ export async function handleMarketplace(request, response, {
   if (request.method === "POST" && url.pathname === "/v1/listings") {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
-    await childProfileService?.requireForNewOperation(user);
     const listing = await marketplaceService.create(user.id, await readJson(request));
     sendJson(response, listing.reused?200:201, { listing, requestId }, {...headers,'cache-control':'no-store'});
     return true;
@@ -133,7 +135,6 @@ export async function handleMarketplace(request, response, {
   if (request.method === "POST" && startTransaction) {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
-    await childProfileService?.requireForNewOperation(user);
     const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1]);
     sendJson(response, 201, { transaction, requestId }, headers);
     return true;

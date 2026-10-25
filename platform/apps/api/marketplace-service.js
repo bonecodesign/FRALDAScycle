@@ -6,6 +6,7 @@ import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
 import { hasScope, requireScope } from "./authorization.js";
 import { pilotBhLocation } from "./pilot-bh.js";
 import { internalSupportPolicy } from "../../packages/contracts/support-hours.js";
+import { createMarketplaceCursor, readMarketplaceCursor } from "../../packages/contracts/marketplace-pagination.js";
 
 export class MarketplaceError extends ServiceError {
   constructor(code, status, message) {
@@ -24,7 +25,9 @@ function validListingId(value) {
   }
 }
 
-export function createMarketplaceService(repository, moderation = null, mediaProvider = null, { pilotBh = null, now = () => new Date() } = {}) {
+export function createMarketplaceService(repository, moderation = null, mediaProvider = null, {
+  pilotBh = null, now = () => new Date(), cursorSecret = "development-marketplace-cursor-secret",
+} = {}) {
   async function verifyMedia(userId, mediaKeys) {
     if (!mediaProvider?.verifyListingMedia) throw new MarketplaceError("media_verification_unavailable", 503, "Não foi possível confirmar o processamento das fotos.");
     await mediaProvider.verifyListingMedia(userId, mediaKeys);
@@ -156,6 +159,47 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
         category, pilotBh: pilotBh?.enabled === true,
         kind, latitude, longitude, radiusKm, limit, offset,
       });
+    },
+
+    async searchPage(params = {}) {
+      const { limit, offset } = pagination(params, { defaultLimit: 24, maxLimit: 50 });
+      const kind = params.kind && KINDS.has(params.kind) ? params.kind : null;
+      const category = params.category ? String(params.category).trim() : null;
+      if (category && !CATEGORIES.has(category)) {
+        throw new MarketplaceError("invalid_category", 422, "Selecione uma categoria válida.");
+      }
+      const hasLatitude = params.latitude != null && params.latitude !== "";
+      const hasLongitude = params.longitude != null && params.longitude !== "";
+      if (hasLatitude !== hasLongitude) throw new MarketplaceError("invalid_location", 422, "Informe latitude e longitude juntas.");
+      const latitude = hasLatitude ? Number(params.latitude) : null;
+      const longitude = hasLongitude ? Number(params.longitude) : null;
+      if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+          || !Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+        throw new MarketplaceError("invalid_location", 422, "Informe coordenadas válidas.");
+      }
+      const radiusKm = latitude == null ? null : Math.min(200, Math.max(1, Number(params.radiusKm) || 25));
+      const query = String(params.query ?? "").trim();
+      const size = String(params.size ?? "").trim();
+      if (query.length > 120 || size.length > 40) throw new MarketplaceError("invalid_search", 422, "Revise os filtros informados.");
+      const filters = { query, size, category: category ?? "", kind: kind ?? "", latitude, longitude, radiusKm,
+        sort: String(params.sort ?? "") };
+      if (!params.cursor && offset > 0) {
+        const items = await repository.search({ query: query || null, size: size || null, category,
+          pilotBh: pilotBh?.enabled === true, kind, latitude, longitude, radiusKm, limit, offset });
+        return Object.freeze({ items, nextCursor: null, hasMore: items.length === limit, legacyOffset: true });
+      }
+      let cursor = null;
+      if (params.cursor) {
+        try { cursor = readMarketplaceCursor(params.cursor, { secret: cursorSecret, filters, now: now() }); }
+        catch (error) { throw new MarketplaceError(error.code ?? "invalid_marketplace_cursor", 400, "O cursor da busca é inválido ou expirou."); }
+      }
+      const rows = await repository.searchPage({ query: query || null, size: size || null, category,
+        pilotBh: pilotBh?.enabled === true, kind, latitude, longitude, radiusKm, limit: limit + 1, cursor });
+      const hasMore = rows.length > limit;
+      const items = rows.slice(0, limit);
+      const last = items.at(-1);
+      const nextCursor = hasMore && last ? createMarketplaceCursor({ secret: cursorSecret, filters, position: last, now: now() }) : null;
+      return Object.freeze({ items, nextCursor, hasMore });
     },
 
     async detail(id) {

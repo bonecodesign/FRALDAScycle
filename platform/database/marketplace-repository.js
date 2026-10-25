@@ -113,6 +113,51 @@ export function createMarketplaceRepository(database) {
       return result.rows;
     },
 
+    async searchPage({
+      query = null, kind = null, size = null, category = null,
+      latitude = null, longitude = null, radiusKm = null,
+      limit = 25, pilotBh = false, cursor = null,
+    }) {
+      const result = await database.query(
+        `WITH candidates AS (
+          SELECT ${publicColumns},
+            (SELECT storage_key FROM listing_media WHERE listing_id=l.id ORDER BY position LIMIT 1) AS cover_key,
+            CASE WHEN $5::double precision IS NULL THEN NULL ELSE
+              6371 * acos(LEAST(1.0, GREATEST(-1.0,
+                sin(radians($5::double precision)) * sin(radians(l.latitude)) +
+                cos(radians($5::double precision)) * cos(radians(l.latitude)) *
+                cos(radians(l.longitude) - radians($6::double precision))
+              )))
+            END AS distance_km
+          FROM listings l JOIN users u ON u.id=l.seller_id LEFT JOIN institutions i ON i.id=l.institution_id
+          WHERE l.status='published' AND l.expires_at IS NOT NULL AND l.expires_at>now()
+            AND (l.kind<>'donation' OR i.status='active')
+            AND ($1::text IS NULL OR to_tsvector('portuguese',l.title||' '||l.description) @@ plainto_tsquery('portuguese',$1))
+            AND ($2::transaction_kind IS NULL OR l.kind=$2)
+            AND ($3::text IS NULL OR l.size=$3)
+            AND ($4::text IS NULL OR l.category=$4)
+            AND ($9::boolean=false OR (lower(l.city)='belo horizonte' AND l.state='MG'))
+        )
+        SELECT * FROM candidates
+        WHERE ($5::double precision IS NULL OR distance_km<=$7::double precision)
+          AND ($10::boolean=false OR
+            ($11::double precision IS NOT NULL AND (distance_km IS NULL OR distance_km>$11 OR
+              (distance_km=$11 AND (published_at<$12::timestamptz OR
+                (published_at=$12::timestamptz AND (created_at<$13::timestamptz OR
+                  (created_at=$13::timestamptz AND id>$14::uuid))))))) OR
+            ($11::double precision IS NULL AND distance_km IS NULL AND
+              (published_at<$12::timestamptz OR (published_at=$12::timestamptz AND
+                (created_at<$13::timestamptz OR (created_at=$13::timestamptz AND id>$14::uuid))))))
+          )
+        ORDER BY distance_km ASC NULLS LAST,published_at DESC,created_at DESC,id ASC
+        LIMIT $8`,
+        [query,kind,size,category,latitude,longitude,radiusKm,limit,pilotBh,
+          Boolean(cursor),cursor?.distanceKm ?? null,cursor?.publishedAt ?? null,
+          cursor?.createdAt ?? null,cursor?.id ?? null],
+      );
+      return result.rows;
+    },
+
     async detail(id) {
       const result = await database.query(
         `SELECT ${publicColumns},

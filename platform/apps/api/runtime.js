@@ -71,7 +71,8 @@ export async function startRuntime(config = null) {
   const moderationService = createModerationService(moderationRepository);
   const communicationsService = createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
   const marketplaceProviders = createMarketplaceProviders(config);
-  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository,marketplaceProviders,{pilotBh:config.pilotBh});
+  const marketplaceService = createMarketplaceService(createMarketplaceRepository(database),moderationRepository,marketplaceProviders,
+    {pilotBh:config.pilotBh,cursorSecret:config.sessionSecret});
   const premiumService = createPremiumService(createPremiumRepository(database));
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database),{pilotBh:config.pilotBh});
