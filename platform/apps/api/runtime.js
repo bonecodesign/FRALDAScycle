@@ -56,6 +56,7 @@ import { createPilotInvitationService } from './pilot-invitation-service.js';
 import { createManufacturerCatalogRepository } from '../../database/manufacturer-catalog-repository.js';
 import { createManufacturerCatalogService } from './manufacturer-catalog-service.js';
 import { loadLegalTerms } from './legal-terms.js';
+import { createPostalCodeService } from './postal-code-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -73,6 +74,7 @@ export async function startRuntime(config = null) {
       enabled: config.responsibleRegistrationEnabled,
       cpfHmacSecret: config.responsibleCpfHmacSecret,
       terms: legalTerms,
+      postalCodeService: createPostalCodeService(),
     },
   });
   const moderationRepository = createModerationRepository(database);

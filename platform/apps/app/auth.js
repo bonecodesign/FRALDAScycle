@@ -1,6 +1,7 @@
 import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest, ApiError } from "/packages/contracts/api-client.js";
+import { setupResponsibleRegistration } from "/apps/app/responsible-registration.js";
 
 const APP_ICONS = {
   home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5M9 20v-6h6v6"/>',
@@ -300,4 +301,5 @@ function setupAuthValidation() {
 setupAuthValidation();
 setupAppIconography();
 setupSyntheticDataDisclosure();
+void setupResponsibleRegistration({ apiRequest, ApiError, notify });
 

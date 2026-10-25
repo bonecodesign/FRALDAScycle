@@ -8,6 +8,8 @@ import { RESPONSIBLE_TRUTH_DECLARATION_VERSION } from "../packages/contracts/res
 const secret = "responsible-cpf-hmac-test-secret-0001";
 const contentHash = "c".repeat(64);
 const terms = { status: "active", version: "terms-2026-10", contentHash, documents: [{ name: "terms.md", content: "approved" }] };
+const postalCodeService = { async lookup() { return { evidence: payload().responsible.postalCodeEvidence }; } };
+const responsibleOptions = { enabled: true, cpfHmacSecret: secret, terms, postalCodeService };
 
 function payload() {
   return {
@@ -29,7 +31,7 @@ test("cadastro ativo envia somente HMAC do CPF e evidências confiadas ao reposi
     return { id: "user-1", email: input.email, phone: null, display_name: input.displayName,
       role: "customer", email_verified_at: null, adult_declared_at: new Date(), adult_declaration_version: input.adultDeclarationVersion };
   } };
-  const service = createAuthService(repository, { responsibleRegistration: { enabled: true, cpfHmacSecret: secret, terms } });
+  const service = createAuthService(repository, { responsibleRegistration: responsibleOptions });
   const result = await service.register(payload());
   assert.equal(result.verificationRequired, true);
   assert.equal(saved.responsibleRegistration.cpf, undefined);
@@ -43,7 +45,7 @@ test("Termos em rascunho bloqueiam cadastro antes de qualquer escrita", async ()
   let writes = 0;
   const repository = { async createUserWithVerification() { writes += 1; } };
   const service = createAuthService(repository, {
-    responsibleRegistration: { enabled: true, cpfHmacSecret: secret, terms: { ...terms, status: "draft" } },
+    responsibleRegistration: { ...responsibleOptions, terms: { ...terms, status: "draft" } },
   });
   await assert.rejects(service.register(payload()), error => error.code === "active_terms_unavailable" && error.status === 503);
   assert.equal(writes, 0);
@@ -64,7 +66,7 @@ test("colisão da impressão do CPF retorna conflito específico sem revelar o C
   const repository = { async createUserWithVerification() {
     throw Object.assign(new Error("unique"), { code: "23505", constraint: "users_cpf_fingerprint_unique" });
   } };
-  const service = createAuthService(repository, { responsibleRegistration: { enabled: true, cpfHmacSecret: secret, terms } });
+  const service = createAuthService(repository, { responsibleRegistration: responsibleOptions });
   await assert.rejects(service.register(payload()), error =>
     error.code === "cpf_already_registered" && error.status === 409 && !error.message.includes("529"));
 });

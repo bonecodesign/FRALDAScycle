@@ -133,6 +133,20 @@ export function createApiServer({
         return;
       }
 
+      if (request.method === "GET" && url.pathname === "/v1/auth/registration-config") {
+        sendJson(response, 200, { ...authService.registrationConfiguration(), requestId: id }, headers);
+        return;
+      }
+
+      const postalCodeMatch = request.method === "GET"
+        ? url.pathname.match(/^\/v1\/auth\/registration-postal-code\/(\d{5}-?\d{3})$/)
+        : null;
+      if (postalCodeMatch) {
+        const result = await authService.lookupRegistrationPostalCode(postalCodeMatch[1]);
+        sendJson(response, 200, { ...result, requestId: id }, headers);
+        return;
+      }
+
       if (request.method === "POST" && url.pathname === "/v1/auth/register") {
         const result = await authService.register(await readJson(request));
         sendJson(response, 201, { ...result, requestId: id }, headers);
@@ -234,7 +248,7 @@ export function createApiServer({
         url, headers, requestId: id, authService, manufacturerCatalogService,
       })) return;
 
-      if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService,childProfileService})) return;
+      if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;
       if (await handleReviewModeration(request,response,{url,headers,requestId:id,authService,reviewModerationService})) return;
       if (await handlePrivacyRequests(request,response,{url,headers,requestId:id,authService,privacyRequestService})) return;
@@ -261,10 +275,10 @@ export function createApiServer({
         url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, marketplaceProviders,
       })) return;
 
-      if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService,childProfileService})) return;
+      if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
 
       if (await handleMarketplace(request, response, {
-        url, headers, requestId: id, marketplaceService, marketplaceProviders, authService, childProfileService,
+        url, headers, requestId: id, marketplaceService, marketplaceProviders, authService,
       })) return;
 
       sendJson(response, 404, {

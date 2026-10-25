@@ -75,6 +75,9 @@ export function createAuthService(repository, {
   if (responsibleRegistration.enabled && String(responsibleRegistration.cpfHmacSecret ?? "").length < 32) {
     throw new Error("Responsible registration requires a dedicated CPF HMAC secret");
   }
+  if (responsibleRegistration.enabled && typeof responsibleRegistration.postalCodeService?.lookup !== "function") {
+    throw new Error("Responsible registration requires a server-side postal code service");
+  }
   async function pilotAccountAllowed(user) {
     if (!pilotBh?.enabled || pilotBhInvited(pilotBh, user?.email)) return true;
     return Boolean(user?.id && repository.pilotAdmissionForUser && await repository.pilotAdmissionForUser(user.id));
@@ -95,7 +98,11 @@ export function createAuthService(repository, {
       let age;
       let responsible = null;
       if (responsibleRegistration.enabled) {
-        const validated = validateResponsibleRegistration(input?.responsible, {
+        const postal = await responsibleRegistration.postalCodeService.lookup(input?.responsible?.address?.postalCode);
+        const validated = validateResponsibleRegistration({
+          ...input?.responsible,
+          postalCodeEvidence: postal.evidence,
+        }, {
           expectedTerms: responsibleRegistration.terms,
         });
         const { cpf, ...safeResponsible } = validated;
@@ -146,6 +153,21 @@ export function createAuthService(repository, {
         }
         throw error;
       }
+    },
+
+    registrationConfiguration() {
+      return Object.freeze({
+        enabled: responsibleRegistration.enabled,
+        truthDeclarationVersion: "FC-RESPONSIBLE-1",
+        terms: responsibleRegistration.enabled && responsibleRegistration.terms?.status === "active"
+          ? Object.freeze({ version: responsibleRegistration.terms.version, contentHash: responsibleRegistration.terms.contentHash })
+          : null,
+      });
+    },
+
+    async lookupRegistrationPostalCode(postalCode) {
+      if (!responsibleRegistration.enabled) throw new AuthError("responsible_registration_unavailable", 404, "Cadastro indisponível.");
+      return responsibleRegistration.postalCodeService.lookup(postalCode);
     },
 
     async login(input, context = {}) {
