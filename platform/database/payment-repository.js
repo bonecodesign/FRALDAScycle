@@ -1,5 +1,11 @@
 export function createPaymentRepository(database) {
   return Object.freeze({
+    async billingIdentity(userId) {
+      const result = await database.query(`SELECT cpf_fingerprint FROM users
+        WHERE id=$1 AND disabled_at IS NULL AND responsible_registration_completed_at IS NOT NULL`, [userId]);
+      return result.rows[0] ?? null;
+    },
+
     async context({ buyerId, transactionId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(

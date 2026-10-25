@@ -121,7 +121,9 @@ export async function startRuntime(config = null) {
     })
     : null;
   const paymentProvider = createPaymentProvider(config);
-  const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider);
+  const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider, {
+    cpfHmacSecret: config.responsibleCpfHmacSecret,
+  });
   const logisticsProvider = createLogisticsProvider(config);
   const logisticsRepository = createLogisticsRepository(database,{pilotBh:config.pilotBh});
   const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh});

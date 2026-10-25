@@ -33,11 +33,40 @@ async function loadPaymentSdk(tokenization){
 }
 
 function setupRealPayments(){
-  const submit=document.getElementById('payment-submit');const detail=document.getElementById('payment-method-detail');const error=document.getElementById('payment-error');if(!submit||!detail||!error)return;
-  submit.addEventListener('click',async event=>{const method=submit.dataset.method;if(method==='wallet')return;event.preventDefault();event.stopImmediatePropagation();const transactionId=sessionStorage.getItem('fc.activeTransactionId');if(!transactionId){error.textContent='Retorne à negociação e selecione o pedido que deseja pagar.';return}
+  const submit=document.getElementById('payment-submit');
+  const detail=document.getElementById('payment-method-detail');
+  const error=document.getElementById('payment-error');
+  if(!submit||!detail||!error)return;
+  const ensureBillingCpf=()=>{
+    if(submit.dataset.method!=='credit'||detail.querySelector('[name="billingCpf"]'))return;
+    const wrapper=document.createElement('div');wrapper.className='form-group billing-identity';
+    wrapper.innerHTML='<label>CPF da cobrança</label><input class="input" name="billingCpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00"><small>Deve coincidir com o CPF cadastrado. Isso não comprova a titularidade do cartão.</small>';
+    detail.append(wrapper);
+  };
+  document.querySelectorAll('input[name="pay"]').forEach(option=>option.addEventListener('change',ensureBillingCpf));
+  ensureBillingCpf();
+  submit.addEventListener('click',async event=>{
+    const method=submit.dataset.method;if(method==='wallet')return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const transactionId=sessionStorage.getItem('fc.activeTransactionId');
+    if(!transactionId){error.textContent='Retorne à negociação e selecione o pedido que deseja pagar.';return}
     const original=submit.textContent;submit.disabled=true;submit.innerHTML='<span class="inline-spinner"></span> Preparando pagamento...';error.textContent='';
-    try{let paymentMethodToken; if(method==='credit'){const fields=[...detail.querySelectorAll('input')];if(fields.length!==3||fields.some(field=>!field.value.trim()))throw new Error('Preencha todos os dados do cartão.');const session=await apiRequest('/v1/payments/tokenization-sessions',{method:'POST'});await loadPaymentSdk(session.tokenization);const sdk=window.FraldaCyclePaymentProvider;if(!sdk?.tokenizeCard)throw new Error('Tokenização de cartão indisponível.');const tokenized=await sdk.tokenizeCard({clientToken:session.tokenization.clientToken,pan:fields[0].value,expires:fields[1].value,securityCode:fields[2].value});if(typeof tokenized?.token!=='string')throw new Error('Não foi possível tokenizar o cartão.');paymentMethodToken=tokenized.token}
-      const keyName='fc.paymentIdempotency.'+transactionId;const idempotencyKey=sessionStorage.getItem(keyName)||crypto.randomUUID();sessionStorage.setItem(keyName,idempotencyKey);const result=await apiRequest('/v1/payments/intents',{method:'POST',body:{transactionId,idempotencyKey,method,paymentMethodToken,deliveryRequested:sessionStorage.getItem('fc.deliveryRequested')==='true'}});sessionStorage.setItem('fc.paymentIntentId',result.intent.id);window.location.assign('/app/payment-success')
+    try{
+      let paymentMethodToken,billingCpf;
+      if(method==='credit'){
+        ensureBillingCpf();
+        const fields=[...detail.querySelectorAll('input:not([name="billingCpf"])')];
+        const cpfField=detail.querySelector('[name="billingCpf"]');
+        if(fields.length!==3||fields.some(field=>!field.value.trim())||!cpfField?.value.trim())throw new Error('Preencha os dados do cartão e o CPF da cobrança.');
+        const session=await apiRequest('/v1/payments/tokenization-sessions',{method:'POST'});await loadPaymentSdk(session.tokenization);
+        const sdk=window.FraldaCyclePaymentProvider;if(!sdk?.tokenizeCard)throw new Error('Tokenização de cartão indisponível.');
+        const tokenized=await sdk.tokenizeCard({clientToken:session.tokenization.clientToken,pan:fields[0].value,expires:fields[1].value,securityCode:fields[2].value});
+        if(typeof tokenized?.token!=='string')throw new Error('Não foi possível tokenizar o cartão.');
+        paymentMethodToken=tokenized.token;billingCpf=cpfField.value;
+      }
+      const keyName='fc.paymentIdempotency.'+transactionId;const idempotencyKey=sessionStorage.getItem(keyName)||crypto.randomUUID();sessionStorage.setItem(keyName,idempotencyKey);
+      const result=await apiRequest('/v1/payments/intents',{method:'POST',body:{transactionId,idempotencyKey,method,paymentMethodToken,billingCpf,deliveryRequested:sessionStorage.getItem('fc.deliveryRequested')==='true'}});
+      sessionStorage.setItem('fc.paymentIntentId',result.intent.id);window.location.assign('/app/payment-success');
     }catch(cause){error.textContent=cause.message||'Não foi possível concluir o pagamento.';submit.disabled=false;submit.textContent=original}
   },true)
 }

@@ -1,5 +1,6 @@
 import { ServiceError } from "./service-error.js";
 import { saleSplit } from "../../packages/contracts/commercial-rules.js";
+import { verifyBillingCpf } from "../../packages/contracts/payment-billing-identity.js";
 export class PaymentError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -8,6 +9,8 @@ export class PaymentError extends ServiceError {
 
 const METHODS = new Set(["pix", "credit"]);
 const PAYABLE_STATUSES = new Set(["initiated", "payment_pending"]);
+const INTENT_FIELDS = new Set(["transactionId", "idempotencyKey", "method", "paymentMethodToken", "billingCpf", "deliveryRequested"]);
+const RAW_CARD_FIELDS = new Set(["cardNumber", "cvv", "pan", "securityCode", "expiry", "expires"]);
 
 function publicIntent(intent) {
   return {
@@ -23,7 +26,7 @@ function publicIntent(intent) {
   };
 }
 
-export function createPaymentService(repository, provider) {
+export function createPaymentService(repository, provider, { cpfHmacSecret = null } = {}) {
   return Object.freeze({
     async createCase(requesterId, intentId, kind, input) {
       if (!["refund", "dispute"].includes(kind)) throw new PaymentError("invalid_payment_case", 422, "Solicitação financeira inválida.");
@@ -73,6 +76,15 @@ export function createPaymentService(repository, provider) {
     },
 
     async createIntent(buyerId, input) {
+      if (!input || typeof input !== "object" || Array.isArray(input)) {
+        throw new PaymentError("invalid_payment_payload", 422, "Dados de pagamento inválidos.");
+      }
+      if (Object.keys(input).some(key => RAW_CARD_FIELDS.has(key))) {
+        throw new PaymentError("raw_card_data_forbidden", 422, "Dados brutos de cartão não são aceitos.");
+      }
+      if (Object.keys(input).some(key => !INTENT_FIELDS.has(key))) {
+        throw new PaymentError("invalid_payment_payload", 422, "Dados de pagamento inválidos.");
+      }
       const transactionId = String(input?.transactionId ?? "");
       const idempotencyKey = String(input?.idempotencyKey ?? "").trim();
       const method = String(input?.method ?? "");
@@ -80,9 +92,16 @@ export function createPaymentService(repository, provider) {
       if (!/^[0-9a-f-]{36}$/i.test(transactionId)) throw new PaymentError("invalid_transaction", 422, "Transação inválida.");
       if (idempotencyKey.length < 16 || idempotencyKey.length > 128) throw new PaymentError("invalid_idempotency_key", 422, "Chave de idempotência inválida.");
       if (!METHODS.has(method)) throw new PaymentError("invalid_payment_method", 422, "Método de pagamento inválido.");
-      if (input?.cardNumber || input?.cvv) throw new PaymentError("raw_card_data_forbidden", 422, "Dados brutos de cartão não são aceitos.");
       if (method === "credit" && !paymentMethodToken) {
         throw new PaymentError("payment_token_required", 422, "Tokenize o cartão antes de continuar.");
+      }
+      let billingCpf = null;
+      if (method === "credit") {
+        const identity = await repository.billingIdentity?.(buyerId);
+        if (!identity?.cpf_fingerprint) {
+          throw new PaymentError("billing_identity_unavailable", 409, "Conclua o cadastro do responsável antes de pagar com cartão.");
+        }
+        billingCpf = verifyBillingCpf(input?.billingCpf, identity.cpf_fingerprint, cpfHmacSecret);
       }
 
       const context = await repository.context({ buyerId, transactionId, idempotencyKey });
@@ -109,6 +128,7 @@ export function createPaymentService(repository, provider) {
       try {
         const remote = await provider.createIntent({
           id: created.id, idempotencyKey, method, paymentMethodToken, amountCents,
+          billingCpf,
           platformFeeCents, deliveryFeeCents, sellerAmountCents,
         });
         const attached = await repository.attachProvider({

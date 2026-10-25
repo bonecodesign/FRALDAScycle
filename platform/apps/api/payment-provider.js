@@ -124,6 +124,7 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
             currency: "BRL",
             method: intent.method,
             paymentMethodToken: intent.paymentMethodToken,
+            ...(intent.method === "credit" ? { customer: { taxId: intent.billingCpf } } : {}),
             split: {
               platformCents: intent.platformFeeCents,
               deliveryCents: intent.deliveryFeeCents,
