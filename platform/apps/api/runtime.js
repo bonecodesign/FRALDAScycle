@@ -57,6 +57,8 @@ import { createManufacturerCatalogRepository } from '../../database/manufacturer
 import { createManufacturerCatalogService } from './manufacturer-catalog-service.js';
 import { loadLegalTerms } from './legal-terms.js';
 import { createPostalCodeService } from './postal-code-service.js';
+import { createResponsibleProfileChangeRepository } from '../../database/responsible-profile-change-repository.js';
+import { createResponsibleProfileChangeService } from './responsible-profile-change-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -95,6 +97,9 @@ export async function startRuntime(config = null) {
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
+  const responsibleProfileChangeService = createResponsibleProfileChangeService(
+    createResponsibleProfileChangeRepository(database),
+  );
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -153,6 +158,7 @@ export async function startRuntime(config = null) {
     courierEligibilityService,
     pilotInvitationService,
     manufacturerCatalogService,
+    responsibleProfileChangeService,
     telemetry,
   });
 

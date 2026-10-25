@@ -5,7 +5,7 @@ const exactKeys = (value, keys) => value && typeof value === 'object' && !Array.
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 const QUIET_HOURS_EXEMPT = new Set([
-  'email_verification', 'password_recovery', 'admin_login_mfa', 'security_alert',
+  'email_verification', 'password_recovery', 'admin_login_mfa', 'responsible_profile_change', 'security_alert',
   'payment_status', 'payment_dispute', 'transaction_cancellation', 'delivery_exception',
 ]);
 const QUIET_HOURS_DELAYABLE = new Set(['payment_reminder', 'delivery_reminder', 'general_reminder']);

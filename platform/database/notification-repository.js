@@ -40,7 +40,7 @@ export function createNotificationRepository(database) {
           `UPDATE notification_outbox n SET status='cancelled', locked_at=NULL, claim_token=NULL,
              payload=payload-'token', last_error='authentication code unavailable'
            WHERE status IN ('pending','failed') AND (attempts>=8 OR
-             (kind IN ('email_verification','password_recovery','admin_login_mfa','admin_invitation') AND NOT (payload ? 'token')) OR
+             (kind IN ('email_verification','password_recovery','admin_login_mfa','admin_invitation','responsible_profile_change') AND NOT (payload ? 'token')) OR
              (kind='password_recovery' AND auth_token_id IS NULL) OR
              (auth_token_id IS NOT NULL AND NOT EXISTS (
                SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id
@@ -86,13 +86,13 @@ export function createNotificationRepository(database) {
       const result = await database.query(
         `SELECT 1 FROM notification_outbox n WHERE n.id=$1 AND n.status='processing'
          AND n.claim_token=$2 AND n.locked_at>now()-interval '10 minutes'
-         AND ((n.kind IN ('email_verification','password_recovery','admin_login_mfa','admin_invitation') AND n.payload ? 'token')
-           OR (n.kind IN ('payment_reminder','delivery_reminder','general_reminder','account_lifecycle_notice')
+         AND ((n.kind IN ('email_verification','password_recovery','admin_login_mfa','admin_invitation','responsible_profile_change') AND n.payload ? 'token')
+           OR (n.kind IN ('payment_reminder','delivery_reminder','general_reminder')
              AND EXISTS (SELECT 1 FROM users recipient_owner
                WHERE recipient_owner.id=n.recipient_user_id AND recipient_owner.disabled_at IS NULL
                  AND ((n.payload->>'channel'='email' AND recipient_owner.email_verified_at IS NOT NULL
                        AND n.recipient=recipient_owner.email)
-                   OR (n.payload->>'channel'='sms' AND n.kind<>'account_lifecycle_notice' AND recipient_owner.phone_verified_at IS NOT NULL
+                   OR (n.payload->>'channel'='sms' AND recipient_owner.phone_verified_at IS NOT NULL
                        AND n.recipient=recipient_owner.phone)))))
          AND ((n.auth_token_id IS NULL AND n.kind<>'password_recovery') OR EXISTS (
            SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id

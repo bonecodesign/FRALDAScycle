@@ -27,6 +27,7 @@ import { handleExchanges } from './exchange-handler.js';
 import { handleCourierEligibility } from './courier-eligibility-handler.js';
 import { handlePilotInvitations } from './pilot-invitation-handler.js';
 import { handleManufacturerCatalog } from './manufacturer-catalog-handler.js';
+import { handleResponsibleProfileChange } from './responsible-profile-change-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -63,6 +64,7 @@ export function createApiServer({
   courierEligibilityService = null,
   pilotInvitationService = null,
   manufacturerCatalogService = null,
+  responsibleProfileChangeService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -246,6 +248,9 @@ export function createApiServer({
       })) return;
       if (await handleManufacturerCatalog(request, response, {
         url, headers, requestId: id, authService, manufacturerCatalogService,
+      })) return;
+      if (await handleResponsibleProfileChange(request, response, {
+        url, headers, requestId: id, authService, responsibleProfileChangeService,
       })) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
