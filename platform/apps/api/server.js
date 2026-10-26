@@ -28,6 +28,8 @@ import { handleCourierEligibility } from './courier-eligibility-handler.js';
 import { handlePilotInvitations } from './pilot-invitation-handler.js';
 import { handleManufacturerCatalog } from './manufacturer-catalog-handler.js';
 import { handleResponsibleProfileChange } from './responsible-profile-change-handler.js';
+import { handleAccountStepUp } from './account-step-up-handler.js';
+import { handleAccountClosure } from './account-closure-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -65,6 +67,8 @@ export function createApiServer({
   pilotInvitationService = null,
   manufacturerCatalogService = null,
   responsibleProfileChangeService = null,
+  accountStepUpService = null,
+  accountClosureService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -251,6 +255,12 @@ export function createApiServer({
       })) return;
       if (await handleResponsibleProfileChange(request, response, {
         url, headers, requestId: id, authService, responsibleProfileChangeService,
+      })) return;
+      if (await handleAccountStepUp(request, response, {
+        url, headers, requestId: id, authService, accountStepUpService,
+      })) return;
+      if (await handleAccountClosure(request, response, {
+        url, headers, requestId: id, authService, accountClosureService,
       })) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;

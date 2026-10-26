@@ -1,0 +1,12 @@
+import { createHash } from 'node:crypto';
+import { createSessionToken,createVerificationCode,verifyPassword } from './security.js';
+import { ServiceError } from './service-error.js';
+
+const TTL_MS=10*60*1000,PURPOSES=new Set(['data_export','account_closure']);
+const digest=value=>createHash('sha256').update(value).digest();
+const fail=(code,status,message)=>new ServiceError(code,status,message);
+
+export function createAccountStepUpService(repository,{clock=Date.now}={}){return Object.freeze({
+  async request(actor,input){if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['password','purpose'].includes(key))||!PURPOSES.has(input.purpose))throw fail('invalid_account_step_up',422,'Informe a senha e a finalidade da confirmação.');const account=await repository.account(actor.id);if(!account||account.disabled_at)throw fail('account_unavailable',404,'Conta indisponível.');if(!account.email||!account.email_verified_at)throw fail('verified_email_required',409,'É necessário um e-mail verificado.');if(!await verifyPassword(String(input.password??''),account.password_hash))throw fail('invalid_credentials',401,'Senha inválida.');const challenge=createSessionToken(),code=createVerificationCode(),expiresAt=new Date(clock()+TTL_MS);await repository.issue({userId:actor.id,purpose:input.purpose,challengeHash:digest(`account-step-up:${input.purpose}:${challenge}`),tokenHash:digest(`account-step-up:${input.purpose}:${challenge}.${code}`),code,expiresAt});return Object.freeze({accepted:true,challenge,purpose:input.purpose,expiresAt});},
+  async confirm(actor,input){if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['challenge','code','purpose'].includes(key))||!PURPOSES.has(input.purpose)||!/^[A-Za-z0-9_-]{43}$/.test(String(input.challenge??''))||!/^\d{6}$/.test(String(input.code??'')))throw fail('invalid_account_step_up_code',422,'Código inválido ou expirado.');const result=await repository.confirm({userId:actor.id,purpose:input.purpose,challengeHash:digest(`account-step-up:${input.purpose}:${input.challenge}`),tokenHash:digest(`account-step-up:${input.purpose}:${input.challenge}.${input.code}`)});if(result?.limited)throw fail('too_many_attempts',429,'Muitas tentativas. Solicite um novo código.');if(!result)throw fail('invalid_account_step_up_code',422,'Código inválido ou expirado.');return Object.freeze(result);},
+});}
