@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 const fail = (code,status,message) => Object.assign(new Error(message), {code,status});
 export async function newOperationsAllowed(client,userId) {
-  const result=await client.query(`SELECT EXISTS(SELECT 1 FROM moderation_decisions WHERE owner_id=$1 AND surface='account' AND status<>'overturned' AND suspended_until>clock_timestamp()) AS suspended`,[userId]);
-  return result.rows[0]?.suspended===false;
+  const result=await client.query(`SELECT
+    EXISTS(SELECT 1 FROM moderation_decisions WHERE owner_id=$1 AND surface='account' AND status<>'overturned' AND suspended_until>clock_timestamp()) AS suspended,
+    EXISTS(SELECT 1 FROM account_operation_restrictions WHERE user_id=$1 AND reason='closure_pending') AS closure_pending`,[userId]);
+  return result.rows[0]?.suspended===false&&result.rows[0]?.closure_pending!==true;
 }
 export async function requireNewOperations(client,userId) {
   if(!await newOperationsAllowed(client,userId)) throw fail('new_operations_suspended',403,'Novas operações estão suspensas. Acompanhamento das operações existentes e suporte continuam disponíveis.');

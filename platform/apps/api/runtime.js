@@ -59,6 +59,10 @@ import { loadLegalTerms } from './legal-terms.js';
 import { createPostalCodeService } from './postal-code-service.js';
 import { createResponsibleProfileChangeRepository } from '../../database/responsible-profile-change-repository.js';
 import { createResponsibleProfileChangeService } from './responsible-profile-change-service.js';
+import { createAccountStepUpRepository } from '../../database/account-step-up-repository.js';
+import { createAccountStepUpService } from './account-step-up-service.js';
+import { createAccountClosureRepository } from '../../database/account-closure-repository.js';
+import { createAccountClosureService } from './account-closure-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -99,6 +103,11 @@ export async function startRuntime(config = null) {
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
   const responsibleProfileChangeService = createResponsibleProfileChangeService(
     createResponsibleProfileChangeRepository(database),
+  );
+  const accountStepUpRepository = createAccountStepUpRepository(database);
+  const accountStepUpService = createAccountStepUpService(accountStepUpRepository);
+  const accountClosureService = createAccountClosureService(
+    createAccountClosureRepository(database,{stepUpRepository:accountStepUpRepository}),
   );
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
@@ -161,6 +170,8 @@ export async function startRuntime(config = null) {
     pilotInvitationService,
     manufacturerCatalogService,
     responsibleProfileChangeService,
+    accountStepUpService,
+    accountClosureService,
     telemetry,
   });
 

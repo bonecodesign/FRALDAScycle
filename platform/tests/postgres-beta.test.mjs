@@ -60,10 +60,10 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM terms_acceptances')).rows[0].count, 0);
       await assert.rejects(database.transaction(client => client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
         VALUES($1,'beta.old_audit_reproducer','user',$1,'{}'::jsonb)`, [user])), error => error.code === '42P08');
-      await service.saveMarketingPreferences(user, { email: true, sms: false, push: false });
-      assert.equal((await service.marketingPreferences(user)).email, true);
-      await service.saveMarketingPreferences(user, { email: false, sms: false, push: false });
-      assert.equal((await service.marketingPreferences(user)).email, false);
+      await service.saveMarketingPreferences(user, { enabled: true, noticeVersion: 'FC-CONSENT-1' });
+      assert.equal((await service.marketingPreferences(user)).enabled, true);
+      await service.saveMarketingPreferences(user, { enabled: false, noticeVersion: 'FC-CONSENT-1' });
+      assert.equal((await service.marketingPreferences(user)).enabled, false);
       assert.equal((await database.query('SELECT count(*)::integer AS count FROM marketing_preference_events')).rows[0].count, 2);
       await assert.rejects(service.acceptTerms(user, { accepted: true }), error => error.code === 'terms_not_active');
       const { validateSyntheticSale } = await import('../tools/beta-sale-check.mjs');

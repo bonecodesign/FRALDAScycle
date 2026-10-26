@@ -1,0 +1,5 @@
+import { readJson } from './body.js';
+import { sendJson } from './http.js';
+import { authenticatedUser } from './session.js';
+
+export async function handleAccountClosure(request,response,{url,headers,requestId,authService,accountClosureService}){if(!accountClosureService)return false;const cancel=url.pathname.match(/^\/v1\/account\/closure\/([0-9a-f-]{36})\/cancel$/i);const status=request.method==='GET'&&url.pathname==='/v1/account/closure';const create=request.method==='POST'&&url.pathname==='/v1/account/closure/request';if(!status&&!create&&!(cancel&&request.method==='POST'))return false;const actor=await authenticatedUser(request,authService);let result;if(status)result=await accountClosureService.status(actor.id);else if(create)result=await accountClosureService.request(actor.id,await readJson(request));else result=await accountClosureService.cancel(actor.id,cancel[1],await readJson(request));sendJson(response,create&&!result.request.reused?201:200,{...result,requestId},{...headers,'cache-control':'no-store',pragma:'no-cache'});return true;}

@@ -1,17 +1,21 @@
 import { ServiceError } from './service-error.js';
 import { loadLegalTerms } from './legal-terms.js';
 import { validateOperationalPreferences } from './operational-preferences.js';
+import { normalizeCookieConsent, normalizeMarketingConsent } from '../../packages/contracts/account-consent-policy.js';
 export function createAccountConsentService(repository,termsLoader=loadLegalTerms) {
   return Object.freeze({
     operationalPreferences(userId){return repository.operationalPreferences(userId);},
     saveOperationalPreferences(userId,input){return repository.saveOperationalPreferences(userId,validateOperationalPreferences(input));},
     marketingPreferences(userId){return repository.marketingPreferences(userId);},
     async saveMarketingPreferences(userId,input){
-      if(!input||['email','sms','push'].some(key=>typeof input[key]!=='boolean')||Object.keys(input).some(key=>!['email','sms','push'].includes(key))) {
-        throw new ServiceError('invalid_marketing_preferences',422,'Informe escolhas separadas para e-mail, SMS e notificações.');
-      }
-      return repository.saveMarketingPreferences(userId,input);
+      let consent;try{consent=normalizeMarketingConsent(input);}catch{
+        throw new ServiceError('invalid_marketing_preferences',422,'Ative ou desative todas as promoções e confirme a versão do aviso.');
+      }return repository.saveMarketingPreferences(userId,consent);
     },
+    cookiePreferences(userId){return repository.cookiePreferences(userId);},
+    async saveCookiePreferences(userId,input){let consent;try{consent=normalizeCookieConsent(input);}catch{
+      throw new ServiceError('invalid_cookie_preferences',422,'Escolha análise e marketing e confirme a versão da política.');
+    }return repository.saveCookiePreferences(userId,consent);},
     terms(){return termsLoader();},
     termsHistory(userId){return repository.termsHistory(userId);},
     async acceptTerms(userId,input){
