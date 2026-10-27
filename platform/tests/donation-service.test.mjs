@@ -4,10 +4,10 @@ import {readFile} from 'node:fs/promises';
 import {createDonationService} from '../apps/api/donation-service.js';
 import {createDonationRepository} from '../database/donation-repository.js';
 import {institutionReceiptReadiness} from '../packages/contracts/institution-receipt-readiness.js';
-const id='11111111-1111-4111-8111-111111111111',consent={confirmed:true,noticeVersion:'FC-DONATION-1',logisticsResponsibility:'donor'};
-test('donation binds donor and requires both explicit notice and approved logistics responsibility',()=>{
+const id='11111111-1111-4111-8111-111111111111',consent={confirmed:true,noticeVersion:'FC-DONATION-2',logisticsResponsibility:'institution'};
+test('donation binds donor and requires the institution pickup notice',()=>{
  const s=createDonationService({create(v){return v;}}),input={...consent,listingId:id,idempotencyKey:'synthetic-donation-key'};
- assert.throws(()=>s.create({id:'own'},{...input,logisticsResponsibility:'institution'}),e=>e.status===422);
+ assert.throws(()=>s.create({id:'own'},{...input,logisticsResponsibility:'donor'}),e=>e.status===422);
  assert.throws(()=>s.create({id:'own'},{...input,donorId:'foreign'}),e=>e.status===422);
  assert.equal(s.create({id:'own'},input).actorId,'own');
 });

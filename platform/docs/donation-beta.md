@@ -1,18 +1,18 @@
-# Doação institucional e coleta local no beta
+# Doação institucional e retirada combinada no beta
 
-Somente platform/. A doação parte de anúncio próprio já destinado a uma instituição. Doador confirma e assume frete/comissão logística; representante atualmente autorizado confirma separadamente. Snapshot da instituição/representante e avisos FC-DONATION-1 preservados. Transação tem produto de valor zero e estado donation_confirmed próprio, sem simular produto pago ou intenção financeira.
+Somente platform/. A doação parte de anúncio próprio já destinado a uma instituição. O doador confirma a disponibilidade e o representante atualmente autorizado confirma separadamente que a instituição buscará a doação. Novas operações usam o aviso FC-DONATION-2; operações históricas FC-DONATION-1 permanecem preservadas. A transação tem produto de valor zero e estado `donation_confirmed` próprio, sem simular produto pago ou intenção financeira.
 
-Retirada local exige ambas confirmações, instituição ativa e autoridade atual. Cria uma entrega, evento e auditoria, com logistics_payer_id do doador. Repetição concorrente conserva a entrega; não há pedido a transportadora/seguro/cobrança. Tarifa de processamento do frete não é atribuída: item 12 permanece standby. Entrega por fornecedor e preço/cobrança de logística dependem de homologação.
+Combinar retirada é a única modalidade da doação. Após o aceite institucional, o chat abre exclusivamente para doador e representante combinarem como a própria instituição buscará o produto. Não há Lalamove, Correios, entregador da plataforma, seguro, tarifa ou cobrança. O representante registra o acordo de retirada; a operação cria evento e auditoria com `logistics_payer_id` do representante. Repetição concorrente conserva o mesmo registro, e o fluxo genérico de frete rejeita doações.
 
 Doador escolhe endereço próprio, confirma FC-ADDRESS-1 e libera somente ao representante indicado para retirada. A gravação revalida autoridade sob trava institucional; revogação/suspensão impede nova consulta pelo representante. Original, revisões administrativas pelo suporte e marcador de cancelamento preservados. Troca ainda sem fluxo completo de endereços. Operações com autoridade alterada/instituição inativa seguem análise do suporte, sem substituir silenciosamente o recebedor ou apagar registros.
 
-Somente entregador atribuído registra coleta, com confirmação FC-COLLECTION-1, verificação do estado/pagamento da venda ou confirmações/autoridade da doação e ausência de ocorrência. Evento é idempotente, inicia in_delivery e impede cancelamento direto. Também usado na validação de venda; não representa coleta física executada pelo teste.
+O fluxo de entregador e a confirmação FC-COLLECTION-1 continuam exclusivos de vendas e trocas elegíveis. Doações não podem receber entregador da plataforma. O chat não libera telefone ou e-mail automaticamente; eventual compartilhamento de contato permanece sujeito ao controle separado de autorização.
 
 Recebimento de doação exige representante atual autorizado e comprovante entregue. Validação administrativa é separada e independente das partes/entregador. Consulta distingue operacionalRequirementsMet (aprovação e validação) de requirementsMet financeiro; payoutAllowed=false sempre. Comprovante/foto e identidades usados nos testes são fixtures; leitura privada de mídia/validação humana real continuam pendentes. Nenhuma operação é finalizada financeiramente, nenhum repasse/reembolso é executado.
 
 Instituição fora de active pausa anúncios de doação ainda sem operação, filtra consulta pública e bloqueia publicação/retomada sob trava. Não reativa anúncios automaticamente e não apaga operações já confirmadas. Cancelamento antes do endereço/coleta e sem pagamento pode preservar anúncio pausado se instituição/cota não permitir publicar; depois do endereço/coleta continua pelo suporte.
 
-Tela Doações permite confirmar, acompanhar, registrar retirada, compartilhar/consultar endereço e aprovar recebimento. Entregador usa Registrar coleta da entrega atribuída. Sem chat de doação ou mensagem externa. Responsabilidade pela logística não inventa preço nem tarifa de processamento.
+Tela Doações permite confirmar, acompanhar, abrir o chat após o aceite, registrar a retirada combinada e compartilhar/consultar o endereço. A responsabilidade institucional não inventa preço, tarifa de processamento ou repasse.
 
 ## Recusa institucional antes da coleta
 

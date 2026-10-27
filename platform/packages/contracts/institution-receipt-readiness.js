@@ -8,5 +8,5 @@ export function institutionReceiptReadiness(row,now=Date.now()){
  if(!Number.isFinite(approval)||approval>now)blockers.push('institution_approval_pending');
  if(!Number.isFinite(validation)||validation>now)blockers.push('independent_proof_validation_pending');
  if(row.financial_case_pending!==false)blockers.push('operational_issue_pending');
- return {operationalRequirementsMet:blockers.length===0,requirementsMet:false,blockers:[...blockers,'donor_logistics_payment_not_homologated','courier_payout_not_configured'],logisticsResponsibility:'donor',payoutAllowed:false,payoutStatus:'not_configured'};
+ return {operationalRequirementsMet:blockers.length===0,requirementsMet:false,blockers:[...blockers,'institutional_pickup_pending'],logisticsResponsibility:'institution',payoutAllowed:false,payoutStatus:'not_applicable'};
 }

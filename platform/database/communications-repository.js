@@ -5,7 +5,9 @@ async function access(client,userId,transactionId,{completed=false}={}) {
       AND p.amount_cents=t.amount_cents AND p.provider_reference IS NOT NULL) AS payment_confirmed
     FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1 AND $2 IN (t.buyer_id,t.seller_id) FOR UPDATE OF t`,[transactionId,userId])).rows[0];
   if(!row)throw fail('transaction_not_found',404,'Operação não encontrada.');
-  if(completed ? row.status!=='completed' : row.kind==='donation'||!row.payment_confirmed||['cancelled','refunded'].includes(row.status)) {
+  const donationAllowed=row.kind==='donation'&&['donation_confirmed','in_delivery'].includes(row.status);
+  const paidOperationAllowed=row.kind!=='donation'&&row.payment_confirmed&&!['cancelled','refunded'].includes(row.status);
+  if(completed ? row.status!=='completed' : !donationAllowed&&!paidOperationAllowed) {
     throw fail(completed?'review_not_finalized':'chat_not_allowed',409,completed?'Avaliação somente após finalizar a operação.':'Chat indisponível para esta operação.');
   }
   return row;

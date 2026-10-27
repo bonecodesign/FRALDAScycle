@@ -17,7 +17,7 @@ export async function seedDonationListing(database,donorId,institutionId){
  return (await database.query(`INSERT INTO listings(seller_id,title,description,brand,category,model,package_condition,quantity,kind,price_cents,status,institution_id,published_at)
  VALUES($1,'Pacote fictício de doação','Descrição fictícia para teste interno','Pampers','infant','Confort Sec','sealed',10,'donation',NULL,'published',$2,now()) RETURNING id`,[donorId,institutionId])).rows[0].id;
 }
-const consent={confirmed:true,noticeVersion:'FC-DONATION-1',logisticsResponsibility:'donor'};
+const consent={confirmed:true,noticeVersion:'FC-DONATION-2',logisticsResponsibility:'institution'};
 export async function validateSyntheticDonation(database,{user,other}){
  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin'},courier='10000000-0000-4000-8000-000000000004',donor={id:user,role:'customer'},representative={id:other,role:'customer'};
  const institutions=createInstitutionService(createInstitutionRepository(database)),access=createInstitutionAccessService(createInstitutionAccessRepository(database));
@@ -33,13 +33,13 @@ export async function validateSyntheticDonation(database,{user,other}){
  await assert.rejects(service.detail(admin,transaction),e=>e.status===404);
  await assert.rejects(service.create(representative,input),e=>e.status===404);
  await assert.rejects(service.create(donor,{...input,idempotencyKey:'synthetic-second-donation-key'}),e=>e.code==='donation_listing_unavailable');
- await assert.rejects(service.pickup(donor,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'}),e=>e.code==='donation_logistics_not_ready');
+ await assert.rejects(service.pickup(representative,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'}),e=>e.code==='donation_logistics_not_ready');
  const payments=createPaymentService(createPaymentRepository(database),{createIntent(){assert.fail('Provider must not be called for donation');}});
  await assert.rejects(payments.createIntent(other,{transactionId:transaction,method:'pix',idempotencyKey:'synthetic-donation-forbidden-payment'}),e=>e.code==='settlement_not_configured');
  await assert.rejects(service.accept(donor,transaction,{...consent,expectedVersion:1}),e=>e.status===404);
  const accepted=await Promise.all([service.accept(representative,transaction,{...consent,expectedVersion:1}),service.accept(representative,transaction,{...consent,expectedVersion:1})]);assert.equal(accepted.filter(x=>!x.reused).length,1);
- const shipments=await Promise.all([service.pickup(donor,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'}),service.pickup(donor,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'})]);assert.equal(shipments.filter(x=>!x.reused).length,1);
- const shipment=shipments[0];assert.equal((await database.query('SELECT logistics_payer_id FROM shipments WHERE id=$1',[shipment.id])).rows[0].logistics_payer_id,user);
+ const shipments=await Promise.all([service.pickup(representative,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'}),service.pickup(representative,transaction,{...consent,idempotencyKey:'synthetic-donation-pickup'})]);assert.equal(shipments.filter(x=>!x.reused).length,1);
+ const shipment=shipments[0];assert.equal((await database.query('SELECT logistics_payer_id FROM shipments WHERE id=$1',[shipment.id])).rows[0].logistics_payer_id,other);
  const address=await logistics.createAddress(user,{label:'Doação fictícia',postalCode:'00000000',street:'Rua fictícia da doação',number:'S/N',district:'Bairro fictício',city:'Belo Horizonte',state:'MG'});
  await logistics.shareAddress(user,shipment.id,{addressId:address.id,confirmed:true,noticeVersion:'FC-ADDRESS-1'});
  assert.equal((await logistics.sharedAddresses(other,shipment.id)).length,1);await assert.rejects(logistics.sharedAddresses(admin.id,shipment.id),e=>e.status===404);
@@ -50,25 +50,14 @@ export async function validateSyntheticDonation(database,{user,other}){
  await access.assign(admin,institutionId,{userId:other,expectedVersion:4,confirmed:true,reason:'Novo vínculo fictício para continuar o teste.'});
  await access.accept(representative,institutionId,{expectedVersion:5,confirmed:true});
  await access.review(admin,institutionId,{expectedVersion:6,confirmed:true,outcome:'verified',reason:'Nova conferência fictícia para continuar a operação.'});
- await database.query("UPDATE transactions SET status='disputed' WHERE id=$1",[transaction]);
  await assert.rejects(logistics.assign(courier,shipment.id),error=>error.code==='shipment_not_available');
  assert.equal((await database.query('SELECT courier_id FROM shipments WHERE id=$1',[shipment.id])).rows[0].courier_id,null);
- await database.query("UPDATE transactions SET status='donation_confirmed' WHERE id=$1",[transaction]);
- await logistics.assign(courier,shipment.id);
- await assert.rejects(logistics.collect(user,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),e=>e.status===403);
- const collections=await Promise.all([logistics.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'}),logistics.collect(courier,shipment.id,{confirmed:true,noticeVersion:'FC-COLLECTION-1'})]);assert.equal(collections.filter(x=>!x.reused).length,1); // Explicit recording with synthetic actors, no physical/human test.
- await logistics.proof(courier,shipment.id,{mediaKey:'synthetic/donation-proof-key',recipientName:'Representante fictício',latitude:0,longitude:0});
- await assert.rejects(logistics.approveReceipt(user,shipment.id,{approved:true}),e=>e.status===404);
- const approvals=await Promise.all([logistics.approveReceipt(other,shipment.id,{approved:true}),logistics.approveReceipt(other,shipment.id,{approved:true})]);assert.equal(approvals.filter(x=>!x.reused).length,1);
- assert.equal((await logistics.settlementStatus(donor,shipment.id)).operationalRequirementsMet,false);
- await logistics.validateProof(admin,shipment.id,{validated:true,reason:'Comprovante fictício conferido por pessoa independente.'});
- const ready=await logistics.settlementStatus(donor,shipment.id);assert.equal(ready.operationalRequirementsMet,true);assert.equal(ready.requirementsMet,false);assert.equal(ready.payoutAllowed,false);
  assert.equal((await database.query('SELECT count(*)::int AS n FROM payment_intents WHERE transaction_id=$1',[transaction])).rows[0].n,0);
  const pending=await seedDonationListing(database,user,institutionId);
  await institutions.changeStatus(admin.id,institutionId,{status:'suspended',reason:'Pausa fictícia de novas doações por capacidade.'});
- assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[pending])).rows[0].status,'paused');assert.equal((await service.detail(donor,transaction)).transaction_status,'in_delivery');
+ assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[pending])).rows[0].status,'paused');assert.equal((await service.detail(donor,transaction)).transaction_status,'donation_confirmed');
  await assert.rejects(createPremiumRepository(database).changeListingStatus(user,{listingId:pending,status:'published',expectedStatus:'paused'}),e=>e.code==='donation_institution_unavailable');
  await assert.rejects(createMarketplaceRepository(database).create({sellerId:user,kind:'donation',institutionId,packageCondition:'sealed',mediaKeys:[`listings/${user}/synthetic.webp`]}),e=>e.code==='donation_institution_unavailable');
  const audit=JSON.stringify((await database.query("SELECT metadata FROM audit_events WHERE action LIKE 'donation.%' OR action LIKE 'shipment.address.%'")).rows);assert.equal(audit.includes(address.street),false);
- console.log('BETA_DONATION: duas confirmações, autoridade atual, logística do doador, retirada idempotente, endereço privado/revogação, recebimento institucional e validação independente em PostgreSQL; novas doações pausadas, histórico preservado, zero cobrança/repasse.');
+ console.log('BETA_DONATION: duas confirmações, chat pós-aceite, retirada pela instituição, endereço privado/revogação e zero transportadora/cobrança/repasse em PostgreSQL; novas doações pausadas e histórico preservado.');
 }

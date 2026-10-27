@@ -39,8 +39,9 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
         );
         if (existing.rows[0]) return { existing: true, shipment: verifyReplay(existing.rows[0], input) };
         const transaction = await client.query(
-          `SELECT id, buyer_id, seller_id, status FROM transactions
-           WHERE id = $1 AND buyer_id = $2 FOR UPDATE`,
+          `SELECT t.id, t.buyer_id, t.seller_id, t.status, l.kind
+           FROM transactions t JOIN listings l ON l.id=t.listing_id
+           WHERE t.id = $1 AND t.buyer_id = $2 FOR UPDATE OF t`,
           [transactionId, buyerId],
         );
         return { existing: false, transaction: transaction.rows[0] ?? null };
@@ -51,10 +52,13 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
       return database.transaction(async (client) => {
         // Eligibility and idempotency must be checked again under the same lock as insertion.
         const locked = await client.query(
-          'SELECT id,buyer_id,seller_id,status FROM transactions WHERE id=$1 AND buyer_id=$2 FOR UPDATE',
+          `SELECT t.id,t.buyer_id,t.seller_id,t.status,l.kind
+           FROM transactions t JOIN listings l ON l.id=t.listing_id
+           WHERE t.id=$1 AND t.buyer_id=$2 FOR UPDATE OF t`,
           [input.transactionId,input.buyerId],
         );
         if (!locked.rows[0]) throw Object.assign(new Error('Transação não encontrada.'), {code:'transaction_not_found',status:404});
+        if(locked.rows[0].kind==='donation')throw conflict('donation_institutional_pickup_only','Doações permitem somente retirada combinada pela instituição.');
         if(pilotBh?.enabled){
           const location=(await client.query(`SELECT l.city,l.state FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1`,[input.transactionId])).rows[0];
           if(!location||!pilotBhLocation(pilotBh,location.city,location.state))throw Object.assign(new Error('O piloto aceita somente entregas em Belo Horizonte, MG.'),{code:'pilot_outside_bh',status:403});
@@ -182,8 +186,7 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
                LEFT JOIN exchange_operations e ON e.transaction_id=t.id
                WHERE t.id=s.transaction_id AND (
                  (s.exchange_leg IS NOT NULL AND l.kind='exchange' AND t.status='in_delivery' AND e.status IN ('accepted','in_delivery')) OR
-                 (s.exchange_leg IS NULL AND l.kind='sale' AND t.status IN ('paid','in_delivery')) OR
-                 (s.exchange_leg IS NULL AND l.kind='donation' AND t.status='donation_confirmed'))
+                 (s.exchange_leg IS NULL AND l.kind='sale' AND t.status IN ('paid','in_delivery')))
                AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
                  AND st.status<>'resolved' AND st.category IN ('cancellation','receipt_problem'))
                AND NOT EXISTS (SELECT 1 FROM payment_cases pc JOIN payment_intents p ON p.id=pc.payment_intent_id

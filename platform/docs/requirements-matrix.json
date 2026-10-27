@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-18",
+  "updatedAt": "2026-10-27",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -20,7 +20,7 @@
     {
       "id": 2,
       "title": "Comissão logística",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/commercial-rules.js",
         "apps/api/payment-service.js",
@@ -67,16 +67,20 @@
         "database/donation-repository.js",
         "apps/api/donation-service.js",
         "apps/app/donations.html",
+        "database/migrations/079_institutional_donation_pickup.sql",
+        "database/communications-repository.js",
+        "tests/chat-payment-postgres.test.mjs",
+        "tests/donation-institutional-pickup-postgres.test.mjs",
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Doador assume frete/comissão logística, duas confirmações e retirada persistidas; cobrança/logística do fornecedor desativadas, processamento do frete item 12 standby."
+      "evidence": "PostgreSQL 16 local em 27/10/2026: migrações completas, aceite institucional, chat sem pagamento, retirada idempotente pelo representante, endereço privado e bloqueio de entregador/fornecedor aprovados. Testes chat-payment-postgres e donation-institutional-pickup-postgres aprovados.",
+      "reason": "Escopo técnico concluído: única modalidade é retirada combinada, chat abre após aceite e a instituição organiza a busca sem transportadora, Correios, entregador, cobrança ou repasse. A retirada física real permanece operacional e não é alegada."
     },
     {
       "id": 6,
       "title": "Renovação Premium",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/premium-rules.js",
         "tests/premium-rules.test.mjs",
@@ -85,10 +89,16 @@
         "apps/api/premium-service.js",
         "apps/app/premium.html",
         "tools/beta-premium-check.mjs",
-        "docs/premium-management-beta.md"
+        "docs/premium-management-beta.md",
+        "database/migrations/074_premium_billing_events.sql",
+        "packages/contracts/premium-billing-event.js",
+        "database/premium-billing-repository.js",
+        "apps/api/premium-billing-service.js",
+        "tests/premium-billing-event.test.mjs",
+        "tests/premium-billing-postgres.test.mjs"
       ],
-      "evidence": "CI 365cac9: 259 testes e 83 verificações; PostgreSQL real com quota/concorrência, Chrome real com escolha/cancelamento via teclado em quatro larguras. Limites em premium-management-beta.md.",
-      "reason": "Cancelamento e período persistidos, com tela da conta; contratação, cobrança e retentativas externas desativadas."
+      "evidence": "Em 2026-10-27, contrato e PostgreSQL 16 temporário passaram sem skips: evento reconciliado no preço formal cria o período pago uma vez, retry idêntico é idempotente, evidência conflitante é recusada, falha de renovação é persistida e duas auditorias são registradas; todos os resultados declaram billingInitiated=false.",
+      "reason": "Ciclo técnico posterior à confirmação reconciliada concluído e comprovado em PostgreSQL. Contratação, cobrança e provedor reais continuam isolados e bloqueados no item 3."
     },
     {
       "id": 7,

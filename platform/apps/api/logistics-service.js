@@ -133,6 +133,7 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
         return {shipment:publicShipment(existing),reused:true};
       }
       const transaction=context.transaction;if(!transaction)throw new LogisticsError("transaction_not_found",404,"Transação não encontrada.");
+      if(transaction.kind==='donation')throw new LogisticsError("donation_institutional_pickup_only",409,"Doações permitem somente retirada combinada pela instituição.");
       if(!ELIGIBLE.has(transaction.status))throw new LogisticsError("shipment_not_allowed",409,"Esta transação ainda não permite entrega.");
       const created=await repository.createShipment({transactionId,buyerId,sellerId:transaction.seller_id,mode,insured,idempotencyKey});
       if(created.reused)return {shipment:publicShipment(created),reused:true};

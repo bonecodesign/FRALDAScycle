@@ -2,7 +2,7 @@ import {ServiceError} from './service-error.js';
 const invalid=message=>new ServiceError('invalid_donation',422,message);
 export const DONATION_REFUSAL_REASONS=Object.freeze(['sanitary_condition','outside_scope','insufficient_expiry','institution_capacity','listing_mismatch','other']);
 const refusalReasons=new Set(DONATION_REFUSAL_REASONS);
-function strict(input,fields){if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k))||input.confirmed!==true||input.noticeVersion!=='FC-DONATION-1'||input.logisticsResponsibility!=='donor')throw invalid('Confirme a doação e a responsabilidade do doador pela logística.');}
+function strict(input,fields){if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k))||input.confirmed!==true||input.noticeVersion!=='FC-DONATION-2'||input.logisticsResponsibility!=='institution')throw invalid('Confirme a doação e a responsabilidade da instituição pela retirada.');}
 function key(value){if(typeof value!=='string'||value.length<16||value.length>100)throw invalid('Chave da solicitação inválida.');return value;}
 function refusal(input){
  const fields=['expectedVersion','confirmed','reason','note','evidenceKey','idempotencyKey'];

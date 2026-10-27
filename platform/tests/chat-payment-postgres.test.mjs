@@ -91,7 +91,18 @@ test('PostgreSQL gates chat reads and writes on confirmed matching payment for p
       'chat-institution@example.test','Cidade fictícia','SP','Endereço fictício','12345678') RETURNING id`,[seller])).rows[0].id;
     await database.query("UPDATE listings SET kind='donation',price_cents=NULL,institution_id=$2 WHERE id=$1",[listing,institution]);
     await blocked();
+    await database.query("UPDATE transactions SET status='donation_confirmed' WHERE id=$1",[transaction]);
+    for(const actor of [buyer,seller]) {
+      const access=await marketplace.chatAccess(actor,transaction);
+      assert.equal(access.allowed,true);assert.equal(access.reason,'institutional_pickup_confirmed');
+      assert.ok((await send(actor)).message.id);
+      assert.equal((await request(actor,'/messages')).status,200);
+    }
+    await database.query("UPDATE transactions SET status='in_delivery' WHERE id=$1",[transaction]);
+    assert.equal((await marketplace.chatAccess(buyer,transaction)).allowed,true);
+    await database.query("UPDATE transactions SET status='cancelled' WHERE id=$1",[transaction]);
+    await blocked();
     assert.equal((await database.query('SELECT count(*)::int AS count FROM transaction_messages WHERE transaction_id=$1',
-      [transaction])).rows[0].count,3,'Tentativas bloqueadas não persistem mensagens.');
+      [transaction])).rows[0].count,5,'Tentativas bloqueadas não persistem mensagens.');
   } finally { if(server)await new Promise(resolve=>server.close(resolve));await database.close(); }
 });

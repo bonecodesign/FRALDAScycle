@@ -314,11 +314,13 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       const access = await repository.chatAccess({ actorId: userId, transactionId });
       if (!access) throw new MarketplaceError("transaction_not_found", 404, "Operação não encontrada.");
       const terminal = new Set(["cancelled", "refunded"]);
-      const allowed = access.kind !== "donation" && access.payment_confirmed && !terminal.has(access.status);
+      const donationAllowed = access.kind === "donation" && ["donation_confirmed", "in_delivery"].includes(access.status);
+      const allowed = donationAllowed || (access.kind !== "donation" && access.payment_confirmed && !terminal.has(access.status));
       return {
         allowed,
-        reason: allowed ? "payment_confirmed"
-          : access.kind === "donation" ? "donation_chat_disabled"
+        reason: donationAllowed ? "institutional_pickup_confirmed"
+          : allowed ? "payment_confirmed"
+          : access.kind === "donation" ? "institutional_acceptance_pending"
           : terminal.has(access.status) ? "transaction_closed"
           : "payment_not_confirmed",
       };
