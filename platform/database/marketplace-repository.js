@@ -11,7 +11,9 @@ async function existingCreation(client,input){
 }
 export function createMarketplaceRepository(database) {
   const publicColumns = `l.id, l.title, l.description, l.category, l.brand, l.model,
-    l.package_condition, l.size, l.quantity,
+    l.package_condition, l.size, l.quantity, l.stock_units,
+    (l.stock_units-COALESCE((SELECT sum(t.item_units)::integer FROM transactions t
+      WHERE t.listing_id=l.id AND t.status<>'cancelled'),0))::integer AS available_units,
     l.kind, l.price_cents, l.status, l.city, l.state, l.latitude, l.longitude,
     l.published_at, l.created_at, l.updated_at, u.id AS seller_id, u.display_name AS seller_name,
     l.institution_id, i.public_name AS institution_name`;
@@ -68,7 +70,7 @@ export function createMarketplaceRepository(database) {
     },
     async ownListings(userId) {
       const result = await database.query(
-        `SELECT l.id,l.title,l.description,l.brand,l.model,l.size,l.quantity,l.kind,l.price_cents,l.status,
+        `SELECT l.id,l.title,l.description,l.brand,l.model,l.size,l.quantity,l.stock_units,l.kind,l.price_cents,l.status,
                 l.created_at,l.updated_at,l.published_at,
                 review.outcome AS review_outcome,review.reason AS review_reason,review.created_at AS reviewed_at
          FROM listings l
@@ -197,6 +199,8 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const premium = await lockPremiumAccount(client, input.sellerId);
         const previous=await existingCreation(client,input);if(previous)return previous;
+        const stockLimit=premium.entitlement.benefitsActive?5:3;
+        if(input.stockUnits>stockLimit)throw Object.assign(new Error(premium.entitlement.benefitsActive?'O Premium permite até cinco unidades iguais por anúncio.':'O plano gratuito permite até três unidades iguais por anúncio.'),{code:'listing_stock_plan_limit',status:409});
         await requireNewOperations(client,input.sellerId);
         if(!await institutionPublicationAllowed(client,{kind:input.kind,institution_id:input.institutionId,package_condition:input.packageCondition}))throw Object.assign(new Error('A instituição não permite novas doações neste momento.'),{code:'donation_institution_unavailable',status:409});
         await adjustFreeListings(client, input.sellerId, premium);
@@ -204,13 +208,13 @@ export function createMarketplaceRepository(database) {
         const result = await client.query(
           `INSERT INTO listings
             (seller_id, title, description, category, brand, model, package_condition,
-             open_package_attested, size, quantity, kind, price_cents, status,
+             open_package_attested, size, quantity, stock_units, kind, price_cents, status,
              city, state, latitude, longitude, institution_id, published_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$18::listing_status,$13,$14,$15,$16,$17,CASE WHEN $18::listing_status='published' THEN now() ELSE NULL END)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$19::listing_status,$14,$15,$16,$17,$18,CASE WHEN $19::listing_status='published' THEN now() ELSE NULL END)
            RETURNING id, status, published_at`,
           [input.sellerId, input.title, input.description, input.category, input.brand,
            input.model, input.packageCondition, input.openPackageAttested, input.size,
-           input.quantity, input.kind, input.priceCents, input.city, input.state,
+           input.quantity, input.stockUnits, input.kind, input.priceCents, input.city, input.state,
            input.latitude, input.longitude, input.institutionId, 'review'],
         );
         for (const [position, storageKey] of (input.mediaKeys ?? []).entries()) {
@@ -255,7 +259,7 @@ export function createMarketplaceRepository(database) {
       await database.query("DELETE FROM favorites WHERE user_id = $1 AND listing_id = $2", [userId, listingId]);
     },
 
-    async startTransaction({ buyerId, listingId }) {
+    async startTransaction({ buyerId, listingId, itemUnits = 1 }) {
       return database.transaction(async (client) => {
         const owner = (await client.query('SELECT seller_id FROM listings WHERE id=$1', [listingId])).rows[0];
         if (!owner) throw Object.assign(new Error('Anúncio não está disponível.'), { code: 'listing_unavailable', status: 409 });
@@ -264,20 +268,20 @@ export function createMarketplaceRepository(database) {
         await requireNewOperations(client,buyerId);
         await requireNewOperations(client,owner.seller_id);
         await adjustFreeListings(client, owner.seller_id, premium);
-        const listing = await client.query(
-          `UPDATE listings SET status = 'unavailable', updated_at = now()
-           WHERE id = $1 AND seller_id <> $2 AND status = 'published' AND kind = 'sale'
-             AND expires_at IS NOT NULL AND expires_at > now()
-           RETURNING id, seller_id, kind, price_cents`,
-          [listingId, buyerId],
-        );
-        if (!listing.rows[0]) throw Object.assign(new Error("Anúncio não está disponível."), { code: "listing_unavailable", status: 409 });
+        const listing=(await client.query(`SELECT id,seller_id,kind,price_cents,stock_units FROM listings
+          WHERE id=$1 AND seller_id<>$2 AND status='published' AND kind='sale'
+            AND expires_at IS NOT NULL AND expires_at>now() FOR UPDATE`,[listingId,buyerId])).rows[0];
+        if(!listing)throw Object.assign(new Error('Anúncio não está disponível.'),{code:'listing_unavailable',status:409});
+        const committed=Number((await client.query(`SELECT COALESCE(sum(item_units),0)::integer AS units FROM transactions
+          WHERE listing_id=$1 AND status<>'cancelled'`,[listingId])).rows[0].units);
+        if(committed+itemUnits>listing.stock_units)throw Object.assign(new Error('A quantidade solicitada não está mais disponível.'),{code:'listing_stock_unavailable',status:409});
         const result = await client.query(
-          `INSERT INTO transactions (listing_id, buyer_id, seller_id, status, amount_cents)
-           VALUES ($1,$2,$3,'initiated',$4)
-           RETURNING id, listing_id, status, created_at`,
-          [listingId, buyerId, listing.rows[0].seller_id, listing.rows[0].price_cents],
+          `INSERT INTO transactions (listing_id, buyer_id, seller_id, status, amount_cents, item_units)
+           VALUES ($1,$2,$3,'initiated',$4,$5)
+           RETURNING id, listing_id, status, amount_cents, item_units, created_at`,
+          [listingId,buyerId,listing.seller_id,listing.price_cents*itemUnits,itemUnits],
         );
+        if(committed+itemUnits===listing.stock_units)await client.query("UPDATE listings SET status='unavailable',updated_at=now() WHERE id=$1",[listingId]);
         return result.rows[0];
       });
     },

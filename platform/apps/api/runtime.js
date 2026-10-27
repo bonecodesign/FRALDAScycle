@@ -63,6 +63,13 @@ import { createAccountStepUpRepository } from '../../database/account-step-up-re
 import { createAccountStepUpService } from './account-step-up-service.js';
 import { createAccountClosureRepository } from '../../database/account-closure-repository.js';
 import { createAccountClosureService } from './account-closure-service.js';
+import { createDataExportRepository } from '../../database/data-export-repository.js';
+import { createDataExportService } from './data-export-service.js';
+import { createDataExportCollector } from '../../database/data-export-collector.js';
+import { createDataExportArtifactService } from './data-export-artifact-service.js';
+import { createDisabledDataExportStorage } from './data-export-storage.js';
+import { createAsaasWebhookRepository } from '../../database/asaas-webhook-repository.js';
+import { createAsaasWebhookService } from './asaas-webhook-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -109,6 +116,12 @@ export async function startRuntime(config = null) {
   const accountClosureService = createAccountClosureService(
     createAccountClosureRepository(database,{stepUpRepository:accountStepUpRepository}),
   );
+  const dataExportRepository = createDataExportRepository(database,{stepUpRepository:accountStepUpRepository});
+  const dataExportStorage = createDisabledDataExportStorage();
+  const dataExportService = createDataExportService(dataExportRepository,{artifactService:createDataExportArtifactService({
+    repository:dataExportRepository,collector:createDataExportCollector(database),storage:dataExportStorage,
+  })});
+  const asaasWebhookService=config.asaasSandboxEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -135,7 +148,7 @@ export async function startRuntime(config = null) {
   });
   const logisticsProvider = createLogisticsProvider(config);
   const logisticsRepository = createLogisticsRepository(database,{pilotBh:config.pilotBh});
-  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh});
+  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh,courierOffersRequired:config.courierEligibilityEnabled});
   const privacyRequestService = createPrivacyRequestService(createPrivacyRequestRepository(database));
   const addressChangeService = createAddressChangeService(logisticsRepository.addressChanges);
   const realtimeService = createRealtimeService(createRealtimeRepository(database));
@@ -172,6 +185,8 @@ export async function startRuntime(config = null) {
     responsibleProfileChangeService,
     accountStepUpService,
     accountClosureService,
+    dataExportService,
+    asaasWebhookService,
     telemetry,
   });
 

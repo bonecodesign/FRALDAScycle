@@ -135,7 +135,7 @@ export async function handleMarketplace(request, response, {
   if (request.method === "POST" && startTransaction) {
     const user = await authenticatedUser(request, authService);
     requireAdultDeclaration(user);
-    const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1]);
+    const transaction = await marketplaceService.startTransaction(user.id, startTransaction[1], await readJson(request));
     sendJson(response, 201, { transaction, requestId }, headers);
     return true;
   }

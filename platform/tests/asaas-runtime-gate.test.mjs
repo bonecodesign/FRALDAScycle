@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { loadConfig } from '../apps/api/config.js';
+
+test('Asaas sandbox runtime is disabled by default and cannot be enabled in production',()=>{assert.equal(loadConfig({NODE_ENV:'test'}).asaasSandboxEnabled,false);assert.throws(()=>loadConfig({NODE_ENV:'production',DATABASE_URL:'postgres://db',SESSION_SECRET:'x'.repeat(32),NOTIFICATION_WEBHOOK_URL:'https://notify.test',NOTIFICATION_WEBHOOK_SECRET:'secret',ASAAS_SANDBOX_ENABLED:'true',ASAAS_SANDBOX_API_KEY:'key',ASAAS_WEBHOOK_ACCESS_TOKEN:'token-token-token-1'}),/cannot be used in production/);});
+test('sandbox activation requires both API key and a bounded webhook secret',()=>{assert.throws(()=>loadConfig({NODE_ENV:'test',ASAAS_SANDBOX_ENABLED:'true'}),/API key and webhook/);assert.throws(()=>loadConfig({NODE_ENV:'test',ASAAS_SANDBOX_ENABLED:'true',ASAAS_SANDBOX_API_KEY:'key',ASAAS_WEBHOOK_ACCESS_TOKEN:'short'}),/API key and webhook/);const config=loadConfig({NODE_ENV:'test',ASAAS_SANDBOX_ENABLED:'true',ASAAS_SANDBOX_API_KEY:'key',ASAAS_WEBHOOK_ACCESS_TOKEN:'token-token-token-1'});assert.equal(config.asaasSandboxEnabled,true);assert.equal(config.asaasWebhookAccessToken,'token-token-token-1');});

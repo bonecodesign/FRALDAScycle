@@ -30,7 +30,9 @@
     "worker:premium:local": "node workers/premium.js --once",
     "worker:premium": "node workers/premium.js --serve",
     "worker:child-profiles:local": "node workers/child-profile-lifecycle.js --once",
-    "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve"
+    "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve",
+    "worker:account-closure:local": "node workers/account-closure.js --once",
+    "worker:account-closure": "node workers/account-closure.js --serve"
   },
   "dependencies": {
     "pg": "8.22.0"

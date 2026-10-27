@@ -215,6 +215,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       const description = String(input?.description ?? "").trim();
       const kind = String(input?.kind ?? "");
       const quantity = Number(input?.quantity);
+      const stockUnits = input?.stockUnits == null ? 1 : Number(input.stockUnits);
       const priceCents = input?.priceCents == null ? null : Number(input.priceCents);
       const category = String(input?.category ?? "");
       const packageCondition = String(input?.packageCondition ?? "");
@@ -233,6 +234,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       if (description.length < 20 || description.length > 4000) throw new MarketplaceError("invalid_description", 422, "Descreva o produto com mais detalhes.");
       if (!KINDS.has(kind)) throw new MarketplaceError("invalid_kind", 422, "Escolha venda, troca ou doação.");
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100_000) throw new MarketplaceError("invalid_quantity", 422, "Informe uma quantidade válida.");
+      if (!Number.isInteger(stockUnits) || stockUnits < 1 || stockUnits > 5) throw new MarketplaceError("invalid_stock_units", 422, "Informe de uma a cinco unidades iguais por anúncio.");
       if (kind === "sale" && (!Number.isInteger(priceCents) || priceCents < 0)) throw new MarketplaceError("invalid_price", 422, "Informe um valor válido.");
       if (kind !== "sale" && priceCents !== null) throw new MarketplaceError("unexpected_price", 422, "Trocas e doações não possuem preço.");
       if (!CATEGORIES.has(category)) throw new MarketplaceError("invalid_category", 422, "Escolha fralda infantil descartável ou descartável para piscina.");
@@ -265,7 +267,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
         return !value.startsWith(`listings/${userId}/`) || !/^[a-zA-Z0-9._/-]{1,512}$/.test(value) || value.includes("..");
       })) throw new MarketplaceError("invalid_media", 422, "As fotos do anúncio são inválidas.");
       if (!mediaKeys.length) throw new MarketplaceError("listing_media_required", 422, "Envie pelo menos uma foto do produto antes de publicar.");
-      const creation={sellerId:userId,title,description,kind,quantity,priceCents,institutionId,category,brand,model,packageCondition,openPackageAttested:packageCondition==='open'&&input.openPackageAttested===true,size,city,state,latitude,longitude,mediaKeys};
+      const creation={sellerId:userId,title,description,kind,quantity,stockUnits,priceCents,institutionId,category,brand,model,packageCondition,openPackageAttested:packageCondition==='open'&&input.openPackageAttested===true,size,city,state,latitude,longitude,mediaKeys};
       const creationFingerprint=createHash('sha256').update(JSON.stringify(creation)).digest('hex');
       if(idempotencyKey&&repository.creationByKey){const existing=await repository.creationByKey(userId,idempotencyKey,creationFingerprint);if(existing)return existing;}
       if(kind==='donation'&&idempotencyKey){
@@ -276,7 +278,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       await assertContentAllowed(moderation,userId,'listing',title+'\n'+description);
       await verifyMedia(userId, mediaKeys);
       return repository.create({
-        sellerId: userId, title, description, kind, quantity, priceCents, institutionId,idempotencyKey,creationFingerprint:idempotencyKey?creationFingerprint:null,
+        sellerId: userId, title, description, kind, quantity, stockUnits, priceCents, institutionId,idempotencyKey,creationFingerprint:idempotencyKey?creationFingerprint:null,
         category, brand, model, packageCondition,
         openPackageAttested: packageCondition === "open" && input.openPackageAttested === true,
         size, city, state, latitude, longitude, mediaKeys,
@@ -287,12 +289,14 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async addFavorite(userId, listingId) { validListingId(listingId); await repository.addFavorite(userId, listingId); return { saved: true }; },
     async removeFavorite(userId, listingId) { validListingId(listingId); await repository.removeFavorite(userId, listingId); return { saved: false }; },
 
-    async startTransaction(userId, listingId) {
+    async startTransaction(userId, listingId, input = {}) {
       validListingId(listingId);
+      const itemUnits=input?.itemUnits==null?1:Number(input.itemUnits);
+      if(!Number.isInteger(itemUnits)||itemUnits<1||itemUnits>5)throw new MarketplaceError('invalid_item_units',422,'Escolha de uma a cinco unidades.');
       const listing=await repository.detail(listingId);
       if (listing && !pilotBhLocation(pilotBh, listing.city, listing.state)) throw new MarketplaceError("pilot_outside_bh", 403, "O piloto aceita somente operações de Belo Horizonte, MG.");
       if(listing?.kind==='exchange')throw new MarketplaceError('exchange_offer_required',409,'Escolha o anúncio que você oferece e use o fluxo bilateral de troca.');
-      return repository.startTransaction({ buyerId: userId, listingId });
+      return repository.startTransaction({ buyerId: userId, listingId, itemUnits });
     },
 
     async cancelTransaction(userId, transactionId) {

@@ -16,6 +16,11 @@ Estado em 2026-10-25: adaptador técnico de sandbox criado, isolado do runtime f
   `financialTransitionAllowed: false` até a conciliação no provedor.
 - conciliação preparatória compara referência, valor exato em centavos e estado
   consultado, mas também mantém `financialTransitionAllowed: false`.
+- caixa de entrada nativa deduplica eventos pelo identificador do Asaas, guarda
+  somente metadados mínimos e o hash SHA-256 do payload, sem conservar o corpo;
+- rota isolada `/v1/payments/asaas/webhook` usa `asaas-access-token` e só existe
+  quando `ASAAS_SANDBOX_ENABLED=true` fora de produção;
+- reconciliador recupera trabalhos interrompidos, consulta a cobrança e grava
 
 Após timeout, o chamador deve consultar a cobrança pela referência antes de repetir. A integração ainda não afirma que o provedor deixou de criar a cobrança.
 

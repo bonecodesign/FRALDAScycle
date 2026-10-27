@@ -31,7 +31,9 @@ export function createOperationSupportRepository(database) {
           const listing=(await client.query('SELECT kind,institution_id,package_condition FROM listings WHERE id=$1',[tx.listing_id])).rows[0];
           if(!listing||!await institutionPublicationAllowed(client,listing))nextStatus='paused';
         }
-        await client.query("UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1 AND status='unavailable'",[tx.listing_id,nextStatus]);
+        const hasStock=(await client.query(`SELECT l.stock_units>COALESCE(sum(t.item_units) FILTER(WHERE t.status<>'cancelled'),0) AS available
+          FROM listings l LEFT JOIN transactions t ON t.listing_id=l.id WHERE l.id=$1 GROUP BY l.id`,[tx.listing_id])).rows[0]?.available===true;
+        if(hasStock)await client.query("UPDATE listings SET status=$2::listing_status,updated_at=now() WHERE id=$1 AND status='unavailable'",[tx.listing_id,nextStatus]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'transaction.cancelled','transaction',$2,'{}'::jsonb)`,[actorId,transactionId]);
         return { id:tx.id, listing_id:tx.listing_id, status:'cancelled' };

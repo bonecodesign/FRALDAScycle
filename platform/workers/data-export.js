@@ -1,0 +1,5 @@
+import { createHash } from 'node:crypto';
+import { encryptDataExport } from '../packages/contracts/data-export-policy.js';
+import { serializeDataExport } from '../packages/contracts/data-export-serializer.js';
+
+export async function prepareDataExport({snapshot,format,password,storage}){if(!storage||typeof storage.put!=='function')return Object.freeze({prepared:false,reason:'storage_not_configured'});const serialized=serializeDataExport(snapshot,format);const envelope=await encryptDataExport({format,encoding:'utf-8',content:serialized.toString('base64')},password);const artifact=Buffer.from(JSON.stringify(envelope),'utf8');const stored=await storage.put(artifact,{contentType:'application/vnd.fraldacycle.encrypted-export+json'});if(!stored||typeof stored.reference!=='string'||!stored.reference)throw new Error('Invalid export storage response');return Object.freeze({prepared:true,storageReference:stored.reference,artifactSha256:createHash('sha256').update(artifact).digest('hex'),size:artifact.length});}

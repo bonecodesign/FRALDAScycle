@@ -29,6 +29,28 @@ Antes do login, a futura camada pública deve manter a escolha somente no dispos
 
 A coleta dos dados, worker de geração, armazenamento restrito, download autenticado e eliminação do artefato ainda não estão ligados ao runtime. A meta aprovada de preparação em até 24 horas permanece um requisito do futuro worker.
 
+As solicitações agora são persistidas com formato JSON/CSV, intervalo de 30 dias,
+autorização reforçada de uso único e estado `pending_storage`. O banco não possui
+coluna para senha, chave derivada, conteúdo em texto aberto ou token de download.
+Enquanto não houver armazenamento/KMS aprovado, `generationAllowed` permanece
+falso e nenhum artefato é produzido.
+
+O coletor usa consultas com lista explícita para conta, endereços, perfis infantis
+ativos, transações, consentimentos, aceites e resumo de segurança. Senhas, CPF
+derivado, referências do provedor, payload de checkout e tokens não são
+consultados. O serializador recusa campos sensíveis também de forma recursiva.
+O worker aceita um adaptador de armazenamento injetado e, sem ele, retorna
+`storage_not_configured` sem serializar dados ou tocar na senha. Com adaptador,
+somente o envelope autenticado e criptografado é enviado.
+
+O ciclo de artefato também está preparado: reserva otimista por versão, escrita
+criptografada, confirmação por referência opaca e SHA-256, download somente em
+sessão autenticada com `no-store`, e eliminação após sete dias. A integridade é
+recalculada antes da entrega. Falha ao confirmar o banco tenta eliminar o objeto
+órfão; expiração elimina o objeto antes de limpar a referência. O runtime usa
+deliberadamente o adaptador desativado, portanto ainda não gera nem entrega
+arquivos reais.
+
 ## Exclusão
 
 O fluxo atual abre e analisa solicitações sem apagar contas automaticamente. Permanecem pendentes: confirmação por senha e código, janela cancelável de sete dias, bloqueio de novas operações, espera de pendências, interrupção da renovação Premium, anonimização após retenções legais e worker de encerramento. Não ativar exclusão automática antes da matriz jurídica de retenção.

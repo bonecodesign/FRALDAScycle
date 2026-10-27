@@ -1,4 +1,5 @@
 import { apiRequest } from '/packages/contracts/api-client.js';
+import { COOKIE_PREFERENCE_KEY } from '/packages/contracts/cookie-consent.js';
 import '/packages/ui/iconography.js';
 const form=document.getElementById('marketing-preferences-form');
 const fieldset=form.querySelector('fieldset');
@@ -11,8 +12,9 @@ form.addEventListener('submit',event=>{event.preventDefault();void save(form.ele
 document.getElementById('marketing-revoke').addEventListener('click',()=>{void save(false);});
 document.getElementById('consent-refresh').addEventListener('click',()=>{void load();void loadCookies();});
 const cookieForm=document.getElementById('cookie-preferences-form'),cookieFields=cookieForm.querySelector('fieldset');
-async function loadCookies(){cookieFields.disabled=true;try{const {preferences}=await apiRequest('/v1/account/cookie-preferences');cookieForm.elements.analytics.checked=preferences.analytics===true;cookieForm.elements.marketing.checked=preferences.marketing===true;cookieFields.disabled=false;}catch(error){say(error.message||'Não foi possível carregar os cookies.');}}
-cookieForm.addEventListener('submit',async event=>{event.preventDefault();cookieFields.disabled=true;try{await apiRequest('/v1/account/cookie-preferences',{method:'PUT',body:{analytics:cookieForm.elements.analytics.checked,marketing:cookieForm.elements.marketing.checked,policyVersion:'FC-CONSENT-1'}});say('Preferências de cookies registradas.');}catch(error){say(error.message||'Não foi possível salvar os cookies.');}finally{cookieFields.disabled=false;}});
+const syncDeviceCookies=preferences=>{try{localStorage.setItem(COOKIE_PREFERENCE_KEY,JSON.stringify(preferences));}catch{}}
+async function loadCookies(){cookieFields.disabled=true;try{const {preferences}=await apiRequest('/v1/account/cookie-preferences');cookieForm.elements.analytics.checked=preferences.analytics===true;cookieForm.elements.marketing.checked=preferences.marketing===true;syncDeviceCookies(preferences);cookieFields.disabled=false;}catch(error){say(error.message||'Não foi possível carregar os cookies.');}}
+cookieForm.addEventListener('submit',async event=>{event.preventDefault();cookieFields.disabled=true;try{const {preferences}=await apiRequest('/v1/account/cookie-preferences',{method:'PUT',body:{analytics:cookieForm.elements.analytics.checked,marketing:cookieForm.elements.marketing.checked,policyVersion:'FC-CONSENT-1'}});syncDeviceCookies(preferences);say('Preferências de cookies registradas.');}catch(error){say(error.message||'Não foi possível salvar os cookies.');}finally{cookieFields.disabled=false;}});
 void load();void loadCookies();
 let currentTerms=null;
 const accept=document.getElementById('terms-accept-form');

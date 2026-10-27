@@ -1,0 +1,3 @@
+export function createDisabledDataExportStorage(){const unavailable=async()=>{throw Object.assign(new Error('Armazenamento de exportação não configurado.'),{code:'data_export_storage_unavailable',status:503});};return Object.freeze({configured:false,put:unavailable,get:unavailable,delete:unavailable});}
+
+export function validateDataExportStorage(storage){if(!storage||storage.configured!==true||['put','get','delete'].some(method=>typeof storage[method]!=='function'))throw Object.assign(new Error('Armazenamento de exportação não configurado.'),{code:'data_export_storage_unavailable',status:503});return storage;}

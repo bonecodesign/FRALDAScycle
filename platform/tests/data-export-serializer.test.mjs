@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { serializeDataExport } from '../packages/contracts/data-export-serializer.js';
+import { prepareDataExport } from '../workers/data-export.js';
+
+const snapshot={exportedAt:'2030-01-01T00:00:00Z',account:{id:'user',email:'ana@example.test'},activeChildProfiles:[{birth_date:'2029-01-01'}],securitySummary:{active_sessions:1}};
+test('export serializer preserves approved data in JSON and CSV',()=>{const json=JSON.parse(serializeDataExport(snapshot,'json').toString());assert.equal(json.activeChildProfiles[0].birth_date,'2029-01-01');const csv=serializeDataExport(snapshot,'csv').toString();assert.match(csv,/root\.account\.email/);assert.match(csv,/ana@example\.test/);assert.match(csv,/root\.activeChildProfiles\[0\]\.birth_date/);});
+test('export serializer fails closed on secrets at any depth',()=>{for(const unsafe of [{password:'x'},{nested:{provider_reference:'pay'}},{items:[{cvv:'123'}]},{cpf_fingerprint:'hash'}])assert.throws(()=>serializeDataExport(unsafe,'json'),/Forbidden export field/);assert.throws(()=>serializeDataExport(snapshot,'xml'),/Unsupported export format/);});
+test('worker remains deferred without storage and does not inspect password',async()=>{const result=await prepareDataExport({snapshot,format:'json',password:'correct horse battery'});assert.deepEqual(result,{prepared:false,reason:'storage_not_configured'});});
+test('configured worker stores only an encrypted authenticated envelope',async()=>{let stored;const result=await prepareDataExport({snapshot,format:'json',password:'correct horse battery',storage:{async put(value,metadata){stored={value,metadata};return{reference:'opaque/export/1'};}}});assert.equal(result.prepared,true);assert.equal(result.storageReference,'opaque/export/1');assert.match(result.artifactSha256,/^[0-9a-f]{64}$/);const text=stored.value.toString();assert.doesNotMatch(text,/ana@example|2029-01-01|correct horse battery/);assert.equal(stored.metadata.contentType,'application/vnd.fraldacycle.encrypted-export+json');});

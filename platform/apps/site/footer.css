@@ -57,3 +57,4 @@
     gap: 24px 16px;
   }
 }
+.cookie-banner{position:fixed;z-index:1000;inset:auto 1rem 1rem;max-width:56rem;margin:auto;padding:1rem;background:#fff;color:#17231d;border:1px solid #b8c8bf;border-radius:1rem;box-shadow:0 1rem 3rem #17231d33;display:grid;gap:1rem}.cookie-banner p{margin:.35rem 0}.cookie-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}.cookie-banner button{min-height:44px;border:1px solid #087a45;border-radius:.65rem;background:#fff;color:#075f39;font:inherit;font-weight:700;padding:.65rem}.cookie-banner form{border-top:1px solid #d8e1dc;padding-top:.75rem}.cookie-banner fieldset{display:grid;gap:.6rem;border:0;padding:0}@media(max-width:560px){.cookie-actions{grid-template-columns:1fr}}

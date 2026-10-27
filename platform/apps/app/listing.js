@@ -17,12 +17,12 @@ function showError(message) {
   target.replaceChildren(element('p', message, 'notice'));
 }
 
-async function beginPurchase(listing, button, feedback) {
+async function beginPurchase(listing, itemUnits, button, feedback) {
   button.disabled = true;
   button.textContent = 'Iniciando operação…';
   feedback.textContent = '';
   try {
-    const result = await apiRequest(`/v1/listings/${encodeURIComponent(listing.id)}/transactions`, { method: 'POST', body: {} });
+    const result = await apiRequest(`/v1/listings/${encodeURIComponent(listing.id)}/transactions`, { method: 'POST', body: { itemUnits } });
     if (!result.transaction?.id || result.transaction.status !== 'initiated') throw new Error('A operação não foi confirmada. Tente carregar o anúncio novamente.');
     sessionStorage.setItem('fc.activeTransactionId', result.transaction.id);
     sessionStorage.removeItem('fc.paymentIntentId');
@@ -50,7 +50,9 @@ async function loadListing() {
     const condition = listing.package_condition === 'sealed'
       ? 'Pacote fechado'
       : listing.kind === 'donation' && listing.package_condition === 'open' ? 'Pacote aberto' : 'Condição não confirmada';
-    article.append(element('p', condition + ' · ' + (listing.size ?? 'Tamanho não informado') + ' · ' + Number(listing.quantity) + ' unidades'));
+    article.append(element('p', condition + ' · ' + (listing.size ?? 'Tamanho não informado') + ' · ' + Number(listing.quantity) + ' fraldas por pacote'));
+    const availableUnits=Math.max(0,Number(listing.available_units??listing.stock_units??1));
+    article.append(element('p',availableUnits===1?'1 pacote disponível':`${availableUnits} pacotes disponíveis`,'muted'));
     if (listing.kind === 'donation') {
       article.append(element('p', 'Doações são encaminhadas à instituição indicada. Pacotes abertos só são aceitos quando as unidades estão sem uso e a higiene foi confirmada.', 'notice'));
       if (listing.institution_name) article.append(element('p', 'Instituição destinatária: ' + listing.institution_name));
@@ -62,9 +64,13 @@ async function loadListing() {
 
     const feedback = element('p', '', 'field-error');
     if (listing.status === 'published' && listing.kind === 'sale') {
+      const quantityLabel=element('label','Quantidade de pacotes','form-group');
+      const selector=document.createElement('select');selector.className='input';selector.setAttribute('aria-label','Quantidade de pacotes');
+      for(let units=1;units<=availableUnits;units++){const option=document.createElement('option');option.value=String(units);option.textContent=String(units);selector.append(option)}
+      quantityLabel.append(selector);article.append(quantityLabel);
       const button = element('button', 'Continuar para pagamento', 'button primary block');
       button.type = 'button';
-      button.addEventListener('click', () => void beginPurchase(listing, button, feedback));
+      button.addEventListener('click', () => void beginPurchase(listing, Number(selector.value), button, feedback));
       article.append(button);
     } else if (listing.status === 'published' && listing.kind === 'exchange') {
       const link = element('a', 'Escolher meu anúncio para propor a troca', 'button primary block');

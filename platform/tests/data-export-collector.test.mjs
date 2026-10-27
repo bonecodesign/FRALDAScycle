@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { createDataExportCollector } from '../database/data-export-collector.js';
+
+test('collector uses an explicit allowlist and includes active child dates and security summary',async()=>{const sql=[];const client={async query(text){sql.push(text);if(text.includes('FROM users WHERE'))return{rows:[{id:'user',email:'ana@example.test'}]};if(text.includes('FROM child_profiles'))return{rows:[{id:'child',birth_date:'2029-01-01'}]};if(text.includes('AS sessions_created'))return{rows:[{sessions_created:2,active_sessions:1}]};return{rows:[]};}};const collector=createDataExportCollector({transaction:operation=>operation(client)});const snapshot=await collector.collect('user');assert.equal(snapshot.activeChildProfiles[0].birth_date,'2029-01-01');assert.equal(snapshot.securitySummary.active_sessions,1);const joined=sql.join(' ');assert.doesNotMatch(joined,/password_hash|cpf_fingerprint|provider_reference|checkout_payload|token_hash/);assert.match(joined,/deleted_at IS NULL/);});

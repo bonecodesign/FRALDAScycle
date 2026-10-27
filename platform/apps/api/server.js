@@ -30,6 +30,8 @@ import { handleManufacturerCatalog } from './manufacturer-catalog-handler.js';
 import { handleResponsibleProfileChange } from './responsible-profile-change-handler.js';
 import { handleAccountStepUp } from './account-step-up-handler.js';
 import { handleAccountClosure } from './account-closure-handler.js';
+import { handleDataExport } from './data-export-handler.js';
+import { handleAsaasWebhook } from './asaas-webhook-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -69,6 +71,8 @@ export function createApiServer({
   responsibleProfileChangeService = null,
   accountStepUpService = null,
   accountClosureService = null,
+  dataExportService = null,
+  asaasWebhookService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -237,6 +241,10 @@ export function createApiServer({
       if (operationalDomain && operationalControlService) {
         await operationalControlService.assertAvailable(operationalDomain);
       }
+      if (operationalDomain && accountConsentService) {
+        const actor = await authenticatedUser(request, authService);
+        await accountConsentService.assertOperationalTerms(actor.id);
+      }
 
       if (await handleAdultDeclaration(request, response, {
         url, headers, requestId: id, authService, adultDeclarationService,
@@ -262,6 +270,10 @@ export function createApiServer({
       if (await handleAccountClosure(request, response, {
         url, headers, requestId: id, authService, accountClosureService,
       })) return;
+      if (await handleDataExport(request, response, {
+        url, headers, requestId: id, authService, dataExportService,
+      })) return;
+      if (await handleAsaasWebhook(request,response,{url,headers,requestId:id,asaasWebhookService})) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;

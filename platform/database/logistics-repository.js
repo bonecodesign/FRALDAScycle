@@ -206,6 +206,23 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
       });
     },
 
+    async acceptCourierOffer({shipmentId,courierId,offerId}) {
+      return database.transaction(async client=>{
+        const offer=(await client.query(`SELECT * FROM courier_delivery_offers WHERE id=$1 AND shipment_id=$2 AND courier_id=$3 AND status='pending' AND expires_at>now() FOR UPDATE`,[offerId,shipmentId,courierId])).rows[0];
+        if(!offer)return null;
+        const assigned=(await client.query(`UPDATE shipments s SET courier_id=$2,status='assigned',updated_at=now() WHERE s.id=$1 AND s.courier_id IS NULL AND s.status IN ('awaiting_pickup','provider_pending','assigned')
+          AND EXISTS(SELECT 1 FROM users u JOIN courier_profiles p ON p.user_id=u.id WHERE u.id=$2 AND u.role='courier' AND u.disabled_at IS NULL AND p.account_status='active' AND p.identity_status='verified' AND p.email_verified_at IS NOT NULL AND p.phone_verified_at IS NOT NULL AND p.payout_status='verified' AND p.terms_version='FC-COURIER-1' AND p.terms_accepted_at IS NOT NULL AND p.admin_approval_status='approved')
+          AND EXISTS(SELECT 1 FROM courier_vehicles v WHERE v.courier_id=$2 AND v.status='approved' AND (v.vehicle_type='bicycle' OR (v.driver_license_status='verified' AND v.driver_license_expires_at>now())))
+          AND EXISTS(SELECT 1 FROM courier_clearance_documents d WHERE d.courier_id=$2 AND d.status='verified' AND d.expires_at>now())
+          AND NOT EXISTS(SELECT 1 FROM courier_clearance_suspensions cs WHERE cs.courier_id=$2 AND cs.status='suspended') RETURNING *`,[shipmentId,courierId])).rows[0];
+        if(!assigned)return null;
+        await client.query(`UPDATE courier_delivery_offers SET status=CASE WHEN id=$2 THEN 'accepted' ELSE 'expired' END,responded_at=now() WHERE shipment_id=$1 AND status='pending'`,[shipmentId,offerId]);
+        await client.query(`INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'assigned','Entregador elegível aceitou a oferta vigente.')`,[shipmentId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'shipment.courier.offer_accepted','shipment',$2,$3::jsonb)`,[courierId,shipmentId,JSON.stringify({offerId,priority:offer.priority})]);
+        return assigned;
+      });
+    },
+
     async collect({shipmentId,courierId}) {
       return database.transaction(async client=>{
         const shipment=(await client.query('SELECT id,transaction_id,status FROM shipments WHERE id=$1 AND courier_id=$2 FOR UPDATE',[shipmentId,courierId])).rows[0];

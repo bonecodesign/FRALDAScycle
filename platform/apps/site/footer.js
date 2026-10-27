@@ -53,3 +53,5 @@ function escapeHtml(value) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[character]);
 }
+
+import('/packages/ui/cookie-banner.js').then(({setupCookieBanner})=>setupCookieBanner());

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import { createDeliveryQuoteService } from '../apps/api/delivery-quote-service.js';
+
+const transactionId='11111111-1111-4111-8111-111111111111',quoteId='22222222-2222-4222-8222-222222222222';
+const request={originAddressId:'origin',originAddressVersion:1,destinationAddressId:'destination',destinationAddressVersion:1,mode:'partner',listingId:'listing',quantity:1,packageVersion:1};
+test('calculated quote persists the exact split and a non-address fingerprint',async()=>{let stored;const service=createDeliveryQuoteService({register:async value=>{stored=value;return value;}});await service.registerCalculated(transactionId,{provider:'lalamove',quoteId:'lalamove-quote-1',baseFreightCents:2000,customerTotalCents:2100,currency:'BRL',expiresAt:new Date(Date.now()+60000).toISOString()},request);assert.equal(stored.platformFeeCents,100);assert.equal(stored.customerTotalCents,2100);assert.match(stored.requestFingerprint,/^[A-Za-z0-9_-]+$/);assert.equal(JSON.stringify(stored).includes('street'),false);});
+test('payer confirmation is bound to quote id total and the same input fingerprint',async()=>{let confirmed;const service=createDeliveryQuoteService({confirm:async value=>{confirmed=value;return value;}});await service.confirm('buyer',{quoteId,providerQuoteId:'lalamove-quote-1',customerTotalCents:2100,request});assert.equal(confirmed.quoteId,quoteId);assert.equal(confirmed.totalCents,2100);assert.match(confirmed.requestFingerprint,/^[A-Za-z0-9_-]+$/);});
+test('persistence supersedes unpaid quotes but explicitly locks paid transactions',async()=>{const source=await readFile(new URL('../database/delivery-quote-repository.js',import.meta.url),'utf8');assert.match(source,/paid_transaction_locked/);assert.match(source,/status='locked'/);assert.match(source,/delivery.quote.confirmed/);assert.doesNotMatch(source,/pickup|postal|correios/i);});
+test('schema stores no full address coordinates or contacts',async()=>{const source=await readFile(new URL('../database/migrations/076_delivery_quote_confirmation.sql',import.meta.url),'utf8');assert.doesNotMatch(source,/street|postal_code|latitude|longitude|phone|recipient_name/i);assert.match(source,/provider_quote_id/);assert.match(source,/request_fingerprint/);});

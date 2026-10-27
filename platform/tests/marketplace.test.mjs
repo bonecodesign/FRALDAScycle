@@ -17,7 +17,7 @@ function repository() {
     async detail(id) { return items.find((item) => item.id === id) ?? null; },
     async activeInstitution(id) { return id === INSTITUTION_ID ? { id, open_packages_accepted: true } : null; },
     async create(input) {
-      const item = { id: crypto.randomUUID(), status: "published", ...input };
+      const item = { id: crypto.randomUUID(), status: "published", stockUnits: 1, committedUnits: 0, ...input };
       items.push(item);
       return item;
     },
@@ -27,11 +27,13 @@ function repository() {
       values.add(id); favorites.set(userId, values);
     },
     async removeFavorite(userId, id) { favorites.get(userId)?.delete(id); },
-    async startTransaction({ buyerId, listingId }) {
+    async startTransaction({ buyerId, listingId, itemUnits = 1 }) {
       const item = items.find((candidate) => candidate.id === listingId && candidate.status === "published");
       if (!item || item.sellerId === buyerId) return null;
-      item.status = "unavailable";
-      return { id: crypto.randomUUID(), buyerId, listingId, status: "initiated" };
+      if(item.committedUnits+itemUnits>item.stockUnits)throw Object.assign(new Error('A quantidade solicitada não está mais disponível.'),{code:'listing_stock_unavailable',status:409});
+      item.committedUnits += itemUnits;
+      if(item.committedUnits===item.stockUnits)item.status = "unavailable";
+      return { id: crypto.randomUUID(), buyerId, listingId, status: "initiated", item_units:itemUnits, amount_cents:item.priceCents*itemUnits };
     },
     async cancelTransaction({ transactionId }) { return { id: transactionId, status: "cancelled" }; },
     async completeTransaction({ transactionId }) { return { id: transactionId, status: "completed" }; },
@@ -118,19 +120,31 @@ test("marketplace permits only disposable infant and swim catalog models", async
   assert.equal(swim.category, "swim");
 });
 
-test("starting a transaction makes its listing immediately unavailable", async () => {
+test("one listing can offer up to three identical packages without overselling", async () => {
   const store = repository();
   const service = createMarketplaceService(store, null, syntheticMediaProvider);
   const listing = await service.create("seller-1", {
     title: "Huggies Natural Care M", description: "Pacote fechado com vinte e quatro unidades.",
     kind: "sale", quantity: 24, priceCents: 3000, category: "infant", brand: "Huggies",
     model: "Natural Care", packageCondition: "sealed",
-    mediaKeys: ["listings/seller-1/synthetic.webp"],
+    stockUnits:3, mediaKeys: ["listings/seller-1/synthetic.webp"],
   });
-  const transaction = await service.startTransaction("buyer-1", listing.id);
+  const transaction = await service.startTransaction("buyer-1", listing.id,{itemUnits:2});
   assert.equal(transaction.status, "initiated");
-  assert.equal(listing.status, "unavailable");
-  assert.equal(await service.startTransaction("buyer-2", listing.id), null);
+  assert.equal(transaction.amount_cents,6000);
+  assert.equal(listing.status, "published");
+  await assert.rejects(service.startTransaction("buyer-2",listing.id,{itemUnits:2}),/quantidade|disponível/i);
+  const last=await service.startTransaction("buyer-2",listing.id,{itemUnits:1});
+  assert.equal(last.item_units,1);
+  assert.equal(listing.status,"unavailable");
+});
+
+test("listing stock accepts the technical Premium ceiling of five identical packages",async()=>{
+  const service=createMarketplaceService(repository(),null,syntheticMediaProvider);
+  const input={title:"Pampers Confort M",description:"Pacote fechado com cinquenta unidades.",kind:"sale",quantity:50,priceCents:4500,size:"M",category:"infant",brand:"Pampers",model:"Confort Sec",packageCondition:"sealed",mediaKeys:["listings/seller-1/synthetic.webp"]};
+  await assert.rejects(service.create("seller-1",{...input,stockUnits:0}),error=>error.code==="invalid_stock_units");
+  await assert.rejects(service.create("seller-1",{...input,stockUnits:6}),error=>error.code==="invalid_stock_units");
+  assert.equal((await service.create("seller-1",{...input,stockUnits:5})).stockUnits,5);
 });
 
 test("chat access is authorized by transaction participation and confirmed payment", async () => {

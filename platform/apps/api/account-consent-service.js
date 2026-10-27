@@ -18,6 +18,7 @@ export function createAccountConsentService(repository,termsLoader=loadLegalTerm
     }return repository.saveCookiePreferences(userId,consent);},
     terms(){return termsLoader();},
     termsHistory(userId){return repository.termsHistory(userId);},
+    async assertOperationalTerms(userId){const terms=await termsLoader();if(terms.status!=='active')return Object.freeze({enforced:false});if(!await repository.hasTermsAcceptance(userId,terms))throw new ServiceError('current_terms_acceptance_required',428,'Leia e aceite a versão atual dos Termos de Uso para iniciar uma nova operação.');return Object.freeze({enforced:true,accepted:true,version:terms.version});},
     async acceptTerms(userId,input){
       const terms=await termsLoader();
       if(terms.status!=='active')throw new ServiceError('terms_not_active',409,'Termos pré-operacionais ainda aguardam revisão e ativação.');

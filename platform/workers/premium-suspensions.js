@@ -1,0 +1,1 @@
+export async function applyPremiumSuspensionPauses(repository,{limit=50}={}){const due=await repository.due(limit);let extendedSeconds=0;for(const item of due){const result=await repository.apply(item);extendedSeconds+=result.extensionSeconds;}return Object.freeze({checked:due.length,extendedSeconds,billingInitiated:false});}

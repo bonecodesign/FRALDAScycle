@@ -39,5 +39,10 @@ export function createAccountConsentRepository(database) {
       const result=await database.query('SELECT id,version,content_hash,accepted_at FROM terms_acceptances WHERE user_id=$1 ORDER BY accepted_at DESC LIMIT 100',[userId]);
       return result.rows;
     },
+    async hasTermsAcceptance(userId,{version,contentHash}) {
+      const result=await database.query(`SELECT EXISTS(SELECT 1 FROM terms_acceptances
+        WHERE user_id=$1 AND version=$2 AND content_hash=$3) AS accepted`,[userId,version,contentHash]);
+      return result.rows[0]?.accepted===true;
+    },
   });
 }

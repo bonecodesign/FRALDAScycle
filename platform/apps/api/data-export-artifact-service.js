@@ -1,0 +1,9 @@
+import { createHash } from 'node:crypto';
+import { prepareDataExport } from '../../workers/data-export.js';
+import { validateDataExportStorage } from './data-export-storage.js';
+
+const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
+export function createDataExportArtifactService({repository,collector,storage}){return Object.freeze({
+  async prepare({userId,requestId,expectedVersion,password}){const provider=validateDataExportStorage(storage);const reservation=await repository.acquirePreparation({userId,requestId,expectedVersion});let prepared;try{const snapshot=await collector.collect(userId);prepared=await prepareDataExport({snapshot,format:reservation.format,password,storage:provider});if(!prepared.prepared)throw fail('data_export_storage_unavailable',503,'Armazenamento de exportação não configurado.');return await repository.completePreparation({userId,requestId,expectedVersion:reservation.version,storageReference:prepared.storageReference,artifactSha256:prepared.artifactSha256});}catch(error){if(prepared?.storageReference)try{await provider.delete(prepared.storageReference);}catch{}await repository.failPreparation({userId,requestId,expectedVersion:reservation.version});throw error;}},
+  async download({userId,requestId}){const provider=validateDataExportStorage(storage);const context=await repository.downloadContext({userId,requestId});const artifact=await provider.get(context.storageReference);if(!Buffer.isBuffer(artifact))throw fail('data_export_artifact_unavailable',503,'Arquivo de exportação indisponível.');const digest=createHash('sha256').update(artifact).digest('hex');if(digest!==context.artifactSha256)throw fail('data_export_integrity_failure',503,'A integridade do arquivo não pôde ser confirmada.');await repository.recordDownload({userId,requestId});return Object.freeze({artifact,format:context.format,expiresAt:context.expiresAt});},
+});}

@@ -126,6 +126,11 @@ export function loadConfig(env = process.env) {
   if (responsibleRegistrationEnabled && responsibleCpfHmacSecret === env.SESSION_SECRET) {
     throw new Error("RESPONSIBLE_CPF_HMAC_SECRET must not reuse SESSION_SECRET");
   }
+  const asaasSandboxEnabled=env.ASAAS_SANDBOX_ENABLED==='true';
+  const asaasSandboxApiKey=env.ASAAS_SANDBOX_API_KEY??null;
+  const asaasWebhookAccessToken=env.ASAAS_WEBHOOK_ACCESS_TOKEN??null;
+  if(asaasSandboxEnabled&&nodeEnv==='production')throw new Error('ASAAS_SANDBOX_ENABLED cannot be used in production');
+  if(asaasSandboxEnabled&&(!asaasSandboxApiKey||String(asaasWebhookAccessToken??'').length<16))throw new Error('Asaas sandbox API key and webhook access token are required when enabled');
   const courierEligibilityRequested = env.COURIER_ELIGIBILITY_ENABLED === "true";
   const courierEligibilityActivationAcknowledged = env.COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED === "true";
   if (nodeEnv === "production" && courierEligibilityRequested && !courierEligibilityActivationAcknowledged) {
@@ -169,6 +174,9 @@ export function loadConfig(env = process.env) {
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
+    asaasSandboxEnabled,
+    asaasSandboxApiKey,
+    asaasWebhookAccessToken,
     courierEligibilityEnabled: courierEligibilityRequested &&
       (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
     courierClearanceRetentionPolicyVersion: courierRetentionPolicyVersion,

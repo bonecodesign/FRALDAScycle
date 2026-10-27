@@ -16,7 +16,7 @@ function publicShipment(row){return {
   logisticsResponsibility:row.logistics_payer_id===row.buyer_id?'buyer':null,
   freightCents:null,freightChargeAvailable:false,
 }}
-export function createLogisticsService(repository,provider,mediaProvider,{pilotBh=null}={}){
+export function createLogisticsService(repository,provider,mediaProvider,{pilotBh=null,courierOffersRequired=false}={}){
   return Object.freeze({
     async courierPage(actor,{history=false,page='1'}={}) {
       if (!['courier','admin'].includes(actor?.role)) throw new LogisticsError('forbidden',403,'Use a conta do entregador para consultar suas operações.');
@@ -148,8 +148,10 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
       if(actor?.role!=='courier')throw new LogisticsError('forbidden',403,'Somente o entregador atribuído pode consultar o contato logístico.');
       return repository.courierContact({courierId:actor.id,shipmentId});
     },
-    async assign(courierId,shipmentId){
-      const shipment=await repository.assignCourier({courierId,shipmentId});
+    async assign(courierId,shipmentId,input={}){
+      let shipment;
+      if(courierOffersRequired){if(input?.confirmed!==true||Object.keys(input).some(key=>!['offerId','confirmed'].includes(key))||!/^[0-9a-f-]{36}$/i.test(String(input.offerId??'')))throw new LogisticsError('courier_offer_required',422,'Aceite a oferta de entrega vigente.');shipment=await repository.acceptCourierOffer({courierId,shipmentId,offerId:input.offerId});}
+      else shipment=await repository.assignCourier({courierId,shipmentId});
       if(!shipment)throw new LogisticsError("shipment_not_available",409,"Entrega não está disponível.");
       return publicShipment(shipment);
     },

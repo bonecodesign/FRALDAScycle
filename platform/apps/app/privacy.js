@@ -1,5 +1,6 @@
 import {apiRequest} from '/packages/contracts/api-client.js';
 const form=document.getElementById('privacy-form'),assessment=document.getElementById('privacy-assessment'),feedback=document.getElementById('privacy-feedback');
+for(const [href,label] of [['/app/data-export','Baixar uma cópia dos meus dados'],['/app/account-closure','Solicitar encerramento da conta']]){const link=document.createElement('a');link.href=href;link.className='button secondary block';link.textContent=label;form.before(link);}
 let key=crypto.randomUUID(),fingerprint='',reviewer=false,selected=null;
 const lock=(f,state)=>f.querySelector('fieldset').disabled=state;
 const labels={access:'Acesso',correction:'Correção',deletion:'Exclusão'};
