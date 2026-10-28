@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { saleSplit, deliverySplit, exchangeFee, freightResponsibility, parsePrice, listingPrice } from "../packages/contracts/commercial-rules.js";
+import { saleSplit, deliverySplit, externalPartnerDeliveryCharge, exchangeFee, freightResponsibility, parsePrice, listingPrice } from "../packages/contracts/commercial-rules.js";
 
 test("approved financial examples keep freight separate and exchange per participant", () => {
   assert.deepEqual(saleSplit(10000), { productCents: 10000, platformCents: 800, sellerCents: 9200 });
   assert.deepEqual(deliverySplit(2000), {
     freightCents: 2000, platformCents: 100, customerTotalCents: 2100, courierCents: 2000,
+  });
+  assert.deepEqual(externalPartnerDeliveryCharge(2000), {
+    partnerServiceCents: 2000, platformCents: 100, customerTotalCents: 2100, partnerCents: 2000,
   });
   assert.equal(freightResponsibility("sale"), "buyer");
   assert.equal(freightResponsibility("exchange"), "receiving_participant_per_leg");

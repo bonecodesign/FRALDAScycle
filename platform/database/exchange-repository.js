@@ -1,18 +1,19 @@
 import {pilotBhLocation} from '../apps/api/pilot-bh.js';
+import {exchangeFee} from '../packages/contracts/commercial-rules.js';
 const fail=(code,status,message,extra={})=>Object.assign(new Error(message),{code,status,...extra});
 export function createExchangeRepository(database,{pilotBh=null}={}){return Object.freeze({
- async propose({actorId,requestedListingId,offeredListingId}){return database.transaction(async client=>{
+ async propose({actorId,requestedListingId,offeredListingId,requesterDeclaredValueCents}){return database.transaction(async client=>{
   const listings=(await client.query(`SELECT id,seller_id,kind,status,package_condition,city,state FROM listings WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE`,[[requestedListingId,offeredListingId]])).rows;
   const requested=listings.find(x=>x.id===requestedListingId),offered=listings.find(x=>x.id===offeredListingId);
   if(!requested||!offered||requested.kind!=='exchange'||offered.kind!=='exchange'||requested.status!=='published'||offered.status!=='published'||requested.package_condition!=='sealed'||offered.package_condition!=='sealed'||offered.seller_id!==actorId||requested.seller_id===actorId)throw fail('exchange_listings_not_eligible',409,'Escolha dois anúncios de troca publicados, lacrados e pertencentes às partes corretas.');
   if(!pilotBhLocation(pilotBh,requested.city,requested.state)||!pilotBhLocation(pilotBh,offered.city,offered.state))throw fail('pilot_outside_bh',403,'O piloto aceita somente trocas em Belo Horizonte, MG.');
   const transaction=(await client.query(`INSERT INTO transactions(listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,'proposed',NULL) RETURNING *`,[requestedListingId,actorId,requested.seller_id])).rows[0];
-  const operation=(await client.query(`INSERT INTO exchange_operations(transaction_id,requested_listing_id,offered_listing_id,requester_id,owner_id) VALUES($1,$2,$3,$4,$5) RETURNING *`,[transaction.id,requestedListingId,offeredListingId,actorId,requested.seller_id])).rows[0];
-  await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.proposed','transaction',$2,$3::jsonb)`,[actorId,transaction.id,JSON.stringify({requestedListingId,offeredListingId,version:1})]);return operation;
+  const operation=(await client.query(`INSERT INTO exchange_operations(transaction_id,requested_listing_id,offered_listing_id,requester_id,owner_id,requester_declared_value_cents) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[transaction.id,requestedListingId,offeredListingId,actorId,requested.seller_id,requesterDeclaredValueCents])).rows[0];
+  await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.proposed','transaction',$2,$3::jsonb)`,[actorId,transaction.id,JSON.stringify({requestedListingId,offeredListingId,version:1,requesterDeclaredValueCents})]);return operation;
  });},
- async accept({actorId,transactionId,expectedVersion}){return database.transaction(async client=>{
+ async accept({actorId,transactionId,expectedVersion,ownerDeclaredValueCents}){return database.transaction(async client=>{
   const operation=(await client.query('SELECT * FROM exchange_operations WHERE transaction_id=$1 FOR UPDATE',[transactionId])).rows[0];if(!operation||operation.owner_id!==actorId)throw fail('exchange_not_found',404,'Proposta de troca não encontrada.');
-  if(operation.status==='accepted'&&operation.version===expectedVersion+1)return {...operation,reused:true};
+  if(operation.status==='accepted'&&operation.version===expectedVersion+1){if(operation.owner_declared_value_cents!==ownerDeclaredValueCents)throw fail('exchange_fee_value_conflict',409,'A troca já foi aceita com outro valor declarado.');return {...operation,reused:true};}
   if(operation.status!=='proposed'||operation.version!==expectedVersion)throw fail('exchange_version_conflict',409,'A proposta foi atualizada; consulte novamente.');
   const listings=(await client.query(`UPDATE listings SET status='unavailable',updated_at=now() WHERE id=ANY($1::uuid[]) AND status='published' AND kind='exchange' RETURNING id`,[[operation.requested_listing_id,operation.offered_listing_id]])).rows;
   if(listings.length!==2)throw fail('exchange_listing_unavailable',409,'Um dos anúncios não está mais disponível.');
@@ -21,9 +22,15 @@ export function createExchangeRepository(database,{pilotBh=null}={}){return Obje
    {leg:2,listing:operation.requested_listing_id,sender:operation.owner_id,receiver:operation.requester_id},
   ];
   const shipments=[];for(const leg of legs){const row=(await client.query(`INSERT INTO shipments(transaction_id,buyer_id,seller_id,mode,insured,idempotency_key,status,exchange_leg,logistics_payer_id) VALUES($1,$2,$3,'partner',false,$4,'awaiting_pickup',$5,$2) RETURNING id,transaction_id,buyer_id,seller_id,status,exchange_leg,logistics_payer_id`,[transactionId,leg.receiver,leg.sender,`exchange:${transactionId}:${leg.leg}`,leg.leg])).rows[0];shipments.push(row);await client.query(`INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'awaiting_pickup',$2)`,[row.id,`Perna ${leg.leg} da troca criada; destinatário responsável pelo frete ainda não cobrado.`]);}
-  const updated=(await client.query("UPDATE exchange_operations SET status='accepted',version=version+1,accepted_at=now(),updated_at=now() WHERE transaction_id=$1 RETURNING *",[transactionId])).rows[0];
+  const fees=[
+   {participant:operation.requester_id,listing:operation.offered_listing_id,value:operation.requester_declared_value_cents},
+   {participant:operation.owner_id,listing:operation.requested_listing_id,value:ownerDeclaredValueCents},
+  ];
+  if(!fees[0].value)throw fail('exchange_fee_value_missing',409,'A proposta não possui valor declarado válido.');
+  for(const fee of fees)await client.query(`INSERT INTO exchange_fee_obligations(transaction_id,participant_id,offered_listing_id,declared_value_cents,fee_cents) VALUES($1,$2,$3,$4,$5)`,[transactionId,fee.participant,fee.listing,fee.value,exchangeFee(fee.value)]);
+  const updated=(await client.query("UPDATE exchange_operations SET status='accepted',version=version+1,owner_declared_value_cents=$2,accepted_at=now(),updated_at=now() WHERE transaction_id=$1 RETURNING *",[transactionId,ownerDeclaredValueCents])).rows[0];
   await client.query("UPDATE transactions SET status='in_delivery',updated_at=now() WHERE id=$1 AND status='proposed'",[transactionId]);
-  await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.accepted','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({version:updated.version,shipmentIds:shipments.map(x=>x.id),financialSettlement:false})]);return {...updated,shipments,reused:false};
+  await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.accepted','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({version:updated.version,shipmentIds:shipments.map(x=>x.id),feeObligations:fees.map(x=>({participantId:x.participant,feeCents:exchangeFee(x.value)})),financialSettlement:false})]);return {...updated,shipments,feeObligations:fees.map(x=>({participant_id:x.participant,declared_value_cents:x.value,fee_cents:exchangeFee(x.value),status:'not_charged'})),reused:false};
  });},
  async refuse({actorId,transactionId,expectedVersion,reason}){return database.transaction(async client=>{
   const operation=(await client.query('SELECT * FROM exchange_operations WHERE transaction_id=$1 FOR UPDATE',[transactionId])).rows[0];if(!operation||operation.owner_id!==actorId)throw fail('exchange_not_found',404,'Proposta de troca não encontrada.');
@@ -43,7 +50,8 @@ export function createExchangeRepository(database,{pilotBh=null}={}){return Obje
   await client.query("UPDATE shipments SET status='cancelled',updated_at=now() WHERE transaction_id=$1 AND exchange_leg IS NOT NULL AND status IN('awaiting_pickup','assigned')",[transactionId]);await client.query("UPDATE transactions SET status='cancelled',updated_at=now() WHERE id=$1",[transactionId]);await client.query("UPDATE listings SET status='published',updated_at=now() WHERE id=ANY($1::uuid[]) AND status='unavailable'",[[operation.requested_listing_id,operation.offered_listing_id]]);const updated=(await client.query("UPDATE exchange_operations SET status='cancelled',version=version+1,updated_at=now() WHERE transaction_id=$1 RETURNING *",[transactionId])).rows[0];await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'exchange.cancelled_bilateral','transaction',$2,$3::jsonb)`,[actorId,transactionId,JSON.stringify({version:updated.version,confirmations:2})]);return {...updated,reused:false,counterpartConfirmed:true};
  });},
  async detail({actorId,transactionId,reviewer=false}){const result=await database.query(`SELECT e.*,
-   COALESCE(json_agg(json_build_object('id',s.id,'leg',s.exchange_leg,'senderId',s.seller_id,'receiverId',s.buyer_id,'logisticsPayerId',s.logistics_payer_id,'courierId',s.courier_id,'status',s.status) ORDER BY s.exchange_leg) FILTER(WHERE s.id IS NOT NULL),'[]') AS legs
+   COALESCE(json_agg(json_build_object('id',s.id,'leg',s.exchange_leg,'senderId',s.seller_id,'receiverId',s.buyer_id,'logisticsPayerId',s.logistics_payer_id,'courierId',s.courier_id,'status',s.status) ORDER BY s.exchange_leg) FILTER(WHERE s.id IS NOT NULL),'[]') AS legs,
+   COALESCE((SELECT json_agg(json_build_object('participantId',f.participant_id,'offeredListingId',f.offered_listing_id,'declaredValueCents',f.declared_value_cents,'feeCents',f.fee_cents,'status',f.status) ORDER BY f.participant_id) FROM exchange_fee_obligations f WHERE f.transaction_id=e.transaction_id),'[]') AS fee_obligations
    FROM exchange_operations e LEFT JOIN shipments s ON s.transaction_id=e.transaction_id
    WHERE e.transaction_id=$1 AND ($2 IN(e.requester_id,e.owner_id) OR $3::boolean) GROUP BY e.transaction_id`,[transactionId,actorId,reviewer]);return result.rows[0]??null;},
  async complete({actorId,transactionId}){return database.transaction(async client=>{

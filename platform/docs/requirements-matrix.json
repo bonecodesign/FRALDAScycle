@@ -20,7 +20,7 @@
     {
       "id": 2,
       "title": "Comissão logística",
-      "status": "concluido",
+      "status": "parcial",
       "references": [
         "packages/contracts/commercial-rules.js",
         "apps/api/payment-service.js",
@@ -46,20 +46,25 @@
     {
       "id": 4,
       "title": "Taxa de troca",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/commercial-rules.js",
-        "apps/api/payment-service.js",
+        "database/migrations/080_exchange_fee_obligations.sql",
+        "database/exchange-repository.js",
+        "apps/api/exchange-service.js",
+        "apps/app/exchange.js",
         "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
+        "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Cálculo de 2,5% e duas partes estão modelados; cobrança individual e fornecedor permanecem bloqueados."
+      "evidence": "PostgreSQL 16 local em 27/10/2026: valores declarados de R$ 80 e R$ 100 geraram obrigações independentes de R$ 2 e R$ 2,50; consulta, vínculo, estado não cobrado e ausência de payment_intents comprovados por HTTP.",
+      "reason": "Escopo técnico da taxa concluído: 2,5% por participante sobre seu pacote, com snapshot e obrigação independente. Cobrança externa permanece corretamente bloqueada no requisito 3."
     },
     {
       "id": 5,
       "title": "Entrega de doação",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/marketplace-service.js",
         "database/marketplace-repository.js",
@@ -148,14 +153,20 @@
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
         "database/migrations/056_exchange_logistics_responsibility.sql",
+        "database/migrations/076_delivery_quote_confirmation.sql",
+        "database/migrations/082_exchange_leg_delivery_quotes.sql",
+        "database/delivery-quote-repository.js",
         "database/exchange-repository.js",
+        "apps/api/delivery-quote-handler.js",
+        "apps/api/delivery-quote-service.js",
         "apps/api/exchange-service.js",
         "tests/bilateral-exchange.test.mjs",
+        "tests/delivery-quote-http-postgres.test.mjs",
         "tests/exchange-http-postgres.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova duas pernas opostas, destinatários responsáveis por seus respectivos fretes e restrição contra atribuição ao remetente.",
-      "reason": "Duas rotas, endereços privados e responsabilidade individual persistidos; preço, cobrança individual e provedor permanecem pendentes."
+      "evidence": "HTTP/PostgreSQL comprova duas pernas opostas com destinatários responsáveis, duas cotações independentes e confirmação restrita ao pagador de cada perna. Totais externos de R$ 21,00 e R$ 31,50 preservaram o preço do parceiro e adicionaram 5% da FraldaCycle; tentativa cruzada recebeu 404.",
+      "reason": "Rotas, privacidade, responsabilidade, preço e confirmação individual estão persistidos; consulta real ao provedor e cobrança individual permanecem desligadas."
     },
     {
       "id": 10,
@@ -176,12 +187,19 @@
       "status": "parcial",
       "references": [
         "packages/contracts/commercial-rules.js",
+        "apps/api/delivery-quote-handler.js",
+        "apps/api/delivery-quote-service.js",
         "apps/api/payment-service.js",
+        "database/delivery-quote-repository.js",
+        "database/migrations/076_delivery_quote_confirmation.sql",
         "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "tests/delivery-quote-http-postgres.test.mjs",
+        "tests/delivery-quote-persistence.test.mjs",
+        "tests/payments.test.mjs",
+        "docs/delivery-quote-cache-decision.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Produto e frete separados no contrato; checkout com entrega bloqueado."
+      "evidence": "Prova HTTP/PostgreSQL local de 2026-10-27: somente o comprador confirma identificador, fingerprint e total exatos; adulteração é recusada; cotação confirmada é travada para pagamento e não pode ser substituída. Cotação externa de R$ 20,00 preservou o valor integral do parceiro e adicionou R$ 1,00 (5%) da FraldaCycle.",
+      "reason": "Contrato, persistência, confirmação auditada e trava local do frete estão implementados; a consulta real ao parceiro e a cobrança no checkout permanecem desligadas até credenciais, consentimentos e integração financeira."
     },
     {
       "id": 12,
@@ -199,18 +217,19 @@
     {
       "id": 13,
       "title": "Repasse ao vendedor",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
+        "database/migrations/081_seller_payout_obligations.sql",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
-        "tests/receipt-records.test.mjs",
+        "apps/api/logistics-handler.js",
         "packages/contracts/settlement-readiness.js",
         "tests/settlement-readiness.test.mjs",
-        "tests/postgres-beta.test.mjs",
-        "docs/beta-validation-2026-10-05.md"
+        "tests/seller-settlement-http-postgres.test.mjs",
+        "docs/seller-settlement-beta.md"
       ],
-      "evidence": "CI nativo c94b0cc: PostgreSQL e Chrome real na jornada delimitada. Limites e fixtures em beta-validation-2026-10-05.md; não comprova fornecedores, demais modalidades ou homologação humana.",
-      "reason": "Decisões separadas e consulta existem; não autorizam nem executam repasse."
+      "evidence": "PostgreSQL 16 local em 27/10/2026: consulta privada, preparação administrativa, idempotência, divisão 10000/800/9200 e ausência de referência externa comprovadas por HTTP.",
+      "reason": "Obrigação local e elegibilidade concluídas; permanece sem autorização ou transferência externa. Integração real continua bloqueada pelo requisito 3."
     },
     {
       "id": 14,
@@ -228,7 +247,7 @@
     {
       "id": 15,
       "title": "Repasse ao entregador",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/commercial-rules.js",
         "database/migrations/036_courier_payout_obligations.sql",
@@ -242,8 +261,8 @@
         "docs/courier-payout-eligibility-beta.md",
         "docs/courier-payout-obligation-beta.md"
       ],
-      "evidence": "Em 2026-10-18, seis testes locais passaram sem skips, incluindo HTTP/PostgreSQL nativo: autorização, isolamento, split 95/5, persistência, idempotência e ausência de transferência; teste sintético validou pré-requisitos e bloqueios.",
-      "reason": "Preparação e elegibilidade locais comprovadas por HTTP/PostgreSQL. Cobrança de frete, KYC, provedor, transferência e conciliação reais continuam pendentes."
+      "evidence": "PostgreSQL 16 local em 27/10/2026: sete testes aprovados, cobrindo autorização, isolamento, split 95/5, persistência, idempotência, bloqueios e ausência de transferência.",
+      "reason": "Obrigação local e elegibilidade concluídas; payoutAllowed permanece falso. Cobrança e transferência externas continuam bloqueadas nos requisitos de fornecedor."
     },
     {
       "id": 16,
@@ -1133,13 +1152,14 @@
       "references": [
         "apps/api/pilot-bh.js",
         "tests/pilot-bh.test.mjs",
+        "tests/pilot-bh-http-postgres.test.mjs",
         "docs/pilot-bh-technical-gate.md",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Modo local por lista privada de e-mails e bloqueios BH/MG iniciado, desligado por padrão. Prova HTTP/PostgreSQL completa, destinos/CEP, emissão de convites e decisão humana de início ainda pendentes; NO-GO mantido."
+      "evidence": "PostgreSQL 16 local em 27/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro e bloqueios de reutilização/revogação aprovados; limites em docs/pilot-bh-technical-gate.md.",
+      "reason": "Modo local desligado por padrão; emissão, consumo único e revogação de convites foram comprovados por HTTP/PostgreSQL. Jornadas completas de destinos/CEP, revisão humana das contas e decisão de início continuam pendentes; NO-GO mantido."
     },
     {
       "id": 68,

@@ -1,1 +1,55 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FraldaCycle — Troca bilateral</title><link rel="stylesheet" href="/packages/ui/source-adapter.css"></head><body><a class="skip-link" href="#main">Pular para o conteúdo</a><main id="main" class="app-stage" data-surface="app" data-source-route="#/app/exchange"><section class="phone"><div class="phone-content"><a class="back-link-inline" href="/app/search">← Voltar à busca</a><h1>Troca bilateral</h1><p>Cada pessoa oferece um anúncio próprio. Após o aceite, dois pacotes seguem em entregas independentes.</p><p class="notice">Frete e diferença financeira permanecem indisponíveis nesta etapa.</p><form id="exchange-propose"><fieldset><legend>Propor troca</legend><label>Anúncio desejado <input class="input" name="requestedListingId" minlength="36" maxlength="36" required></label><label>Meu anúncio oferecido <select class="input" name="offeredListingId" required><option value="">Carregando seus anúncios…</option></select></label><label><input name="confirmed" type="checkbox" required> Confirmo os dois anúncios desta proposta.</label><button class="button primary block">Enviar proposta</button></fieldset></form><form id="exchange-manage"><fieldset><legend>Acompanhar ou aceitar</legend><label>Operação <input class="input" name="transactionId" minlength="36" maxlength="36" required></label><button class="button secondary" type="button" id="exchange-load">Consultar</button><label>Versão atual <input class="input" name="expectedVersion" type="number" min="1" value="1" required></label><label><input name="confirmed" type="checkbox"> Confirmo o aceite bilateral.</label><button class="button primary block" type="submit">Aceitar proposta</button></fieldset></form><div id="exchange-status" role="status" aria-live="polite"></div></div></section></main><script type="module" src="/apps/app/exchange.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FraldaCycle — Troca bilateral</title>
+<link rel="stylesheet" href="/packages/ui/source-adapter.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Pular para o conteúdo</a>
+<main id="main" class="app-stage" data-surface="app" data-source-route="#/app/exchange">
+<section class="phone">
+<div class="phone-content">
+<a class="back-link-inline" href="/app/search">← Voltar à busca</a>
+<h1>Troca bilateral</h1>
+<p>Cada pessoa oferece um anúncio próprio e declara o valor do pacote que oferece. A taxa individual é 2,5% desse valor.</p>
+<p class="notice">Os valores e taxas são registrados para transparência, mas cobrança, frete e diferença financeira permanecem indisponíveis até a ativação do provedor.</p>
+<form id="exchange-propose">
+<fieldset>
+<legend>Propor troca</legend>
+<label>Anúncio desejado <input class="input" name="requestedListingId" minlength="36" maxlength="36" required>
+</label>
+<label>Meu anúncio oferecido <select class="input" name="offeredListingId" required>
+<option value="">Carregando seus anúncios…</option>
+</select>
+</label>
+<label>Valor declarado do meu pacote <input class="input" name="requesterDeclaredValue" inputmode="decimal" placeholder="R$ 0,00" required></label>
+<label>
+<input name="confirmed" type="checkbox" required> Confirmo os dois anúncios desta proposta.</label>
+<button class="button primary block">Enviar proposta</button>
+</fieldset>
+</form>
+<form id="exchange-manage">
+<fieldset>
+<legend>Acompanhar ou aceitar</legend>
+<label>Operação <input class="input" name="transactionId" minlength="36" maxlength="36" required>
+</label>
+<button class="button secondary" type="button" id="exchange-load">Consultar</button>
+<label>Versão atual <input class="input" name="expectedVersion" type="number" min="1" value="1" required>
+</label>
+<label>Valor declarado do pacote que ofereço <input class="input" name="ownerDeclaredValue" inputmode="decimal" placeholder="R$ 0,00" required></label>
+<label>
+<input name="confirmed" type="checkbox"> Confirmo o aceite bilateral.</label>
+<button class="button primary block" type="submit">Aceitar proposta</button>
+</fieldset>
+</form>
+<div id="exchange-status" role="status" aria-live="polite">
+</div>
+</div>
+</section>
+</main>
+<script type="module" src="/apps/app/exchange.js">
+</script>
+</body>
+</html>

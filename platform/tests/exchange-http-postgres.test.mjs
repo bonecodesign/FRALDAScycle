@@ -39,18 +39,21 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),exchangeService,logisticsService,authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
    const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'});
-   async function propose(pair){const response=await fetch(`${origin}/v1/exchanges`,{method:'POST',headers:headers('requester'),body:JSON.stringify({requestedListingId:pair[0],offeredListingId:pair[1],confirmed:true})});const body=await response.json();assert.equal(response.status,201,JSON.stringify(body));return body.exchange.transaction_id;}
+   async function propose(pair){const response=await fetch(`${origin}/v1/exchanges`,{method:'POST',headers:headers('requester'),body:JSON.stringify({requestedListingId:pair[0],offeredListingId:pair[1],requesterDeclaredValueCents:8000,confirmed:true})});const body=await response.json();assert.equal(response.status,201,JSON.stringify(body));return body.exchange.transaction_id;}
    const refusedId=await propose(listingIds.slice(0,2));
    const refusedResponse=await fetch(`${origin}/v1/exchanges/${refusedId}/refuse`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,reason:'Os itens fictícios não atendem à necessidade atual.',confirmed:true})});const refused=await refusedResponse.json();assert.equal(refusedResponse.status,201,JSON.stringify(refused));assert.equal(refused.exchange.status,'refused');assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[refusedId])).rows[0].status,'cancelled');
    const cancelledId=await propose(listingIds.slice(2,4));
-   const acceptedCancel=await fetch(`${origin}/v1/exchanges/${cancelledId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,confirmed:true})});assert.equal(acceptedCancel.status,201);
+   const acceptedCancel=await fetch(`${origin}/v1/exchanges/${cancelledId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,ownerDeclaredValueCents:10000,confirmed:true})});assert.equal(acceptedCancel.status,201);
    const reason='Ambas as partes fictícias decidiram cancelar antes da coleta.';
    const firstCancel=await fetch(`${origin}/v1/exchanges/${cancelledId}/cancel`,{method:'POST',headers:headers('requester'),body:JSON.stringify({expectedVersion:2,reason,confirmed:true})});assert.equal(firstCancel.status,201);assert.equal((await firstCancel.json()).exchange.counterpartConfirmed,false);
    const secondCancel=await fetch(`${origin}/v1/exchanges/${cancelledId}/cancel`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:2,reason,confirmed:true})});const cancelled=await secondCancel.json();assert.equal(secondCancel.status,201,JSON.stringify(cancelled));assert.equal(cancelled.exchange.status,'cancelled');assert.equal(cancelled.exchange.counterpartConfirmed,true);
    assert.equal((await database.query("SELECT count(*)::int AS count FROM listings WHERE id=ANY($1::uuid[]) AND status='published'",[listingIds.slice(2,4)])).rows[0].count,2);
    assert.equal((await database.query("SELECT count(*)::int AS count FROM shipments WHERE transaction_id=$1 AND status='cancelled'",[cancelledId])).rows[0].count,2);
    const completedId=await propose(listingIds.slice(4,6));
-   const acceptedComplete=await fetch(`${origin}/v1/exchanges/${completedId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,confirmed:true})});assert.equal(acceptedComplete.status,201);
+   const acceptedComplete=await fetch(`${origin}/v1/exchanges/${completedId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,ownerDeclaredValueCents:10000,confirmed:true})});assert.equal(acceptedComplete.status,201);
+   const feeRows=(await database.query('SELECT declared_value_cents,fee_basis_points,fee_cents,status FROM exchange_fee_obligations WHERE transaction_id=$1 ORDER BY fee_cents',[completedId])).rows;
+   assert.deepEqual(feeRows.map(row=>({value:row.declared_value_cents,basis:row.fee_basis_points,fee:row.fee_cents,status:row.status})),[{value:8000,basis:250,fee:200,status:'not_charged'},{value:10000,basis:250,fee:250,status:'not_charged'}]);
+   assert.equal((await database.query('SELECT count(*)::int AS count FROM payment_intents WHERE transaction_id=$1',[completedId])).rows[0].count,0);
    const acceptedBody=await acceptedComplete.json();
    assert.deepEqual(acceptedBody.exchange.shipments.map(leg=>({leg:leg.exchange_leg,sender:leg.seller_id,receiver:leg.buyer_id,payer:leg.logistics_payer_id})),[
     {leg:1,sender:ids.requester,receiver:ids.owner,payer:ids.owner},
@@ -69,15 +72,15 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
     assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('admin')})).status,403);
     if(index===0){
      await database.query("UPDATE transactions SET status='disputed' WHERE id=$1",[completedId]);
-     assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('courier1')})).status,409);
+     const disputedAssignment=await fetch(assignmentUrl,{method:'POST',headers:headers('courier1'),body:'{}'});const disputedBody=await disputedAssignment.json();assert.equal(disputedAssignment.status,409,JSON.stringify(disputedBody));
      await database.query("UPDATE transactions SET status='in_delivery' WHERE id=$1",[completedId]);
      await database.query('UPDATE users SET disabled_at=now() WHERE id=$1',[courier]);
-     assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('courier1')})).status,409);
+     assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('courier1'),body:'{}'})).status,409);
      await database.query('UPDATE users SET disabled_at=NULL WHERE id=$1',[courier]);
     }
-    const assigned=await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier1':'courier2')});
+    const assigned=await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier1':'courier2'),body:'{}'});
     assert.equal(assigned.status,200,JSON.stringify(await assigned.clone().json()));
-    assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier2':'courier1')})).status,409);
+    assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier2':'courier1'),body:'{}'})).status,409);
     await database.query("UPDATE shipments SET status='delivered' WHERE id=$1 AND courier_id=$2",[leg.id,courier]);
     const proof=(await database.query("INSERT INTO delivery_proofs(shipment_id,courier_id,media_key,recipient_name,latitude,longitude) VALUES($1,$2,$3,'Recebedor fictício',-19.9167,-43.9345) RETURNING id",[leg.id,courier,`private/exchange-proof-${index+1}`])).rows[0];
     await database.query('INSERT INTO delivery_receipt_approvals(proof_id,approver_id) VALUES($1,$2)',[proof.id,leg.buyer_id]);

@@ -9,15 +9,16 @@ function database(answer){const calls=[];const client={async query(sql,values){c
 
 test('proposal requires two sealed published exchange listings owned by opposite parties',async()=>{
  const db=database(sql=>/SELECT id,seller_id,kind/.test(sql)?[{id:requested,seller_id:'owner',kind:'exchange',status:'published',package_condition:'sealed'},{id:offered,seller_id:'requester',kind:'exchange',status:'published',package_condition:'sealed'}]:/INSERT INTO transactions/.test(sql)?[{id:transaction}]:/INSERT INTO exchange_operations/.test(sql)?[{transaction_id:transaction,status:'proposed',version:1}]:[]);
- const result=await createExchangeRepository(db).propose({actorId:'requester',requestedListingId:requested,offeredListingId:offered});assert.equal(result.status,'proposed');assert.match(db.calls.at(-1).sql,/exchange\.proposed/);assert.ok(db.calls.every(({sql})=>!/UPDATE listings/.test(sql)));
+ const result=await createExchangeRepository(db).propose({actorId:'requester',requestedListingId:requested,offeredListingId:offered,requesterDeclaredValueCents:8000});assert.equal(result.status,'proposed');assert.equal(db.calls.find(({sql})=>/INSERT INTO exchange_operations/.test(sql)).values[5],8000);assert.match(db.calls.at(-1).sql,/exchange\.proposed/);assert.ok(db.calls.every(({sql})=>!/UPDATE listings/.test(sql)));
 });
 
 test('acceptance locks both listings and creates exactly two opposite independent legs',async()=>{
- const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,requester_id:'requester',owner_id:'owner',status:'proposed',version:1};let shipment=0;
+ const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,requester_id:'requester',owner_id:'owner',requester_declared_value_cents:8000,status:'proposed',version:1};let shipment=0;
  const db=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/UPDATE listings SET status='unavailable'/.test(sql)?[{id:requested},{id:offered}]:/INSERT INTO shipments/.test(sql)?[{id:`shipment-${++shipment}`,transaction_id:transaction,status:'awaiting_pickup',exchange_leg:shipment}]:/UPDATE exchange_operations SET status='accepted'/.test(sql)?[{...operation,status:'accepted',version:2}]:[]);
- const result=await createExchangeRepository(db).accept({actorId:'owner',transactionId:transaction,expectedVersion:1});assert.equal(result.shipments.length,2);
+ const result=await createExchangeRepository(db).accept({actorId:'owner',transactionId:transaction,expectedVersion:1,ownerDeclaredValueCents:10000});assert.equal(result.shipments.length,2);assert.deepEqual(result.feeObligations.map(x=>x.fee_cents),[200,250]);
  const inserts=db.calls.filter(({sql})=>/INSERT INTO shipments/.test(sql));assert.equal(inserts[0].values[1],'owner');assert.equal(inserts[0].values[2],'requester');assert.equal(inserts[1].values[1],'requester');assert.equal(inserts[1].values[2],'owner');assert.notEqual(inserts[0].values[4],inserts[1].values[4]);
  assert.ok(db.calls.every(({sql})=>!/payment_intents|courier_payout_obligations/.test(sql)));
+ const fees=db.calls.filter(({sql})=>/INSERT INTO exchange_fee_obligations/.test(sql));assert.equal(fees.length,2);assert.deepEqual(fees.map(x=>x.values.slice(3)),[[8000,200],[10000,250]]);
 });
 
 test('exchange completion fails until both legs are independently assigned, delivered, approved and validated',async()=>{
@@ -42,6 +43,8 @@ test('service requires explicit bilateral decisions and admin-only completion',a
  const service=createExchangeService({propose:()=>assert.fail(),accept:()=>assert.fail(),complete:()=>assert.fail()});
  assert.throws(()=>service.propose({id:'requester'},{requestedListingId:requested,offeredListingId:offered,confirmed:false}),error=>error.code==='invalid_exchange');
  assert.throws(()=>service.accept({id:'owner'},transaction,{expectedVersion:1,confirmed:false}),error=>error.code==='invalid_exchange');
+ assert.throws(()=>service.propose({id:'requester'},{requestedListingId:requested,offeredListingId:offered,requesterDeclaredValueCents:0,confirmed:true}),error=>error.code==='invalid_exchange');
+ assert.throws(()=>service.accept({id:'owner'},transaction,{expectedVersion:1,ownerDeclaredValueCents:0,confirmed:true}),error=>error.code==='invalid_exchange');
  assert.throws(()=>service.complete({id:'owner',role:'customer'},transaction,{confirmed:true}),error=>error.code==='forbidden');
 });
 

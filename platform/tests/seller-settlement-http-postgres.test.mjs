@@ -53,6 +53,13 @@ test('seller settlement status is private and remains informational over HTTP/Po
       assert.equal(overdue.settlement.requirementsMet,true);assert.equal(overdue.settlement.payoutAllowed,false);
       assert.equal(overdue.settlement.deadlineStatus,'provider_confirmation_pending');
       assert.equal((await database.query('SELECT count(*)::integer AS n FROM courier_payout_obligations WHERE shipment_id=$1',[ids.shipment])).rows[0].n,0);
+      const payoutEndpoint=`http://127.0.0.1:${api.address().port}/v1/shipments/${ids.shipment}/seller-payout`;
+      assert.equal((await fetch(payoutEndpoint,{headers:headers('outsider')})).status,404);
+      const before=await fetch(payoutEndpoint,{headers:headers('seller')});const beforeBody=await before.json();assert.equal(before.status,200,JSON.stringify(beforeBody));assert.equal(beforeBody.payout.eligible,true);assert.equal(beforeBody.payout.status,'not_prepared');assert.equal(beforeBody.payout.payoutAllowed,false);assert.equal(beforeBody.payout.sellerAmountCents,9200);
+      const denied=await fetch(payoutEndpoint,{method:'POST',headers:{...headers('seller'),'content-type':'application/json'},body:'{"confirmed":true}'});assert.equal(denied.status,403);
+      const prepared=await fetch(payoutEndpoint,{method:'POST',headers:{...headers('admin'),'content-type':'application/json'},body:'{"confirmed":true}'});const preparedBody=await prepared.json();assert.equal(prepared.status,201,JSON.stringify(preparedBody));assert.equal(preparedBody.payout.seller_amount_cents,9200);assert.equal(preparedBody.payout.status,'provider_pending');assert.equal(preparedBody.payout.provider_reference,null);
+      const replay=await fetch(payoutEndpoint,{method:'POST',headers:{...headers('admin'),'content-type':'application/json'},body:'{"confirmed":true}'});assert.equal(replay.status,200);assert.equal((await replay.json()).payout.reused,true);
+      const obligation=(await database.query('SELECT gross_product_cents,platform_fee_cents,seller_amount_cents,status,provider_reference FROM seller_payout_obligations WHERE shipment_id=$1',[ids.shipment])).rows[0];assert.deepEqual(obligation,{gross_product_cents:10000,platform_fee_cents:800,seller_amount_cents:9200,status:'provider_pending',provider_reference:null});
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });

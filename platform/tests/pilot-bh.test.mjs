@@ -153,7 +153,7 @@ test("BH pilot blocks exchange proposals when either existing listing is outside
       } });
     } };
     const exchanges = createExchangeRepository(database, { pilotBh: pilot });
-    await assert.rejects(exchanges.propose({ actorId: userId, requestedListingId, offeredListingId }),
+    await assert.rejects(exchanges.propose({ actorId: userId, requestedListingId, offeredListingId, requesterDeclaredValueCents: 8000 }),
       error => error.code === "pilot_outside_bh" && error.status === 403);
     assert.equal(writes, 0);
   }
@@ -189,8 +189,8 @@ test("BH pilot blocks shipment creation for an existing listing outside BH", asy
   const database = { async transaction(operation) {
     return operation({ async query(sql) {
       queryNumber++;
-      if (sql.startsWith("SELECT id,buyer_id,seller_id,status FROM transactions")) {
-        return { rows: [{ id: transactionId, buyer_id: userId, seller_id: sellerId, status: "paid" }] };
+      if (sql.includes("SELECT t.id,t.buyer_id,t.seller_id,t.status,l.kind")) {
+        return { rows: [{ id: transactionId, buyer_id: userId, seller_id: sellerId, status: "paid", kind: "sale" }] };
       }
       if (sql.includes("FROM transactions t JOIN listings l")) {
         return { rows: [{ city: "Contagem", state: "MG" }] };
@@ -212,8 +212,8 @@ test("BH pilot creates a shipment for a paid transaction in BH", async () => {
   const writes = [];
   const database = { async transaction(operation) {
     return operation({ async query(sql, values) {
-      if (sql.startsWith("SELECT id,buyer_id,seller_id,status FROM transactions")) {
-        return { rows: [{ id: transactionId, buyer_id: userId, seller_id: sellerId, status: "paid" }] };
+      if (sql.includes("SELECT t.id,t.buyer_id,t.seller_id,t.status,l.kind")) {
+        return { rows: [{ id: transactionId, buyer_id: userId, seller_id: sellerId, status: "paid", kind: "sale" }] };
       }
       if (sql.includes("FROM transactions t JOIN listings l")) return { rows: [{ city: "Belo Horizonte", state: "MG" }] };
       if (sql.startsWith("SELECT * FROM shipments WHERE idempotency_key")) return { rows: [] };

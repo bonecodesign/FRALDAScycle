@@ -5,6 +5,36 @@ function failure(code, status, message) {
 
 export function createReceiptRepository(database) {
   return Object.freeze({
+    async sellerPayoutStatus({actorId,shipmentId,reviewer=false}){return database.transaction(async client=>{
+      const row=(await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.seller_id,s.status AS shipment_status,t.status AS transaction_status,l.kind,
+        p.id AS proof_id,a.approved_at,v.validated_at,pi.id AS payment_intent_id,pi.status AS payment_status,pi.amount_cents,pi.platform_fee_cents,pi.delivery_fee_cents,pi.seller_amount_cents,pi.provider_reference AS payment_provider_reference,
+        (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
+        EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_case_pending,
+        spo.id AS obligation_id,spo.status AS payout_status,spo.prepared_at
+        FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
+        LEFT JOIN delivery_proofs p ON p.shipment_id=s.id LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
+        LEFT JOIN payment_intents pi ON pi.transaction_id=t.id AND pi.status='paid' LEFT JOIN seller_payout_obligations spo ON spo.shipment_id=s.id
+        WHERE s.id=$1 AND ($3::boolean OR s.seller_id=$2)`,[shipmentId,actorId,reviewer])).rows[0];
+      if(!row)return null;await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'seller.payout.status.read','shipment',$2,$3::jsonb)`,[actorId,shipmentId,JSON.stringify({reviewer,status:row.payout_status??'not_prepared'})]);return row;
+    });},
+    async prepareSellerPayout({actorId,shipmentId}){return database.transaction(async client=>{
+      const row=(await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.seller_id,s.status AS shipment_status,t.status AS transaction_status,l.kind,
+        p.id AS proof_id,a.approved_at,v.validated_at,pi.id AS payment_intent_id,pi.status AS payment_status,pi.amount_cents,pi.platform_fee_cents,pi.delivery_fee_cents,pi.seller_amount_cents,pi.provider_reference AS payment_provider_reference,
+        (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
+        EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_case_pending
+        FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
+        LEFT JOIN delivery_proofs p ON p.shipment_id=s.id LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
+        LEFT JOIN payment_intents pi ON pi.transaction_id=t.id AND pi.status='paid' WHERE s.id=$1 FOR UPDATE OF s,t`,[shipmentId])).rows[0];
+      if(!row)throw failure('shipment_not_found',404,'Entrega não encontrada.');const blockers=[];
+      if(row.kind!=='sale')blockers.push('unsupported_transaction_kind');if(row.shipment_status!=='delivered'||!row.proof_id)blockers.push('delivery_proof_pending');if(row.transaction_status!=='in_delivery')blockers.push('transaction_not_eligible');
+      if(row.paid_count!==1||row.payment_status!=='paid'||!row.payment_provider_reference)blockers.push('payment_not_confirmed');if(row.financial_case_pending!==false)blockers.push('financial_case_pending');if(!row.approved_at)blockers.push('receiver_approval_pending');if(!row.validated_at)blockers.push('proof_validation_pending');
+      if(!Number.isSafeInteger(row.amount_cents)||row.amount_cents<=0||row.delivery_fee_cents!==0||row.platform_fee_cents+row.seller_amount_cents!==row.amount_cents)blockers.push('payment_split_invalid');
+      if(blockers.length)throw Object.assign(new Error('O repasse ao vendedor ainda possui pendências.'),{code:'seller_payout_not_eligible',status:409,blockers});
+      const existing=(await client.query('SELECT * FROM seller_payout_obligations WHERE shipment_id=$1',[shipmentId])).rows[0];if(existing)return {...existing,reused:true};
+      const snapshot={shipmentStatus:row.shipment_status,transactionStatus:row.transaction_status,paymentStatus:row.payment_status,receiverApprovedAt:row.approved_at,proofValidatedAt:row.validated_at};
+      const created=(await client.query(`INSERT INTO seller_payout_obligations(shipment_id,transaction_id,payment_intent_id,seller_id,gross_product_cents,platform_fee_cents,seller_amount_cents,eligibility_snapshot,prepared_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9) RETURNING *`,[shipmentId,row.transaction_id,row.payment_intent_id,row.seller_id,row.amount_cents,row.platform_fee_cents,row.seller_amount_cents,JSON.stringify(snapshot),actorId])).rows[0];
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'seller.payout.prepared','shipment',$2,$3::jsonb)`,[actorId,shipmentId,JSON.stringify({obligationId:created.id,grossProductCents:row.amount_cents,platformFeeCents:row.platform_fee_cents,sellerAmountCents:row.seller_amount_cents,status:'provider_pending'})]);return {...created,reused:false};
+    });},
     async courierPayoutStatus({actorId,shipmentId,reviewer=false}){
       return database.transaction(async client=>{
         const result=await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.courier_id,s.status AS shipment_status,

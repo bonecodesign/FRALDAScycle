@@ -32,6 +32,7 @@ import { handleAccountStepUp } from './account-step-up-handler.js';
 import { handleAccountClosure } from './account-closure-handler.js';
 import { handleDataExport } from './data-export-handler.js';
 import { handleAsaasWebhook } from './asaas-webhook-handler.js';
+import { handleDeliveryQuotes } from './delivery-quote-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -73,6 +74,7 @@ export function createApiServer({
   accountClosureService = null,
   dataExportService = null,
   asaasWebhookService = null,
+  deliveryQuoteService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -284,6 +286,10 @@ export function createApiServer({
       if (await handlePremium(request,response,{url,headers,requestId:id,authService,premiumService})) return;
       if (await handleAccountConsent(request,response,{
         url,headers,requestId:id,authService,accountConsentService,
+      })) return;
+
+      if (await handleDeliveryQuotes(request,response,{
+        url,headers,requestId:id,authService,deliveryQuoteService,
       })) return;
 
       if (await handleLogistics(request, response, {

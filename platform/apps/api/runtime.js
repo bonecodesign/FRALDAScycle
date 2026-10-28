@@ -70,6 +70,8 @@ import { createDataExportArtifactService } from './data-export-artifact-service.
 import { createDisabledDataExportStorage } from './data-export-storage.js';
 import { createAsaasWebhookRepository } from '../../database/asaas-webhook-repository.js';
 import { createAsaasWebhookService } from './asaas-webhook-service.js';
+import { createDeliveryQuoteRepository } from '../../database/delivery-quote-repository.js';
+import { createDeliveryQuoteService } from './delivery-quote-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -122,6 +124,7 @@ export async function startRuntime(config = null) {
     repository:dataExportRepository,collector:createDataExportCollector(database),storage:dataExportStorage,
   })});
   const asaasWebhookService=config.asaasSandboxEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
+  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database));
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -187,6 +190,7 @@ export async function startRuntime(config = null) {
     accountClosureService,
     dataExportService,
     asaasWebhookService,
+    deliveryQuoteService,
     telemetry,
   });
 

@@ -39,6 +39,11 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
     const actor=await authenticatedUser(request,authService);const result=request.method==='GET'?await logisticsService.courierPayoutStatus(actor,courierPayout[1]):await logisticsService.prepareCourierPayout(actor,courierPayout[1],await readJson(request));
     sendJson(response,request.method==='POST'&&!result.reused?201:200,{payout:result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const sellerPayout=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/seller-payout$/i);
+  if(sellerPayout&&['GET','POST'].includes(request.method)){
+    const actor=await authenticatedUser(request,authService);const result=request.method==='GET'?await logisticsService.sellerPayoutStatus(actor,sellerPayout[1]):await logisticsService.prepareSellerPayout(actor,sellerPayout[1],await readJson(request));
+    sendJson(response,request.method==='POST'&&!result.reused?201:200,{payout:result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const photo=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/proof\/photo$/i);
   if(photo && request.method==="GET"){
     const actor=await authenticatedUser(request,authService);

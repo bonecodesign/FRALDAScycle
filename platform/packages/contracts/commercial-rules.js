@@ -26,6 +26,16 @@ export function deliverySplit(freightCents) {
   };
 }
 
+export function externalPartnerDeliveryCharge(partnerServiceCents) {
+  const platformCents = percent(partnerServiceCents, 500);
+  return {
+    partnerServiceCents,
+    platformCents,
+    customerTotalCents: partnerServiceCents + platformCents,
+    partnerCents: partnerServiceCents,
+  };
+}
+
 export function freightResponsibility(kind, { subsidyApproved = false } = {}) {
   if (subsidyApproved) return "platform_subsidy";
   if (kind === "sale") return "buyer";
