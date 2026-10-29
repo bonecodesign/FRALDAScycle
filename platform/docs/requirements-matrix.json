@@ -317,6 +317,7 @@
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
+        "tests/institution-receipt-http-postgres.test.mjs",
         "database/institution-access-repository.js",
         "apps/api/institution-access-service.js",
         "apps/app/institution-access.html",
@@ -328,8 +329,8 @@
         "tools/beta-donation-check.mjs",
         "docs/donation-beta.md"
       ],
-      "evidence": "CI 14461d39: PostgreSQL nativo e Chrome 154, confirmações/autoridade/endereço/coleta/recebimento sintéticos; 283 testes, 83 verificações; sem pagamento, mídia real, equipe humana ou fornecedor. docs/donation-beta.md.",
-      "reason": "Representante autorizado confirma doação e aprova recebimento; validação independente e consulta operacional existem. Repasse ao entregador, mídia/identidade humana e homologação permanecem pendentes."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse.",
+      "reason": "Autorização, aprovação, validação independente e bloqueio financeiro estão comprovados. Mídia/identidade humanas e homologação operacional da retirada institucional permanecem pendentes."
     },
     {
       "id": 19,
@@ -666,6 +667,7 @@
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
+        "tests/moderation-appeal-http-postgres.test.mjs",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
         "tests/reviews-http-postgres.test.mjs",
@@ -728,7 +730,7 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "PR #76, commit 2006653: CI 267 testes, 83 verificações e sintaxe de 88 arquivos; PostgreSQL nativo e Chrome 154 com teclado, permissões, concorrência e quatro larguras. Job 111787499383; limites em moderation-beta.md.",
+      "evidence": "Prova HTTP/PostgreSQL dedicada: administrador registra suspensão temporária com motivo e término; novas operações são bloqueadas; titular abre recurso com protocolo; o mesmo revisor é recusado; outro administrador revoga a decisão e restaura as operações. Nenhum banimento automático ou permanente é criado.",
       "reason": "Título/descrição filtrados na API, fotos encaminhadas a review; conferência real de mídia bloqueada por fornecedor."
     },
     {
@@ -803,10 +805,19 @@
         "apps/api/privacy-request-service.js",
         "apps/app/privacy.html",
         "tools/beta-privacy-check.mjs",
-        "docs/privacy-requests-beta.md"
+        "tests/privacy-deletion-http-postgres.test.mjs",
+        "docs/privacy-requests-beta.md",
+        "database/account-step-up-repository.js",
+        "apps/api/account-step-up-service.js",
+        "database/account-closure-repository.js",
+        "apps/api/account-closure-service.js",
+        "apps/api/account-closure-handler.js",
+        "apps/app/account-closure.html",
+        "tests/account-closure-http-postgres.test.mjs",
+        "tests/account-closure-maintenance.test.mjs"
       ],
-      "evidence": "PR #79, commit 458cea3: CI 273 testes, 83 verificações, sintaxe 98; PostgreSQL e Chrome 154 com solicitação/consulta/análise via teclado e quatro larguras, job 111801394929. Limites em privacy-requests-beta.md.",
-      "reason": "Pedido de acesso/correção/exclusão, protocolo e análise privada de pendências. Encerramento/purga, prazos/fundamentos de retenção, identidade humana e atendimento integral dependem da revisão/operação."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: senha e código por e-mail geram autorização curta vinculada ao encerramento; solicitação cria janela exata de sete dias e bloqueia novas operações; terceiro não cancela; titular cancela com versão atual, remove a restrição e conserva a conta. Auditoria registra solicitação/cancelamento e automaticErasureAllowed permanece falso.",
+      "reason": "Solicitação, step-up, sete dias, cancelamento, bloqueio de novas operações e revisão de pendências estão implementados. Purga final, retenções legais, identidade humana e atendimento integral dependem de revisão/operação."
     },
     {
       "id": 46,
