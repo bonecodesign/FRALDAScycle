@@ -13,6 +13,8 @@ A pausa impede somente novos compromissos: publicação, início de transação,
 - `apps/api/operational-control.js`: validação, classificação de rotas e falha segura.
 - `apps/api/admin-handler.js`: consulta e alteração protegidas por `admin:operations:write`.
 - `apps/admin/operations.html` e `operational-control.js`: controle administrativo acessível.
+- `apps/admin/incident-console.js`: fila e linha do tempo de incidentes, sem movimentação manual de valores.
+- Controles financeiros preventivos separados para novas cobranças, reembolsos e preparação de repasses; contestações continuam acessíveis.
 - `tests/operational-control.test.mjs`: seis contratos sem socket para regras, persistência, interface e handler.
 
 ## Evidências desta etapa

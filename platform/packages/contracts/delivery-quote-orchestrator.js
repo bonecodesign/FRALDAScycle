@@ -6,11 +6,13 @@ const ALLOWED_UNAVAILABLE_REASONS = new Set([
   "outside_coverage",
   "temporarily_unavailable",
   "eligible_courier_unavailable",
+  "address_consent_missing",
 ]);
 
 function validQuote(provider, quote, now) {
   return quote?.provider === provider
     && typeof quote.quoteId === "string" && quote.quoteId.trim().length >= 8
+    && Number.isSafeInteger(quote.baseFreightCents) && quote.baseFreightCents > 0
     && Number.isSafeInteger(quote.customerTotalCents) && quote.customerTotalCents > 0
     && quote.currency === "BRL"
     && Number.isFinite(Date.parse(quote.expiresAt)) && Date.parse(quote.expiresAt) > now;

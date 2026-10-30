@@ -131,11 +131,29 @@ export function loadConfig(env = process.env) {
   const asaasWebhookAccessToken=env.ASAAS_WEBHOOK_ACCESS_TOKEN??null;
   if(asaasSandboxEnabled&&nodeEnv==='production')throw new Error('ASAAS_SANDBOX_ENABLED cannot be used in production');
   if(asaasSandboxEnabled&&(!asaasSandboxApiKey||String(asaasWebhookAccessToken??'').length<16))throw new Error('Asaas sandbox API key and webhook access token are required when enabled');
+  const lalamoveQuotingRequested=env.LALAMOVE_QUOTING_ENABLED==='true';
+  const lalamoveActivationAcknowledged=env.LALAMOVE_ACTIVATION_ACKNOWLEDGED==='true';
+  const lalamoveApiKey=env.LALAMOVE_API_KEY??null;
+  const lalamoveApiSecret=env.LALAMOVE_API_SECRET??null;
+  const lalamoveEnvironment=env.LALAMOVE_ENVIRONMENT??'sandbox';
+  if(!['sandbox','production'].includes(lalamoveEnvironment))throw new Error('LALAMOVE_ENVIRONMENT must be sandbox or production');
+  if(lalamoveQuotingRequested&&(!lalamoveApiKey||!lalamoveApiSecret))throw new Error('Lalamove API key and secret are required when quoting is enabled');
+  if(nodeEnv==='production'&&lalamoveQuotingRequested&&!lalamoveActivationAcknowledged)throw new Error('LALAMOVE_ACTIVATION_ACKNOWLEDGED=true is required with LALAMOVE_QUOTING_ENABLED=true in production');
+  if(nodeEnv==='production'&&lalamoveQuotingRequested&&lalamoveEnvironment!=='production')throw new Error('LALAMOVE_ENVIRONMENT=production is required for production quoting');
+  const loggiQuotingRequested=env.LOGGI_QUOTING_ENABLED==='true';
+  const loggiHomologationAcknowledged=env.LOGGI_HOMOLOGATION_ACKNOWLEDGED==='true';
+  const loggiQuoteProviderUrl=env.LOGGI_QUOTE_PROVIDER_URL??null;
+  const loggiQuoteProviderSecret=env.LOGGI_QUOTE_PROVIDER_SECRET??null;
+  if(Boolean(loggiQuoteProviderUrl)!==Boolean(loggiQuoteProviderSecret))throw new Error('LOGGI_QUOTE_PROVIDER_URL and LOGGI_QUOTE_PROVIDER_SECRET must be configured together');
+  if(loggiQuoteProviderUrl&&!loggiQuoteProviderUrl.startsWith('https://'))throw new Error('LOGGI_QUOTE_PROVIDER_URL must use HTTPS');
+  if(loggiQuotingRequested&&(!loggiQuoteProviderUrl||!loggiHomologationAcknowledged))throw new Error('Loggi quoting requires gateway configuration and homologation acknowledgement');
   const courierEligibilityRequested = env.COURIER_ELIGIBILITY_ENABLED === "true";
   const courierEligibilityActivationAcknowledged = env.COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED === "true";
   if (nodeEnv === "production" && courierEligibilityRequested && !courierEligibilityActivationAcknowledged) {
     throw new Error("COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED=true is required with COURIER_ELIGIBILITY_ENABLED=true in production");
   }
+  const registeredCourierQuotingRequested=env.REGISTERED_COURIER_QUOTING_ENABLED==='true';
+  if(registeredCourierQuotingRequested&&!courierEligibilityRequested)throw new Error('REGISTERED_COURIER_QUOTING_ENABLED requires COURIER_ELIGIBILITY_ENABLED=true');
   const courierRetentionPolicyVersion = env.COURIER_CLEARANCE_RETENTION_POLICY_VERSION ?? null;
   const courierRetentionLegalApproverId = env.COURIER_CLEARANCE_RETENTION_LEGAL_APPROVER_ID ?? null;
   if (courierEligibilityRequested && (!courierRetentionPolicyVersion ||
@@ -177,8 +195,17 @@ export function loadConfig(env = process.env) {
     asaasSandboxEnabled,
     asaasSandboxApiKey,
     asaasWebhookAccessToken,
+    lalamoveQuotingEnabled:lalamoveQuotingRequested&&(nodeEnv!=='production'||lalamoveActivationAcknowledged),
+    lalamoveApiKey,
+    lalamoveApiSecret,
+    lalamoveEnvironment,
+    loggiQuotingEnabled:loggiQuotingRequested&&loggiHomologationAcknowledged,
+    loggiQuoteProviderUrl,
+    loggiQuoteProviderSecret,
     courierEligibilityEnabled: courierEligibilityRequested &&
       (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
+    registeredCourierQuotingEnabled:registeredCourierQuotingRequested&&courierEligibilityRequested&&
+      (nodeEnv!=="production"||courierEligibilityActivationAcknowledged),
     courierClearanceRetentionPolicyVersion: courierRetentionPolicyVersion,
     courierClearanceRetentionLegalApproverId: courierRetentionLegalApproverId,
     courierEligibilityMaintenanceSeconds: Math.max(60,

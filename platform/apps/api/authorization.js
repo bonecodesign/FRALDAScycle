@@ -18,6 +18,23 @@ export function hasScope(user, scope) {
   return scopes.includes(scope);
 }
 
+export function accessLevel(user) {
+  if(!['admin','moderator'].includes(user?.role))return 0;
+  const explicit=Number(user?.staffAccessLevel??user?.staff_access_level);
+  if(Number.isInteger(explicit)&&explicit>=1&&explicit<=5)return explicit;
+  if(user?.role==='admin')return 4;
+  if(user?.role==='moderator')return 1;
+  return 0;
+}
+
+export function requireAccessLevel(user,minimum) {
+  if (!user) throw new AuthError("unauthenticated",401,"Sessão não autenticada.");
+  if (!Number.isInteger(minimum)||minimum<1||minimum>5||accessLevel(user)<minimum) {
+    throw new AuthError("insufficient_access_level",403,"Seu nível de acesso não permite esta operação.");
+  }
+  return user;
+}
+
 export function requireScope(user, scope) {
   if (!user) throw new AuthError("unauthenticated", 401, "Sessão não autenticada.");
   if (!hasScope(user, scope)) {

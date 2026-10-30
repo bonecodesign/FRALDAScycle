@@ -84,7 +84,7 @@ export function createAuthRepository(database) {
 
     async findUserByContact({ email = null, phone = null }) {
       const result = await database.query(
-        `SELECT id, email, phone, password_hash, display_name, role,
+        `SELECT id, email, phone, password_hash, display_name, role, staff_access_level,
                 email_verified_at, adult_declaration_version, adult_declared_at, disabled_at, created_at
          FROM users WHERE ($1::text IS NOT NULL AND email = $1)
             OR ($2::text IS NOT NULL AND phone = $2)
@@ -96,7 +96,7 @@ export function createAuthRepository(database) {
 
     async findUserById(userId) {
       const result = await database.query(
-        `SELECT id, email, phone, password_hash, display_name, role,
+        `SELECT id, email, phone, password_hash, display_name, role, staff_access_level,
                 email_verified_at, adult_declaration_version, adult_declared_at, disabled_at, created_at
          FROM users WHERE id = $1 LIMIT 1`,
         [userId],
@@ -123,7 +123,7 @@ export function createAuthRepository(database) {
     async findActiveSession(tokenHash) {
       const result = await database.query(
         `SELECT s.id AS session_id, s.expires_at, u.id, u.email, u.phone,
-                u.display_name, u.role, u.email_verified_at, u.adult_declaration_version, u.adult_declared_at
+                u.display_name, u.role, u.staff_access_level, u.email_verified_at, u.adult_declaration_version, u.adult_declared_at
          FROM sessions s JOIN users u ON u.id = s.user_id
          WHERE s.token_hash = $1 AND s.revoked_at IS NULL
            AND s.expires_at > now() AND u.disabled_at IS NULL LIMIT 1`,

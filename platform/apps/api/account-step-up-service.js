@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { createSessionToken,createVerificationCode,verifyPassword } from './security.js';
 import { ServiceError } from './service-error.js';
 
-const TTL_MS=10*60*1000,PURPOSES=new Set(['data_export','account_closure']);
+const TTL_MS=10*60*1000,PURPOSES=new Set(['data_export','account_closure','staff_access_change','refund_execution','operational_resume','incident_role_assignment']);
 const digest=value=>createHash('sha256').update(value).digest();
 const fail=(code,status,message)=>new ServiceError(code,status,message);
 

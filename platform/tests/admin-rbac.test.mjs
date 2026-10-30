@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { hasScope, requireScope, ROLE_SCOPES } from "../apps/api/authorization.js";
+import { accessLevel, hasScope, requireAccessLevel, requireScope, ROLE_SCOPES } from "../apps/api/authorization.js";
 import { createAdminService } from "../apps/api/admin-service.js";
 import { createAdminRepository } from "../database/admin-repository.js";
 import { createApiServer } from "../apps/api/server.js";
@@ -17,6 +17,15 @@ test("RBAC grants only scopes assigned to each approved role", () => {
   assert.equal(hasScope({ role: "moderator" }, "admin:roles:write"), false);
   assert.equal(hasScope({ role: "admin" }, "admin:roles:write"), true);
   assert.throws(() => requireScope({ role: "customer" }, "admin:audit:read"), (error) => error.code === "forbidden");
+});
+
+test("staff access levels are cumulative and preserve legacy role defaults",()=>{
+  assert.equal(accessLevel({role:'moderator'}),1);
+  assert.equal(accessLevel({role:'admin'}),4);
+  assert.equal(accessLevel({role:'admin',staffAccessLevel:5}),5);
+  assert.doesNotThrow(()=>requireAccessLevel({role:'moderator',staffAccessLevel:3},3));
+  assert.throws(()=>requireAccessLevel({role:'moderator',staffAccessLevel:2},3),error=>error.code==='insufficient_access_level');
+  assert.equal(accessLevel({role:'customer',staffAccessLevel:5}),0);
 });
 
 test("admin scopes are finite and cover every administrative scope referenced by API modules", async () => {

@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import { pagination } from "./pagination.js";
 import { ServiceError } from "./service-error.js";
 import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
-import { hasScope, requireScope } from "./authorization.js";
+import { accessLevel, requireAccessLevel } from "./authorization.js";
 import { pilotBhLocation } from "./pilot-bh.js";
 import { internalSupportPolicy } from "../../packages/contracts/support-hours.js";
 import { createMarketplaceCursor, readMarketplaceCursor } from "../../packages/contracts/marketplace-pagination.js";
@@ -79,27 +79,27 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       return {...result,supportPolicy:internalSupportPolicy(now())};
     },
     async supportTickets(actor) {
-      return repository.supportTickets({userId:actor.id,reviewer:hasScope(actor,"admin:support:write")});
+      return repository.supportTickets({userId:actor.id,reviewer:accessLevel(actor)>=1});
     },
     async supportPage(actor,{page='1',status='',category='',q='',assignment='',sort='newest'}={}) {
       if(typeof page!=='string'||! /^[1-9][0-9]{0,5}$/.test(page)||Number(page)>100000)throw new MarketplaceError('invalid_support_page',400,'Informe uma página válida.');
-      const reviewer=hasScope(actor,'admin:support:write');
+      const reviewer=accessLevel(actor)>=1;
       if((status!==''&&!['open','under_review','resolved'].includes(status))||(category!==''&&!['general','cancellation','receipt_problem','privacy','account'].includes(category))||(typeof q!=='string'||q.length>100||/[\u0000-\u001f\u007f]/.test(q))||(assignment!==''&&!['mine','unassigned'].includes(assignment))||!['newest','oldest','stale'].includes(sort))throw new MarketplaceError('invalid_support_filter',400,'O filtro de atendimento é inválido.');
       if(!reviewer&&(status!==''||category!==''||q!==''||assignment!==''||sort!=='newest'))throw new MarketplaceError('support_filter_forbidden',403,'Filtros da fila administrativa indisponíveis para esta conta.');
       const current=Number(page),rows=await repository.supportTickets({userId:actor.id,reviewer,limit:51,offset:(current-1)*50,status:status||null,category:category||null,q:q.trim()||null,assignment:assignment||null,sort});
       return {items:rows.slice(0,50),page:current,hasMore:rows.length>50};
     },
     async supportTicket(actor,ticketId) {
-      return repository.supportTicket({userId:actor.id,ticketId,reviewer:hasScope(actor,"admin:support:write")});
+      return repository.supportTicket({userId:actor.id,ticketId,reviewer:accessLevel(actor)>=1});
     },
     async addSupportNote(actor,ticketId,input) {
-      requireScope(actor,'admin:support:write');
+      requireAccessLevel(actor,1);
       const body=String(input?.body??'').trim(),idempotencyKey=input?.idempotencyKey;
       if(body.length<10||body.length>2000||typeof idempotencyKey!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey))throw new MarketplaceError('invalid_support_note',422,'Informe uma nota interna de 10 a 2000 caracteres.');
       return repository.addSupportNote({actorId:actor.id,ticketId,body,idempotencyKey});
     },
     async replySupportTicket(actor,ticketId,input) {
-      requireScope(actor,"admin:support:write");
+      requireAccessLevel(actor,1);
       const body=String(input?.body??"").trim();
       const status=String(input?.status??"under_review");
       const idempotencyKey=input?.idempotencyKey;
@@ -109,22 +109,22 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       return repository.replySupportTicket({actorId:actor.id,ticketId,body,status,idempotencyKey});
     },
     async setSupportAssignment(actor,ticketId,input) {
-      requireScope(actor,'admin:support:write');
+      requireAccessLevel(actor,1);
       if(!['claim','release'].includes(input?.action))throw new MarketplaceError('invalid_support_assignment',422,'Escolha assumir ou liberar o atendimento.');
       return repository.setSupportAssignment({actorId:actor.id,ticketId,action:input.action});
     },
     async supportCancellationDecision(actor,ticketId,input) {
-      requireScope(actor,"admin:support:write");
+      requireAccessLevel(actor,2);
       const reason=String(input?.reason??"").trim();
       if(input?.confirmed!==true||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_cancellation_decision',422,'Confirme a decisão e informe uma justificativa de 10 a 1000 caracteres.');
       return repository.supportCancellationDecision({actorId:actor.id,ticketId,reason});
     },
     supportCancellationPreview(actor,ticketId) {
-      requireScope(actor,"admin:support:write");
+      requireAccessLevel(actor,2);
       return repository.supportCancellationPreview({actorId:actor.id,ticketId});
     },
     async supportOccurrenceDecision(actor,ticketId,input) {
-      requireScope(actor,"admin:support:write");
+      requireAccessLevel(actor,2);
       const outcome=String(input?.outcome??"").trim(),reason=String(input?.reason??"").trim();
       if(input?.confirmed!==true||!["dismissed","return_required","refund_required","replacement_agreed","other_resolution"].includes(outcome)||reason.length<10||reason.length>1000)throw new MarketplaceError('invalid_occurrence_decision',422,'Confirme a decisão, o resultado e uma justificativa de 10 a 1000 caracteres.');
       return repository.supportOccurrenceDecision({actorId:actor.id,ticketId,outcome,reason});

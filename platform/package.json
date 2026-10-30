@@ -15,6 +15,9 @@
     "check:production": "node tools/check-production.mjs",
     "production:doctor": "node tools/production-doctor.mjs",
     "db:migrate": "node database/migrate.js",
+    "access:bootstrap-founder": "node tools/bootstrap-founder.mjs",
+    "governance:code": "node tools/code-governance.mjs",
+    "governance:secrets": "node tools/secret-access-governance.mjs",
     "worker:notifications": "node workers/notifications.js",
     "smoke:deployment": "node tools/smoke-deployment.mjs",
     "db:backup": "node database/recovery.js backup",
@@ -32,7 +35,8 @@
     "worker:child-profiles:local": "node workers/child-profile-lifecycle.js --once",
     "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve",
     "worker:account-closure:local": "node workers/account-closure.js --once",
-    "worker:account-closure": "node workers/account-closure.js --serve"
+    "worker:account-closure": "node workers/account-closure.js --serve",
+    "worker:refund-reconciliation": "node workers/supported-refund-reconciliation.js"
   },
   "dependencies": {
     "pg": "8.22.0"

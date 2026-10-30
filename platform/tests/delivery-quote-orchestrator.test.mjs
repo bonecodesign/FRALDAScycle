@@ -5,6 +5,7 @@ import { createDeliveryQuoteOrchestrator } from "../packages/contracts/delivery-
 const now = Date.parse("2030-01-01T12:00:00Z");
 const quote = (provider) => ({ available: true, quote: {
   provider, quoteId: `${provider}-quote-1`, customerTotalCents: 1_890,
+  baseFreightCents: 1_800,
   currency: "BRL", expiresAt: "2030-01-01T12:05:00Z",
 } });
 

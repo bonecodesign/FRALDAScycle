@@ -241,9 +241,9 @@ export function createAdminRepository(database) {
         );
         const created = await client.query(
           `INSERT INTO admin_invitations
-             (email, display_name, role, token_hash, invited_by, expires_at)
-           VALUES ($1,$2,$3::user_role,$4,$5,$6)
-           RETURNING id, email, display_name, role, expires_at, created_at`,
+             (email, display_name, role, staff_access_level, token_hash, invited_by, expires_at)
+           VALUES ($1,$2,$3::user_role,CASE WHEN $3='admin' THEN 4 WHEN $3='moderator' THEN 1 ELSE NULL END,$4,$5,$6)
+           RETURNING id, email, display_name, role, staff_access_level, expires_at, created_at`,
           [email, displayName, role, tokenHash, actorUserId, expiresAt],
         );
         const invitation = created.rows[0];
@@ -269,16 +269,16 @@ export function createAdminRepository(database) {
         const consumed = await client.query(
           `UPDATE admin_invitations SET consumed_at = now()
            WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
-           RETURNING id, email, display_name, role, invited_by`,
+           RETURNING id, email, display_name, role, staff_access_level, invited_by`,
           [tokenHash],
         );
         const invitation = consumed.rows[0];
         if (!invitation) return null;
         const created = await client.query(
-          `INSERT INTO users (email, password_hash, display_name, role, email_verified_at)
-           VALUES ($1,$2,$3,$4::user_role,now())
-           RETURNING id, email, phone, display_name, role, email_verified_at, created_at`,
-          [invitation.email, passwordHash, invitation.display_name, invitation.role],
+          `INSERT INTO users (email, password_hash, display_name, role, staff_access_level, email_verified_at)
+           VALUES ($1,$2,$3,$4::user_role,$5,now())
+           RETURNING id, email, phone, display_name, role, staff_access_level, email_verified_at, created_at`,
+          [invitation.email, passwordHash, invitation.display_name, invitation.role, invitation.staff_access_level],
         );
         const user = created.rows[0];
         await client.query(

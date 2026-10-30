@@ -1,0 +1,12 @@
+const uuid=/^[0-9a-f-]{36}$/i;
+export class IncidentWhatsAppError extends Error{constructor(code,message){super(message);this.code=code;}}
+export function createMetaWhatsAppIncidentAdapter({enabled=false,graphUrl='https://graph.facebook.com/v22.0',phoneNumberId=null,accessToken=null,templateName='fraldacycle_incident_critical',panelOrigin=null,fetchImpl=fetch}={}){
+  const configured=enabled&&Boolean(phoneNumberId&&accessToken&&panelOrigin);
+  return Object.freeze({configured,
+    actionPath(requestId){if(!uuid.test(requestId))throw new IncidentWhatsAppError('invalid_resume_request','Solicitação de retomada inválida.');return `/admin/operations?resumeRequest=${encodeURIComponent(requestId)}`;},
+    incidentActionPath(incidentId){if(!uuid.test(incidentId))throw new IncidentWhatsAppError('invalid_incident','Incidente inválido.');return `/admin/operations?incident=${encodeURIComponent(incidentId)}&action=pause`;},
+    async sendCritical({recipientPhone,incidentReference,incidentId}){if(!configured)throw new IncidentWhatsAppError('incident_whatsapp_not_configured','WhatsApp de incidentes não configurado.');if(!/^\+[1-9]\d{7,14}$/.test(recipientPhone)||typeof incidentReference!=='string'||incidentReference.length>80||!uuid.test(incidentId))throw new IncidentWhatsAppError('invalid_incident_whatsapp_payload','Alerta crítico inválido.');const actionUrl=new URL(this.incidentActionPath(incidentId),panelOrigin).toString();let response;try{response=await fetchImpl(`${graphUrl}/${encodeURIComponent(phoneNumberId)}/messages`,{method:'POST',headers:{authorization:`Bearer ${accessToken}`,'content-type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:recipientPhone,type:'template',template:{name:templateName,language:{code:'pt_BR'},components:[{type:'body',parameters:[{type:'text',text:incidentReference}]},{type:'button',sub_type:'url',index:'0',parameters:[{type:'text',text:actionUrl}]}]}}),signal:AbortSignal.timeout(10000)});}catch{throw new IncidentWhatsAppError('incident_whatsapp_unavailable','Canal de WhatsApp indisponível.');}if(!response.ok)throw new IncidentWhatsAppError('incident_whatsapp_rejected','Meta recusou o alerta crítico.');return{accepted:true,operationalActionApplied:false,actionUrl};},
+    resumeDecisionUrl(requestId){return new URL(this.actionPath(requestId),panelOrigin).toString();},
+    receiveText(){return Object.freeze({accepted:false,operationalActionApplied:false,reason:'text_commands_forbidden'});},
+  });
+}

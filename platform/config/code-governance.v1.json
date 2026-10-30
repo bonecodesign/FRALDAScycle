@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contributorLevel": 2,
+  "defaultReviewerLevel": 4,
+  "sensitiveReviewerLevel": 5,
+  "directMergeAllowed": false,
+  "sensitivePrefixes": [
+    ".github/workflows/",
+    "platform/apps/api/auth-",
+    "platform/apps/api/authorization.js",
+    "platform/apps/api/security.js",
+    "platform/apps/api/secrets.js",
+    "platform/apps/api/payment-",
+    "platform/apps/api/asaas-",
+    "platform/apps/api/account-step-up-",
+    "platform/apps/api/privacy-",
+    "platform/apps/api/child-profile-",
+    "platform/database/migrations/",
+    "platform/database/payment-",
+    "platform/database/auth-",
+    "platform/database/privacy-",
+    "platform/database/child-profile-",
+    "platform/database/staff-access-",
+    "platform/deploy/",
+    "platform/config/"
+  ]
+}

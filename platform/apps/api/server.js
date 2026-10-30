@@ -48,6 +48,7 @@ export function createApiServer({
   marketplaceProviders = null,
   institutionService = null,
   paymentService = null,
+  incidentRoleService = null,
   paymentProvider = null,
   logisticsService = null,
   addressChangeService = null,
@@ -63,6 +64,8 @@ export function createApiServer({
   adminService = null,
   realtimeService = null,
   operationalControlService = null,
+  operationalIncidentService = null,
+  staffAccessService = null,
   adultDeclarationService = null,
   childProfileService = null,
   exchangeService = null,
@@ -305,7 +308,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, marketplaceProviders,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders,
       })) return;
 
       if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;

@@ -14,7 +14,17 @@ const RUNTIME_SECRET_KEYS = new Set([
   "LOGISTICS_WEBHOOK_SECRET",
   "RATE_LIMIT_PROVIDER_SECRET",
   "TELEMETRY_PROVIDER_SECRET",
+  "RESPONSIBLE_CPF_HMAC_SECRET",
+  "ASAAS_SANDBOX_API_KEY",
+  "ASAAS_WEBHOOK_ACCESS_TOKEN",
+  "LALAMOVE_API_KEY",
+  "LALAMOVE_API_SECRET",
+  "LOGGI_QUOTE_PROVIDER_SECRET",
+  "META_WHATSAPP_ACCESS_TOKEN",
+  "PROTECTED_BACKUP_STORAGE_BEARER_TOKEN",
 ]);
+
+export function supportedRuntimeSecretKeys(){return Object.freeze([...RUNTIME_SECRET_KEYS].sort());}
 
 export function validateSecretsProviderConfig(env = process.env) {
   const endpoint = env.SECRETS_PROVIDER_URL;

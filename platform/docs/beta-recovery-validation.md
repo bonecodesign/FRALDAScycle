@@ -22,4 +22,6 @@ Os subprocessos nativos e Docker de `pg_dump` e `pg_restore` têm limite individ
 
 O item 57 continua parcial: as evidências não comprovam cofre/armazenamento operacional, controle de acesso da equipe, política de frequência, RPO/RTO, retenção, restauração em infraestrutura de produção nem execução humana. Sem ativação de serviços ou produção.
 
+O adaptador de armazenamento protegido permanece desligado por padrão. Antes de qualquer upload ele exige endpoint HTTPS, credencial, chave KMS e retenção explícita entre 1 e 365 dias. A publicação revalida arquivo privado e checksum, usa nomes únicos, `If-None-Match: *`, criptografia `aws:kms`, checksum SHA-256 do provedor e Object Lock em modo `COMPLIANCE`. O dump local não é removido automaticamente. Testes usam somente transporte sintético e não comprovam conta, bucket, KMS, cofre ou restauração externa.
+
 Matriz atual em 2026-10-18: 37 concluídos / 70 = 52,86%; 21 parciais e 12 bloqueados. Prontidão para produção permanece bloqueada.

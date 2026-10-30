@@ -43,6 +43,8 @@ node tests/production-doctor.test.mjs
 
 Esses testes usam respostas simuladas. A homologação do requisito 59 ainda depende do cofre real, das identidades e permissões do ambiente e da validação operacional de rotação/revogação. O diagnóstico estático `production:doctor` verifica configuração; ele não comprova conectividade nem homologação dos fornecedores.
 
+O manifesto `config/secret-access.v1.json` separa as chaves mínimas de API, notificações, reconciliação financeira, WhatsApp e backup. `npm run governance:secrets` recusa chaves fora da allowlist ou escopos duplicados. O contrato de rotação registra apenas identificadores de versão e uma sobreposição entre 5 minutos e 24 horas; nunca recebe o valor secreto e nunca revoga automaticamente a versão anterior antes da verificação dos consumidores.
+
 ## Empacotamento reproduzível
 
 O arquivo `compose.production.example.yaml` define API, worker de notificações, Site, App e Admin em processos independentes. Copie-o para a ferramenta de orquestração escolhida e injete `platform/.env.production` pelo cofre de segredos; esse arquivo real nunca deve entrar no Git.

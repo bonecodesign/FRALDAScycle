@@ -83,6 +83,8 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] autorização do comprador, auditoria e adaptador externo para casos financeiros;
 - [x] telas aprovadas de reembolso e disputa conectadas ao backend;
 - [ ] credenciais, SDK e formato final de webhooks do provedor financeiro;
+- [x] reconciliação de reembolsos preparada com conferência de referência, estado e valor, desligada por padrão;
+- [ ] homologar endpoint de consulta de reembolso e ativar `REFUND_RECONCILIATION_ENABLED` somente após validação do provedor;
 
 
 ## Corte 4 — logística

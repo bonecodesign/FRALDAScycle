@@ -6,14 +6,72 @@
   <section class="panel" aria-labelledby="operational-control-title" data-operational-control>
     <div class="section-head"><div><span class="eyebrow">Segurança operacional</span><h2 id="operational-control-title">Pausa e retomada</h2><p>Interrompe novas operações sem ocultar suporte, privacidade ou jornadas já iniciadas.</p></div><span class="badge" id="operational-control-summary">Consultando estado</span></div>
     <form id="operational-control-form" class="admin-filters">
-      <label class="field"><span>Domínio</span><select class="input" name="domain"><option value="global">Toda a plataforma</option><option value="marketplace">Marketplace</option><option value="payments">Pagamentos</option><option value="logistics">Logística</option><option value="donations">Doações</option><option value="premium">Premium</option></select></label>
+      <label class="field"><span>Domínio</span><select class="input" name="domain"><option value="global">Toda a plataforma</option><option value="marketplace">Marketplace</option><option value="payments">Novas cobranças</option><option value="refunds">Reembolsos</option><option value="payouts">Preparação de repasses</option><option value="logistics">Logística</option><option value="donations">Doações</option><option value="premium">Premium</option></select></label>
       <label class="field"><span>Ação</span><select class="input" name="action"><option value="pause">Pausar novas operações</option><option value="resume">Retomar operações</option></select></label>
       <label class="field full"><span>Justificativa auditável</span><textarea class="input" name="reason" rows="3" minlength="10" maxlength="500" required placeholder="Descreva o motivo e o critério operacional"></textarea></label>
+      <label class="field" id="operational-resume-password" hidden><span>Senha do responsável técnico</span><input class="input" name="password" type="password" minlength="12" autocomplete="current-password"></label>
       <label class="check-card"><input type="checkbox" name="confirmed" required><span><strong>Confirmo esta alteração operacional</strong><small>A ação, o responsável e o horário ficarão registrados permanentemente.</small></span></label>
       <button class="button primary" type="submit">Registrar alteração</button>
     </form>
     <p id="operational-control-feedback" role="status" aria-live="polite"></p><div id="operational-control-states" class="phone-list"></div>
+    <div class="dashboard-grid"><div><h3>Solicitações de retomada</h3><div id="operational-resume-list" class="phone-list"></div></div><form id="operational-resume-decision" class="admin-filters" hidden><h3>Decisão final do fundador</h3><p id="operational-resume-selected"></p><input type="hidden" name="requestId"><label class="field full"><span>Justificativa final</span><textarea class="input" name="reason" minlength="10" maxlength="500" required></textarea></label><label class="field"><span>Senha do fundador</span><input class="input" name="password" type="password" minlength="12" required autocomplete="current-password"></label><div class="publish-actions"><button class="button primary" name="approved" value="true" type="submit">Autorizar retomada</button><button class="button secondary" name="approved" value="false" type="submit">Rejeitar</button></div></form></div>
+  </section>
+  <section class="panel" aria-labelledby="incident-console-title" data-incident-console>
+    <div class="section-head"><div><span class="eyebrow">Resposta operacional</span><h2 id="incident-console-title">Console de incidentes</h2><p>Registra ocorrências, atribuição, contenção, monitoramento, resolução e histórico auditável.</p></div><button class="button secondary" id="incident-refresh" type="button">Atualizar fila</button></div>
+    <form id="incident-create-form" class="admin-filters">
+      <label class="field"><span>Título</span><input class="input" name="title" minlength="10" maxlength="160" required></label>
+      <label class="field"><span>Severidade</span><select class="input" name="severity"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option><option value="critical">Crítica</option></select></label>
+      <label class="field"><span>Domínio</span><select class="input" name="domain"><option value="global">Toda a plataforma</option><option value="marketplace">Marketplace</option><option value="payments">Cobranças</option><option value="refunds">Reembolsos</option><option value="payouts">Repasses</option><option value="logistics">Logística</option><option value="donations">Doações</option><option value="premium">Premium</option></select></label>
+      <label class="field full"><span>Resumo sem dados sensíveis</span><textarea class="input" name="summary" minlength="20" maxlength="2000" required></textarea></label>
+      <button class="button primary" type="submit">Abrir incidente</button>
+    </form>
+    <p id="incident-feedback" role="status" aria-live="polite"></p>
+    <div class="dashboard-grid"><div><h3>Fila</h3><div id="incident-list" class="phone-list"></div></div><div><h3>Detalhes e ações</h3><div id="incident-detail"><p class="muted">Selecione um incidente.</p></div></div></div>
+  </section>
+  <section class="panel" id="incident-roles-panel" aria-labelledby="incident-roles-title" hidden><div class="section-head"><div><span class="eyebrow">Equipe de resposta</span><h2 id="incident-roles-title">Nomeações e aceites</h2><p>O fundador indica; a pessoa indicada aceita ou recusa com autenticação própria.</p></div><button class="button secondary" id="incident-roles-refresh" type="button">Atualizar</button></div><form id="incident-role-appointment" class="admin-filters" hidden><label class="field"><span>Função</span><select class="input" name="roleKind"><option value="technical_lead">Responsável técnico</option><option value="technical_substitute">Substituto técnico</option><option value="independent_observer">Observador independente</option></select></label><label class="field"><span>UUID da conta interna</span><input class="input" name="targetUserId" required pattern="[0-9a-fA-F-]{36}"></label><label class="field full"><span>Justificativa</span><textarea class="input" name="reason" minlength="10" maxlength="500" required></textarea></label><label class="field"><span>Senha do fundador</span><input class="input" name="password" type="password" minlength="12" required autocomplete="current-password"></label><button class="button primary" type="submit">Confirmar por e-mail e indicar</button></form><p id="incident-roles-feedback" role="status" aria-live="polite"></p><div id="incident-roles-list" class="phone-list"></div></section>
+  <section class="panel" id="staff-access-panel" aria-labelledby="staff-access-title" hidden>
+    <div class="section-head"><div><span class="eyebrow">Acesso interno</span><h2 id="staff-access-title">Níveis e autorizações</h2><p>Nível 4 propõe; somente o fundador nível 5 aplica ou rejeita a alteração.</p></div><button class="button secondary" id="staff-access-refresh" type="button">Atualizar solicitações</button></div>
+    <div class="dashboard-grid">
+      <form id="staff-access-proposal" class="admin-filters">
+        <h3>Propor alteração</h3>
+        <label class="field"><span>UUID da conta interna</span><input class="input" name="targetUserId" required pattern="[0-9a-fA-F-]{36}" autocomplete="off"></label>
+        <label class="field"><span>Novo nível</span><select class="input" name="requestedLevel"><option value="1">1 — Suporte</option><option value="2">2 — Resolução</option><option value="3">3 — Financeiro</option><option value="4">4 — Administrador</option></select></label>
+        <label class="field full"><span>Justificativa</span><textarea class="input" name="reason" minlength="10" maxlength="1000" required></textarea></label>
+        <label class="field"><span>Sua senha</span><input class="input" name="password" type="password" minlength="12" required autocomplete="current-password"></label>
+        <button class="button primary" type="submit">Confirmar por e-mail e propor</button>
+      </form>
+      <form id="staff-access-decision" class="admin-filters" hidden>
+        <h3>Decisão final do fundador</h3><p id="staff-access-selected"></p><input type="hidden" name="requestId">
+        <label class="field full"><span>Justificativa final</span><textarea class="input" name="reason" minlength="10" maxlength="1000" required></textarea></label>
+        <label class="field"><span>Senha do fundador</span><input class="input" name="password" type="password" minlength="12" required autocomplete="current-password"></label>
+        <div class="publish-actions"><button class="button primary" name="approved" value="true" type="submit">Autorizar alteração</button><button class="button secondary" name="approved" value="false" type="submit">Rejeitar alteração</button></div>
+      </form>
+    </div>
+    <p id="staff-access-feedback" role="status" aria-live="polite"></p><div id="staff-access-list" class="phone-list"></div>
+  </section>
+  <section class="panel" id="supported-refund-panel" aria-labelledby="supported-refund-title">
+    <div class="section-head"><div><span class="eyebrow">Financeiro · nível 3</span><h2 id="supported-refund-title">Execução de reembolso aprovado</h2><p>Consulte a decisão do suporte e envie exatamente o valor aprovado ao provedor. O envio não significa conclusão: a confirmação final depende do webhook.</p></div></div>
+    <form id="supported-refund-search" class="admin-filters">
+      <label class="field full"><span>UUID da decisão de reembolso</span><input class="input" name="cancellationId" required pattern="[0-9a-fA-F-]{36}" autocomplete="off"></label>
+      <button class="button secondary" type="submit">Consultar decisão</button>
+    </form>
+    <div id="supported-refund-detail" class="phone-list"><p class="muted">Consulte uma decisão aprovada pelo suporte.</p></div>
+    <div id="supported-refund-history" class="phone-list"></div>
+    <form id="supported-refund-execution" class="admin-filters" hidden>
+      <input type="hidden" name="cancellationId"><input type="hidden" name="refundAmountCents">
+      <label class="field"><span>Senha da conta financeira</span><input class="input" name="password" type="password" minlength="12" required autocomplete="current-password"></label>
+      <label class="check-card full"><input type="checkbox" name="confirmed" required><span><strong id="supported-refund-confirmation">Confirmo o valor</strong><small>A senha e o código de e-mail serão exigidos para cada execução.</small></span></label>
+      <button class="button primary" type="submit">Confirmar por e-mail e enviar ao provedor</button>
+    </form>
+    <p id="supported-refund-feedback" role="status" aria-live="polite"></p>
+    <form id="supported-refund-review" class="admin-filters" hidden>
+      <input type="hidden" name="cancellationId"><label class="field"><span>Encaminhamento do caso bloqueado</span><select class="input" name="action"><option value="provider_follow_up">Acompanhar com o provedor</option><option value="support_reanalysis">Retornar para reanálise do suporte</option></select></label>
+      <label class="field full"><span>Justificativa auditável</span><textarea class="input" name="note" minlength="10" maxlength="1000" required></textarea></label><button class="button secondary" type="submit">Registrar encaminhamento</button>
+    </form>
+    <div class="section-head"><div><h3>Fila financeira</h3><p>Alertas indicam ausência de confirmação do provedor; não significam falha ou conclusão.</p></div><button class="button secondary" id="supported-refund-refresh" type="button">Atualizar fila</button></div>
+    <label class="field"><span>Filtrar fila</span><select class="input" id="supported-refund-filter"><option value="all">Todos</option><option value="alert">Com alerta</option><option value="submitted">Aguardando confirmação</option><option value="failed">Bloqueados</option><option value="completed">Concluídos recentes</option></select></label>
+    <div id="supported-refund-queue" class="phone-list"></div>
   </section>
   <section class="panel"><h2>Acompanhamento das operações</h2><p>O acompanhamento consolidado ainda não está disponível nesta tela. Consulte os registros persistidos nos módulos abaixo.</p><div class="phone-list"><a class="phone-card" href="/admin/finance">Consultar registros financeiros</a><a class="phone-card" href="/admin/logistics">Consultar entregas e comprovantes</a><a class="phone-card" href="/admin/launch">Consultar fila administrativa de suporte</a></div><p class="notice">Pausa e retomada controlam novas operações. Não confirmam repasse, entrega física ou ativação de produção.</p></section>
   </div></section>
-</main><div id="toast" role="status" aria-live="polite"></div><script type="module" src="/apps/admin/core.js"></script><script type="module" src="/apps/admin/support.js"></script><script type="module" src="/apps/admin/operational-control.js"></script></body></html>
+</main><div id="toast" role="status" aria-live="polite"></div><script type="module" src="/apps/admin/core.js"></script><script type="module" src="/apps/admin/support.js"></script><script type="module" src="/apps/admin/operational-control.js"></script><script type="module" src="/apps/admin/incident-console.js"></script><script type="module" src="/apps/admin/incident-roles.js"></script><script type="module" src="/apps/admin/staff-access.js"></script><script type="module" src="/apps/admin/supported-refund.js"></script></body></html>

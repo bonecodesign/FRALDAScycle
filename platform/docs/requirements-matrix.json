@@ -380,13 +380,27 @@
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
         "tests/exchange-http-postgres.test.mjs",
+        "database/migrations/086_supported_refund_execution.sql",
+        "database/migrations/087_supported_refund_reconciliation.sql",
+        "database/migrations/088_supported_refund_monitoring.sql",
+        "database/migrations/089_supported_refund_reviews.sql",
+        "database/payment-repository.js",
+        "apps/api/payment-service.js",
+        "apps/admin/supported-refund.js",
+        "tests/supported-refund-execution.test.mjs",
+        "tests/supported-refund-ui.test.mjs",
+        "workers/supported-refund-reconciliation.js",
+        "tests/supported-refund-reconciliation.test.mjs",
+        "workers/supported-refund-monitoring.js",
+        "tests/supported-refund-monitoring.test.mjs",
+        "tests/supported-refund-review.test.mjs",
         "docs/bilateral-exchange-beta.md",
         "docs/paid-contact-and-supported-cancellation-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova venda sem pagamento reversível, venda paga com prévia que devolve a comissão da plataforma, marco de coleta/endereço e troca bilateral protegida.",
-      "reason": "Escopo técnico concluído; estorno, custos externos, fornecedor e operação real continuam pendentes e explicitamente não são alegados."
+      "evidence": "HTTP/PostgreSQL comprova venda sem pagamento reversível, venda paga com prévia que devolve a comissão da plataforma, marco de coleta/endereço e troca bilateral protegida. A execução preparada separa níveis 1/2/3, consome autenticação reforçada de uso único e envia somente o valor aprovado, mantendo o resultado pendente até webhook.",
+      "reason": "Escopo técnico concluído; estorno efetivo, custos externos, credenciais do fornecedor e operação real continuam pendentes e explicitamente não são alegados."
     },
     {
       "id": 22,
@@ -398,12 +412,26 @@
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
         "tests/post-collection-support-http-postgres.test.mjs",
+        "database/migrations/086_supported_refund_execution.sql",
+        "database/migrations/087_supported_refund_reconciliation.sql",
+        "database/migrations/088_supported_refund_monitoring.sql",
+        "database/migrations/089_supported_refund_reviews.sql",
+        "database/payment-repository.js",
+        "apps/api/payment-service.js",
+        "apps/admin/supported-refund.js",
+        "tests/supported-refund-execution.test.mjs",
+        "tests/supported-refund-ui.test.mjs",
+        "workers/supported-refund-reconciliation.js",
+        "tests/supported-refund-reconciliation.test.mjs",
+        "workers/supported-refund-monitoring.js",
+        "tests/supported-refund-monitoring.test.mjs",
+        "tests/supported-refund-review.test.mjs",
         "docs/paid-contact-and-supported-cancellation-beta.md",
         "database/exchange-repository.js",
         "tests/bilateral-exchange.test.mjs",
         "docs/bilateral-exchange-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova bloqueio do cancelamento direto após coleta/endereço, prévia post_milestone, decisão assistida pendente no provedor e preservação da entrega e do anúncio.",
+      "evidence": "HTTP/PostgreSQL comprova bloqueio do cancelamento direto após coleta/endereço, prévia post_milestone, decisão assistida pendente no provedor e preservação da entrega e do anúncio. O envio financeiro preparado exige nível 3, valor exato, confirmação explícita, senha, código por e-mail e idempotência; conclusão permanece dependente do webhook.",
       "reason": "Escopo técnico delimitado concluído; retorno, reembolso, fornecedor financeiro e análise humana reais continuam externos e não são alegados."
     },
     {
@@ -739,8 +767,19 @@
       "status": "parcial",
       "references": [
         "apps/api/authorization.js",
+        "apps/api/staff-access-service.js",
         "database/admin-repository.js",
+        "database/staff-access-repository.js",
+        "database/migrations/084_staff_access_levels.sql",
+        "database/migrations/085_staff_access_approval.sql",
+        "apps/admin/staff-access.js",
+        "tools/bootstrap-founder.mjs",
         "tests/admin-rbac.test.mjs",
+        "tests/staff-access-service.test.mjs",
+        "tests/staff-access-ui.test.mjs",
+        "tests/founder-bootstrap.test.mjs",
+        "docs/decisions/FC-DEC-2026-10-29-niveis-acesso-equipe.md",
+        "docs/repository-access-governance.md",
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
@@ -815,9 +854,12 @@
         "apps/app/account-closure.html",
         "tests/account-closure-http-postgres.test.mjs",
         "tests/account-closure-maintenance.test.mjs"
+        ,"database/migrations/093_account_closure_data_inventory.sql"
+        ,"tests/account-closure-inventory.test.mjs"
+        ,"docs/privacy-deletion-beta.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: senha e código por e-mail geram autorização curta vinculada ao encerramento; solicitação cria janela exata de sete dias e bloqueia novas operações; terceiro não cancela; titular cancela com versão atual, remove a restrição e conserva a conta. Auditoria registra solicitação/cancelamento e automaticErasureAllowed permanece falso.",
-      "reason": "Solicitação, step-up, sete dias, cancelamento, bloqueio de novas operações e revisão de pendências estão implementados. Purga final, retenções legais, identidade humana e atendimento integral dependem de revisão/operação."
+      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, cancelamento e revisão de pendências estão comprovados. Ao ficar pronto para revisão, o sistema cria inventário único das categorias de dados sem executar exclusão e mantém automaticErasureAllowed falso.",
+      "reason": "Fluxo e inventário técnico estão implementados. Classificação de retenção, purga final, identidade humana e atendimento integral dependem de revisão jurídica, privacidade e operação."
     },
     {
       "id": 46,
@@ -874,12 +916,18 @@
         "tests/operational-preferences.test.mjs",
         "database/migrations/059_optional_reminder_dispatch.sql",
         "tests/notification-reminder-dispatch-postgres.test.mjs",
+        "tests/operational-preferences-http.test.mjs",
+        "tests/operational-notices-http-postgres.test.mjs",
+        "database/migrations/092_incident_critical_notification_kind.sql",
+        "database/operational-incident-repository.js",
+        "database/notification-repository.js",
+        "tests/incident-critical-notification.test.mjs",
         "docs/operational-preferences-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Preferências e janela silenciosa possuem prova PostgreSQL/Chrome em CI. A migração 057 associa lembretes opcionais à conta; testes locais com PostgreSQL comprovam adiamento sem tentativa, releitura da preferência alterada depois de enfileirar, cancelamento por canal desativado, destino divergente e conta suspensa, além de entrega simulada ao e-mail verificado da conta. Push permanece sem despacho por não haver dispositivo vinculado. Avisos necessários não são adiados; nenhum envio externo real.",
-      "reason": "Integração com o outbox limitada a lembretes opcionais concluída localmente. Ativação de fornecedor, entrega real, geração automática, cadastro de dispositivo push e homologação das demais categorias operacionais permanecem pendentes."
+      "evidence": "Preferências e lembretes opcionais permanecem comprovados. Incidente crítico agora gera automaticamente um aviso mínimo por e-mail somente ao fundador e às funções de resposta aceitas, sem copiar o resumo sensível; elegibilidade é revalidada antes do despacho.",
+      "reason": "Geração automática de alerta crítico e lembretes opcionais está preparada localmente. Ativação do fornecedor, entrega real, cadastro de dispositivo push e homologação das demais categorias continuam pendentes."
     },
     {
       "id": 50,
@@ -889,11 +937,13 @@
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
         "tests/local-cancellation-support.test.mjs",
+        "tests/support-operations-http-postgres.test.mjs",
+        "tests/support-pagination-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Horário e meta de primeira resposta aprovados pelo responsável do projeto em 2026-10-18 e publicados na interface; registro/acompanhamento continuam disponíveis fora do horário e a meta não promete resolução. Protocolo, histórico e acompanhamento implementados.",
-      "reason": "Definição de horário e meta de resposta concluída. Capacidade efetiva da equipe e operação humana ainda precisam ser confirmadas antes do piloto."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: cliente abre e repete chamado de modo idempotente; terceiro recebe 404; somente equipe assume, concorrente não toma o protocolo; nota interna não aparece ao cliente; respostas alteram o estado e são idempotentes; criação, atribuição, nota e respostas ficam auditadas.",
+      "reason": "Fluxo interno privado, idempotente, atribuído e auditado está comprovado; capacidade efetiva da equipe e operação humana ainda precisam ser confirmadas antes do piloto."
     },
     {
       "id": 51,
@@ -938,8 +988,8 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Em 2026-10-18, 12 testes admin-rbac passaram sem skips; lista finita de escopos substitui wildcard, teste estático verifica todos os escopos admin usados na API e teste HTTP cobre leitura aprovada de e-mail/telefone por moderador sem permissão de escrita.",
-      "reason": "Escopos mínimos de código e acesso de moderadores ao diretório concluídos conforme aprovação do responsável. Homologação de identidades, sessões e permissões do ambiente real continua gate de ativação."
+      "evidence": "Níveis 1–5 persistidos; fundador único; nível 4 propõe e nível 5 autoriza por último com grants separados de senha+código; aplicação revoga sessões e audita. UI e bootstrap único possuem testes; acesso técnico ao código permanece separado de dados reais.",
+      "reason": "Hierarquia, aprovação final do fundador e governança local concluídas no escopo beta. Identidades, equipes e proteção remota do GitHub continuam gates de ativação."
     },
     {
       "id": 54,
@@ -985,14 +1035,43 @@
       "status": "parcial",
       "references": [
         "docs/incident-drill-local.md",
+        "docs/operational-incident-console-beta.md",
+        "docs/decisions/FC-DEC-2026-10-29-responsaveis-incidentes.md",
+        "database/migrations/083_operational_incident_console.sql",
+        "database/migrations/090_operational_resume_approval.sql",
+        "database/migrations/091_incident_role_assignments.sql",
+        "database/operational-incident-repository.js",
+        "apps/api/operational-incident-service.js",
+        "apps/admin/incident-console.js",
+        "tests/operational-incident-service.test.mjs",
+        "tests/operational-incident-http-postgres.test.mjs",
+        "packages/contracts/incident-drill.js",
+        "apps/api/incident-drill-runner.js",
+        "apps/api/incident-drill-evidence.js",
+        "apps/api/incident-drill-signoff.js",
         "apps/api/operational-control.js",
+        "database/operational-control-repository.js",
+        "apps/admin/operational-control.js",
+        "database/incident-role-repository.js",
+        "apps/api/incident-role-service.js",
+        "apps/admin/incident-roles.js",
+        "apps/api/meta-whatsapp-incident-adapter.js",
+        "tests/incident-drill-contract.test.mjs",
+        "tests/incident-drill-runner.test.mjs",
+        "tests/incident-drill-evidence.test.mjs",
+        "tests/incident-drill-signoff.test.mjs",
         "tests/operational-control.test.mjs",
+        "tests/operational-resume-approval.test.mjs",
+        "tests/incident-role-service.test.mjs",
+        "tests/incident-role-ui.test.mjs",
+        "tests/meta-whatsapp-incident-adapter.test.mjs",
+        "tests/operational-control-postgres.test.mjs",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Roteiro e controles preparados; responsáveis e exercício real pendentes."
+      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5 com nova autenticação reforçada.",
+      "reason": "Console, aprovação conjunta, nomeação/aceite e adaptador Meta inativo estão implementados; conta Meta, número, template aprovado, pessoas reais e exercício humano permanecem pendentes."
     },
     {
       "id": 57,
@@ -1000,13 +1079,15 @@
       "status": "parcial",
       "references": [
         "database/recovery.js",
+        "database/backup-storage.js",
         "tests/database-recovery.test.mjs",
+        "tests/backup-storage.test.mjs",
         "tools/beta-recovery-check.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-recovery-validation.md"
       ],
-      "evidence": "PR #85, commit da31f94: pg_dump/pg_restore nativos, todas as tabelas/sequências, integridade e repetição comprovadas; CI 283 testes sem skips, 83 verificações, sintaxe 119, Chrome 154 nas jornadas existentes. Job 112041780070. Doze testes locais atuais cobrem publicação atômica, arquivo privado, recusa de sobrescrita, limpeza após falha, validação do dump, identidade de origem/destino, URLs PostgreSQL rigorosas e filtragem das variáveis de conexão herdadas; pg_dump/pg_restore são simulados nesta rodada, sem dump PostgreSQL real.",
-      "reason": "Restauração PostgreSQL nativa, integridade de transações/auditoria/sequências e isolamento comprovados com fixtures. O backup grava em diretório temporário privado e publica arquivo completo sem sobrescrever; a restauração valida o dump e compara host/porta/banco, normalizando caixa, ponto DNS final e aliases comuns de loopback. URL aceita apenas sslmode conhecido entre parâmetros de query; nomes de bancos percent-encoded e IPv6 são normalizados. Alias DNS arbitrário não é resolvido automaticamente. Os subprocessos recebem parâmetros PG* da URL e caminhos explícitos de certificados TLS; DATABASE_URL/RESTORE_DATABASE_URL e variáveis PostgreSQL herdadas de conexão são filtradas. Armazenamento protegido, acesso operacional, frequência e recuperação em infraestrutura real ainda não homologados."
+      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita; testes usam somente transporte sintético.",
+      "reason": "Fundação local e adaptador de armazenamento protegido estão preparados. Bucket, KMS, cofre, acesso operacional, frequência, RPO/RTO e recuperação em infraestrutura real ainda não foram homologados."
     },
     {
       "id": 58,
@@ -1027,10 +1108,16 @@
       "references": [
         "docs/provider-due-diligence.md",
         "docs/provider-selection.md",
-        "tests/provider-due-diligence.test.mjs"
+        "tests/provider-due-diligence.test.mjs",
+        "apps/api/secrets.js",
+        "config/secret-access.v1.json",
+        "packages/contracts/secret-rotation.js",
+        "tools/secret-access-governance.mjs",
+        "tests/secret-governance.test.mjs",
+        "docs/production-runbook.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Cofre e separação previstos; ambiente com identidades/cofre não homologado."
+      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática.",
+      "reason": "Allowlist, separação por serviço e contrato de rotação estão preparados; identidades, políticas, cofre e rotação real no ambiente ainda não foram homologados."
     },
     {
       "id": 60,

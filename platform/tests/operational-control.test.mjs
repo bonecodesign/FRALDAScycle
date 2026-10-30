@@ -15,7 +15,10 @@ test("operational control targets only creation of new commitments", () => {
   assert.equal(controlledDomain("POST", "/v1/exchanges"), "marketplace");
   assert.equal(controlledDomain("POST", `/v1/exchanges/${id}/accept`), "marketplace");
   assert.equal(controlledDomain("POST", "/v1/payments/intents"), "payments");
-  assert.equal(controlledDomain("POST", `/v1/payments/${id}/refunds`), null);
+  assert.equal(controlledDomain("POST", `/v1/payments/${id}/refunds`), "refunds");
+  assert.equal(controlledDomain("POST", `/v1/admin/supported-cancellations/${id}/execute`), "refunds");
+  assert.equal(controlledDomain("POST", `/v1/payments/${id}/disputes`), null);
+  assert.equal(controlledDomain("POST", `/v1/shipments/${id}/seller-payout`), "payouts");
   assert.equal(controlledDomain("POST", `/v1/shipments/${id}/assign`), "logistics");
   assert.equal(controlledDomain("POST", `/v1/shipments/${id}/proof`), null);
   assert.equal(controlledDomain("POST", "/v1/support/tickets"), null);
@@ -73,7 +76,10 @@ test("admin operations exposes an accessible audited pause and resume control", 
   assert.match(html, /role="status" aria-live="polite"/);
   assert.match(html, /\/apps\/admin\/operational-control\.js/);
   assert.match(controller, /\/v1\/admin\/operational-control/);
-  assert.match(controller, /confirmed: form\.elements\.confirmed\.checked/);
+  assert.match(controller, /confirmed:\s*form\.elements\.confirmed\.checked/);
+  assert.match(controller, /purpose:'operational_resume'/);
+  assert.match(controller, /operational-resume-requests/);
+  assert.match(html, /id="operational-resume-decision"/);
 });
 
 test("admin handler exposes status and change while enforcing role", async () => {
@@ -96,14 +102,14 @@ test("admin handler exposes status and change while enforcing role", async () =>
     });
     return { handled, output, payload: output.body ? JSON.parse(output.body) : null };
   };
-  await assert.rejects(call({ token: "customer" }), error => error.code === "forbidden");
+  await assert.rejects(call({ token: "customer" }), error => error.code === "insufficient_access_level");
   const status = await call({ token: "admin" });
   assert.equal(status.handled, true);
   assert.equal(status.output.status, 200);
   assert.equal(status.payload.items[0].paused, true);
   assert.equal(status.output.headers["cache-control"], "no-store");
-  const changed = await call({ method: "PUT", token: "admin", body: { domain: "global", action: "resume", reason: "Retomada operacional confirmada.", confirmed: true } });
+  const changed = await call({ method: "PUT", token: "admin", body: { domain: "global", action: "pause", reason: "Pausa operacional confirmada.", confirmed: true } });
   assert.equal(changed.output.status, 200);
-  assert.equal(changed.payload.state.paused, false);
+  assert.equal(changed.payload.state.paused, true);
   assert.equal(changed.payload.state.changedBy, admin.id);
 });

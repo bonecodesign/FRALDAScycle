@@ -87,12 +87,12 @@ export function createNotificationRepository(database) {
         `SELECT 1 FROM notification_outbox n WHERE n.id=$1 AND n.status='processing'
          AND n.claim_token=$2 AND n.locked_at>now()-interval '10 minutes'
          AND ((n.kind IN ('email_verification','password_recovery','admin_login_mfa','admin_invitation','responsible_profile_change') AND n.payload ? 'token')
-           OR (n.kind IN ('payment_reminder','delivery_reminder','general_reminder','account_lifecycle_notice')
+           OR (n.kind IN ('payment_reminder','delivery_reminder','general_reminder','account_lifecycle_notice','incident_critical_notice')
              AND EXISTS (SELECT 1 FROM users recipient_owner
                WHERE recipient_owner.id=n.recipient_user_id AND recipient_owner.disabled_at IS NULL
                  AND ((n.payload->>'channel'='email' AND recipient_owner.email_verified_at IS NOT NULL
                        AND n.recipient=recipient_owner.email)
-                   OR (n.payload->>'channel'='sms' AND n.kind<>'account_lifecycle_notice' AND recipient_owner.phone_verified_at IS NOT NULL
+                   OR (n.payload->>'channel'='sms' AND n.kind NOT IN ('account_lifecycle_notice','incident_critical_notice') AND recipient_owner.phone_verified_at IS NOT NULL
                        AND n.recipient=recipient_owner.phone)))))
          AND ((n.auth_token_id IS NULL AND n.kind NOT IN ('password_recovery','responsible_profile_change')) OR EXISTS (
            SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id

@@ -41,6 +41,10 @@ import { createPremiumService } from './premium-service.js';
 import { createPremiumRepository } from '../../database/premium-repository.js';
 import { createOperationalControlRepository } from '../../database/operational-control-repository.js';
 import { createOperationalControlService } from './operational-control.js';
+import { createOperationalIncidentRepository } from '../../database/operational-incident-repository.js';
+import { createOperationalIncidentService } from './operational-incident-service.js';
+import { createStaffAccessRepository } from '../../database/staff-access-repository.js';
+import { createStaffAccessService } from './staff-access-service.js';
 import { createAdultDeclarationRepository } from '../../database/adult-declaration-repository.js';
 import { createAdultDeclarationService } from './adult-declaration-service.js';
 import { createChildProfileRepository } from '../../database/child-profile-repository.js';
@@ -72,6 +76,15 @@ import { createAsaasWebhookRepository } from '../../database/asaas-webhook-repos
 import { createAsaasWebhookService } from './asaas-webhook-service.js';
 import { createDeliveryQuoteRepository } from '../../database/delivery-quote-repository.js';
 import { createDeliveryQuoteService } from './delivery-quote-service.js';
+import {createLalamoveClient} from './lalamove-client.js';
+import {createLalamoveQuoteAdapter} from './lalamove-quote-adapter.js';
+import {createDeliveryQuoteOrchestrator} from '../../packages/contracts/delivery-quote-orchestrator.js';
+import {createRegisteredCourierQuoteAdapter} from './registered-courier-quote-adapter.js';
+import {createCourierQuoteRepository} from '../../database/courier-quote-repository.js';
+import {createLoggiQuoteClient} from './loggi-quote-client.js';
+import {createLoggiQuoteAdapter} from './loggi-quote-adapter.js';
+import {createIncidentRoleRepository} from '../../database/incident-role-repository.js';
+import {createIncidentRoleService} from './incident-role-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -105,7 +118,10 @@ export async function startRuntime(config = null) {
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database),{pilotBh:config.pilotBh});
   const adminService = createAdminService(createAdminRepository(database),marketplaceProviders, { reviewSecret: config.sessionSecret });
-  const operationalControlService = createOperationalControlService(createOperationalControlRepository(database));
+  const accountStepUpRepository = createAccountStepUpRepository(database);
+  const operationalControlService = createOperationalControlService(createOperationalControlRepository(database,{stepUpRepository:accountStepUpRepository}));
+  const operationalIncidentService = createOperationalIncidentService(createOperationalIncidentRepository(database));
+  const incidentRoleService=createIncidentRoleService(createIncidentRoleRepository(database,{stepUpRepository:accountStepUpRepository}));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
@@ -113,8 +129,8 @@ export async function startRuntime(config = null) {
   const responsibleProfileChangeService = createResponsibleProfileChangeService(
     createResponsibleProfileChangeRepository(database),
   );
-  const accountStepUpRepository = createAccountStepUpRepository(database);
   const accountStepUpService = createAccountStepUpService(accountStepUpRepository);
+  const staffAccessService=createStaffAccessService(createStaffAccessRepository(database,{stepUpRepository:accountStepUpRepository}));
   const accountClosureService = createAccountClosureService(
     createAccountClosureRepository(database,{stepUpRepository:accountStepUpRepository}),
   );
@@ -124,7 +140,14 @@ export async function startRuntime(config = null) {
     repository:dataExportRepository,collector:createDataExportCollector(database),storage:dataExportStorage,
   })});
   const asaasWebhookService=config.asaasSandboxEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
-  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database));
+  const lalamoveClient=config.lalamoveQuotingEnabled?createLalamoveClient({key:config.lalamoveApiKey,secret:config.lalamoveApiSecret,environment:config.lalamoveEnvironment}):null;
+  const loggiQuoteClient=config.loggiQuotingEnabled?createLoggiQuoteClient({endpoint:config.loggiQuoteProviderUrl,secret:config.loggiQuoteProviderSecret}):null;
+  const deliveryQuoteOrchestrator=createDeliveryQuoteOrchestrator({quoters:{
+    lalamove:createLalamoveQuoteAdapter({client:lalamoveClient,enabled:config.lalamoveQuotingEnabled}),
+    fraldacycle_courier:createRegisteredCourierQuoteAdapter({repository:createCourierQuoteRepository(database),enabled:config.registeredCourierQuotingEnabled}),
+    loggi_express:createLoggiQuoteAdapter({client:loggiQuoteClient,enabled:config.loggiQuotingEnabled}),
+  }});
+  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator});
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -146,7 +169,7 @@ export async function startRuntime(config = null) {
     })
     : null;
   const paymentProvider = createPaymentProvider(config);
-  const paymentService = createPaymentService(createPaymentRepository(database), paymentProvider, {
+  const paymentService = createPaymentService(createPaymentRepository(database,{stepUpRepository:accountStepUpRepository}), paymentProvider, {
     cpfHmacSecret: config.responsibleCpfHmacSecret,
   });
   const logisticsProvider = createLogisticsProvider(config);
@@ -179,6 +202,9 @@ export async function startRuntime(config = null) {
     adminService,
     realtimeService,
     operationalControlService,
+    operationalIncidentService,
+    incidentRoleService,
+    staffAccessService,
     adultDeclarationService,
     childProfileService,
     exchangeService,

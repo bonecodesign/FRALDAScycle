@@ -107,6 +107,14 @@ export function createPaymentProvider(config, { fetchImpl = fetch } = {}) {
       return { providerReference: payload.reference, status: payload.status };
     },
 
+    async refundStatus({providerCaseReference}){
+      if(!endpoint||!secret)throw new PaymentProviderError('payment_provider_not_configured','Provedor de pagamentos não configurado.');
+      let response;try{response=await fetchImpl(new URL(`/refunds/${encodeURIComponent(providerCaseReference)}`,endpoint),{headers:{authorization:`Bearer ${secret}`},signal:AbortSignal.timeout(5_000)});}catch{throw new PaymentProviderError();}
+      if(!response.ok)throw new PaymentProviderError();const payload=await response.json();
+      if(payload?.reference!==providerCaseReference||!['submitted','under_review','completed','failed'].includes(payload?.status)||!Number.isSafeInteger(payload?.amountCents)||payload.amountCents<0)throw new PaymentProviderError('payment_provider_invalid_response','Resposta inválida do provedor de pagamentos.');
+      return{providerCaseReference:payload.reference,status:payload.status,amountCents:payload.amountCents};
+    },
+
     async createIntent(intent) {
       if (!endpoint || !secret) throw new PaymentProviderError("payment_provider_not_configured", "Provedor de pagamentos não configurado.");
       let response;

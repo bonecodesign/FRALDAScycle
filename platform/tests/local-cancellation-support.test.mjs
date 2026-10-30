@@ -11,9 +11,9 @@ function database(answer) {
   const client={async query(sql,values){calls.push({sql,values});return {rows:answer(sql,values)||[]};}};
   return {calls,async transaction(operation){return operation(client);},query:client.query};
 }
-const unpaid={id,listing_id:'listing',seller_id:'seller',status:'initiated',address_shared_at:null};
+const unpaid={id,listing_id:'listing',seller_id:'seller',status:'initiated',address_shared_at:null,kind:'sale'};
 test('unpaid pre-collection cancellation updates listing and audit atomically',async()=>{
-  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:/FOR NO KEY UPDATE/.test(sql)?[{id:'seller'}]:/checked_at/.test(sql)?[{checked_at:'2026-10-05T12:00:00Z',subscription:null}]:/AS suspended/.test(sql)?[{suspended:false}]:/count\(\*\)/.test(sql)?[{count:2}]:[]);
+  const db=database(sql=>/SELECT id,listing_id/.test(sql)?[unpaid]:/AS collected/.test(sql)?[{collected:false,has_payment:false}]:/FOR NO KEY UPDATE/.test(sql)?[{id:'seller'}]:/checked_at/.test(sql)?[{checked_at:'2026-10-05T12:00:00Z',subscription:null}]:/AS suspended/.test(sql)?[{suspended:false}]:/AS available/.test(sql)?[{available:true}]:/count\(\*\)/.test(sql)?[{count:2}]:[]);
   const result=await createOperationSupportRepository(db).cancelTransaction({actorId:'buyer',transactionId:id});
   assert.equal(result.status,'cancelled');
   assert.match(db.calls[0].sql,/FOR UPDATE/);
@@ -66,8 +66,13 @@ test('idempotent support retries cannot disclose another account ticket',async()
 test('support input and reply permissions are enforced before persistence',async()=>{
   const service=createMarketplaceService({createSupportTicket:()=>assert.fail(),replySupportTicket:()=>assert.fail()});
   await assert.rejects(service.createSupportTicket('buyer',{category:'cancellation',subject:'Pedido válido',details:'Descrição válida para suporte.',idempotencyKey:'support-key-123456'}),error=>error.code==='invalid_support_ticket');
-  await assert.rejects(service.replySupportTicket({id:'buyer',role:'customer'},id,{body:'Resposta válida',status:'resolved'}),error=>error.code==='forbidden');
+  await assert.rejects(service.replySupportTicket({id:'buyer',role:'customer'},id,{body:'Resposta válida',status:'resolved'}),error=>error.code==='insufficient_access_level');
   await assert.rejects(service.replySupportTicket({id:'admin',role:'admin'},id,{body:'curta',status:'resolved'}),error=>error.code==='invalid_support_reply');
+});
+test('level 1 handles support while level 2 records refund decisions without provider execution',async()=>{
+  let decisions=0;const service=createMarketplaceService({async supportCancellationDecision(input){decisions++;return{cancellation:{decided_by:input.actorId,status:'provider_pending'},reused:false};}}),input={confirmed:true,reason:'Reembolso analisado com evidências sintéticas suficientes.'};
+  await assert.rejects(service.supportCancellationDecision({id:'support',role:'moderator',staffAccessLevel:1},id,input),error=>error.code==='insufficient_access_level');
+  const result=await service.supportCancellationDecision({id:'resolver',role:'moderator',staffAccessLevel:2},id,input);assert.equal(result.cancellation.status,'provider_pending');assert.equal(decisions,1);
 });
 test('support details are private, read-audited, and include chronological response history',async()=>{
   const missing=database(()=>[]);
