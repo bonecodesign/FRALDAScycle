@@ -31,3 +31,14 @@ Este checklist separa prontidão técnica de autorização operacional, contratu
 ## Decisão
 
 O piloto só pode avançar para GO quando todos os itens obrigatórios acima estiverem evidenciados e o responsável autorizado registrar a decisão. Flags de produção permanecem desligadas até lá.
+
+## Registro da revisão atual
+
+Data: 2026-10-30
+
+- Resultado: **NO-GO**.
+- Evidência técnica pós-merge: `origin/main` em `86a3862`; validações focadas de fornecedores e governança aprovadas.
+- Sintaxe de produção: 127 arquivos aprovados.
+- CI remoto: status não confirmado nesta sessão porque a API pública retornou HTTP 403.
+- Não há autorização para ativar Asaas, Google Maps, atualização horária ou coleta infantil em produção.
+- Próxima ação de decisão: obter evidências de CI e homologação antes de revisar os bloqueios externos.
