@@ -8,4 +8,4 @@
 
 ## Disponibilidade pública
 
-Por decisão do fundador, fontes públicas aprovadas podem ser consultadas automaticamente a cada hora. Esse sinal é apenas operacional: a fonte oficial do fabricante continua determinando faixa etária, peso e compatibilidade. O worker exige ativação explícita e não faz scraping de domínios não aprovados.
+Por decisão do fundador, fontes públicas aprovadas podem ser consultadas automaticamente a cada hora. A governança usa três camadas: lista fixa de produção, inclusão/revisão manual no painel e descoberta automática em quarentena. Descoberta nunca habilita uma fonte sozinha. Esse sinal é apenas operacional: a fonte oficial do fabricante continua determinando faixa etária, peso e compatibilidade. O worker exige ativação explícita e não faz scraping de domínios não aprovados.
