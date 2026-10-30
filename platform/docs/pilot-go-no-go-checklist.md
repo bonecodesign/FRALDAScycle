@@ -42,3 +42,4 @@ Data: 2026-10-30
 - CI remoto: status não confirmado nesta sessão porque a API pública retornou HTTP 403.
 - Não há autorização para ativar Asaas, Google Maps, atualização horária ou coleta infantil em produção.
 - Próxima ação de decisão: obter evidências de CI e homologação antes de revisar os bloqueios externos.
+- Pacote de revisão jurídica e de privacidade preparado em `docs/legal-privacy-review-packet.md`.
