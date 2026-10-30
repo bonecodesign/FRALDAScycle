@@ -199,8 +199,9 @@ export function createMarketplaceRepository(database) {
       return database.transaction(async (client) => {
         const premium = await lockPremiumAccount(client, input.sellerId);
         const previous=await existingCreation(client,input);if(previous)return previous;
+        const stockUnits=Number.isInteger(input.stockUnits)?input.stockUnits:1;
         const stockLimit=premium.entitlement.benefitsActive?5:3;
-        if(input.stockUnits>stockLimit)throw Object.assign(new Error(premium.entitlement.benefitsActive?'O Premium permite até cinco unidades iguais por anúncio.':'O plano gratuito permite até três unidades iguais por anúncio.'),{code:'listing_stock_plan_limit',status:409});
+        if(stockUnits<1||stockUnits>stockLimit)throw Object.assign(new Error(premium.entitlement.benefitsActive?'O Premium permite até cinco unidades iguais por anúncio.':'O plano gratuito permite até três unidades iguais por anúncio.'),{code:'listing_stock_plan_limit',status:409});
         await requireNewOperations(client,input.sellerId);
         if(!await institutionPublicationAllowed(client,{kind:input.kind,institution_id:input.institutionId,package_condition:input.packageCondition}))throw Object.assign(new Error('A instituição não permite novas doações neste momento.'),{code:'donation_institution_unavailable',status:409});
         await adjustFreeListings(client, input.sellerId, premium);
@@ -214,7 +215,7 @@ export function createMarketplaceRepository(database) {
            RETURNING id, status, published_at`,
           [input.sellerId, input.title, input.description, input.category, input.brand,
            input.model, input.packageCondition, input.openPackageAttested, input.size,
-           input.quantity, input.stockUnits, input.kind, input.priceCents, input.city, input.state,
+           input.quantity, stockUnits, input.kind, input.priceCents, input.city, input.state,
            input.latitude, input.longitude, input.institutionId, 'review'],
         );
         for (const [position, storageKey] of (input.mediaKeys ?? []).entries()) {

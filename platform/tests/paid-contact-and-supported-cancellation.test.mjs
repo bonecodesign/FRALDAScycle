@@ -54,7 +54,7 @@ test('support decision deducts snapshotted fees, revokes contact and routes tran
 
 test('support cancellation requires admin confirmation and adequate rationale',async()=>{
   const service=createMarketplaceService({supportCancellationDecision:()=>assert.fail('must not persist')});
-  await assert.rejects(service.supportCancellationDecision({id:'buyer',role:'customer'},ticket,{confirmed:true,reason:'Justificativa suficiente.'}),error=>error.code==='forbidden');
+  await assert.rejects(service.supportCancellationDecision({id:'buyer',role:'customer'},ticket,{confirmed:true,reason:'Justificativa suficiente.'}),error=>error.code==='insufficient_access_level'&&error.status===403);
   await assert.rejects(service.supportCancellationDecision({id:'admin',role:'admin'},ticket,{confirmed:false,reason:'Justificativa suficiente.'}),error=>error.code==='invalid_cancellation_decision');
 });
 

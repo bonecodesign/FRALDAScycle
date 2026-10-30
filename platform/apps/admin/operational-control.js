@@ -59,4 +59,4 @@ form?.addEventListener("submit", async event => {
 
 resumeDecision?.addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter,approved=button?.value==='true';button.disabled=true;feedback.textContent='';try{const grant=await stepUp(resumeDecision.elements.password.value);await apiRequest(`/v1/admin/operational-resume-requests/${encodeURIComponent(resumeDecision.elements.requestId.value)}/decision`,{method:'POST',body:{approved,reason:resumeDecision.elements.reason.value.trim(),grantId:grant.grantId}});resumeDecision.reset();resumeDecision.hidden=true;await load();await loadResumeRequests();notify(approved?'Retomada autorizada pelo fundador':'Retomada rejeitada');}catch(error){feedback.textContent=error.message;}finally{resumeDecision.elements.password.value='';button.disabled=false;}});
 
-load();loadResumeRequests();
+load();if(resumeList)loadResumeRequests();
