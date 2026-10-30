@@ -20,7 +20,7 @@ test('PostgreSQL reconciles Premium renewal and failure exactly once without ini
       await database.query("INSERT INTO users(id,email,password_hash,display_name) VALUES($1,'premium-renewal@example.test','synthetic-unusable','Conta Premium sintética')",[userId]);
       const now=Date.parse('2030-01-01T12:00:00Z');
       const service=createPremiumBillingService(createPremiumBillingRepository(database),{clock:()=>now});
-      const paid={userId,provider:'asaas',providerReference:'premium-cycle-2030-01',eventType:'period_paid',amountCents:1290,
+      const paid={userId,provider:'asaas',providerReference:'premium-cycle-2030-01',eventType:'period_paid',amountCents:1490,
         paidPeriodStart:'2030-01-01T12:00:00Z',paidPeriodEnd:'2030-02-01T12:00:00Z',providerCheckedAt:'2030-01-01T11:59:00Z',evidenceSha256:'a'.repeat(64)};
       const first=await service.applyReconciled(paid),retry=await service.applyReconciled(paid);
       assert.equal(first.reused,false);assert.equal(first.billingInitiated,false);

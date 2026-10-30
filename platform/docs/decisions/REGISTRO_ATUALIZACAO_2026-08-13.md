@@ -16,7 +16,7 @@
 - Venda: comissão de 8% sobre o produto.
 - Troca: taxa total de 5%, dividida em 2,5% por participante.
 - Logística: comissão de 5% sobre o frete contratado pela plataforma.
-- Premium: R$ 12,90 por mês; plano gratuito com até três anúncios.
+- Premium: R$ 14,90 por mês; plano gratuito com até três anúncios.
 - A logística do piloto em Belo Horizonte é multicarrier. Lalamove, Uber Direct, Loggi, Dizzy Express e Clube Motoboy permanecem candidatos sujeitos a homologação.
 - Melhor Envio permanece reservado à expansão; Be Bike, a parceria futura; 99Entrega fica fora do escopo inicial.
 - Números simulados devem ser identificados e nunca apresentados como resultados reais.

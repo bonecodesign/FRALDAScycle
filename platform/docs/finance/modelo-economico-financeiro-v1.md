@@ -19,7 +19,7 @@ Números simulados neste documento **não são resultados reais, projeções gar
 - Venda: comissão FraldaCycle de **8%** sobre o valor do produto.
 - Troca: taxa total de **5%**, economicamente dividida em **2,5% por participante** sobre o pacote oferecido por cada lado.
 - Logística intermediada: comissão FraldaCycle de **5% sobre o frete**.
-- Premium: **R$ 12,90/mês**.
+- Premium: **R$ 14,90/mês**.
 - Plano gratuito: até **3 anúncios** conforme regras vigentes.
 - Doação: **sem comissão sobre o produto**; logística segue as regras aplicáveis quando houver entrega.
 - Processamento do pagamento do produto: custo do provedor deve ser apresentado no líquido do vendedor conforme a configuração homologada.
@@ -37,7 +37,7 @@ Onde:
 - `Receita vendas = GMV produto × 8%`
 - `Receita trocas = soma dos valores declarados dos pacotes × 2,5% por participante`
 - `Receita logística = GMV fretes × 5%`
-- `Receita Premium = assinantes ativos × R$ 12,90`
+- `Receita Premium = assinantes ativos × R$ 14,90`
 
 Estrutura de resultado:
 
@@ -90,7 +90,7 @@ A regra vigente permanece em 8%. Simulações mostraram que aumentar conversão 
 
 Por isso, a orientação de planejamento é:
 
-> **manter 8% de venda + 5% logística + 5% total na troca + Premium R$12,90 durante a validação inicial, medindo os dados reais antes de qualquer alteração de monetização.**
+> **manter 8% de venda + 5% logística + 5% total na troca + Premium R$14,90 durante a validação inicial, medindo os dados reais antes de qualquer alteração de monetização.**
 
 Percentuais de venda de 9%, 10% ou 12% usados em análise são apenas cenários comparativos e **não estão aprovados**.
 

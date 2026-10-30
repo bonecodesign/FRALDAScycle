@@ -191,7 +191,7 @@ Explicar busca, filtros, anúncio, preço fixo, checkout, pagamento protegido, e
 
 ### 5.2 Vender
 
-Explicar publicação, limite gratuito de até três anúncios, Premium de R$ 12,90 por mês, comissão de venda de 8%, preparação e repasse. Valores deverão ser carregados de fonte de configuração para evitar divergência entre telas e documentos.
+Explicar publicação, limite gratuito de até três anúncios, Premium de R$ 14,90 por mês, comissão de venda de 8%, preparação e repasse. Valores deverão ser carregados de fonte de configuração para evitar divergência entre telas e documentos.
 
 ### 5.3 Trocar
 

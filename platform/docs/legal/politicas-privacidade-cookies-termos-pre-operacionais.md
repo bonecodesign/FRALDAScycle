@@ -360,7 +360,7 @@ O processamento será realizado por provedor especializado. O FraldaCycle não a
 
 ## 9. Plano Premium
 
-O plano gratuito permite até três anúncios. O Premium está previsto por R\$ 12,90 mensais, com anúncios ilimitados, suporte privilegiado e destaque inteligente, apenas quando efetivamente implementados. A página de contratação informará renovação, cobrança, cancelamento, efeitos e eventual direito de arrependimento aplicável.
+O plano gratuito permite até três anúncios. O Premium está previsto por R\$ 14,90 mensais, com anúncios ilimitados, suporte privilegiado e destaque inteligente, apenas quando efetivamente implementados. A página de contratação informará renovação, cobrança, cancelamento, efeitos e eventual direito de arrependimento aplicável.
 
 ## 10. Entregas e retirada
 

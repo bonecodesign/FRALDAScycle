@@ -74,6 +74,9 @@ import { createDataExportArtifactService } from './data-export-artifact-service.
 import { createDisabledDataExportStorage } from './data-export-storage.js';
 import { createAsaasWebhookRepository } from '../../database/asaas-webhook-repository.js';
 import { createAsaasWebhookService } from './asaas-webhook-service.js';
+import { createAsaasClient } from './asaas-client.js';
+import { createPremiumSubscriptionRepository } from '../../database/premium-subscription-repository.js';
+import { createPremiumSubscriptionService } from './premium-subscription-service.js';
 import { createDeliveryQuoteRepository } from '../../database/delivery-quote-repository.js';
 import { createDeliveryQuoteService } from './delivery-quote-service.js';
 import {createLalamoveClient} from './lalamove-client.js';
@@ -144,7 +147,11 @@ export async function startRuntime(config = null) {
   const dataExportService = createDataExportService(dataExportRepository,{artifactService:createDataExportArtifactService({
     repository:dataExportRepository,collector:createDataExportCollector(database),storage:dataExportStorage,
   })});
-  const asaasWebhookService=config.asaasSandboxEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
+  const asaasWebhookService=config.asaasEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
+  const asaasClient=createAsaasClient({enabled:config.asaasEnabled,apiKey:config.asaasApiKey,environment:config.asaasEnvironment});
+  const premiumSubscriptionService=config.asaasEnabled?createPremiumSubscriptionService(
+    createPremiumSubscriptionRepository(database),asaasClient,{cpfHmacSecret:config.responsibleCpfHmacSecret},
+  ):null;
   const lalamoveClient=config.lalamoveQuotingEnabled?createLalamoveClient({key:config.lalamoveApiKey,secret:config.lalamoveApiSecret,environment:config.lalamoveEnvironment}):null;
   const loggiQuoteClient=config.loggiQuotingEnabled?createLoggiQuoteClient({endpoint:config.loggiQuoteProviderUrl,secret:config.loggiQuoteProviderSecret}):null;
   const uberDirectQuoteClient=config.uberDirectQuotingEnabled?createUberDirectQuoteClient({endpoint:config.uberDirectQuoteProviderUrl,secret:config.uberDirectQuoteProviderSecret}):null;
@@ -192,6 +199,7 @@ export async function startRuntime(config = null) {
     authService,
     marketplaceService,
     premiumService,
+    premiumSubscriptionService,
     moderationService,
     communicationsService,
     accountConsentService,

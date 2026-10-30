@@ -33,7 +33,7 @@ Belo Horizonte, Minas Gerais • 13 de agosto de 2026
 
 - Logística: comissão de 5% sobre o frete contratado pela plataforma.
 
-- Premium: R\$ 12,90/mês; até três anúncios no gratuito.
+- Premium: R\$ 14,90/mês; até três anúncios no gratuito.
 
 - Valores permanecem pré-operacionais até confirmação no checkout e aprovação jurídica/fiscal.
 
@@ -142,7 +142,7 @@ Versão 1.0 • Vigência: \[DATA\]
 | Venda        | Produto + 8% sobre o produto + frete + 5% sobre o frete, conforme incidência apresentada |
 | Troca        | 2,5% por participante + sua entrega + 5% sobre sua entrega; diferença fixa, se houver    |
 | Doação       | Produto R\$ 0,00; frete e 5% sobre frete quando contratados, ressalvado subsídio         |
-| Premium      | R\$ 12,90/mês, sujeito à tela de contratação e vigência                                  |
+| Premium      | R\$ 14,90/mês, sujeito à tela de contratação e vigência                                  |
 
 ## 2.3 Transparência
 
@@ -579,7 +579,7 @@ Versão 1.0 • Vigência: \[DATA\]
 | **Plano** | **Condições previstas**                                                         |
 |-----------|---------------------------------------------------------------------------------|
 | Gratuito  | Até 3 anúncios                                                                  |
-| Premium   | R\$ 12,90/mês; anúncios ilimitados, suporte privilegiado e destaque inteligente |
+| Premium   | R\$ 14,90/mês; anúncios ilimitados, suporte privilegiado e destaque inteligente |
 
 ## 9.2 Contratação e renovação
 

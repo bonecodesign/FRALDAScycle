@@ -1,10 +1,14 @@
-# Premium — contrato local, sem cobrança ou ativação
+# Premium — contrato e integração preparados, sem ativação real
+
+## Cobrança recorrente preparada
+
+A contratação mensal de R$ 14,90 usa cartão tokenizado e recorrência no Asaas. Nenhum benefício é concedido pela resposta de criação: a ativação depende do webhook autenticado, de nova consulta ao provedor e da conciliação do pagamento. A integração fica desativada até credenciais, contrato e homologação reais.
 
 Itens 6–8 do FC-DEC-2026-10-02. O lote implementa regras calculáveis e testáveis sem fornecedor; os três requisitos continuam **parciais**. Não apresenta uma assinatura real como disponível.
 
 `packages/contracts/premium-rules.js`:
 
-- Preço aprovado de R$ 12,90/mês e limite gratuito de três anúncios.
+- Preço aprovado de R$ 14,90/mês e limite gratuito de três anúncios.
 - Vigência delimitada por início e término explícitos de período pago; não presume que todos os meses têm trinta dias. Sem assinatura, estado gratuito.
 - Cancelamento da próxima renovação preserva vigência paga e não cria cobrança, multa ou reembolso.
 - Falha de renovação registrada a partir do vencimento: benefícios mantidos por três dias corridos (72 horas) desde o timestamp original da falha; depois disso, estado gratuito. Recalcular não reinicia o prazo. Retry ou recebimento tardio de webhook não podem substituir esse timestamp na futura persistência.
@@ -13,7 +17,7 @@ Itens 6–8 do FC-DEC-2026-10-02. O lote implementa regras calculáveis e testá
 - Dados permanecem intactos. Anúncios não publicados e anúncios com transação em andamento são preservados. Estado da transação precisa ser informado explicitamente; informação ausente não é interpretada como ausência de operação.
 - Entradas inválidas, anúncios de outra conta, IDs repetidos, escolhas excedentes e datas ambíguas/inválidas são rejeitados. Nenhuma coleção recebida é alterada.
 
-O módulo é puro e não foi ligado ao runtime. Não há assinatura concedida pelo cliente, endpoint de compra, worker de renovação, persistência de seleção nem pausa automática de anúncios. Permissões reais, lock/concorrência, idempotência do evento, origem do período pago, seleção antes do término, aviso interno e aplicação atômica precisam do próximo lote com PostgreSQL e fluxos reais. Não transformar estas funções em uma autorização financeira ou alegar que a gestão Premium está pronta.
+O runtime possui solicitação idempotente de assinatura, cancelamento no provedor, persistência sem token do cartão e worker de conciliação. A resposta de criação não concede período: somente pagamento confirmado e consultado novamente no Asaas produz evento financeiro reconciliado. A integração real continua desligada e depende da contratação, credenciais e homologação externas.
 
 Validação local: `node tests/premium-rules.test.mjs`, 11 testes aprovados, incluindo limites exatos da vigência e dos três dias, cancelamento idempotente, fevereiro, falha repetida, regularização, prioridade/seleção dos anúncios e preservação de transações. Sintaxe passa pelo check de produção e diff sem erros. Não testou concorrência, migração, HTTP, navegador, teclado, dispositivos ou leitor de tela; módulo não usa banco ou rede.
 

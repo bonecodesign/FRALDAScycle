@@ -24,7 +24,7 @@ Este registro organiza a revisão dos documentos pré-operacionais existentes. N
 | F01 | Venda | Política operacional soma 8% ao produto; serviço calcula comissão e valor do vendedor a partir do montante da transação | Decidir quem suporta a comissão e comprovar checkout, total, split e líquido com exemplos | Fundador, contador e fornecedor |
 | F02 | Comissão logística | Política: 5% do frete; serviço usa `fee(amountCents, 500)` quando há entrega | Confirmar base separada do frete e reconciliar documento/cálculo na futura correção | Financeiro e engenharia |
 | F03 | Troca | Política: 2,5% por participante; serviço usa 500 pontos-base sobre o montante da transação | Definir base de avaliação, diferença, cobranças vinculadas e comprovar 2,5% para cada parte | Fundador, financeiro e engenharia |
-| F04 | Premium | R$ 12,90/mês previsto; renovação e efeitos dependem de implementação/validação | Aprovar renovação, cancelamento, inadimplência, reembolso e emissão fiscal | Jurídico e contador |
+| F04 | Premium | R$ 14,90/mês previsto; renovação e efeitos dependem de implementação/validação | Aprovar renovação, cancelamento, inadimplência, reembolso e emissão fiscal | Jurídico e contador |
 | F05 | Repasse e conciliação | Prazos, retenções e disponibilidade dependem do processador | Obter contrato, estados, prazos, chargeback, tarifas e conciliação verificável | Financeiro e fornecedor |
 | P01 | Inventário de tratamento | Política lista dados possíveis sem matriz definitiva por finalidade | Preencher inventário abaixo e limitar aviso ao tratamento efetivo | Privacidade e engenharia |
 | P02 | Retenção e exclusão | Matriz de prazos ainda aberta | Aprovar prazo, fundamento, expurgo, exceções e efeito nos backups para cada categoria | Jurídico, privacidade e operação |
@@ -45,7 +45,7 @@ Usar valores fictícios, centavos inteiros e política explícita de arredondame
 | Frete de R$ 20,00 | Comissão de 5% = R$ 1,00 | Comissão incluída no frete ou adicionada? Quem paga e quem recebe? O valor do produto não deve substituir a base aprovada do frete |
 | Troca com base de R$ 100,00 | 2,5% = R$ 2,50 por participante | Quem define a base? Como tratar diferença de valor e cancelamento de apenas uma rota? |
 | Doação | Produto R$ 0,00; sem comissão comercial | Quem paga o frete e a comissão logística? Como registrar subsídio ou isenção? |
-| Premium | R$ 12,90 por ciclo mensal | Quando começa/termina benefício? O que acontece com anúncios excedentes e cobrança após cancelamento? |
+| Premium | R$ 14,90 por ciclo mensal | Quando começa/termina benefício? O que acontece com anúncios excedentes e cobrança após cancelamento? |
 
 Para cada exemplo aprovado, registrar: produto, frete, comissão comercial, comissão logística, tarifa do processador, descontos, total cobrado, líquido de cada recebedor e lançamentos de estorno. Encaminhar o tratamento tributário e emissão de documentos ao contador; não presumir regime fiscal ou alíquota.
 

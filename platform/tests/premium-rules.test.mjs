@@ -5,7 +5,7 @@ import { PREMIUM_MONTHLY_CENTS, FREE_LISTING_LIMIT, premiumEntitlement, cancelPr
 const paid = () => ({ paidPeriodStart: '2026-09-05T12:00:00Z', paidPeriodEnd: '2026-10-05T12:00:00Z', renewalEnabled: true, renewalFailedAt: null });
 const listing = (id, day, extra = {}) => ({ id, sellerId: 'user', status: 'published', publishedAt: `2026-10-0${day}T12:00:00Z`, ongoingTransaction: false, ...extra });
 test('approved price, limit and free baseline never allow external billing', () => {
-  assert.equal(PREMIUM_MONTHLY_CENTS, 1290);
+  assert.equal(PREMIUM_MONTHLY_CENTS, 1490);
   assert.equal(FREE_LISTING_LIMIT, 3);
   assert.equal(premiumEntitlement(null, '2026-10-05T12:00:00Z').state, 'free');
   assert.equal(premiumEntitlement(paid(), '2026-10-05T11:59:59Z').billingAllowed, false);

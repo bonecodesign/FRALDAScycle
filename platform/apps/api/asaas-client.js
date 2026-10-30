@@ -1,4 +1,5 @@
 const SANDBOX_ORIGIN = "https://api-sandbox.asaas.com";
+const PRODUCTION_ORIGIN = "https://api.asaas.com";
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{16,128}$/;
 
@@ -72,7 +73,8 @@ function assertResponseId(payload, kind) {
 export function createAsaasClient({
   enabled = false,
   apiKey,
-  baseUrl = `${SANDBOX_ORIGIN}/v3`,
+  environment = "sandbox",
+  baseUrl = `${environment === "production" ? PRODUCTION_ORIGIN : SANDBOX_ORIGIN}/v3`,
   fetchImpl = fetch,
   timeoutMs = 5_000,
   userAgent = "FraldaCycle-preactivation",
@@ -85,12 +87,13 @@ export function createAsaasClient({
   const disabled = async () => {
     throw new AsaasClientError("asaas_not_enabled", "Integração Asaas não ativada.");
   };
-  if (!enabled) return Object.freeze({ createCustomer: disabled, createPixCharge: disabled, getPayment: disabled });
+  if (!enabled) return Object.freeze({ createCustomer: disabled, createPixCharge: disabled, createCreditCardSubscription: disabled, cancelSubscription: disabled, getPayment: disabled });
 
   let origin;
   try { origin = new URL(baseUrl); }
   catch { throw new AsaasClientError("asaas_invalid_configuration", "Configuração Asaas inválida."); }
-  if (origin.protocol !== "https:" || origin.origin !== SANDBOX_ORIGIN || origin.pathname.replace(/\/$/, "") !== "/v3"
+  const expectedOrigin = environment === "production" ? PRODUCTION_ORIGIN : SANDBOX_ORIGIN;
+  if (!['sandbox','production'].includes(environment) || origin.protocol !== "https:" || origin.origin !== expectedOrigin || origin.pathname.replace(/\/$/, "") !== "/v3"
     || !String(apiKey ?? "").trim() || !String(userAgent ?? "").trim()) {
     throw new AsaasClientError("asaas_invalid_configuration", "Somente o sandbox Asaas homologado pode ser configurado.");
   }
@@ -143,6 +146,25 @@ export function createAsaasClient({
       return Object.freeze({ provider: "asaas", paymentId: assertResponseId(result, "cobrança"), reference: payload.externalReference });
     },
 
+    async createCreditCardSubscription({ customerId, reference, amountCents, nextDueDate, description, creditCardToken, idempotencyKey }) {
+      const payload = {
+        customer: assertIdentifier(customerId, "Cliente"), billingType: "CREDIT_CARD",
+        value: amount(amountCents), nextDueDate: date(nextDueDate), cycle: "MONTHLY",
+        description: requiredText(description, "Descrição", 500),
+        creditCardToken: requiredText(creditCardToken, "Token do cartão", 512),
+        externalReference: assertIdentifier(reference, "Referência"),
+      };
+      const result = await request("POST", "/subscriptions", { body: payload, idempotencyKey });
+      return Object.freeze({ provider: "asaas", subscriptionId: assertResponseId(result, "assinatura"), reference: payload.externalReference, status: String(result.status ?? "PENDING") });
+    },
+
+    async cancelSubscription(subscriptionId) {
+      const id = assertIdentifier(subscriptionId, "Assinatura");
+      const result = await request("DELETE", `/subscriptions/${encodeURIComponent(id)}`);
+      if (result?.deleted !== true && result?.id !== id) throw new AsaasClientError("asaas_invalid_response", "Resposta de cancelamento inválida.");
+      return Object.freeze({ provider: "asaas", subscriptionId: id, cancelled: true });
+    },
+
     async getPayment(paymentId) {
       const id = assertIdentifier(paymentId, "Cobrança");
       const result = await request("GET", `/payments/${encodeURIComponent(id)}`);
@@ -154,6 +176,8 @@ export function createAsaasClient({
       return Object.freeze({
         provider: "asaas", paymentId: resultId, status: result.status,
         reference: result.externalReference, value: Number.isFinite(result.value) ? result.value : null,
+        subscriptionId: typeof result.subscription === "string" && IDENTIFIER.test(result.subscription) ? result.subscription : null,
+        dueDate: /^\d{4}-\d{2}-\d{2}$/.test(String(result.dueDate ?? "")) ? result.dueDate : null,
       });
     },
   });

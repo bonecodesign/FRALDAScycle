@@ -57,7 +57,20 @@ test("Asaas payment lookup returns only reconciliation fields", async () => {
   } });
   assert.deepEqual(await client.getPayment("pay_123"), {
     provider: "asaas", paymentId: "pay_123", status: "RECEIVED", reference: "intent-1", value: 20,
+    subscriptionId: null, dueDate: null,
   });
+});
+
+test("Asaas creates a monthly tokenized subscription without raw card data",async()=>{
+  let body;
+  const client=createAsaasClient({enabled:true,apiKey:"sandbox-secret",fetchImpl:async(url,options)=>{
+    assert.equal(url,"https://api-sandbox.asaas.com/v3/subscriptions");body=JSON.parse(options.body);
+    return new Response(JSON.stringify({id:"sub_123",status:"PENDING"}),{status:200});
+  }});
+  const result=await client.createCreditCardSubscription({customerId:"cus_123",reference:"premium:reference-1",amountCents:1490,nextDueDate:"2030-01-02",description:"FraldaCycle Premium mensal",creditCardToken:"tokenized-card-123",idempotencyKey:"subscription-key-0001"});
+  assert.deepEqual(result,{provider:"asaas",subscriptionId:"sub_123",reference:"premium:reference-1",status:"PENDING"});
+  assert.deepEqual(body,{customer:"cus_123",billingType:"CREDIT_CARD",value:14.9,nextDueDate:"2030-01-02",cycle:"MONTHLY",description:"FraldaCycle Premium mensal",creditCardToken:"tokenized-card-123",externalReference:"premium:reference-1"});
+  assert.equal(Object.hasOwn(body,'cardNumber'),false);assert.equal(Object.hasOwn(body,'cvv'),false);
 });
 
 test("Asaas failures are sanitized and timeout outcome requires reconciliation", async () => {

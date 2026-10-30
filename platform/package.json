@@ -32,6 +32,8 @@
     "pilot:session:validate": "node tools/pilot-session.mjs",
     "worker:premium:local": "node workers/premium.js --once",
     "worker:premium": "node workers/premium.js --serve",
+    "worker:asaas-premium:local": "node workers/asaas-premium-reconciliation.js --once",
+    "worker:asaas-premium": "node workers/asaas-premium-reconciliation.js --serve",
     "worker:child-profiles:local": "node workers/child-profile-lifecycle.js --once",
     "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve",
     "worker:account-closure:local": "node workers/account-closure.js --once",

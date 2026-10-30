@@ -60,7 +60,9 @@ export function createPremiumRepository(database) {
           WHERE user_id=$1 AND renewal_failed_at=(SELECT renewal_failed_at FROM premium_subscriptions WHERE user_id=$1)`, [userId])).rows[0]
       : null;
     const currentChoice = choice && context.entitlement.paidThrough === new Date(choice.paid_period_end).toISOString();
-    return { ...context.entitlement, monthlyCents: 1290, freeListingLimit: FREE_LISTING_LIMIT,
+    const providerBilling=(await client.query(`SELECT status,failure_code,updated_at FROM premium_provider_subscriptions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1`,[userId])).rows[0]??null;
+    return { ...context.entitlement, monthlyCents: 1490, freeListingLimit: FREE_LISTING_LIMIT,
+      initialPaymentNotice: providerBilling?.status==='payment_failed'?{kind:'initial_payment_failed',message:'O primeiro pagamento não foi aprovado. Confira os dados e tente novamente com um cartão tokenizado.',failedAt:new Date(providerBilling.updated_at).toISOString(),retryAvailable:true}:null,
       renewalFailureNotice: notice ? { failedAt: new Date(notice.renewal_failed_at).toISOString(), regularizeBy: new Date(notice.regularize_by).toISOString() } : null,
       choice: currentChoice ? { version: choice.version, selectedIds: choice.selected_ids } : { version: 0, selectedIds: null },
       listings: listings.map(row => ({ id: row.id, title: row.title, status: row.status, ongoingTransaction: row.ongoing })) };

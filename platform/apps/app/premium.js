@@ -3,16 +3,20 @@ const feedback = document.getElementById('premium-feedback');
 const cancel = document.getElementById('premium-cancel-form');
 const choice = document.getElementById('premium-choice-form');
 const regularize = document.getElementById('premium-regularize');
+const subscribe = document.getElementById('premium-subscribe-form');
 let current = null;
 function lock(value) { document.querySelectorAll('fieldset,button').forEach(control => { control.disabled = value; }); }
 function render(premium) {
   current = premium;
   const labels = { active: 'Premium ativo', grace: 'Prazo de regularização', free: 'Plano gratuito' };
-  document.getElementById('premium-state').textContent = `${labels[premium.state]}. ${premium.paidThrough ? 'Período pago até ' + new Date(premium.paidThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.graceThrough ? 'Regularização até ' + new Date(premium.graceThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.renewalEnabled ? 'Próxima renovação habilitada no registro; cobrança indisponível.' : 'Sem próxima renovação habilitada.'}`;
+  document.getElementById('premium-state').textContent = `${labels[premium.state]}. ${premium.paidThrough ? 'Período pago até ' + new Date(premium.paidThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.graceThrough ? 'Regularização até ' + new Date(premium.graceThrough).toLocaleString('pt-BR') + '. ' : ''}${premium.renewalEnabled ? 'Próxima renovação habilitada.' : 'Sem próxima renovação habilitada.'}`;
   const notice = document.getElementById('premium-renewal-notice');
   notice.hidden = !premium.renewalFailureNotice;
   notice.textContent = premium.renewalFailureNotice ? `Falha de renovação registrada. Regularize até ${new Date(premium.renewalFailureNotice.regularizeBy).toLocaleString('pt-BR')}. Os benefícios permanecem ativos até esse prazo. Não há cobrança ou retentativa automática nesta versão.` : '';
+  const paymentNotice=document.getElementById('premium-payment-notice');paymentNotice.hidden=!premium.initialPaymentNotice;paymentNotice.textContent=premium.initialPaymentNotice?.message??'';
   cancel.hidden = !premium.renewalEnabled;
+  subscribe.hidden = (premium.benefitsActive || premium.renewalEnabled) && !premium.renewalFailureNotice;
+  subscribe.querySelector('button[type="submit"]').textContent=premium.renewalFailureNotice?'Regularizar com outro cartão':'Assinar por R$ 14,90/mês';
   choice.hidden = !premium.benefitsActive;
   regularize.hidden = premium.benefitsActive;
   const choices = document.getElementById('premium-choices'); choices.replaceChildren();
@@ -62,4 +66,6 @@ choice.addEventListener('submit', event => {
   update('/v1/account/premium/listing-choice', { selectedIds, expectedVersion: current.choice.version }, 'PUT', 'Escolha registrada.');
 });
 regularize.addEventListener('click', () => { if (current) update('/v1/account/premium/regularize-listings', { confirmed: true }, 'POST', 'Limite gratuito aplicado; operações em andamento preservadas.'); });
+async function loadPaymentSdk(tokenization){const existing=document.querySelector('script[data-payment-provider-sdk]');if(existing){if(existing.dataset.ready==='true')return;await new Promise((resolve,reject)=>{existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true})});return;}await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=tokenization.sdkUrl;script.integrity=tokenization.sdkIntegrity;script.crossOrigin='anonymous';script.dataset.paymentProviderSdk='true';script.addEventListener('load',()=>{script.dataset.ready='true';resolve()},{once:true});script.addEventListener('error',()=>reject(new Error('SDK de pagamento indisponível.')),{once:true});document.head.append(script);});}
+subscribe.addEventListener('submit',async event=>{event.preventDefault();lock(true);feedback.textContent='Tokenizando o cartão...';try{const session=await apiRequest('/v1/payments/tokenization-sessions',{method:'POST'});await loadPaymentSdk(session.tokenization);const sdk=window.FraldaCyclePaymentProvider;if(!sdk?.tokenizeCard)throw new Error('Tokenização de cartão indisponível.');const data=new FormData(subscribe);const tokenized=await sdk.tokenizeCard({clientToken:session.tokenization.clientToken,pan:data.get('pan'),expires:data.get('expires'),securityCode:data.get('securityCode')});if(typeof tokenized?.token!=='string')throw new Error('Não foi possível tokenizar o cartão.');const keyName='fc.premium.subscription.idempotency';const idempotencyKey=sessionStorage.getItem(keyName)||crypto.randomUUID();sessionStorage.setItem(keyName,idempotencyKey);await apiRequest('/v1/account/premium/subscribe',{method:'POST',body:{paymentMethodToken:tokenized.token,billingCpf:data.get('billingCpf'),idempotencyKey}});sessionStorage.removeItem(keyName);subscribe.reset();feedback.textContent='Assinatura enviada. Os benefícios serão liberados após a confirmação do pagamento.';lock(false);}catch(error){feedback.textContent=error.message;lock(false);}});
 load();

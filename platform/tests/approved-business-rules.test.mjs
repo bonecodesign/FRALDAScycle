@@ -14,7 +14,7 @@ test("publishes the approved pre-operational policy set with a consolidated deci
   ]);
   const joined = files.join("\n");
   for (const rule of [
-    "8%", "2,5%", "5%", "R$ 12,90", "Pix", "cartão de crédito",
+    "8%", "2,5%", "5%", "R$ 14,90", "Pix", "cartão de crédito",
     "instituições parceiras verificadas", "pacotes abertos", "Belo Horizonte",
   ]) assert.match(joined, new RegExp(rule.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
   assert.match(files[0], /campos entre colchetes/i);

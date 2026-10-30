@@ -17,7 +17,7 @@ Este documento registra as respostas finais do fundador, inclusive alterações 
 | 3 | Processamento do produto | Tarifa descontada do vendedor, conforme oferta/condições do fornecedor de pagamentos; líquido informado antes da confirmação. |
 | 4 | Taxa de troca | Cada participante paga 2,5% sobre o valor declarado do pacote que oferece. Entrega separada. Pacotes R$ 100 e R$ 80: taxas R$ 2,50 e R$ 2,00. |
 | 5 | Entrega da doação | Doador paga entrega; instituição não paga produto nem entrega. Retirada no local sem cobrança logística pela plataforma. Comissão do item 2 mantida. |
-| 6 | Renovação Premium | R$ 12,90/mês, renovação automática informada previamente; cancelamento a qualquer momento sem multa, impedindo próxima renovação; benefícios até fim do período pago. Reembolso/arrependimento separados. |
+| 6 | Renovação Premium | R$ 14,90/mês, renovação automática informada previamente; cancelamento a qualquer momento sem multa, impedindo próxima renovação; benefícios até fim do período pago. Reembolso/arrependimento separados. |
 | 7 | Retorno ao gratuito | Até 3 anúncios ativos; usuário escolhe quais manter antes do término. Sem escolha, manter os 3 publicados mais recentemente. Excedentes pausados com dados preservados; transações em andamento continuam. |
 | 8 | Falha de renovação | Aviso e 3 dias corridos para regularizar, com benefícios mantidos nesse prazo. Retentativas conforme fornecedor. Sem pagamento, retornar ao gratuito; não acumular mensalidades futuras sem benefícios ativos. |
 | 9 | Frete na troca | Cada participante paga entrega do pacote que receberá. Taxa de troca separada; 5% logísticos descontados do entregador. |

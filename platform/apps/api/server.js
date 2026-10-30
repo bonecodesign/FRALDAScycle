@@ -59,6 +59,7 @@ export function createApiServer({
   logisticsProvider = null,
   accountConsentService = null,
   premiumService = null,
+  premiumSubscriptionService = null,
   moderationService = null,
   communicationsService = null,
   adminService = null,
@@ -286,7 +287,7 @@ export function createApiServer({
       if (await handlePrivacyRequests(request,response,{url,headers,requestId:id,authService,privacyRequestService})) return;
       if (await handleAddressChanges(request,response,{url,headers,requestId:id,authService,addressChangeService})) return;
       if (await handleModeration(request,response,{url,headers,requestId:id,authService,moderationService,communicationsService})) return;
-      if (await handlePremium(request,response,{url,headers,requestId:id,authService,premiumService})) return;
+      if (await handlePremium(request,response,{url,headers,requestId:id,authService,premiumService,premiumSubscriptionService})) return;
       if (await handleAccountConsent(request,response,{
         url,headers,requestId:id,authService,accountConsentService,
       })) return;

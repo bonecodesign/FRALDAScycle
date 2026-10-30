@@ -128,9 +128,15 @@ export function loadConfig(env = process.env) {
   }
   const asaasSandboxEnabled=env.ASAAS_SANDBOX_ENABLED==='true';
   const asaasSandboxApiKey=env.ASAAS_SANDBOX_API_KEY??null;
+  const asaasEnabled=env.ASAAS_ENABLED==='true'||asaasSandboxEnabled;
+  const asaasEnvironment=asaasSandboxEnabled?'sandbox':(env.ASAAS_ENVIRONMENT??'sandbox');
+  const asaasApiKey=env.ASAAS_API_KEY??asaasSandboxApiKey;
+  const asaasActivationAcknowledged=env.ASAAS_ACTIVATION_ACKNOWLEDGED==='true';
   const asaasWebhookAccessToken=env.ASAAS_WEBHOOK_ACCESS_TOKEN??null;
   if(asaasSandboxEnabled&&nodeEnv==='production')throw new Error('ASAAS_SANDBOX_ENABLED cannot be used in production');
-  if(asaasSandboxEnabled&&(!asaasSandboxApiKey||String(asaasWebhookAccessToken??'').length<16))throw new Error('Asaas sandbox API key and webhook access token are required when enabled');
+  if(!['sandbox','production'].includes(asaasEnvironment))throw new Error('ASAAS_ENVIRONMENT must be sandbox or production');
+  if(asaasEnabled&&(!asaasApiKey||String(asaasWebhookAccessToken??'').length<16))throw new Error('Asaas API key and webhook access token are required when enabled');
+  if(nodeEnv==='production'&&asaasEnabled&&(asaasEnvironment!=='production'||!asaasActivationAcknowledged))throw new Error('Production Asaas requires ASAAS_ENVIRONMENT=production and ASAAS_ACTIVATION_ACKNOWLEDGED=true');
   const lalamoveQuotingRequested=env.LALAMOVE_QUOTING_ENABLED==='true';
   const lalamoveActivationAcknowledged=env.LALAMOVE_ACTIVATION_ACKNOWLEDGED==='true';
   const lalamoveApiKey=env.LALAMOVE_API_KEY??null;
@@ -210,6 +216,9 @@ export function loadConfig(env = process.env) {
     responsibleCpfHmacSecret,
     asaasSandboxEnabled,
     asaasSandboxApiKey,
+    asaasEnabled,
+    asaasEnvironment,
+    asaasApiKey,
     asaasWebhookAccessToken,
     lalamoveQuotingEnabled:lalamoveQuotingRequested&&(nodeEnv!=='production'||lalamoveActivationAcknowledged),
     lalamoveApiKey,

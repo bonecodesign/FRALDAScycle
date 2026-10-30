@@ -1,4 +1,5 @@
-export const PREMIUM_MONTHLY_CENTS = 1290;
+export const PREMIUM_MONTHLY_CENTS = 1490;
+export const PREMIUM_PRICE_VERSION = 'FC-PREMIUM-1490-1';
 export const FREE_LISTING_LIMIT = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
