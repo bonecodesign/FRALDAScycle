@@ -5,4 +5,11 @@ export async function runManufacturerAvailabilityWorker({mode,env=process.env,re
   if(mode==='serve'&&(env.NODE_ENV!=='production'||env.MANUFACTURER_AVAILABILITY_REFRESH_ENABLED!=='true'||env.MANUFACTURER_AVAILABILITY_ACTIVATION_ACKNOWLEDGED!=='true'))throw new Error('O worker exige produção e ativação reconhecida.');
   do{const result=await refresh();console.log(JSON.stringify({type:'manufacturer.availability.refresh.completed',...result,compatibilityAuthority:'manufacturer_catalog'}));if(mode==='once'||signal?.aborted)break;await waitFor(60*60*1000,signal);}while(!signal?.aborted);
 }
+export async function discoverManufacturerAvailabilityCandidates({repository,discoveredFrom,candidates=[]}={}){
+  if(!repository?.recordDiscoveryCandidates)throw new Error('Repositório de descoberta não configurado.');
+  const sourceUrl=String(discoveredFrom??'').trim();
+  if(!/^https:\/\/[^\s]{1,500}$/.test(sourceUrl))throw new Error('Origem de descoberta inválida.');
+  const unique=[...new Set(candidates.map(value=>String(value).trim()).filter(value=>/^https:\/\/[^\s]{1,500}$/.test(value)))];
+  return repository.recordDiscoveryCandidates({discoveredFrom:sourceUrl,candidates:unique});
+}
 if(isMainModule(import.meta.url)){const controller=new AbortController();process.once('SIGTERM',()=>controller.abort());process.once('SIGINT',()=>controller.abort());await runManufacturerAvailabilityWorker({mode:process.argv[2]==='--once'?'once':process.argv[2]==='--serve'?'serve':process.argv[2],signal:controller.signal});}
