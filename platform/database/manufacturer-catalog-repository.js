@@ -3,7 +3,7 @@ const fail = (code, status, message) => Object.assign(new Error(message), { code
 export function createManufacturerCatalogRepository(database) {
   return Object.freeze({
     async listBatches({ limit = 50 }) {
-      const result = await database.query(`SELECT b.id,b.manufacturer,b.source_url,b.document_sha256,b.effective_date,
+      const result = await database.query(`SELECT b.id,b.manufacturer,b.source_url,b.source_kind,b.document_sha256,b.effective_date,
         b.status,b.imported_by,b.first_reviewer_id,b.second_reviewer_id,b.rejected_by,b.rejection_reason,
         b.version,b.created_at,b.activated_at,b.updated_at,count(e.*)::integer AS entry_count
         FROM manufacturer_catalog_batches b LEFT JOIN manufacturer_catalog_entries e ON e.batch_id=b.id
@@ -13,8 +13,8 @@ export function createManufacturerCatalogRepository(database) {
     async importBatch({ actorId, catalog }) {
       return database.transaction(async client => {
         const batch = (await client.query(`INSERT INTO manufacturer_catalog_batches
-          (manufacturer,source_url,document_sha256,effective_date,imported_by)
-          VALUES($1,$2,$3,$4,$5) RETURNING *`, [catalog.manufacturer, catalog.sourceUrl,
+          (manufacturer,source_url,source_kind,document_sha256,effective_date,imported_by)
+          VALUES($1,$2,$3,$4,$5,$6) RETURNING *`, [catalog.manufacturer, catalog.sourceUrl, catalog.sourceKind,
           catalog.documentSha256, catalog.effectiveDate, actorId])).rows[0];
         await client.query(`INSERT INTO manufacturer_catalog_entries
           (batch_id,product_key,category,brand,model,size,min_age_months,max_age_months,min_weight_kg,max_weight_kg)
@@ -28,7 +28,7 @@ export function createManufacturerCatalogRepository(database) {
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'manufacturer_catalog.imported','manufacturer_catalog',$2,$3::jsonb)`,
         [actorId, batch.id, JSON.stringify({ manufacturer: catalog.manufacturer,
-          documentSha256: catalog.documentSha256, entryCount: catalog.entries.length })]);
+          sourceKind: catalog.sourceKind, documentSha256: catalog.documentSha256, entryCount: catalog.entries.length })]);
         return batch;
       });
     },

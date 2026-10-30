@@ -4,6 +4,7 @@ export const MANUFACTURER_CATALOG_COLUMNS = Object.freeze([
   "product_key", "category", "brand", "model", "size",
   "min_age_months", "max_age_months", "min_weight_kg", "max_weight_kg",
 ]);
+export const MANUFACTURER_CATALOG_SOURCE_KINDS = Object.freeze(["manufacturer_official", "public_web_reference", "internal_curated"]);
 
 function fail(code, row = null) {
   return Object.assign(new Error(code), { code, row });
@@ -42,9 +43,10 @@ function completeRange(minimum, maximum, ceiling) {
 
 export function parseManufacturerCatalogCsv(csv, metadata) {
   const manufacturer = String(metadata?.manufacturer ?? "").trim();
+  const sourceKind = String(metadata?.sourceKind ?? "manufacturer_official");
   let sourceUrl;
   try { sourceUrl = new URL(metadata?.sourceUrl); } catch { throw fail("invalid_catalog_source"); }
-  if (!manufacturer || manufacturer.length > 120 || sourceUrl.protocol !== "https:" || sourceUrl.username || sourceUrl.password
+  if (!manufacturer || manufacturer.length > 120 || !MANUFACTURER_CATALOG_SOURCE_KINDS.includes(sourceKind) || sourceUrl.protocol !== "https:" || sourceUrl.username || sourceUrl.password
       || !/^[a-f0-9]{64}$/i.test(metadata?.documentSha256 ?? "")
       || !/^\d{4}-\d{2}-\d{2}$/.test(metadata?.effectiveDate ?? "")) throw fail("invalid_catalog_source");
 
@@ -75,7 +77,7 @@ export function parseManufacturerCatalogCsv(csv, metadata) {
     return Object.freeze({ productKey, category, brand, model, size,
       minAgeMonths, maxAgeMonths, minWeightKg, maxWeightKg });
   });
-  return Object.freeze({ manufacturer, sourceUrl: sourceUrl.toString(),
+  return Object.freeze({ manufacturer, sourceUrl: sourceUrl.toString(), sourceKind,
     documentSha256: metadata.documentSha256.toLowerCase(), effectiveDate: metadata.effectiveDate,
     status: "pending_first_review", entries: Object.freeze(entries) });
 }

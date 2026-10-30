@@ -36,6 +36,13 @@ test("requires an attributable HTTPS source and immutable document hash", () => 
   error => error.code === "invalid_catalog_source");
 });
 
+test("classifies public web sources as auxiliary evidence, never as authority",()=>{
+  const parsed=parseManufacturerCatalogCsv('product_key,category,brand,model,size,min_age_months,max_age_months,min_weight_kg,max_weight_kg\nref-1,infant,Marca,Modelo,P,0,12,,',{
+    manufacturer:'Referência pública',sourceKind:'public_web_reference',sourceUrl:'https://shop.example/product/ref-1',documentSha256:'a'.repeat(64),effectiveDate:'2026-10-30',
+  });
+  assert.equal(parsed.sourceKind,'public_web_reference');
+});
+
 test("two independent reviewers are mandatory and importer cannot approve", () => {
   const imported = { ...parseManufacturerCatalogCsv(`${header}\nSKU-1,infant,Marca,Linha,M,6,18,,\n`, metadata), importedBy: "importer" };
   assert.throws(() => reviewManufacturerCatalog(imported, { reviewerId: "importer", decision: "approve" }));

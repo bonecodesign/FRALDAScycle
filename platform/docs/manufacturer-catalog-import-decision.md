@@ -7,6 +7,8 @@ Decisão aprovada em 24 de outubro de 2026: o piloto utilizará catálogo intern
 - fonte HTTPS, fabricante, data de vigência e SHA-256 do documento são obrigatórios;
 - CSV possui cabeçalho fixo, limite de 10.000 itens e identidade única por produto/tamanho;
 - faixa oficial pode ser etária, de peso ou ambas;
+- ingestão usa modelo híbrido: fonte oficial do fabricante como autoridade, catálogo interno como fallback e páginas públicas da internet somente como referência auxiliar;
+- disponibilidade pública na internet pode indicar que um produto existe ou está sendo vendido, mas não altera faixa etária, peso, compatibilidade ou prioridade sem revisão independente;
 - peso pertence à especificação do produto; nenhum peso é atribuído ou armazenado para uma criança;
 - importador não pode revisar o próprio lote;
 - dois revisores distintos precisam aprovar;
