@@ -83,6 +83,9 @@ import {createRegisteredCourierQuoteAdapter} from './registered-courier-quote-ad
 import {createCourierQuoteRepository} from '../../database/courier-quote-repository.js';
 import {createLoggiQuoteClient} from './loggi-quote-client.js';
 import {createLoggiQuoteAdapter} from './loggi-quote-adapter.js';
+import {createUberDirectQuoteClient} from './uber-direct-quote-client.js';
+import {createUberDirectQuoteAdapter} from './uber-direct-quote-adapter.js';
+import {createGoogleMapsClient} from './google-maps-client.js';
 import {createIncidentRoleRepository} from '../../database/incident-role-repository.js';
 import {createIncidentRoleService} from './incident-role-service.js';
 
@@ -91,6 +94,7 @@ export async function startRuntime(config = null) {
   const database = createDatabase(config);
   await migrate(database);
   const legalTerms = await loadLegalTerms();
+  const addressGeocoder=config.googleMapsGeocodingEnabled?createGoogleMapsClient({apiKey:config.googleMapsApiKey}):null;
   if (config.responsibleRegistrationEnabled && legalTerms.status !== 'active') {
     await database.close();
     throw new Error('Responsible registration requires active, professionally approved Terms of Use');
@@ -103,6 +107,7 @@ export async function startRuntime(config = null) {
       cpfHmacSecret: config.responsibleCpfHmacSecret,
       terms: legalTerms,
       postalCodeService: createPostalCodeService(),
+      addressGeocoder,
     },
   });
   const moderationRepository = createModerationRepository(database);
@@ -142,12 +147,14 @@ export async function startRuntime(config = null) {
   const asaasWebhookService=config.asaasSandboxEnabled?createAsaasWebhookService(createAsaasWebhookRepository(database),{accessToken:config.asaasWebhookAccessToken}):null;
   const lalamoveClient=config.lalamoveQuotingEnabled?createLalamoveClient({key:config.lalamoveApiKey,secret:config.lalamoveApiSecret,environment:config.lalamoveEnvironment}):null;
   const loggiQuoteClient=config.loggiQuotingEnabled?createLoggiQuoteClient({endpoint:config.loggiQuoteProviderUrl,secret:config.loggiQuoteProviderSecret}):null;
+  const uberDirectQuoteClient=config.uberDirectQuotingEnabled?createUberDirectQuoteClient({endpoint:config.uberDirectQuoteProviderUrl,secret:config.uberDirectQuoteProviderSecret}):null;
   const deliveryQuoteOrchestrator=createDeliveryQuoteOrchestrator({quoters:{
     lalamove:createLalamoveQuoteAdapter({client:lalamoveClient,enabled:config.lalamoveQuotingEnabled}),
     fraldacycle_courier:createRegisteredCourierQuoteAdapter({repository:createCourierQuoteRepository(database),enabled:config.registeredCourierQuotingEnabled}),
     loggi_express:createLoggiQuoteAdapter({client:loggiQuoteClient,enabled:config.loggiQuotingEnabled}),
+    uber_direct:createUberDirectQuoteAdapter({client:uberDirectQuoteClient,enabled:config.uberDirectQuotingEnabled}),
   }});
-  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator});
+  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator,checkoutEnabled:config.deliveryQuoteCheckoutEnabled});
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
@@ -174,7 +181,7 @@ export async function startRuntime(config = null) {
   });
   const logisticsProvider = createLogisticsProvider(config);
   const logisticsRepository = createLogisticsRepository(database,{pilotBh:config.pilotBh});
-  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh,courierOffersRequired:config.courierEligibilityEnabled});
+  const logisticsService = createLogisticsService(logisticsRepository, logisticsProvider, marketplaceProviders,{pilotBh:config.pilotBh,courierOffersRequired:config.courierEligibilityEnabled,addressGeocoder});
   const privacyRequestService = createPrivacyRequestService(createPrivacyRequestRepository(database));
   const addressChangeService = createAddressChangeService(logisticsRepository.addressChanges);
   const realtimeService = createRealtimeService(createRealtimeRepository(database));

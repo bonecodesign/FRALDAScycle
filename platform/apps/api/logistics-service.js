@@ -16,7 +16,7 @@ function publicShipment(row){return {
   logisticsResponsibility:row.logistics_payer_id===row.buyer_id?'buyer':null,
   freightCents:null,freightChargeAvailable:false,
 }}
-export function createLogisticsService(repository,provider,mediaProvider,{pilotBh=null,courierOffersRequired=false}={}){
+export function createLogisticsService(repository,provider,mediaProvider,{pilotBh=null,courierOffersRequired=false,addressGeocoder=null}={}){
   return Object.freeze({
     async courierPage(actor,{history=false,page='1'}={}) {
       if (!['courier','admin'].includes(actor?.role)) throw new LogisticsError('forbidden',403,'Use a conta do entregador para consultar suas operações.');
@@ -52,6 +52,7 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
         !["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].includes(address.state)||
         (address.complement&&address.complement.length>150))throw new LogisticsError("invalid_address",422,"Informe CEP, estado e complemento válidos.");
       if(!pilotBhLocation(pilotBh,address.city,address.state)||!pilotBhPostalCode(pilotBh,address.postalCode))throw new LogisticsError("pilot_outside_bh",403,"O piloto aceita somente endereços de Belo Horizonte, MG, com CEP da capital.");
+      if(addressGeocoder){const geocode=await addressGeocoder.geocodeBh([address.street,address.number,address.district,address.city,address.state,address.postalCode].filter(Boolean).join(', '));if(geocode.partialMatch)throw new LogisticsError('address_geocode_partial',422,'Confirme um endereço completo e exato.');Object.assign(address,{latitude:geocode.latitude,longitude:geocode.longitude,geocodeVerifiedAt:new Date().toISOString(),geocodeProvider:geocode.provider});}
       return repository.createAddress(userId,address);
     },
     async shareAddress(userId,shipmentId,input) {

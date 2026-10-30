@@ -79,6 +79,9 @@ export function createAuthService(repository, {
   if (responsibleRegistration.enabled && typeof responsibleRegistration.postalCodeService?.lookup !== "function") {
     throw new Error("Responsible registration requires a server-side postal code service");
   }
+  if (responsibleRegistration.addressGeocoder && typeof responsibleRegistration.addressGeocoder.geocodeBh !== 'function') {
+    throw new Error('Responsible registration address geocoder is invalid');
+  }
   async function pilotAccountAllowed(user) {
     if (!pilotBh?.enabled || pilotBhInvited(pilotBh, user?.email)) return true;
     return Boolean(user?.id && repository.pilotAdmissionForUser && await repository.pilotAdmissionForUser(user.id));
@@ -107,8 +110,11 @@ export function createAuthService(repository, {
           expectedTerms: responsibleRegistration.terms,
         });
         const { cpf, ...safeResponsible } = validated;
+        let geocode=null;
+        if(responsibleRegistration.addressGeocoder){const address=safeResponsible.address;geocode=await responsibleRegistration.addressGeocoder.geocodeBh([address.street,address.number,address.district,address.city,address.state,address.postalCode].filter(Boolean).join(', '));if(geocode.partialMatch)throw new AuthError('address_geocode_partial',422,'Confirme um endereço completo e exato.');}
         responsible = Object.freeze({
           ...safeResponsible,
+          address:Object.freeze({...safeResponsible.address,...(geocode?{geocode:Object.freeze({...geocode,verifiedAt:new Date().toISOString()})}:{})}),
           cpfFingerprint: createHmac("sha256", responsibleRegistration.cpfHmacSecret).update(cpf).digest(),
           terms: Object.freeze({ ...validated.terms, documents: responsibleRegistration.terms.documents }),
         });

@@ -14,9 +14,9 @@ export function createAddressRepository(database,{pilotBh=null}={}) {
     },
     async createAddress(userId,input) {
       return database.transaction(async client=>{
-        const result=await client.query(`INSERT INTO addresses(user_id,label,postal_code,street,number,complement,district,city,state)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${fields}`,
-          [userId,input.label,input.postalCode,input.street,input.number,input.complement,input.district,input.city,input.state]);
+        const result=await client.query(`INSERT INTO addresses(user_id,label,postal_code,street,number,complement,district,city,state,latitude,longitude,geocode_verified_at,geocode_provider)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING ${fields}`,
+          [userId,input.label,input.postalCode,input.street,input.number,input.complement,input.district,input.city,input.state,input.latitude??null,input.longitude??null,input.geocodeVerifiedAt??null,input.geocodeProvider??null]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,'address.created','address',$2,'{}'::jsonb)`,[userId,result.rows[0].id]);
         return result.rows[0];

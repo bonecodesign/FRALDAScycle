@@ -147,6 +147,22 @@ export function loadConfig(env = process.env) {
   if(Boolean(loggiQuoteProviderUrl)!==Boolean(loggiQuoteProviderSecret))throw new Error('LOGGI_QUOTE_PROVIDER_URL and LOGGI_QUOTE_PROVIDER_SECRET must be configured together');
   if(loggiQuoteProviderUrl&&!loggiQuoteProviderUrl.startsWith('https://'))throw new Error('LOGGI_QUOTE_PROVIDER_URL must use HTTPS');
   if(loggiQuotingRequested&&(!loggiQuoteProviderUrl||!loggiHomologationAcknowledged))throw new Error('Loggi quoting requires gateway configuration and homologation acknowledgement');
+  const uberDirectQuotingRequested=env.UBER_DIRECT_QUOTING_ENABLED==='true';
+  const uberDirectHomologationAcknowledged=env.UBER_DIRECT_HOMOLOGATION_ACKNOWLEDGED==='true';
+  const uberDirectQuoteProviderUrl=env.UBER_DIRECT_QUOTE_PROVIDER_URL??null;
+  const uberDirectQuoteProviderSecret=env.UBER_DIRECT_QUOTE_PROVIDER_SECRET??null;
+  if(Boolean(uberDirectQuoteProviderUrl)!==Boolean(uberDirectQuoteProviderSecret))throw new Error('UBER_DIRECT_QUOTE_PROVIDER_URL and UBER_DIRECT_QUOTE_PROVIDER_SECRET must be configured together');
+  if(uberDirectQuoteProviderUrl&&!uberDirectQuoteProviderUrl.startsWith('https://'))throw new Error('UBER_DIRECT_QUOTE_PROVIDER_URL must use HTTPS');
+  if(uberDirectQuotingRequested&&(!uberDirectQuoteProviderUrl||!uberDirectHomologationAcknowledged))throw new Error('Uber Direct quoting requires gateway configuration and homologation acknowledgement');
+  const deliveryQuoteCheckoutRequested=env.DELIVERY_QUOTE_CHECKOUT_ENABLED==='true';
+  const deliveryQuoteCheckoutAcknowledged=env.DELIVERY_QUOTE_CHECKOUT_ACTIVATION_ACKNOWLEDGED==='true';
+  const googleMapsGeocodingRequested=env.GOOGLE_MAPS_GEOCODING_ENABLED==='true';
+  const googleMapsActivationAcknowledged=env.GOOGLE_MAPS_ACTIVATION_ACKNOWLEDGED==='true';
+  const googleMapsApiKey=env.GOOGLE_MAPS_API_KEY??null;
+  if(googleMapsGeocodingRequested&&String(googleMapsApiKey??'').length<8)throw new Error('GOOGLE_MAPS_API_KEY is required when geocoding is enabled');
+  if(nodeEnv==='production'&&googleMapsGeocodingRequested&&!googleMapsActivationAcknowledged)throw new Error('GOOGLE_MAPS_ACTIVATION_ACKNOWLEDGED=true is required in production');
+  if(deliveryQuoteCheckoutRequested&&!googleMapsGeocodingRequested)throw new Error('DELIVERY_QUOTE_CHECKOUT_ENABLED requires GOOGLE_MAPS_GEOCODING_ENABLED=true');
+  if(nodeEnv==='production'&&deliveryQuoteCheckoutRequested&&!deliveryQuoteCheckoutAcknowledged)throw new Error('DELIVERY_QUOTE_CHECKOUT_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const courierEligibilityRequested = env.COURIER_ELIGIBILITY_ENABLED === "true";
   const courierEligibilityActivationAcknowledged = env.COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED === "true";
   if (nodeEnv === "production" && courierEligibilityRequested && !courierEligibilityActivationAcknowledged) {
@@ -202,6 +218,12 @@ export function loadConfig(env = process.env) {
     loggiQuotingEnabled:loggiQuotingRequested&&loggiHomologationAcknowledged,
     loggiQuoteProviderUrl,
     loggiQuoteProviderSecret,
+    uberDirectQuotingEnabled:uberDirectQuotingRequested&&uberDirectHomologationAcknowledged,
+    uberDirectQuoteProviderUrl,
+    uberDirectQuoteProviderSecret,
+    deliveryQuoteCheckoutEnabled:deliveryQuoteCheckoutRequested&&(nodeEnv!=='production'||deliveryQuoteCheckoutAcknowledged),
+    googleMapsGeocodingEnabled:googleMapsGeocodingRequested&&(nodeEnv!=='production'||googleMapsActivationAcknowledged),
+    googleMapsApiKey,
     courierEligibilityEnabled: courierEligibilityRequested &&
       (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
     registeredCourierQuotingEnabled:registeredCourierQuotingRequested&&courierEligibilityRequested&&

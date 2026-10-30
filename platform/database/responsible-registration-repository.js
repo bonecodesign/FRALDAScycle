@@ -54,12 +54,15 @@ export async function persistResponsibleRegistration(client, userId, input) {
   const address = (await client.query(
     `INSERT INTO addresses
        (user_id,label,postal_code,street,number,complement,district,city,state,
-        is_primary,version,postal_verification_fingerprint,postal_verification_provider)
-     VALUES($1,'Principal',$2,$3,$4,$5,$6,$7,$8,true,$9,$10,$11)
+        is_primary,version,postal_verification_fingerprint,postal_verification_provider,
+        latitude,longitude,geocode_verified_at,geocode_provider)
+     VALUES($1,'Principal',$2,$3,$4,$5,$6,$7,$8,true,$9,$10,$11,$12,$13,$14,$15)
      RETURNING id,label,is_primary,version,created_at`,
     [userId, input.address.postalCode, input.address.street, input.address.number,
       input.address.complement, input.address.district, input.address.city, input.address.state,
-      input.address.version, input.address.verificationFingerprint, input.address.verificationProvider],
+      input.address.version, input.address.verificationFingerprint, input.address.verificationProvider,
+      input.address.geocode?.latitude??null,input.address.geocode?.longitude??null,
+      input.address.geocode?.verifiedAt??null,input.address.geocode?.provider??null],
   )).rows[0];
 
   const acceptance = (await client.query(
