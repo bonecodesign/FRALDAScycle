@@ -4,7 +4,7 @@
 
 O piloto de Belo Horizonte usa Google Maps para validar endereços e calcular distância e duração. A logística segue a ordem aprovada: Lalamove, entregador cadastrado elegível mais próximo, Loggi Express e Uber Direct. Retirada local e Correios permanecem fora do fluxo.
 
-O cliente nativo `apps/api/google-maps-client.js` está isolado e não é chamado automaticamente. Assim, nenhuma consulta, custo ou compartilhamento de endereço ocorre antes da contratação e da configuração explícita.
+O cliente nativo `apps/api/google-maps-client.js` permanece desligado por padrão. Quando o checkout de frete e a chave homologada forem ativados juntos, o cálculo tenta usar a rota rodoviária do Google; se o provedor estiver indisponível, usa linha reta temporariamente e marca a origem do cálculo como fallback. Nenhuma consulta, custo ou compartilhamento de endereço ocorre antes da configuração explícita.
 
 ## Contrato técnico concluído
 

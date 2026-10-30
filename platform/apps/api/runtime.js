@@ -161,7 +161,7 @@ export async function startRuntime(config = null) {
     loggi_express:createLoggiQuoteAdapter({client:loggiQuoteClient,enabled:config.loggiQuotingEnabled}),
     uber_direct:createUberDirectQuoteAdapter({client:uberDirectQuoteClient,enabled:config.uberDirectQuotingEnabled}),
   }});
-  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator,checkoutEnabled:config.deliveryQuoteCheckoutEnabled});
+  const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator,checkoutEnabled:config.deliveryQuoteCheckoutEnabled,routeClient:addressGeocoder});
   const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
