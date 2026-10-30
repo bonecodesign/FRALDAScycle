@@ -51,3 +51,14 @@ test("postgres repository only activates approved sources and audits mutations",
   assert.ok(statements.some(({ sql }) => /approved=true AND review_status='approved'/.test(sql)));
   assert.ok(statements.filter(({ sql }) => /INSERT INTO audit_events/.test(sql)).length >= 2);
 });
+
+test("candidate review and promotion routes remain separate", async () => {
+  const calls = [];
+  const service = { async decideCandidate(actor, id, input) { calls.push(["decide", actor.id, id, input.decision]); return { id, review_status: input.decision }; }, async promoteCandidate(actor, id) { calls.push(["promote", actor.id, id]); return { id, origin: "discovered", refresh_enabled: false }; } };
+  for (const [path, body, status] of [[`/v1/admin/manufacturer-catalog/source-candidates/${sourceId}/decision`, { decision: "approved", reason: "Revisada.", confirmed: true }, 200], [`/v1/admin/manufacturer-catalog/source-candidates/${sourceId}/promote`, {}, 201]]) {
+    const result = response();
+    assert.equal(await handleManufacturerCatalog(request("POST", path, body), result, { ...dependencies, url: new URL(path, "http://local"), manufacturerCatalogService: {}, manufacturerAvailabilitySourceService: service }), true);
+    assert.equal(result.status, status);
+  }
+  assert.deepEqual(calls.map(call => call[0]), ["decide", "promote"]);
+});

@@ -31,6 +31,10 @@ export async function handleManufacturerCatalog(request, response, {
     const source = await manufacturerAvailabilitySourceService.activate(actor, sourceActivation[1], await readJson(request));
     sendJson(response, 200, { source, requestId }, { ...headers, "cache-control": "no-store" }); return true;
   }
+  const candidateDecision = url.pathname.match(/^\/v1\/admin\/manufacturer-catalog\/source-candidates\/([0-9a-f-]{36})\/decision$/i);
+  if (candidateDecision && request.method === "POST" && manufacturerAvailabilitySourceService) { const source = await manufacturerAvailabilitySourceService.decideCandidate(actor, candidateDecision[1], await readJson(request)); sendJson(response, 200, { source, requestId }, { ...headers, "cache-control": "no-store" }); return true; }
+  const candidatePromotion = url.pathname.match(/^\/v1\/admin\/manufacturer-catalog\/source-candidates\/([0-9a-f-]{36})\/promote$/i);
+  if (candidatePromotion && request.method === "POST" && manufacturerAvailabilitySourceService) { const source = await manufacturerAvailabilitySourceService.promoteCandidate(actor, candidatePromotion[1]); sendJson(response, 201, { source, requestId }, { ...headers, "cache-control": "no-store" }); return true; }
   if (request.method === "GET" && url.pathname === "/v1/admin/manufacturer-catalog/batches") {
     const items = await manufacturerCatalogService.listBatches(actor);
     sendJson(response, 200, { items, requestId }, { ...headers, "cache-control": "no-store" });

@@ -197,9 +197,26 @@ function renderSources(items = [], candidates = []) {
   if (candidatePanel) candidatePanel.hidden = candidates.length === 0;
   for (const candidate of candidates) {
     const row = document.createElement("tr");
-    row.append(cell(candidate.source_url ?? "Não informado"), cell(candidate.discovered_at ? new Date(candidate.discovered_at).toLocaleString("pt-BR") : "Não informada"), cell("Aguardando revisão"));
+    const actions = document.createElement("td");
+    if (candidate.review_status === "pending") actions.append(sourceActionButton("Aprovar", () => decideCandidate(candidate, "approved")), sourceActionButton("Rejeitar", () => decideCandidate(candidate, "rejected")));
+    else if (candidate.review_status === "approved") actions.append(sourceActionButton("Promover", () => promoteCandidate(candidate)));
+    else actions.textContent = "Rejeitada";
+    row.append(cell(candidate.source_url ?? "Não informado"), cell(candidate.discovered_at ? new Date(candidate.discovered_at).toLocaleString("pt-BR") : "Não informada"), cell(reviewLabels[candidate.review_status] ?? candidate.review_status ?? "Pendente"), actions);
     candidateRows?.append(row);
   }
+}
+
+async function decideCandidate(candidate, decision) {
+  const reason = window.prompt("Justificativa da decisão:");
+  if (!reason || reason.trim().length < 10 || !window.confirm("Confirmar revisão auditada da candidata?")) return;
+  try { await apiRequest(`/v1/admin/manufacturer-catalog/source-candidates/${encodeURIComponent(candidate.id)}/decision`, { method: "POST", body: { decision, reason: reason.trim(), confirmed: true } }); sourceStatus.textContent = "Revisão da candidata registrada."; await loadSources(); }
+  catch (error) { sourceStatus.textContent = error.message || "Não foi possível revisar a candidata."; }
+}
+
+async function promoteCandidate(candidate) {
+  if (!window.confirm("Promover para fonte operacional desativada? A ativação continuará separada.")) return;
+  try { await apiRequest(`/v1/admin/manufacturer-catalog/source-candidates/${encodeURIComponent(candidate.id)}/promote`, { method: "POST", body: {} }); sourceStatus.textContent = "Candidata promovida como fonte pendente e desativada."; await loadSources(); }
+  catch (error) { sourceStatus.textContent = error.message || "Não foi possível promover a candidata."; }
 }
 
 async function loadSources() {
