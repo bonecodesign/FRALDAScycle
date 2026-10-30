@@ -19,6 +19,15 @@ function httpsProviderPair(env, urlKey, secretKey) {
   return { url, secret };
 }
 
+function fixedManufacturerAvailabilitySources(value) {
+  const sources = String(value ?? "").split(",").map(item => item.trim()).filter(Boolean);
+  if (new Set(sources).size !== sources.length) throw new Error("MANUFACTURER_AVAILABILITY_FIXED_SOURCES must not contain duplicates");
+  for (const source of sources) {
+    if (!/^https:\/\/[^\s]{1,500}$/.test(source)) throw new Error("MANUFACTURER_AVAILABILITY_FIXED_SOURCES must contain HTTPS URLs");
+  }
+  return Object.freeze(sources);
+}
+
 function corsOrigins(value, nodeEnv) {
   const origins = String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
   if (new Set(origins).size !== origins.length) {
@@ -182,6 +191,7 @@ export function loadConfig(env = process.env) {
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(courierRetentionLegalApproverId ?? ""))) {
     throw new Error("Approved courier clearance retention policy configuration is required before activation");
   }
+  const manufacturerAvailabilityFixedSources = fixedManufacturerAvailabilitySources(env.MANUFACTURER_AVAILABILITY_FIXED_SOURCES);
 
   return Object.freeze({
     nodeEnv,
@@ -233,6 +243,7 @@ export function loadConfig(env = process.env) {
     deliveryQuoteCheckoutEnabled:deliveryQuoteCheckoutRequested&&(nodeEnv!=='production'||deliveryQuoteCheckoutAcknowledged),
     googleMapsGeocodingEnabled:googleMapsGeocodingRequested&&(nodeEnv!=='production'||googleMapsActivationAcknowledged),
     googleMapsApiKey,
+    manufacturerAvailabilityFixedSources,
     courierEligibilityEnabled: courierEligibilityRequested &&
       (nodeEnv !== "production" || courierEligibilityActivationAcknowledged),
     registeredCourierQuotingEnabled:registeredCourierQuotingRequested&&courierEligibilityRequested&&

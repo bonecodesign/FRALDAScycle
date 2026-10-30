@@ -12,4 +12,15 @@ export async function discoverManufacturerAvailabilityCandidates({repository,dis
   const unique=[...new Set(candidates.map(value=>String(value).trim()).filter(value=>/^https:\/\/[^\s]{1,500}$/.test(value)))];
   return repository.recordDiscoveryCandidates({discoveredFrom:sourceUrl,candidates:unique});
 }
+export async function seedFixedManufacturerAvailabilitySources({repository,sources=[]}={}){
+  if(!repository?.create)throw new Error('Repositório de fontes não configurado.');
+  const unique=[...new Set(sources)];
+  const created=[];
+  for(const sourceUrl of unique){
+    if(!/^https:\/\/[^\s]{1,500}$/.test(sourceUrl))throw new Error('Fonte fixa inválida.');
+    const source=await repository.create({actorId:null,sourceUrl,origin:'fixed_config'});
+    if(source)created.push(source);
+  }
+  return created;
+}
 if(isMainModule(import.meta.url)){const controller=new AbortController();process.once('SIGTERM',()=>controller.abort());process.once('SIGINT',()=>controller.abort());await runManufacturerAvailabilityWorker({mode:process.argv[2]==='--once'?'once':process.argv[2]==='--serve'?'serve':process.argv[2],signal:controller.signal});}
