@@ -13,6 +13,9 @@ test("admin ads exposes governed catalog import and independent review controls"
   assert.match(html, /id="manufacturer-catalog-review"/);
   assert.match(html, /name="confirmed"[^>]+required/);
   assert.match(html, /manufacturer-catalog-admin\.js/);
+  assert.match(html, /id="manufacturer-source-create"/);
+  assert.match(html, /id="manufacturer-source-rows"/);
+  assert.match(html, /Fontes de disponibilidade/);
 });
 
 test("admin catalog client uses server workflow without activating a batch locally", () => {
@@ -23,4 +26,12 @@ test("admin catalog client uses server workflow without activating a batch local
   assert.match(script, /confirmed: true/);
   assert.doesNotMatch(script, /selectedBatch\.status\s*=\s*["']active["']/);
   assert.doesNotMatch(script, /status\s*:\s*["']active["']/);
+});
+
+test("admin catalog client exposes audited availability source governance", () => {
+  assert.match(script, /\/v1\/admin\/manufacturer-catalog\/sources/);
+  assert.match(script, /\/decision/);
+  assert.match(script, /\/activation/);
+  assert.match(script, /confirmed: true/);
+  assert.match(script, /candidates/);
 });

@@ -152,4 +152,101 @@ document.getElementById("manufacturer-catalog-review-close")?.addEventListener("
   selectedBatch = null;
 });
 
+const sourceForm = document.getElementById("manufacturer-source-create");
+const sourceRows = document.getElementById("manufacturer-source-rows");
+const sourceEmpty = document.getElementById("manufacturer-source-empty");
+const sourceStatus = document.getElementById("manufacturer-source-status");
+const candidatePanel = document.getElementById("manufacturer-source-candidates-panel");
+const candidateRows = document.getElementById("manufacturer-source-candidate-rows");
+const sourceOriginLabels = Object.freeze({ fixed_config: "Configuração fixa", manual: "Manual", discovered: "Descoberta" });
+const reviewLabels = Object.freeze({ pending: "Pendente", approved: "Aprovada", rejected: "Rejeitada" });
+
+function sourceActionButton(label, handler, disabled = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "button secondary small";
+  button.textContent = label;
+  button.disabled = disabled;
+  button.addEventListener("click", handler);
+  return button;
+}
+
+function renderSources(items = [], candidates = []) {
+  sourceRows?.replaceChildren();
+  if (sourceEmpty) sourceEmpty.hidden = items.length > 0;
+  for (const source of items) {
+    const row = document.createElement("tr");
+    const sourceCell = document.createElement("td");
+    const link = document.createElement("a");
+    link.href = source.source_url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = source.source_url;
+    sourceCell.append(link);
+    row.append(sourceCell, cell(sourceOriginLabels[source.origin] ?? source.origin ?? "Não informado"), cell(reviewLabels[source.review_status] ?? source.review_status ?? "Pendente"), cell(source.refresh_enabled ? "Sim" : "Não"));
+    const actions = document.createElement("td");
+    if (source.review_status === "pending") {
+      actions.append(sourceActionButton("Aprovar", () => decideSource(source, "approve")), sourceActionButton("Rejeitar", () => decideSource(source, "reject")));
+    } else if (source.review_status === "approved") {
+      actions.append(sourceActionButton(source.refresh_enabled ? "Desativar" : "Ativar", () => activateSource(source, !source.refresh_enabled)));
+    } else actions.textContent = "Sem ação pendente";
+    row.append(actions);
+    sourceRows?.append(row);
+  }
+  candidateRows?.replaceChildren();
+  if (candidatePanel) candidatePanel.hidden = candidates.length === 0;
+  for (const candidate of candidates) {
+    const row = document.createElement("tr");
+    row.append(cell(candidate.source_url ?? "Não informado"), cell(candidate.discovered_at ? new Date(candidate.discovered_at).toLocaleString("pt-BR") : "Não informada"), cell("Aguardando revisão"));
+    candidateRows?.append(row);
+  }
+}
+
+async function loadSources() {
+  if (!sourceStatus) return;
+  sourceStatus.textContent = "Consultando fontes de disponibilidade…";
+  try {
+    const result = await apiRequest("/v1/admin/manufacturer-catalog/sources", { signal: AbortSignal.timeout(15_000) });
+    const sources = Array.isArray(result.sources) ? result.sources : [];
+    const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+    renderSources(sources, candidates);
+    sourceStatus.textContent = `${sources.length} fonte(s) cadastrada(s) · ${candidates.length} candidata(s) aguardando revisão.`;
+  } catch (error) { sourceStatus.textContent = error.message || "Não foi possível consultar as fontes."; }
+}
+
+async function decideSource(source, decision) {
+  const reason = window.prompt(decision === "approve" ? "Justificativa da aprovação:" : "Justificativa da rejeição:");
+  if (!reason || reason.trim().length < 10 || !window.confirm("Confirmar decisão auditada para esta fonte?")) return;
+  try {
+    await apiRequest(`/v1/admin/manufacturer-catalog/sources/${encodeURIComponent(source.id)}/decision`, { method: "POST", body: { decision, reason: reason.trim(), confirmed: true } });
+    sourceStatus.textContent = "Decisão registrada com auditoria.";
+    await loadSources();
+  } catch (error) { sourceStatus.textContent = error.message || "Não foi possível registrar a decisão."; }
+}
+
+async function activateSource(source, enabled) {
+  if (!window.confirm(`${enabled ? "Ativar" : "Desativar"} esta fonte para a atualização horária?`)) return;
+  try {
+    await apiRequest(`/v1/admin/manufacturer-catalog/sources/${encodeURIComponent(source.id)}/activation`, { method: "POST", body: { enabled } });
+    sourceStatus.textContent = `Fonte ${enabled ? "ativada" : "desativada"}.`;
+    await loadSources();
+  } catch (error) { sourceStatus.textContent = error.message || "Não foi possível alterar a ativação."; }
+}
+
+sourceForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = sourceForm.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    await apiRequest("/v1/admin/manufacturer-catalog/sources", { method: "POST", body: { sourceUrl: sourceForm.elements.sourceUrl.value.trim(), origin: sourceForm.elements.origin.value } });
+    sourceForm.reset();
+    sourceStatus.textContent = "Fonte cadastrada e aguardando revisão independente.";
+    await loadSources();
+  } catch (error) { sourceStatus.textContent = error.message || "Não foi possível cadastrar a fonte."; }
+  finally { button.disabled = false; }
+});
+
+document.getElementById("manufacturer-source-refresh")?.addEventListener("click", loadSources);
+
 void loadBatches();
+void loadSources();
