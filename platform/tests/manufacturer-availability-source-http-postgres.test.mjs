@@ -62,3 +62,13 @@ test("candidate review and promotion routes remain separate", async () => {
   }
   assert.deepEqual(calls.map(call => call[0]), ["decide", "promote"]);
 });
+
+test("postgres candidate promotion is race-safe and keeps activation disabled", async () => {
+  const statements = []; let locked = false;
+  const database = { async transaction(operation) { return operation({ async query(sql, values) { statements.push({ sql, values }); if (/FOR UPDATE/.test(sql)) { if (locked) return { rows: [] }; locked = true; return { rows: [{ id: sourceId, source_url: "https://shop.example", discovered_at: new Date().toISOString(), review_status: "approved" }] }; } if (/INSERT INTO manufacturer_availability_sources/.test(sql)) return { rows: [{ id: sourceId, origin: "discovered", approved: false, refresh_enabled: false, review_status: "pending" }] }; return { rows: [] }; } }); } };
+  const repository = createManufacturerAvailabilitySourceRepository(database);
+  const first = await repository.promoteCandidate({ actorId: "admin", id: sourceId });
+  assert.equal(first.refresh_enabled, false);
+  await assert.rejects(repository.promoteCandidate({ actorId: "admin", id: sourceId }), /candidate_not_approved/);
+  assert.ok(statements.some(({ sql }) => /FOR UPDATE/.test(sql)));
+});
