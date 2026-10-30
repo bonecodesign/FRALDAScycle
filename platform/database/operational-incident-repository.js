@@ -37,11 +37,11 @@ export function createOperationalIncidentRepository(database) {
           VALUES($1,'incident.created','operational_incident',$2,$3::jsonb)`,
         [actorUserId,incident.id,JSON.stringify({reference,severity,domain})]);
         if(severity==='critical')await client.query(`INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
-          SELECT 'incident_critical_notice'::auth_token_kind,u.email,$2::jsonb,u.id FROM users u
+          SELECT 'incident_critical_notice'::auth_token_kind,u.email,$1::jsonb,u.id FROM users u
           WHERE u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL AND (
             u.staff_access_level=5 OR EXISTS(SELECT 1 FROM incident_role_assignments r
               WHERE r.target_user_id=u.id AND r.status='accepted'))
-          ON CONFLICT DO NOTHING`,[incident.id,JSON.stringify({channel:'email',incidentId:incident.id,reference,severity:'critical',domain,actionPath:`/admin/operations?incident=${incident.id}`})]);
+          ON CONFLICT DO NOTHING`,[JSON.stringify({channel:'email',incidentId:incident.id,reference,severity:'critical',domain,actionPath:`/admin/operations?incident=${incident.id}`})]);
         return { incident, events: [], reused: false };
       });
     },

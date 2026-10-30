@@ -68,23 +68,23 @@ test("operational pause and resume are persisted, audited and enforced over HTTP
         method: "PUT", headers,
         body: JSON.stringify({ domain: "marketplace", action: "resume", reason: "Retomada operacional validada no teste PostgreSQL.", confirmed: true }),
       });
-      assert.equal(resume.status, 200);
-      assert.equal((await resume.json()).state.paused, false);
+      assert.equal(resume.status, 409);
+      assert.equal((await resume.json()).error.code, "joint_resume_approval_required");
 
       const released = await fetch(`${origin}/v1/listings`, { method: "POST", headers, body: "{}" });
-      assert.notEqual(released.status, 503);
+      assert.equal(released.status, 503);
 
       const persisted = await database.query("SELECT paused, version, changed_by FROM operational_controls WHERE domain = 'marketplace'");
-      assert.equal(persisted.rows[0].paused, false);
-      assert.equal(Number(persisted.rows[0].version), 3);
+      assert.equal(persisted.rows[0].paused, true);
+      assert.equal(Number(persisted.rows[0].version), 2);
       assert.equal(persisted.rows[0].changed_by, adminId);
       const audit = await database.query(
         `SELECT action, metadata FROM audit_events
          WHERE entity_type = 'operational_control' AND entity_id = 'marketplace'
          ORDER BY occurred_at, id`,
       );
-      assert.deepEqual(audit.rows.map(row => row.action), ["operations.paused", "operations.resumed"]);
-      assert.deepEqual(audit.rows.map(row => row.metadata.newPaused), [true, false]);
+      assert.deepEqual(audit.rows.map(row => row.action), ["operations.paused"]);
+      assert.deepEqual(audit.rows.map(row => row.metadata.newPaused), [true]);
     } finally {
       if (api?.listening) await new Promise(resolve => api.close(resolve));
       await database.close();
