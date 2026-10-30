@@ -59,6 +59,8 @@ import { createPilotInvitationRepository } from '../../database/pilot-invitation
 import { createPilotInvitationService } from './pilot-invitation-service.js';
 import { createManufacturerCatalogRepository } from '../../database/manufacturer-catalog-repository.js';
 import { createManufacturerCatalogService } from './manufacturer-catalog-service.js';
+import { createManufacturerAvailabilitySourceRepository } from '../../database/manufacturer-availability-source-repository.js';
+import { createManufacturerAvailabilitySourceService } from './manufacturer-availability-source-service.js';
 import { loadLegalTerms } from './legal-terms.js';
 import { createPostalCodeService } from './postal-code-service.js';
 import { createResponsibleProfileChangeRepository } from '../../database/responsible-profile-change-repository.js';
@@ -134,6 +136,7 @@ export async function startRuntime(config = null) {
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
+  const manufacturerAvailabilitySourceService = createManufacturerAvailabilitySourceService(createManufacturerAvailabilitySourceRepository(database));
   const responsibleProfileChangeService = createResponsibleProfileChangeService(
     createResponsibleProfileChangeRepository(database),
   );
@@ -226,6 +229,7 @@ export async function startRuntime(config = null) {
     courierEligibilityService,
     pilotInvitationService,
     manufacturerCatalogService,
+    manufacturerAvailabilitySourceService,
     responsibleProfileChangeService,
     accountStepUpService,
     accountClosureService,

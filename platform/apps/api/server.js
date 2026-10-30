@@ -73,6 +73,7 @@ export function createApiServer({
   courierEligibilityService = null,
   pilotInvitationService = null,
   manufacturerCatalogService = null,
+  manufacturerAvailabilitySourceService = null,
   responsibleProfileChangeService = null,
   accountStepUpService = null,
   accountClosureService = null,
@@ -265,7 +266,7 @@ export function createApiServer({
         url, headers, requestId: id, authService, pilotInvitationService,
       })) return;
       if (await handleManufacturerCatalog(request, response, {
-        url, headers, requestId: id, authService, manufacturerCatalogService,
+        url, headers, requestId: id, authService, manufacturerCatalogService, manufacturerAvailabilitySourceService,
       })) return;
       if (await handleResponsibleProfileChange(request, response, {
         url, headers, requestId: id, authService, responsibleProfileChangeService,
