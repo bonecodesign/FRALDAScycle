@@ -414,11 +414,13 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await evaluate(`document.querySelector('#donation-accept input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Confirmação institucional registrada')`),'institution donation confirmation keyboard');
-    await call('Network.setCookie',{name:'fc_session',value:browserDonation.donorSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
+    await call('Network.setCookie',{name:'fc_session',value:sessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
     await call('Page.reload');await until(()=>evaluate(`document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor pickup load');
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await evaluate(`document.querySelector('#donation-pickup input').focus()`);await key(' ','Space',32);await key('Tab','Tab',9);await key('Enter','Enter',13);
-    await until(()=>evaluate(`document.getElementById('donation-feedback').textContent.includes('Retirada registrada')`),'donation pickup keyboard');
+    await until(()=>evaluate(`document.getElementById('donation-feedback')?.textContent.includes('Retirada institucional combinada')`),'donation pickup keyboard');
+    await call('Network.setCookie',{name:'fc_session',value:browserDonation.donorSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});
+    await call('Page.reload');await until(()=>evaluate(`document.getElementById('donation-feedback')?.textContent.includes('Doações carregadas')`),'donor address load');
     await evaluate(`document.querySelector('#donation-list button').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`!document.querySelector('#donation-share fieldset').disabled`),'owned donation address');
     await evaluate(`document.querySelector('#donation-share input').focus()`);await key(' ','Space',32);await evaluate(`document.querySelector('#donation-share button[type=submit]').focus()`);await key('Enter','Enter',13);
