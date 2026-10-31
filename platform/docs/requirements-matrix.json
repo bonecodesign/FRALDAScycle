@@ -858,7 +858,7 @@
         ,"tests/account-closure-inventory.test.mjs"
         ,"docs/privacy-deletion-beta.md"
       ],
-      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, cancelamento e revisão de pendências estão comprovados. Ao ficar pronto para revisão, o sistema cria inventário único das categorias de dados sem executar exclusão e mantém automaticErasureAllowed falso.",
+      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Ao ficar pronto para revisão, o sistema cria inventário único das categorias de dados sem executar exclusão e mantém automaticErasureAllowed falso.",
       "reason": "Fluxo e inventário técnico estão implementados. Classificação de retenção, purga final, identidade humana e atendimento integral dependem de revisão jurídica, privacidade e operação."
     },
     {

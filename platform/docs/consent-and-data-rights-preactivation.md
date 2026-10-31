@@ -53,4 +53,6 @@ arquivos reais.
 
 ## Exclusão
 
-O fluxo atual abre e analisa solicitações sem apagar contas automaticamente. Permanecem pendentes: confirmação por senha e código, janela cancelável de sete dias, bloqueio de novas operações, espera de pendências, interrupção da renovação Premium, anonimização após retenções legais e worker de encerramento. Não ativar exclusão automática antes da matriz jurídica de retenção.
+O fluxo atual exige senha e código por e-mail vinculados à finalidade, abre a solicitação com janela cancelável de sete dias, bloqueia novas operações, interrompe a renovação Premium e preserva o acompanhamento de obrigações existentes. O worker classifica solicitações vencidas entre pendências operacionais e prontas para revisão; quando não há pendências, cria um inventário técnico único das categorias de dados. Ele nunca apaga a conta nem autoriza exclusão automática.
+
+Permanecem pendentes a classificação jurídica de retenção, a política de anonimização depois dos prazos legais, a conferência humana de identidade e o procedimento final de atendimento. `automaticErasureAllowed` permanece falso em todas as respostas e registros. Não ativar purga ou anonimização antes da matriz jurídica e de privacidade.
