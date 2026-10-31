@@ -30,14 +30,28 @@ export const PREACTIVATION_PRODUCTION_ENVIRONMENTS = Object.freeze([
   "LALAMOVE_ENVIRONMENT",
 ]);
 
+export const PREACTIVATION_UNCONFIRMED_APPROVALS = Object.freeze([
+  "ASAAS_ACTIVATION_ACKNOWLEDGED",
+  "CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED",
+  "COURIER_ELIGIBILITY_ACTIVATION_ACKNOWLEDGED",
+  "DELIVERY_QUOTE_CHECKOUT_ACTIVATION_ACKNOWLEDGED",
+  "GOOGLE_MAPS_ACTIVATION_ACKNOWLEDGED",
+  "LALAMOVE_ACTIVATION_ACKNOWLEDGED",
+  "LOGGI_HOMOLOGATION_ACKNOWLEDGED",
+  "MANUFACTURER_AVAILABILITY_ACTIVATION_ACKNOWLEDGED",
+  "UBER_DIRECT_HOMOLOGATION_ACKNOWLEDGED",
+]);
+
 export function inspectPreactivationSafety(env = process.env) {
   const enabledFlags = PREACTIVATION_DISABLED_FLAGS.filter((key) => env[key] === "true");
   const productionProviders = PREACTIVATION_PRODUCTION_ENVIRONMENTS.filter(
     (key) => env[key] === "production",
   );
+  const claimedApprovals = PREACTIVATION_UNCONFIRMED_APPROVALS.filter((key) => env[key] === "true");
   const blockers = [
     ...enabledFlags.map((key) => `${key} must remain false before formal activation`),
     ...productionProviders.map((key) => `${key} must not select production before formal activation`),
+    ...claimedApprovals.map((key) => `${key} must remain false until its approval is formally recorded`),
   ];
 
   return Object.freeze({
@@ -46,6 +60,7 @@ export function inspectPreactivationSafety(env = process.env) {
     checkedFlags: PREACTIVATION_DISABLED_FLAGS.length,
     enabledFlags: Object.freeze(enabledFlags),
     productionProviders: Object.freeze(productionProviders),
+    claimedApprovals: Object.freeze(claimedApprovals),
     blockers: Object.freeze(blockers),
   });
 }
