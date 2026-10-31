@@ -116,6 +116,7 @@ const files = [
   "apps/api/marketplace-service.js",
   "database/marketplace-repository.js",
   "tools/production-doctor.mjs",
+  "tools/preactivation-safety.mjs",
   "tools/smoke-deployment.mjs",
   "database/recovery.js",
   "tools/beta-recovery-check.mjs",
