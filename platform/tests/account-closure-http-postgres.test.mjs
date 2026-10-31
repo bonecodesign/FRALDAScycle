@@ -23,6 +23,8 @@ test('account closure uses purpose-bound step-up, blocks operations for seven da
    await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,email_verified_at) VALUES
     ($1,'closure-owner@example.test',$3,'Titular fictício','customer',now()),
     ($2,'closure-outsider@example.test',$3,'Pessoa externa','customer',now())`,[ids.owner,ids.outsider,passwordHash]);
+   await database.query(`INSERT INTO premium_subscriptions(user_id,paid_period_start,paid_period_end,renewal_enabled)
+     VALUES($1,now()-interval '1 day',now()+interval '29 days',true)`,[ids.owner]);
    const stepUpRepository=createAccountStepUpRepository(database),stepUpService=createAccountStepUpService(stepUpRepository),closureService=createAccountClosureService(createAccountClosureRepository(database,{stepUpRepository}));
    const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'}};
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),accountStepUpService:stepUpService,accountClosureService:closureService,authService:{async session(token){return actors[token]??null;}}});
@@ -34,6 +36,7 @@ test('account closure uses purpose-bound step-up, blocks operations for seven da
    const requestPayload={confirmed:true,noticeVersion:'FC-ACCOUNT-CLOSURE-1',idempotencyKey:'account-closure-http-postgres',stepUpGrantId:confirmedBody.grantId};
    const requested=await fetch(`${origin}/v1/account/closure/request`,{method:'POST',headers:headers('owner'),body:JSON.stringify(requestPayload)}),requestedBody=await requested.json();assert.equal(requested.status,201,JSON.stringify(requestedBody));assert.equal(requestedBody.request.status,'cooling_off');assert.equal(requestedBody.automaticErasureAllowed,false);
    const stored=(await database.query(`SELECT id,status,version,extract(epoch FROM(cancel_until-requested_at))::int AS window_seconds FROM account_closure_requests WHERE id=$1`,[requestedBody.request.id])).rows[0];assert.deepEqual(stored,{id:requestedBody.request.id,status:'cooling_off',version:0,window_seconds:7*24*60*60});
+   const premium=(await database.query('SELECT renewal_enabled,renewal_cancelled_at IS NOT NULL AS renewal_cancelled FROM premium_subscriptions WHERE user_id=$1',[ids.owner])).rows[0];assert.deepEqual(premium,{renewal_enabled:false,renewal_cancelled:true});
    assert.equal(await database.transaction(client=>newOperationsAllowed(client,ids.owner)),false);
    assert.equal((await database.query("SELECT count(*)::int AS n FROM account_operation_restrictions WHERE user_id=$1 AND reason='closure_pending'",[ids.owner])).rows[0].n,1);
    const outsiderCancel=await fetch(`${origin}/v1/account/closure/${requestedBody.request.id}/cancel`,{method:'POST',headers:headers('outsider'),body:JSON.stringify({confirmed:true,expectedVersion:0})});assert.equal(outsiderCancel.status,404);
