@@ -4,8 +4,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 ## Situação formal
 
-- 37 concluídos: 52,86%.
-- 21 parciais: 30,00%.
+- 42 concluídos: 60,00%.
+- 16 parciais: 22,86%.
 - 12 bloqueados: 17,14%.
 - Produção: bloqueada.
 
@@ -13,7 +13,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 | Requisitos | Próximo fechamento local | Portão que continuará aberto |
 | --- | --- | --- |
-| 2, 4, 5, 6, 9, 11, 13, 15, 17, 18 | Verificar contratos, fórmulas, estados, idempotência, rastreabilidade e testes de erro usando fixtures. Preparar adaptadores e jornadas de homologação. | Tarifas, liquidação, cobrança, repasse, entrega e confirmação reais. |
+| 2, 9, 11, 17, 18 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. | Tarifas, cobrança, entrega e confirmação reais. |
 | 10, 12 | Documentar o impacto e manter o processamento desligado. | Decisão comercial sobre diferença na troca e retirada do standby do frete; depois, fornecedor e tarifas. |
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
 | 41, 42, 45 | Fortalecer filtros, trilha de revisão, recursos, pedidos de exclusão e testes sintéticos. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
@@ -22,12 +22,12 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 | 57, 59 | Validar backup/restauração com banco temporário, controles de segredo e diagnóstico de configuração. | Armazenamento, identidades, cofre, rotação e recuperação homologados em infraestrutura real. |
 | 60 | Preparar checklist de saída e portabilidade. | Condições contratuais e direitos de exportação/rescisão do fornecedor escolhido. |
 | 62 | Testar aceite, autoridade, capacidade e revogação com instituições fictícias. | Documentos, identidade e capacidade reais verificados por pessoas. |
-| 67 | Preparar convite e restrição geográfica no ambiente de piloto; testar bloqueios com contas fictícias. | Convites emitidos, perímetro de BH comprovado e decisão formal de iniciar o piloto. |
+| 67 | Convite, admissão, perímetro de BH e 19/21 evidências técnicas já estão comprovados com dados sintéticos. | Leitor de tela humano, responsável de rollback aceito, revisão das contas e decisão formal de iniciar o piloto. |
 
 ## Ordem prática de fechamento
 
-1. Fechar falhas locais e repetir as suítes HTTP e PostgreSQL em ambiente que permita porta local. Registrar separadamente testes aprovados, ignorados e bloqueados pelo executor.
-2. Completar os controles técnicos do piloto BH: somente convidados e operações no perímetro autorizado, com prova de acesso negado fora do escopo. Não abrir o piloto por padrão.
+1. Preservar as suítes HTTP, PostgreSQL, navegador e containers verdes; registrar separadamente qualquer falha ambiental ou funcional.
+2. Manter os controles técnicos do piloto BH desligados por padrão e a pré-validação em 19/21 até as duas verificações humanas restantes.
 3. Conferir jornadas Site, App, entregador e Admin em navegador e dispositivos, incluindo teclado e leitor de tela; comparar a interface com as pranchas oficiais por viewport.
 4. Executar sessão interna sintética, resposta a incidente, restauração e rollback com responsáveis designados e resultado registrado.
 5. Obter decisões comerciais, parecer jurídico/privacidade, equipe e instituições. Só então homologar infraestrutura e fornecedores reais.
