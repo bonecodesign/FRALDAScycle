@@ -34,7 +34,7 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    for(let index=0;index<listingIds.length;index++)await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,open_package_attested,size,quantity,kind,status,city,state,published_at)
     VALUES($1,$2,$3,'Pacote fictício lacrado para prova integrada.','infant','Marca fictícia','Modelo fictício','sealed',false,'M',1,'exchange','published','Belo Horizonte','MG',now())`,[listingIds[index],index%2===0?ids.owner:ids.requester,`Troca fictícia ${index+1}`]);
    const actors={requester:{id:ids.requester,role:'customer'},owner:{id:ids.owner,role:'customer'},admin:{id:ids.admin,role:'admin'},courier1:{id:ids.courier1,role:'courier'},courier2:{id:ids.courier2,role:'courier'}};
-   const exchangeService=createExchangeService(createExchangeRepository(database));
+   const exchangeRepository=createExchangeRepository(database);const exchangeService=createExchangeService(exchangeRepository);
    const logisticsService=createLogisticsService(createLogisticsRepository(database));
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),exchangeService,logisticsService,authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
@@ -53,18 +53,22 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    const acceptedComplete=await fetch(`${origin}/v1/exchanges/${completedId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,ownerDeclaredValueCents:10000,confirmed:true})});assert.equal(acceptedComplete.status,201);
    const feeRows=(await database.query('SELECT declared_value_cents,fee_basis_points,fee_cents,status FROM exchange_fee_obligations WHERE transaction_id=$1 ORDER BY fee_cents',[completedId])).rows;
    assert.deepEqual(feeRows.map(row=>({value:row.declared_value_cents,basis:row.fee_basis_points,fee:row.fee_cents,status:row.status})),[{value:8000,basis:250,fee:200,status:'not_charged'},{value:10000,basis:250,fee:250,status:'not_charged'}]);
+   const difference=(await database.query('SELECT payer_id,recipient_id,amount_cents,status FROM exchange_difference_obligations WHERE transaction_id=$1',[completedId])).rows[0];assert.deepEqual(difference,{payer_id:ids.requester,recipient_id:ids.owner,amount_cents:2000,status:'not_charged'});
    assert.equal((await database.query('SELECT count(*)::int AS count FROM payment_intents WHERE transaction_id=$1',[completedId])).rows[0].count,0);
    const acceptedBody=await acceptedComplete.json();
+   assert.ok(acceptedBody.exchange.shipments.every(leg=>leg.status==='provider_pending'));assert.equal(acceptedBody.exchange.differenceObligation.amountCents,2000);
    assert.deepEqual(acceptedBody.exchange.shipments.map(leg=>({leg:leg.exchange_leg,sender:leg.seller_id,receiver:leg.buyer_id,payer:leg.logistics_payer_id})),[
     {leg:1,sender:ids.requester,receiver:ids.owner,payer:ids.owner},
     {leg:2,sender:ids.owner,receiver:ids.requester,payer:ids.requester},
    ]);
    const detailResponse=await fetch(`${origin}/v1/exchanges/${completedId}`,{headers:headers('requester')});const detail=await detailResponse.json();assert.equal(detailResponse.status,200,JSON.stringify(detail));
+   assert.deepEqual({payerId:detail.exchange.difference_obligation.payerId,recipientId:detail.exchange.difference_obligation.recipientId,amountCents:detail.exchange.difference_obligation.amountCents,status:detail.exchange.difference_obligation.status},{payerId:ids.requester,recipientId:ids.owner,amountCents:2000,status:'not_charged'});
    assert.deepEqual(detail.exchange.legs.map(leg=>({leg:leg.leg,sender:leg.senderId,receiver:leg.receiverId,payer:leg.logisticsPayerId})),[
     {leg:1,sender:ids.requester,receiver:ids.owner,payer:ids.owner},
     {leg:2,sender:ids.owner,receiver:ids.requester,payer:ids.requester},
    ]);
    await assert.rejects(database.query('UPDATE shipments SET logistics_payer_id=seller_id WHERE transaction_id=$1 AND exchange_leg=1',[completedId]),error=>error.code==='23514');
+   await exchangeRepository.recordDifferencePaid({transactionId:completedId,providerReference:'asaas-synthetic-exchange-difference',amountCents:2000});assert.equal((await database.query('SELECT status FROM exchange_difference_obligations WHERE transaction_id=$1',[completedId])).rows[0].status,'paid');
    const legs=(await database.query('SELECT id,exchange_leg,buyer_id FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg',[completedId])).rows;
    for(const [index,leg] of legs.entries()){
     const courier=index===0?ids.courier1:ids.courier2;
@@ -103,6 +107,7 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[completedId])).rows[0].status,'completed');
    assert.equal((await database.query("SELECT count(*)::int AS count FROM listings WHERE id=ANY($1::uuid[]) AND status='completed'",[listingIds.slice(4,6)])).rows[0].count,2);
    assert.equal((await database.query('SELECT count(*)::int AS count FROM payment_intents WHERE transaction_id=$1',[completedId])).rows[0].count,0);
+   assert.equal((await database.query('SELECT status FROM exchange_difference_obligations WHERE transaction_id=$1',[completedId])).rows[0].status,'release_pending');
    const audit=(await database.query("SELECT action FROM audit_events WHERE entity_id=ANY($1::text[]) AND action IN('exchange.refused','exchange.cancelled_bilateral','exchange.completed') ORDER BY action",[[refusedId,cancelledId,completedId]])).rows.map(row=>row.action);assert.deepEqual(audit,['exchange.cancelled_bilateral','exchange.completed','exchange.refused']);
   }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
  });

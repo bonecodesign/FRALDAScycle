@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-27",
+  "updatedAt": "2026-10-31",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -171,15 +171,18 @@
     {
       "id": 10,
       "title": "Diferença na troca",
-      "status": "bloqueado",
+      "status": "parcial",
       "references": [
-        "packages/contracts/commercial-rules.js",
-        "apps/api/payment-service.js",
-        "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "packages/contracts/exchange-difference.js",
+        "database/migrations/102_exchange_difference_obligations.sql",
+        "database/exchange-repository.js",
+        "apps/app/exchange.js",
+        "tests/exchange-difference.test.mjs",
+        "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Fluxo bilateral local existe, mas definição, cobrança e processamento da diferença dependem de decisão comercial e fornecedor."
+      "evidence": "Prova local em 31/10/2026: valores de R$ 80 e R$ 100 criaram obrigação de R$ 20 para quem ofereceu o pacote de menor valor; entregas permaneceram bloqueadas até confirmação idempotente e a conclusão marcou repasse pendente, sem criar payment_intent.",
+      "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
       "id": 11,
