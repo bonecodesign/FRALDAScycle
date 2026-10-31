@@ -9,7 +9,9 @@ npm run preactivation:safety
 O comando falha se encontrar ativa uma capacidade que possa iniciar coleta
 infantil, cadastro real, piloto, cobrança, cotação/checkout de entrega,
 comunicação externa, armazenamento externo ou worker operacional. Também falha
-se Asaas ou Lalamove já estiverem selecionados para produção.
+se Asaas ou Lalamove já estiverem selecionados para produção. Declarações de
+homologação ou reconhecimento de ativação também precisam permanecer falsas
+até que a respectiva aprovação seja formalmente registrada.
 
 Esse gate comprova somente que o ambiente permanece inerte. Resultado verde
 não representa homologação, contratação, aprovação jurídica, autorização do
