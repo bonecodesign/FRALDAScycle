@@ -1249,15 +1249,22 @@
       "status": "parcial",
       "references": [
         "apps/api/pilot-bh.js",
+        "apps/admin/pilot-invitations.html",
+        "apps/admin/pilot-invitations.js",
         "tests/pilot-bh.test.mjs",
         "tests/pilot-bh-http-postgres.test.mjs",
+        "tests/pilot-invitation-interface.test.mjs",
+        "config/pilot-technical-preflight.v1.json",
+        "tools/pilot-technical-preflight.mjs",
+        "tests/pilot-technical-preflight.test.mjs",
+        "docs/pilot-technical-preflight-2026-10-30.md",
         "docs/pilot-bh-technical-gate.md",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados; limites em docs/pilot-bh-technical-gate.md.",
-      "reason": "Modo local desligado por padrão; convite, admissão e jornada HTTP/PostgreSQL de destino/CEP foram comprovados com dados sintéticos. Revisão humana das contas e decisão de início continuam pendentes; NO-GO mantido."
+      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md.",
+      "reason": "Modo local desligado por padrão; convite, admissão, destino/CEP e 19 evidências técnicas foram comprovados com dados sintéticos. Leitor de tela, nomeação/aceite humano, revisão das contas e decisão de início continuam pendentes; NO-GO mantido."
     },
     {
       "id": 68,

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "runId": "internal-dry-run-002",
+  "sourceRunId": "internal-dry-run-001",
+  "checkedAt": "2026-10-30T00:00:00.000Z",
+  "policy": {
+    "syntheticDataOnly": true,
+    "externalIntegrationsAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "coveredEvidenceIds": [
+    "approved-rules", "catalog-scope", "no-reservation-flow", "test-accounts",
+    "admin-auth", "role-boundaries", "publish-search-negotiate",
+    "open-donation-attestation", "listing-unavailability", "synthetic-data",
+    "chat-protection", "audit-trail", "keyboard-check", "device-matrix",
+    "support-script", "incident-severity", "findings-log", "go-no-go-decision",
+    "next-actions"
+  ],
+  "pendingEvidenceIds": ["screen-reader-check", "rollback-owner"],
+  "humanValidationComplete": false,
+  "launchAuthorized": false
+}
