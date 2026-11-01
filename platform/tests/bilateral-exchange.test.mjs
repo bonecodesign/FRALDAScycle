@@ -47,6 +47,15 @@ test('only the payer can reserve one immutable checkout method without storing a
  const denied=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:[]);await assert.rejects(createExchangeRepository(denied).reserveDifferenceCheckout({actorId:'owner',transactionId:transaction,method:'pix'}),error=>error.code==='exchange_difference_not_found');
 });
 
+test('expired checkout renews once and second expiry cancels the exchange without provider reference',async()=>{
+ const expired={transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:null,checkout_renewal_count:0,checkout_expires_at:'2020-01-01T00:00:00Z'};const renewal=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[expired]:/checkout_renewal_count=1/.test(sql)?[{...expired,checkout_renewal_count:1,checkout_expires_at:'2030-01-01T00:30:00Z'}]:[]);const renewed=await createExchangeRepository(renewal).renewDifferenceCheckout({actorId:'requester',transactionId:transaction});assert.equal(renewed.difference.checkout_renewal_count,1);assert.match(renewal.calls.at(-1).sql,/checkout_renewed/);
+ const due={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered};const expiry=database(sql=>/SELECT d\.transaction_id/.test(sql)?[due]:[]);assert.deepEqual(await createExchangeRepository(expiry).expireDifferenceCheckouts({limit:10}),{expired:1});assert.ok(expiry.calls.some(({sql})=>/exchange_difference_obligations SET status='cancelled'/.test(sql)));assert.ok(expiry.calls.some(({sql})=>/UPDATE listings SET status='published'/.test(sql)));assert.match(expiry.calls.at(-1).sql,/checkout_expired/);
+});
+
+test('renewal and automatic expiry fail closed after provider processing begins',async()=>{
+ const processing={transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:'provider-1',checkout_renewal_count:0,checkout_expires_at:'2020-01-01T00:00:00Z'};const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[processing]:[]);await assert.rejects(createExchangeRepository(db).renewDifferenceCheckout({actorId:'requester',transactionId:transaction}),error=>error.code==='exchange_difference_renewal_not_available');assert.equal(db.calls.length,1);
+});
+
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
