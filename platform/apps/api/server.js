@@ -33,6 +33,7 @@ import { handleAccountClosure } from './account-closure-handler.js';
 import { handleDataExport } from './data-export-handler.js';
 import { handleAsaasWebhook } from './asaas-webhook-handler.js';
 import { handleDeliveryQuotes } from './delivery-quote-handler.js';
+import { handleExchangeSettlementWebhook } from './exchange-settlement-webhook-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -80,6 +81,7 @@ export function createApiServer({
   dataExportService = null,
   asaasWebhookService = null,
   deliveryQuoteService = null,
+  exchangeSettlementWebhookService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -281,6 +283,7 @@ export function createApiServer({
         url, headers, requestId: id, authService, dataExportService,
       })) return;
       if (await handleAsaasWebhook(request,response,{url,headers,requestId:id,asaasWebhookService})) return;
+      if (await handleExchangeSettlementWebhook(request,response,{url,headers,requestId:id,service:exchangeSettlementWebhookService})) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;

@@ -1,0 +1,3 @@
+import {readSignedJson} from './body.js';
+import {sendJson} from './http.js';
+export async function handleExchangeSettlementWebhook(request,response,{url,headers,requestId,service}){if(request.method!=='POST'||url.pathname!=='/v1/exchanges/settlements/webhook')return false;if(!service){sendJson(response,503,{error:{code:'exchange_settlement_webhook_not_configured',message:'Webhook financeiro indisponível.'},requestId},headers);return true;}const{raw}=await readSignedJson(request,{limit:65_536});const result=await service.receive({raw,timestamp:request.headers['x-payment-timestamp'],signature:request.headers['x-payment-signature']});sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}

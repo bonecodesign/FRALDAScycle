@@ -1,0 +1,6 @@
+import {createHash} from 'node:crypto';
+import {verifyWebhookSignature} from './webhook-signature.js';
+
+export function createExchangeSettlementWebhookService(repository,{secret}={}){return Object.freeze({
+ async receive({raw,timestamp,signature}){if(!secret)throw Object.assign(new Error('Webhook financeiro não configurado.'),{code:'exchange_settlement_webhook_not_configured',status:503});verifyWebhookSignature({raw,timestamp,signature,now:Date.now},secret,kind=>Object.assign(new Error('Webhook financeiro inválido.'),{code:`invalid_exchange_settlement_webhook_${kind}`,status:401}));let payload;try{payload=JSON.parse(raw.toString('utf8'));}catch{throw Object.assign(new Error('Payload inválido.'),{code:'invalid_exchange_settlement_webhook_payload',status:400});}if(typeof payload?.id!=='string'||typeof payload?.providerReference!=='string'||!['completed','failed'].includes(payload?.status))throw Object.assign(new Error('Evento financeiro inválido.'),{code:'invalid_exchange_settlement_webhook_payload',status:422});return repository.reconcileDifferenceDisputeSettlement({eventId:payload.id,providerReference:payload.providerReference,status:payload.status,source:'webhook',evidenceSha256:createHash('sha256').update(raw).digest('hex')});}
+ });}

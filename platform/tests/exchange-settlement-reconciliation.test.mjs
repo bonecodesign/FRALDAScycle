@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {createHmac} from 'node:crypto';
+import test from 'node:test';
+import {createExchangeSettlementWebhookService} from '../apps/api/exchange-settlement-webhook-service.js';
+import {reconcileExchangeDisputeSettlements,runExchangeDisputeReconciliation} from '../workers/exchange-dispute-reconciliation.js';
+
+test('signed webhook is the primary idempotent settlement confirmation',async()=>{const raw=Buffer.from(JSON.stringify({id:'event:123',providerReference:'provider:123',status:'completed'})),timestamp=String(Math.floor(Date.now()/1000)),secret='settlement-webhook-secret-123456789';const signature='v1='+createHmac('sha256',secret).update(`${timestamp}.`).update(raw).digest('hex');let received;const service=createExchangeSettlementWebhookService({async reconcileDifferenceDisputeSettlement(input){received=input;return{duplicate:false,completed:true};}},{secret});const result=await service.receive({raw,timestamp,signature});assert.equal(result.completed,true);assert.equal(received.source,'webhook');assert.match(received.evidenceSha256,/^[0-9a-f]{64}$/);});
+
+test('invalid webhook signature fails before repository access',async()=>{const service=createExchangeSettlementWebhookService({async reconcileDifferenceDisputeSettlement(){assert.fail('repository must not run');}},{secret:'settlement-webhook-secret-123456789'});await assert.rejects(service.receive({raw:Buffer.from('{}'),timestamp:String(Math.floor(Date.now()/1000)),signature:'v1='+'0'.repeat(64)}),/Webhook financeiro inválido/);});
+
+test('polling fallback confirms completed items and leaves pending items untouched',async()=>{const reconciled=[];const repository={async pendingDifferenceDisputeSettlements(){return[{provider_reference:'provider:done'},{provider_reference:'provider:pending'}];},async reconcileDifferenceDisputeSettlement(input){reconciled.push(input);return{completed:true};}};const provider={async getSettlement(reference){return{providerReference:reference,status:reference.endsWith('done')?'completed':'pending'};}};const result=await reconcileExchangeDisputeSettlements({repository,provider});assert.deepEqual(result,{checked:2,completed:1,pending:1,reconciliationRequired:0});assert.equal(reconciled[0].source,'poll');});
+
+test('polling fallback remains disabled without formal activation and provider adapter',async()=>{await assert.rejects(runExchangeDisputeReconciliation({env:{NODE_ENV:'production'}}),/feature flag/);await assert.rejects(runExchangeDisputeReconciliation({env:{NODE_ENV:'production',EXCHANGE_DISPUTE_SETTLEMENT_ENABLED:'true',EXCHANGE_DISPUTE_SETTLEMENT_ACTIVATION_ACKNOWLEDGED:'true'}}),/consulta homologada/);});
