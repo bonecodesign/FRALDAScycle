@@ -35,10 +35,16 @@ test('complete exchange has no payment record and atomically closes transaction 
 });
 
 test('difference payment confirmation is idempotent and releases both delivery legs',async()=>{
- const obligation={transaction_id:transaction,payer_id:'requester',recipient_id:'owner',amount_cents:2000,status:'provider_pending',provider_reference:null};
+ const obligation={transaction_id:transaction,payer_id:'requester',recipient_id:'owner',amount_cents:2000,status:'provider_pending',payment_method:'pix',installments:1,provider_reference:null};
  const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:/UPDATE exchange_difference_obligations SET status='paid'/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:/UPDATE shipments SET status='awaiting_pickup'/.test(sql)?[{id:'leg-1'},{id:'leg-2'}]:[]);
  const result=await createExchangeRepository(db).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(result.reused,false);assert.equal(result.difference.status,'paid');assert.equal(db.calls.filter(({sql})=>/INSERT INTO shipment_events/.test(sql)).length,2);assert.match(db.calls.at(-1).sql,/exchange\.difference\.paid/);
  const reusedDb=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:[]);const reused=await createExchangeRepository(reusedDb).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(reused.reused,true);assert.equal(reusedDb.calls.length,1);
+});
+
+test('only the payer can reserve one immutable checkout method without storing a token',async()=>{
+ const obligation={transaction_id:transaction,payer_id:'requester',amount_cents:2000,status:'not_charged',payment_method:null};
+ const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:/UPDATE exchange_difference_obligations SET status='provider_pending'/.test(sql)?[{...obligation,status:'provider_pending',payment_method:'credit',installments:1}]:[]);const result=await createExchangeRepository(db).reserveDifferenceCheckout({actorId:'requester',transactionId:transaction,method:'credit'});assert.equal(result.difference.payment_method,'credit');assert.equal(result.difference.installments,1);assert.deepEqual(db.calls.find(({sql})=>/UPDATE exchange_difference_obligations/.test(sql)).values,[transaction,'credit']);const audit=JSON.parse(db.calls.at(-1).values[2]);assert.deepEqual(audit,{method:'credit',installments:1,tokenStored:false,providerCalled:false});
+ const denied=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:[]);await assert.rejects(createExchangeRepository(denied).reserveDifferenceCheckout({actorId:'owner',transactionId:transaction,method:'pix'}),error=>error.code==='exchange_difference_not_found');
 });
 
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
