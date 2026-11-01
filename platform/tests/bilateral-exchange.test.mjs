@@ -90,6 +90,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
  const decisions=[];const levels={support:2,finance:3,founder:5};
  const db=database((sql,values)=>{
   if(/SELECT x\.\*,d\.status/.test(sql))return[{id:'dispute',transaction_id:transaction,status:decisions.length>0?'under_review':'open',difference_status:'disputed'}];
+  if(/SELECT id FROM exchange_difference_dispute_evidence/.test(sql))return[{id:'evidence'}];
   if(/SELECT stage,actor_user_id,outcome/.test(sql))return decisions;
   if(/SELECT staff_access_level/.test(sql))return[{staff_access_level:levels[values[0]]}];
   if(/INSERT INTO exchange_difference_dispute_decisions/.test(sql)){const decision={stage:values[1],actor_user_id:values[2],actor_access_level:values[3],outcome:values[4],note:values[5]};decisions.push(decision);return[decision];}
@@ -108,13 +109,24 @@ test('difference dispute requires support, finance and founder as distinct peopl
 test('difference dispute rejects skipped stage, reused actor, changed outcome and wrong stored level',async()=>{
  const dispute={id:'dispute',transaction_id:transaction,status:'open',difference_status:'disputed'};
  const run=({decisions=[],storedLevel=2,actorId='support',actorAccessLevel=2,stage='support_analysis',outcome='release'})=>{
-  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
+  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT id FROM exchange_difference_dispute_evidence/.test(sql)?[{id:'evidence'}]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
   return createExchangeRepository(db).decideDifferenceDispute({actorId,actorAccessLevel,transactionId:transaction,stage,outcome,note:'Decisão fundamentada pelas evidências disponíveis.'});
  };
  await assert.rejects(run({stage:'finance_approval',actorAccessLevel:3,storedLevel:3}),error=>error.code==='exchange_difference_dispute_sequence_conflict');
  await assert.rejects(run({decisions:[{stage:'support_analysis',actor_user_id:'finance',outcome:'release'}],actorId:'finance',actorAccessLevel:3,stage:'finance_approval',storedLevel:3}),error=>error.code==='exchange_difference_dispute_sequence_conflict');
  await assert.rejects(run({decisions:[{stage:'support_analysis',actor_user_id:'support',outcome:'release'}],actorId:'finance',actorAccessLevel:3,stage:'finance_approval',outcome:'refund_full',storedLevel:3}),error=>error.code==='exchange_difference_dispute_sequence_conflict');
  await assert.rejects(run({storedLevel:3}),error=>error.code==='insufficient_access_level');
+});
+
+test('support level 2 records the complete immutable dispute evidence checklist',async()=>{
+ const db=database(sql=>/SELECT x\.id,x\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT staff_access_level/.test(sql)?[{staff_access_level:2}]:/SELECT \* FROM exchange_difference_dispute_evidence/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_evidence/.test(sql)?[{id:'evidence',dispute_id:'dispute'}]:[]);
+ const result=await createExchangeRepository(db).recordDifferenceDisputeEvidence({actorId:'support',actorAccessLevel:2,transactionId:transaction,deliveryProofReference:'proof:123',supportHistoryReference:'ticket:123',paymentStatusReference:'payment:123',logisticsStatusReference:'shipment:123',requesterStatementReference:'statement:requester:123',ownerStatementReference:'statement:owner:123'});
+ assert.equal(result.immutable,true);const insertion=db.calls.find(({sql})=>/INSERT INTO exchange_difference_dispute_evidence/.test(sql));assert.equal(insertion.values.length,8);assert.deepEqual(JSON.parse(db.calls.at(-1).values[2]),{checklistComplete:true,evidenceReferences:6,filesCopied:false});
+});
+
+test('dispute analysis cannot start without the complete evidence checklist',async()=>{
+ const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:[]);
+ await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa baseada nas evidências.'}),error=>error.code==='exchange_difference_dispute_evidence_incomplete');
 });
 
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
