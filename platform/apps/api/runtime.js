@@ -93,6 +93,7 @@ import {createUberDirectQuoteAdapter} from './uber-direct-quote-adapter.js';
 import {createGoogleMapsClient} from './google-maps-client.js';
 import {createIncidentRoleRepository} from '../../database/incident-role-repository.js';
 import {createIncidentRoleService} from './incident-role-service.js';
+import {createExchangeSettlementWebhookService} from './exchange-settlement-webhook-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -165,7 +166,9 @@ export async function startRuntime(config = null) {
     uber_direct:createUberDirectQuoteAdapter({client:uberDirectQuoteClient,enabled:config.uberDirectQuotingEnabled}),
   }});
   const deliveryQuoteService=createDeliveryQuoteService(createDeliveryQuoteRepository(database),{orchestrator:deliveryQuoteOrchestrator,checkoutEnabled:config.deliveryQuoteCheckoutEnabled,routeClient:addressGeocoder});
-  const exchangeService = createExchangeService(createExchangeRepository(database,{pilotBh:config.pilotBh}));
+  const exchangeRepository=createExchangeRepository(database,{pilotBh:config.pilotBh});
+  const exchangeService = createExchangeService(exchangeRepository);
+  const exchangeSettlementWebhookService=config.exchangeDisputeSettlementEnabled&&config.paymentWebhookSecret?createExchangeSettlementWebhookService(exchangeRepository,{secret:config.paymentWebhookSecret}):null;
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
     courierEligibilityRepository, {
@@ -236,6 +239,7 @@ export async function startRuntime(config = null) {
     dataExportService,
     asaasWebhookService,
     deliveryQuoteService,
+    exchangeSettlementWebhookService,
     telemetry,
   });
 

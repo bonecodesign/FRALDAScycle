@@ -4,9 +4,9 @@ import {isMainModule} from '../packages/contracts/main-module.js';
 
 export async function processExchangeDisputeSettlements({repository,executor,limit=20}) {
   if(typeof executor!=='function')throw new Error('Configure o adaptador financeiro homologado.');
-  const commands=await repository.claimDifferenceDisputeSettlements({limit});let completed=0,reconciliationRequired=0;
-  for(const command of commands){try{const result=await executor({operation:command.operation,transactionId:command.transaction_id,idempotencyKey:command.idempotency_key});await repository.completeDifferenceDisputeSettlement({commandId:command.id,providerReference:result.providerReference});completed++;}catch(error){await repository.requireDifferenceDisputeSettlementReconciliation({commandId:command.id,failureCode:String(error?.code??'provider_uncertain').toLowerCase().replace(/[^a-z0-9_:-]/g,'_').slice(0,80)});reconciliationRequired++;}}
-  return Object.freeze({claimed:commands.length,completed,reconciliationRequired});
+  const commands=await repository.claimDifferenceDisputeSettlements({limit});let submitted=0,reconciliationRequired=0;
+  for(const command of commands){try{const result=await executor({operation:command.operation,transactionId:command.transaction_id,idempotencyKey:command.idempotency_key});await repository.submitDifferenceDisputeSettlement({commandId:command.id,providerReference:result.providerReference});submitted++;}catch(error){await repository.requireDifferenceDisputeSettlementReconciliation({commandId:command.id,failureCode:String(error?.code??'provider_uncertain').toLowerCase().replace(/[^a-z0-9_:-]/g,'_').slice(0,80)});reconciliationRequired++;}}
+  return Object.freeze({claimed:commands.length,submitted,reconciliationRequired});
 }
 
 export async function runExchangeDisputeSettlement({env=process.env,createDb=createDatabase,createRepository=createExchangeRepository,executor}={}){

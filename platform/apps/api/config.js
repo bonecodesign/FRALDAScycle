@@ -142,6 +142,9 @@ export function loadConfig(env = process.env) {
   const asaasApiKey=env.ASAAS_API_KEY??asaasSandboxApiKey;
   const asaasActivationAcknowledged=env.ASAAS_ACTIVATION_ACKNOWLEDGED==='true';
   const asaasWebhookAccessToken=env.ASAAS_WEBHOOK_ACCESS_TOKEN??null;
+  const exchangeDisputeSettlementRequested=env.EXCHANGE_DISPUTE_SETTLEMENT_ENABLED==='true';
+  const exchangeDisputeSettlementAcknowledged=env.EXCHANGE_DISPUTE_SETTLEMENT_ACTIVATION_ACKNOWLEDGED==='true';
+  if(nodeEnv==='production'&&exchangeDisputeSettlementRequested&&!exchangeDisputeSettlementAcknowledged)throw new Error('EXCHANGE_DISPUTE_SETTLEMENT_ACTIVATION_ACKNOWLEDGED=true is required for dispute settlement');
   if(asaasSandboxEnabled&&nodeEnv==='production')throw new Error('ASAAS_SANDBOX_ENABLED cannot be used in production');
   if(!['sandbox','production'].includes(asaasEnvironment))throw new Error('ASAAS_ENVIRONMENT must be sandbox or production');
   if(asaasEnabled&&(!asaasApiKey||String(asaasWebhookAccessToken??'').length<16))throw new Error('Asaas API key and webhook access token are required when enabled');
@@ -230,6 +233,7 @@ export function loadConfig(env = process.env) {
     asaasEnvironment,
     asaasApiKey,
     asaasWebhookAccessToken,
+    exchangeDisputeSettlementEnabled:exchangeDisputeSettlementRequested&&(nodeEnv!=='production'||exchangeDisputeSettlementAcknowledged),
     lalamoveQuotingEnabled:lalamoveQuotingRequested&&(nodeEnv!=='production'||lalamoveActivationAcknowledged),
     lalamoveApiKey,
     lalamoveApiSecret,
