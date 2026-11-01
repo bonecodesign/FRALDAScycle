@@ -174,10 +174,14 @@
       "status": "parcial",
       "references": [
         "packages/contracts/exchange-difference.js",
+        "packages/contracts/exchange-difference-checkout.js",
         "database/migrations/102_exchange_difference_obligations.sql",
+        "database/migrations/103_exchange_difference_payment_method.sql",
         "database/exchange-repository.js",
+        "apps/api/asaas-client.js",
         "apps/app/exchange.js",
         "tests/exchange-difference.test.mjs",
+        "tests/exchange-difference-checkout.test.mjs",
         "tests/bilateral-exchange.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],

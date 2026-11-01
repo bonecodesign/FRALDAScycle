@@ -87,7 +87,7 @@ export function createAsaasClient({
   const disabled = async () => {
     throw new AsaasClientError("asaas_not_enabled", "Integração Asaas não ativada.");
   };
-  if (!enabled) return Object.freeze({ createCustomer: disabled, createPixCharge: disabled, createCreditCardSubscription: disabled, cancelSubscription: disabled, getPayment: disabled });
+  if (!enabled) return Object.freeze({ createCustomer: disabled, createPixCharge: disabled, createCreditCardCharge: disabled, createCreditCardSubscription: disabled, cancelSubscription: disabled, getPayment: disabled });
 
   let origin;
   try { origin = new URL(baseUrl); }
@@ -140,6 +140,18 @@ export function createAsaasClient({
         value: amount(amountCents),
         dueDate: date(dueDate),
         description: requiredText(description, "Descrição", 500),
+        externalReference: assertIdentifier(reference, "Referência"),
+      };
+      const result = await request("POST", "/payments", { body: payload, idempotencyKey });
+      return Object.freeze({ provider: "asaas", paymentId: assertResponseId(result, "cobrança"), reference: payload.externalReference });
+    },
+
+    async createCreditCardCharge({ customerId, reference, amountCents, dueDate, description, creditCardToken, idempotencyKey }) {
+      const payload = {
+        customer: assertIdentifier(customerId, "Cliente"), billingType: "CREDIT_CARD",
+        value: amount(amountCents), dueDate: date(dueDate),
+        description: requiredText(description, "Descrição", 500),
+        creditCardToken: requiredText(creditCardToken, "Token do cartão", 512),
         externalReference: assertIdentifier(reference, "Referência"),
       };
       const result = await request("POST", "/payments", { body: payload, idempotencyKey });

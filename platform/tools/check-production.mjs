@@ -5,6 +5,7 @@ const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
   "packages/contracts/support-reply-key.js",
   "packages/contracts/exchange-difference.js",
+  "packages/contracts/exchange-difference-checkout.js",
   "apps/admin/operational-control.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",

@@ -73,6 +73,11 @@ test("Asaas creates a monthly tokenized subscription without raw card data",asyn
   assert.equal(Object.hasOwn(body,'cardNumber'),false);assert.equal(Object.hasOwn(body,'cvv'),false);
 });
 
+test("Asaas prepares a one-time tokenized credit charge without raw card data",async()=>{
+ let body;const client=createAsaasClient({enabled:true,apiKey:"sandbox-secret",fetchImpl:async(url,options)=>{assert.equal(url,"https://api-sandbox.asaas.com/v3/payments");body=JSON.parse(options.body);return new Response(JSON.stringify({id:"pay_credit_123"}),{status:200});}});
+ const result=await client.createCreditCardCharge({customerId:"cus_123",reference:"exchange-difference-1",amountCents:2000,dueDate:"2030-01-02",description:"Diferença da troca",creditCardToken:"tokenized-card-123",idempotencyKey:"exchange-difference-credit-1"});assert.deepEqual(result,{provider:"asaas",paymentId:"pay_credit_123",reference:"exchange-difference-1"});assert.deepEqual(body,{customer:"cus_123",billingType:"CREDIT_CARD",value:20,dueDate:"2030-01-02",description:"Diferença da troca",creditCardToken:"tokenized-card-123",externalReference:"exchange-difference-1"});assert.equal(Object.hasOwn(body,'cardNumber'),false);assert.equal(Object.hasOwn(body,'cvv'),false);
+});
+
 test("Asaas failures are sanitized and timeout outcome requires reconciliation", async () => {
   const rejected = createAsaasClient({ enabled: true, apiKey: "sandbox-secret", fetchImpl: async () =>
     new Response(JSON.stringify({ errors: [{ description: "provider-sensitive-detail" }] }), { status: 422 }) });
