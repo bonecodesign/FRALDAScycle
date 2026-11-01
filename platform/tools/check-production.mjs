@@ -9,6 +9,7 @@ const files = [
   "packages/contracts/exchange-difference-window.js",
   "packages/contracts/exchange-difference-refund.js",
   "packages/contracts/exchange-difference-dispute.js",
+  "packages/contracts/exchange-dispute-decision.js",
   "apps/admin/operational-control.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",
