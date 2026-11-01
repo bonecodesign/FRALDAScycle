@@ -12,6 +12,8 @@ Quando os valores são diferentes, o aceite também cria uma única obrigação 
 
 O pagador pode escolher PIX ou cartão de crédito à vista. Cartão exige token do provedor; número, validade e código de segurança são recusados e nunca persistidos. A reserva guarda somente `pix` ou `credit`, uma parcela e o instante da escolha. Depois de entrar em processamento, a forma de pagamento não muda automaticamente: conciliação ou suporte são obrigatórios. O cliente Asaas possui payloads allowlisted para PIX e cobrança avulsa tokenizada, mas permanece desligado por padrão.
 
+Cada checkout possui 30 minutos, com marco de aviso aos 20. Sem referência financeira no provedor, o pagador pode renovar uma única vez por mais 30 minutos. A segunda expiração cancela a obrigação, as pernas e a troca, e republica os dois anúncios de forma idempotente. A presença de referência do provedor impede renovação ou cancelamento automático e exige conciliação/suporte. O disparo periódico e a entrega real do aviso continuam desligados até a etapa do worker.
+
 O cancelamento bilateral permanece local somente antes do processamento financeiro. Depois que a diferença entra em `provider_pending` ou `paid`, qualquer cancelamento exige suporte. Esta fundação não chama o Asaas, não cobra frete nem movimenta dinheiro. Cobrança, retenção, reembolso e repasse reais continuam bloqueados pelo requisito do processador financeiro.
 
 A consulta privada de situação do entregador usa a perna selecionada. Enquanto não houver cobrança de frete identificada por perna, mostra valor não informado, bloqueio `exchange_freight_not_configured` e `payoutAllowed: false`, mesmo que exista outro pagamento associado à transação. Não prepara obrigação financeira para a troca.

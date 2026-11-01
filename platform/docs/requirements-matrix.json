@@ -175,8 +175,10 @@
       "references": [
         "packages/contracts/exchange-difference.js",
         "packages/contracts/exchange-difference-checkout.js",
+        "packages/contracts/exchange-difference-window.js",
         "database/migrations/102_exchange_difference_obligations.sql",
         "database/migrations/103_exchange_difference_payment_method.sql",
+        "database/migrations/104_exchange_difference_checkout_window.sql",
         "database/exchange-repository.js",
         "apps/api/asaas-client.js",
         "apps/app/exchange.js",
