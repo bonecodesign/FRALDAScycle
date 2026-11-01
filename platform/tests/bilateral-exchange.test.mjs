@@ -90,7 +90,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
  const decisions=[];const levels={support:2,finance:3,founder:5};
  const db=database((sql,values)=>{
   if(/SELECT x\.\*,d\.status/.test(sql))return[{id:'dispute',transaction_id:transaction,status:decisions.length>0?'under_review':'open',difference_status:'disputed'}];
-  if(/SELECT id FROM exchange_difference_dispute_evidence/.test(sql))return[{id:'evidence'}];
+  if(/SELECT id,contest_deadline_at/.test(sql))return[{id:'evidence',contest_window_closed:true}];
   if(/SELECT stage,actor_user_id,outcome/.test(sql))return decisions;
   if(/SELECT staff_access_level/.test(sql))return[{staff_access_level:levels[values[0]]}];
   if(/INSERT INTO exchange_difference_dispute_decisions/.test(sql)){const decision={stage:values[1],actor_user_id:values[2],actor_access_level:values[3],outcome:values[4],note:values[5]};decisions.push(decision);return[decision];}
@@ -109,7 +109,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
 test('difference dispute rejects skipped stage, reused actor, changed outcome and wrong stored level',async()=>{
  const dispute={id:'dispute',transaction_id:transaction,status:'open',difference_status:'disputed'};
  const run=({decisions=[],storedLevel=2,actorId='support',actorAccessLevel=2,stage='support_analysis',outcome='release'})=>{
-  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT id FROM exchange_difference_dispute_evidence/.test(sql)?[{id:'evidence'}]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
+  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT id,contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:true}]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
   return createExchangeRepository(db).decideDifferenceDispute({actorId,actorAccessLevel,transactionId:transaction,stage,outcome,note:'Decisão fundamentada pelas evidências disponíveis.'});
  };
  await assert.rejects(run({stage:'finance_approval',actorAccessLevel:3,storedLevel:3}),error=>error.code==='exchange_difference_dispute_sequence_conflict');
@@ -118,15 +118,25 @@ test('difference dispute rejects skipped stage, reused actor, changed outcome an
  await assert.rejects(run({storedLevel:3}),error=>error.code==='insufficient_access_level');
 });
 
-test('support level 2 records the complete immutable dispute evidence checklist',async()=>{
- const db=database(sql=>/SELECT x\.id,x\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT staff_access_level/.test(sql)?[{staff_access_level:2}]:/SELECT \* FROM exchange_difference_dispute_evidence/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_evidence/.test(sql)?[{id:'evidence',dispute_id:'dispute'}]:[]);
+test('support level 2 records the complete immutable dispute evidence checklist and notifies both parties',async()=>{
+ const deadline='2030-01-03T00:00:00.000Z';const db=database(sql=>/SELECT x\.id,x\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT staff_access_level/.test(sql)?[{staff_access_level:2}]:/SELECT \* FROM exchange_difference_dispute_evidence/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_evidence/.test(sql)?[{id:'evidence',dispute_id:'dispute',contest_deadline_at:deadline}]:/SELECT u\.id,u\.email/.test(sql)?[{id:'owner',email:'owner@example.test',email_verified_at:'2026-01-01',email_enabled:true},{id:'requester',email:null,email_verified_at:null,email_enabled:false}]:[]);
  const result=await createExchangeRepository(db).recordDifferenceDisputeEvidence({actorId:'support',actorAccessLevel:2,transactionId:transaction,deliveryProofReference:'proof:123',supportHistoryReference:'ticket:123',paymentStatusReference:'payment:123',logisticsStatusReference:'shipment:123',requesterStatementReference:'statement:requester:123',ownerStatementReference:'statement:owner:123'});
- assert.equal(result.immutable,true);const insertion=db.calls.find(({sql})=>/INSERT INTO exchange_difference_dispute_evidence/.test(sql));assert.equal(insertion.values.length,8);assert.deepEqual(JSON.parse(db.calls.at(-1).values[2]),{checklistComplete:true,evidenceReferences:6,filesCopied:false});
+ assert.equal(result.immutable,true);assert.equal(result.partiesNotified,2);assert.equal(result.emailQueued,1);const insertion=db.calls.find(({sql})=>/INSERT INTO exchange_difference_dispute_evidence/.test(sql));assert.equal(insertion.values.length,8);assert.equal(db.calls.filter(({sql})=>/INSERT INTO account_notices/.test(sql)).length,2);assert.equal(db.calls.filter(({sql})=>/INSERT INTO notification_outbox/.test(sql)).length,1);assert.deepEqual(JSON.parse(db.calls.at(-1).values[2]),{checklistComplete:true,evidenceReferences:6,filesCopied:false,contestWindowHours:48,partiesNotified:2,emailQueued:1});
 });
 
 test('dispute analysis cannot start without the complete evidence checklist',async()=>{
  const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:[]);
  await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa baseada nas evidências.'}),error=>error.code==='exchange_difference_dispute_evidence_incomplete');
+});
+
+test('dispute analysis waits the full 48-hour contest window',async()=>{
+ const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT id,contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:false}]:[]);
+ await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa baseada nas evidências.'}),error=>error.code==='exchange_difference_dispute_contest_window_open');
+});
+
+test('each exchange party can agree or contest once within 48 hours',async()=>{
+ const context={evidence_id:'evidence',contest_deadline_at:'2099-01-01T00:00:00.000Z',requester_id:'requester',owner_id:'owner'};const db=database(sql=>/SELECT v\.id AS evidence_id/.test(sql)?[context]:/SELECT \* FROM exchange_difference_dispute_responses/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_responses/.test(sql)?[{id:'response',response:'contest',statement_reference:'statement:requester:456'}]:[]);
+ const result=await createExchangeRepository(db).respondDifferenceDisputeEvidence({actorId:'requester',transactionId:transaction,response:'contest',statementReference:'statement:requester:456'});assert.equal(result.reused,false);assert.equal(JSON.parse(db.calls.at(-1).values[2]).statementContentCopied,false);
 });
 
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
