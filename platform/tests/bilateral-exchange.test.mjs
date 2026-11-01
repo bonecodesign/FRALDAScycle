@@ -149,6 +149,11 @@ test('support analysis remains blocked until the addendum 24-hour window closes'
  await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa após contestação.'}),error=>error.code==='exchange_difference_dispute_addendum_pending');
 });
 
+test('a second contest is preserved but does not open an endless response cycle',async()=>{
+ const evidence={id:'evidence',contest_window_closed:true,has_contest:true,original_contest_count:1,addendum_window_closed:true,addendum_contest_count:1};const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT v\.id,v\.contest_deadline_at/.test(sql)?[evidence]:/SELECT stage,actor_user_id,outcome/.test(sql)?[]:/SELECT staff_access_level/.test(sql)?[{staff_access_level:2}]:/INSERT INTO exchange_difference_dispute_decisions/.test(sql)?[{id:'decision',stage:'support_analysis'}]:[]);
+ const result=await createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise considera todas as contestações registradas.'});assert.equal(result.preservedContestations,2);const audit=JSON.parse(db.calls.at(-1).values[2]);assert.equal(audit.additionalWindowOpened,false);assert.equal(audit.preservedContestations,2);assert.ok(db.calls.every(({sql})=>!/INSERT INTO exchange_difference_dispute_addenda/.test(sql)));
+});
+
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
