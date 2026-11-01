@@ -7,6 +7,7 @@ const files = [
   "packages/contracts/exchange-difference.js",
   "packages/contracts/exchange-difference-checkout.js",
   "packages/contracts/exchange-difference-window.js",
+  "packages/contracts/exchange-difference-refund.js",
   "apps/admin/operational-control.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",
