@@ -12,6 +12,7 @@ const files = [
   "packages/contracts/exchange-dispute-decision.js",
   "packages/contracts/exchange-dispute-evidence.js",
   "packages/contracts/exchange-dispute-response.js",
+  "packages/contracts/exchange-dispute-addendum.js",
   "apps/admin/operational-control.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",

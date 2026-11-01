@@ -90,7 +90,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
  const decisions=[];const levels={support:2,finance:3,founder:5};
  const db=database((sql,values)=>{
   if(/SELECT x\.\*,d\.status/.test(sql))return[{id:'dispute',transaction_id:transaction,status:decisions.length>0?'under_review':'open',difference_status:'disputed'}];
-  if(/SELECT id,contest_deadline_at/.test(sql))return[{id:'evidence',contest_window_closed:true}];
+  if(/SELECT v\.id,v\.contest_deadline_at/.test(sql))return[{id:'evidence',contest_window_closed:true,has_contest:false,addendum_window_closed:null}];
   if(/SELECT stage,actor_user_id,outcome/.test(sql))return decisions;
   if(/SELECT staff_access_level/.test(sql))return[{staff_access_level:levels[values[0]]}];
   if(/INSERT INTO exchange_difference_dispute_decisions/.test(sql)){const decision={stage:values[1],actor_user_id:values[2],actor_access_level:values[3],outcome:values[4],note:values[5]};decisions.push(decision);return[decision];}
@@ -109,7 +109,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
 test('difference dispute rejects skipped stage, reused actor, changed outcome and wrong stored level',async()=>{
  const dispute={id:'dispute',transaction_id:transaction,status:'open',difference_status:'disputed'};
  const run=({decisions=[],storedLevel=2,actorId='support',actorAccessLevel=2,stage='support_analysis',outcome='release'})=>{
-  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT id,contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:true}]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
+  const db=database((sql)=>/SELECT x\.\*,d\.status/.test(sql)?[dispute]:/SELECT v\.id,v\.contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:true,has_contest:false,addendum_window_closed:null}]:/SELECT stage,actor_user_id,outcome/.test(sql)?decisions:/SELECT staff_access_level/.test(sql)?[{staff_access_level:storedLevel}]:[]);
   return createExchangeRepository(db).decideDifferenceDispute({actorId,actorAccessLevel,transactionId:transaction,stage,outcome,note:'Decisão fundamentada pelas evidências disponíveis.'});
  };
  await assert.rejects(run({stage:'finance_approval',actorAccessLevel:3,storedLevel:3}),error=>error.code==='exchange_difference_dispute_sequence_conflict');
@@ -130,13 +130,23 @@ test('dispute analysis cannot start without the complete evidence checklist',asy
 });
 
 test('dispute analysis waits the full 48-hour contest window',async()=>{
- const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT id,contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:false}]:[]);
+ const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT v\.id,v\.contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:false,has_contest:false,addendum_window_closed:null}]:[]);
  await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa baseada nas evidências.'}),error=>error.code==='exchange_difference_dispute_contest_window_open');
 });
 
 test('each exchange party can agree or contest once within 48 hours',async()=>{
  const context={evidence_id:'evidence',contest_deadline_at:'2099-01-01T00:00:00.000Z',requester_id:'requester',owner_id:'owner'};const db=database(sql=>/SELECT v\.id AS evidence_id/.test(sql)?[context]:/SELECT \* FROM exchange_difference_dispute_responses/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_responses/.test(sql)?[{id:'response',response:'contest',statement_reference:'statement:requester:456'}]:[]);
  const result=await createExchangeRepository(db).respondDifferenceDisputeEvidence({actorId:'requester',transactionId:transaction,response:'contest',statementReference:'statement:requester:456'});assert.equal(result.reused,false);assert.equal(JSON.parse(db.calls.at(-1).values[2]).statementContentCopied,false);
+});
+
+test('a contest requires support addendum, notifies both parties and opens 24 hours',async()=>{
+ const context={evidence_id:'evidence',contest_deadline_at:'2020-01-01T00:00:00.000Z',requester_id:'requester',owner_id:'owner'};const db=database(sql=>/SELECT v\.id AS evidence_id/.test(sql)?[context]:/ AS contested/.test(sql)?[{contested:true}]:/SELECT staff_access_level/.test(sql)?[{staff_access_level:2}]:/SELECT \* FROM exchange_difference_dispute_addenda/.test(sql)?[]:/INSERT INTO exchange_difference_dispute_addenda/.test(sql)?[{id:'addendum',response_deadline_at:'2030-01-02T00:00:00.000Z'}]:/SELECT u\.id,u\.email/.test(sql)?[{id:'owner',email:null,email_verified_at:null,email_enabled:false},{id:'requester',email:null,email_verified_at:null,email_enabled:false}]:[]);
+ const result=await createExchangeRepository(db).recordDifferenceDisputeAddendum({actorId:'support',actorAccessLevel:2,transactionId:transaction,analysisReference:'analysis:case:123'});assert.equal(result.immutable,true);assert.equal(result.partiesNotified,2);assert.equal(db.calls.filter(({sql})=>/INSERT INTO account_notices/.test(sql)).length,2);
+});
+
+test('support analysis remains blocked until the addendum 24-hour window closes',async()=>{
+ const db=database(sql=>/SELECT x\.\*,d\.status/.test(sql)?[{id:'dispute',status:'open',difference_status:'disputed'}]:/SELECT v\.id,v\.contest_deadline_at/.test(sql)?[{id:'evidence',contest_window_closed:true,has_contest:true,addendum_window_closed:false}]:[]);
+ await assert.rejects(createExchangeRepository(db).decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note:'Análise completa após contestação.'}),error=>error.code==='exchange_difference_dispute_addendum_pending');
 });
 
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
