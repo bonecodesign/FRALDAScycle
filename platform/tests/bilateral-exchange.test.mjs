@@ -94,6 +94,7 @@ test('difference dispute requires support, finance and founder as distinct peopl
   if(/SELECT stage,actor_user_id,outcome/.test(sql))return decisions;
   if(/SELECT staff_access_level/.test(sql))return[{staff_access_level:levels[values[0]]}];
   if(/INSERT INTO exchange_difference_dispute_decisions/.test(sql)){const decision={stage:values[1],actor_user_id:values[2],actor_access_level:values[3],outcome:values[4],note:values[5]};decisions.push(decision);return[decision];}
+  if(/INSERT INTO exchange_difference_settlement_commands/.test(sql))return[{id:'command',status:'queued',operation:values[2],idempotency_key:values[3]}];
   if(/SELECT u\.id,u\.email/.test(sql))return[{id:'owner',email:'owner@example.test',email_verified_at:'2026-01-01',email_enabled:true},{id:'requester',email:null,email_verified_at:null,email_enabled:false}];
   return[];
  });
@@ -101,9 +102,10 @@ test('difference dispute requires support, finance and founder as distinct peopl
  const support=await repository.decideDifferenceDispute({actorId:'support',actorAccessLevel:2,transactionId:transaction,stage:'support_analysis',outcome:'release',note});
  const finance=await repository.decideDifferenceDispute({actorId:'finance',actorAccessLevel:3,transactionId:transaction,stage:'finance_approval',outcome:'release',note});
  const founder=await repository.decideDifferenceDispute({actorId:'founder',actorAccessLevel:5,transactionId:transaction,stage:'founder_authorization',outcome:'release',note});
- assert.equal(support.finalAuthorized,false);assert.equal(finance.finalAuthorized,false);assert.equal(founder.finalAuthorized,true);assert.equal(founder.providerExecution,false);assert.equal(founder.partiesNotified,2);assert.equal(founder.emailQueued,1);
+ assert.equal(support.finalAuthorized,false);assert.equal(finance.finalAuthorized,false);assert.equal(founder.finalAuthorized,true);assert.equal(founder.providerExecution,false);assert.equal(founder.partiesNotified,2);assert.equal(founder.emailQueued,1);assert.equal(founder.settlementCommand.status,'queued');assert.match(founder.settlementCommand.idempotency_key,/^exchange-dispute:/);
  assert.equal(db.calls.filter(({sql})=>/INSERT INTO account_notices/.test(sql)).length,2);assert.equal(db.calls.filter(({sql})=>/INSERT INTO notification_outbox/.test(sql)).length,1);
  assert.ok(db.calls.some(({sql})=>/SET status='under_review'/.test(sql)));assert.ok(db.calls.some(({sql})=>/SET status='resolved'/.test(sql)));assert.ok(db.calls.some(({sql})=>/SET status=\$2/.test(sql)));
+ assert.equal(db.calls.filter(({sql})=>/INSERT INTO exchange_difference_settlement_commands/.test(sql)).length,1);
  assert.deepEqual(db.calls.find(({sql})=>/UPDATE exchange_difference_obligations SET status=\$2/.test(sql)).values,[transaction,'release_pending']);
  assert.equal(JSON.parse(db.calls.at(-1).values[2]).providerExecution,false);
 });
