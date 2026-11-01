@@ -44,6 +44,7 @@
     "worker:account-closure": "node workers/account-closure.js --serve",
     "worker:exchange-difference:local": "node workers/exchange-difference-maintenance.js --once",
     "worker:exchange-difference": "node workers/exchange-difference-maintenance.js --serve",
+    "worker:exchange-dispute-settlement": "node workers/exchange-dispute-settlement.js",
     "worker:refund-reconciliation": "node workers/supported-refund-reconciliation.js"
   },
   "dependencies": {
