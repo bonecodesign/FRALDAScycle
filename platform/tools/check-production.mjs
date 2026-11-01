@@ -17,6 +17,7 @@ const files = [
   "workers/exchange-dispute-settlement.js",
   "workers/exchange-dispute-reconciliation.js",
   "workers/exchange-settlement-escalation.js",
+  "workers/exchange-reconciliation-execution.js",
   "apps/api/exchange-settlement-webhook-service.js",
   "apps/api/exchange-settlement-webhook-handler.js",
   "apps/admin/operational-control.js",
