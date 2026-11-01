@@ -35,10 +35,19 @@ test('complete exchange has no payment record and atomically closes transaction 
 });
 
 test('difference payment confirmation is idempotent and releases both delivery legs',async()=>{
- const obligation={transaction_id:transaction,payer_id:'requester',recipient_id:'owner',amount_cents:2000,status:'provider_pending',payment_method:'pix',installments:1,provider_reference:null};
+ const obligation={transaction_id:transaction,payer_id:'requester',recipient_id:'owner',amount_cents:2000,status:'provider_pending',payment_method:'pix',installments:1,provider_reference:'asaas-synthetic'};
  const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:/UPDATE exchange_difference_obligations SET status='paid'/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:/UPDATE shipments SET status='awaiting_pickup'/.test(sql)?[{id:'leg-1'},{id:'leg-2'}]:[]);
  const result=await createExchangeRepository(db).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(result.reused,false);assert.equal(result.difference.status,'paid');assert.equal(db.calls.filter(({sql})=>/INSERT INTO shipment_events/.test(sql)).length,2);assert.match(db.calls.at(-1).sql,/exchange\.difference\.paid/);
  const reusedDb=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:[]);const reused=await createExchangeRepository(reusedDb).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(reused.reused,true);assert.equal(reusedDb.calls.length,1);
+});
+
+test('a confirmed provider closure allows exactly one retry and method switch',async()=>{
+ const active={transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:'provider-first',checkout_attempt_count:1};const closing=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[active]:/UPDATE exchange_difference_payment_attempts SET status/.test(sql)?[{attempt_number:1,status:'expired'}]:[]);const closed=await createExchangeRepository(closing).closeDifferenceAttempt({transactionId:transaction,providerReference:'provider-first',outcome:'expired'});assert.equal(closed.retryAvailable,true);
+ const ready={...active,provider_reference:null};const retry=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[ready]:/SELECT \* FROM exchange_difference_payment_attempts/.test(sql)?[{attempt_number:1,status:'expired'}]:/checkout_attempt_count=2/.test(sql)?[{...ready,payment_method:'credit',checkout_attempt_count:2}]:[]);const result=await createExchangeRepository(retry).retryDifferenceCheckout({actorId:'requester',transactionId:transaction,method:'credit'});assert.equal(result.difference.checkout_attempt_count,2);assert.equal(result.difference.payment_method,'credit');assert.ok(retry.calls.some(({sql})=>/VALUES\(\$1,2,\$2,1\)/.test(sql)));
+});
+
+test('uncertain provider state and a third attempt fail closed',async()=>{
+ for(const difference of [{transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:'still-open',checkout_attempt_count:1},{transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:null,checkout_attempt_count:2}]){const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[difference]:/SELECT \* FROM exchange_difference_payment_attempts/.test(sql)?[{status:'expired'}]:[]);await assert.rejects(createExchangeRepository(db).retryDifferenceCheckout({actorId:'requester',transactionId:transaction,method:'pix'}),error=>error.code==='exchange_difference_retry_not_available');}
 });
 
 test('only the payer can reserve one immutable checkout method without storing a token',async()=>{
