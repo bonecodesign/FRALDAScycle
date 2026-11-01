@@ -193,6 +193,7 @@
         "database/migrations/110_exchange_dispute_evidence_checklist.sql",
         "database/migrations/111_exchange_dispute_contestation_window.sql",
         "database/migrations/112_exchange_dispute_addendum.sql",
+        "database/migrations/113_exchange_dispute_decision_notification.sql",
         "database/exchange-repository.js",
         "apps/api/asaas-client.js",
         "workers/exchange-difference-maintenance.js",
