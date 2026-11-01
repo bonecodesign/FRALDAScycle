@@ -70,6 +70,14 @@ test('due warning creates one internal notice and queues email only when explici
  const internalOnly=database(sql=>/SELECT d\.transaction_id/.test(sql)?[{...due,email_enabled:false}]:[]);assert.deepEqual(await createExchangeRepository(internalOnly).dispatchDifferenceWarnings({limit:10}),{warned:1,emailQueued:0});assert.ok(internalOnly.calls.every(({sql})=>!/INSERT INTO notification_outbox/.test(sql)));
 });
 
+test('support-approved pre-collection refund records exact provider fee and never executes money',async()=>{
+ const difference={transaction_id:transaction,payer_id:'requester',amount_cents:2000,status:'paid'};const operation={requested_listing_id:requested,offered_listing_id:offered};const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[difference]:/ AS collected/.test(sql)?[{collected:false}]:/INSERT INTO exchange_difference_refund_reviews/.test(sql)?[{id:'review',gross_amount_cents:2000,nonrecoverable_provider_fee_cents:79,refund_amount_cents:1921,status:'approved'}]:/SELECT requested_listing_id/.test(sql)?[operation]:[]);const result=await createExchangeRepository(db).approveDifferenceRefund({actorId:'finance',transactionId:transaction,nonRecoverableProviderFeeCents:79,providerFeeEvidenceReference:'asaas-fee-case-1',payerAccepted:true});assert.equal(result.quote.refundAmountCents,1921);assert.equal(result.quote.destination,'payment_origin');assert.ok(db.calls.some(({sql})=>/SET status='refund_pending'/.test(sql)));assert.ok(db.calls.some(({sql})=>/UPDATE listings SET status='published'/.test(sql)));assert.ok(db.calls.every(({sql})=>!/payment_intents|provider_case_reference/.test(sql)));assert.equal(JSON.parse(db.calls.at(-1).values[2]).providerExecution,false);
+});
+
+test('difference refund is blocked after collection or without a paid obligation',async()=>{
+ const paid={transaction_id:transaction,payer_id:'requester',amount_cents:2000,status:'paid'};const collected=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[paid]:/ AS collected/.test(sql)?[{collected:true}]:[]);await assert.rejects(createExchangeRepository(collected).approveDifferenceRefund({actorId:'finance',transactionId:transaction,nonRecoverableProviderFeeCents:0,providerFeeEvidenceReference:'asaas-fee-zero',payerAccepted:true}),/invalid_exchange_difference_refund/);
+});
+
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
