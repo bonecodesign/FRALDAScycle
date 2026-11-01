@@ -180,6 +180,7 @@
         "database/migrations/103_exchange_difference_payment_method.sql",
         "database/migrations/104_exchange_difference_checkout_window.sql",
         "database/migrations/105_exchange_difference_warning.sql",
+        "database/migrations/106_exchange_difference_payment_attempts.sql",
         "database/exchange-repository.js",
         "apps/api/asaas-client.js",
         "workers/exchange-difference-maintenance.js",
