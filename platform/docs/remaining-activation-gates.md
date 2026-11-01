@@ -5,8 +5,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 ## Situação formal
 
 - 42 concluídos: 60,00%.
-- 16 parciais: 22,86%.
-- 12 bloqueados: 17,14%.
+- 17 parciais: 24,29%.
+- 11 bloqueados: 15,71%.
 - Produção: bloqueada.
 
 ## O que ainda pode avançar sem contratar fornecedores
@@ -14,7 +14,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 | Requisitos | Próximo fechamento local | Portão que continuará aberto |
 | --- | --- | --- |
 | 2, 9, 11, 17, 18 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. | Tarifas, cobrança, entrega e confirmação reais. |
-| 10, 12 | Documentar o impacto e manter o processamento desligado. | Decisão comercial sobre diferença na troca e retirada do standby do frete; depois, fornecedor e tarifas. |
+| 10, 12 | Manter a obrigação local da diferença e o processamento de frete desligados. | Homologação financeira da diferença; decisão sobre retirada do standby do frete, fornecedor e tarifas. |
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
 | 41, 42, 45 | Fortalecer filtros, trilha de revisão, recursos, pedidos de exclusão e testes sintéticos. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
 | 46, 61 | Revisar cópia local, versões e estados de aceite sem ativar termos ou prometer seguro. | Revisão jurídica e aprovação dos termos; condições reais de seguro e garantias. |
@@ -33,4 +33,4 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 5. Obter decisões comerciais, parecer jurídico/privacidade, equipe e instituições. Só então homologar infraestrutura e fornecedores reais.
 6. Repetir CI, testes de integração, diagnóstico de produção e decisão formal de lançamento.
 
-Os itens 3 (processador), 10 (diferença), 12 (frete), 26–28 e 31–33 (dados infantis), 46 (termos), 51 (suporte externo) e 60 (saída de fornecedor) não podem mudar de bloqueados por código ou simulação apenas. O item 12 permanece em standby até decisão explícita. Nenhuma porcentagem deve subir sem evidência correspondente à definição de conclusão da matriz.
+Os itens 3 (processador), 12 (frete), 26–28 e 31–33 (dados infantis), 46 (termos), 51 (suporte externo) e 60 (saída de fornecedor) não podem mudar de bloqueados por código ou simulação apenas. O item 10 agora é parcial: sua regra local está comprovada, mas não pode ser concluído sem homologação financeira real. O item 12 permanece em standby até decisão explícita. Nenhuma porcentagem deve subir sem evidência correspondente à definição de conclusão da matriz.

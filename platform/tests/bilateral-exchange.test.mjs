@@ -16,9 +16,11 @@ test('acceptance locks both listings and creates exactly two opposite independen
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,requester_id:'requester',owner_id:'owner',requester_declared_value_cents:8000,status:'proposed',version:1};let shipment=0;
  const db=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/UPDATE listings SET status='unavailable'/.test(sql)?[{id:requested},{id:offered}]:/INSERT INTO shipments/.test(sql)?[{id:`shipment-${++shipment}`,transaction_id:transaction,status:'awaiting_pickup',exchange_leg:shipment}]:/UPDATE exchange_operations SET status='accepted'/.test(sql)?[{...operation,status:'accepted',version:2}]:[]);
  const result=await createExchangeRepository(db).accept({actorId:'owner',transactionId:transaction,expectedVersion:1,ownerDeclaredValueCents:10000});assert.equal(result.shipments.length,2);assert.deepEqual(result.feeObligations.map(x=>x.fee_cents),[200,250]);
+ assert.deepEqual(result.differenceObligation,{payerId:'requester',recipientId:'owner',lowerValueCents:8000,higherValueCents:10000,amountCents:2000,status:'not_charged',releasePolicy:'after_bilateral_delivery_confirmation'});assert.ok(result.shipments.every(x=>x.status==='provider_pending'));
  const inserts=db.calls.filter(({sql})=>/INSERT INTO shipments/.test(sql));assert.equal(inserts[0].values[1],'owner');assert.equal(inserts[0].values[2],'requester');assert.equal(inserts[1].values[1],'requester');assert.equal(inserts[1].values[2],'owner');assert.notEqual(inserts[0].values[4],inserts[1].values[4]);
  assert.ok(db.calls.every(({sql})=>!/payment_intents|courier_payout_obligations/.test(sql)));
  const fees=db.calls.filter(({sql})=>/INSERT INTO exchange_fee_obligations/.test(sql));assert.equal(fees.length,2);assert.deepEqual(fees.map(x=>x.values.slice(3)),[[8000,200],[10000,250]]);
+ assert.deepEqual(db.calls.find(({sql})=>/INSERT INTO exchange_difference_obligations/.test(sql)).values,[transaction,'requester','owner',8000,10000,2000]);assert.ok(db.calls.some(({sql})=>/UPDATE shipments SET status='provider_pending'/.test(sql)));
 });
 
 test('exchange completion fails until both legs are independently assigned, delivered, approved and validated',async()=>{
@@ -30,6 +32,19 @@ test('complete exchange has no payment record and atomically closes transaction 
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const db=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/AS financial_records/.test(sql)?[{financial_records:false}]:/UPDATE exchange_operations/.test(sql)?[{...operation,status:'completed',version:3}]:[]);
  const result=await createExchangeRepository(db).complete({actorId:'admin',transactionId:transaction});assert.equal(result.status,'completed');assert.ok(db.calls.some(({sql})=>/UPDATE transactions SET status='completed'/.test(sql)));assert.deepEqual(db.calls.find(({sql})=>/UPDATE listings SET status='completed'/.test(sql)).values,[[requested,offered]]);assert.equal(JSON.parse(db.calls.at(-1).values[2]).financialSettlement,false);
+});
+
+test('difference payment confirmation is idempotent and releases both delivery legs',async()=>{
+ const obligation={transaction_id:transaction,payer_id:'requester',recipient_id:'owner',amount_cents:2000,status:'provider_pending',provider_reference:null};
+ const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[obligation]:/UPDATE exchange_difference_obligations SET status='paid'/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:/UPDATE shipments SET status='awaiting_pickup'/.test(sql)?[{id:'leg-1'},{id:'leg-2'}]:[]);
+ const result=await createExchangeRepository(db).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(result.reused,false);assert.equal(result.difference.status,'paid');assert.equal(db.calls.filter(({sql})=>/INSERT INTO shipment_events/.test(sql)).length,2);assert.match(db.calls.at(-1).sql,/exchange\.difference\.paid/);
+ const reusedDb=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[{...obligation,status:'paid',provider_reference:'asaas-synthetic'}]:[]);const reused=await createExchangeRepository(reusedDb).recordDifferencePaid({transactionId:transaction,providerReference:'asaas-synthetic',amountCents:2000});assert.equal(reused.reused,true);assert.equal(reusedDb.calls.length,1);
+});
+
+test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
+ const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
+ const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
+ const paid=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'paid'}]:/AS financial_records/.test(sql)?[{financial_records:false}]:/UPDATE exchange_operations/.test(sql)?[{...operation,status:'completed',version:3}]:[]);await createExchangeRepository(paid).complete({actorId:'admin',transactionId:transaction});assert.ok(paid.calls.some(({sql})=>/SET status='release_pending'/.test(sql)));
 });
 
 test('exchange receipts use each leg receiver and still require independent validation',async()=>{
@@ -55,10 +70,11 @@ test('owner can refuse a proposal without locking either listing',async()=>{
 
 test('accepted exchange cancels only after both parties confirm and before address or collection',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,requester_id:'requester',owner_id:'owner',status:'accepted',version:2};
- const first=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/AS collected/.test(sql)?[{collected:false,address_shared:false}]:/SELECT user_id FROM exchange_cancellation/.test(sql)?[{user_id:'requester'}]:[]);
+ const first=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/AS collected/.test(sql)?[{collected:false,address_shared:false,financial_difference:false}]:/SELECT user_id FROM exchange_cancellation/.test(sql)?[{user_id:'requester'}]:[]);
  const pending=await createExchangeRepository(first).confirmCancellation({actorId:'requester',transactionId:transaction,expectedVersion:2,reason:'Não conseguirei prosseguir com a troca.'});assert.equal(pending.counterpartConfirmed,false);assert.ok(first.calls.every(({sql})=>!/UPDATE shipments SET status='cancelled'/.test(sql)));
- const second=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/AS collected/.test(sql)?[{collected:false,address_shared:false}]:/SELECT user_id FROM exchange_cancellation/.test(sql)?[{user_id:'requester'},{user_id:'owner'}]:/UPDATE exchange_operations SET status='cancelled'/.test(sql)?[{...operation,status:'cancelled',version:3}]:[]);
+ const second=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/AS collected/.test(sql)?[{collected:false,address_shared:false,financial_difference:false}]:/SELECT user_id FROM exchange_cancellation/.test(sql)?[{user_id:'requester'},{user_id:'owner'}]:/UPDATE exchange_operations SET status='cancelled'/.test(sql)?[{...operation,status:'cancelled',version:3}]:[]);
  const cancelled=await createExchangeRepository(second).confirmCancellation({actorId:'owner',transactionId:transaction,expectedVersion:2,reason:'Concordo com o cancelamento solicitado.'});assert.equal(cancelled.counterpartConfirmed,true);assert.ok(second.calls.some(({sql})=>/UPDATE shipments SET status='cancelled'/.test(sql)));assert.ok(second.calls.some(({sql})=>/UPDATE listings SET status='published'/.test(sql)));
+ assert.ok(second.calls.some(({sql})=>/UPDATE exchange_difference_obligations SET status='cancelled'/.test(sql)));
 });
 
 test('collection, proof or address disclosure routes exchange cancellation to support',async()=>{
