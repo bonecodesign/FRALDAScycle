@@ -62,6 +62,7 @@ const files = [
   "apps/api/premium-handler.js",
   "apps/app/premium.js",
   "workers/premium.js",
+  "workers/exchange-difference-maintenance.js",
   "tools/beta-premium-check.mjs",
   "packages/contracts/local-api-origin.js",
   "packages/contracts/api-client.js",

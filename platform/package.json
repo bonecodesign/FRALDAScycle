@@ -42,6 +42,8 @@
     "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve",
     "worker:account-closure:local": "node workers/account-closure.js --once",
     "worker:account-closure": "node workers/account-closure.js --serve",
+    "worker:exchange-difference:local": "node workers/exchange-difference-maintenance.js --once",
+    "worker:exchange-difference": "node workers/exchange-difference-maintenance.js --serve",
     "worker:refund-reconciliation": "node workers/supported-refund-reconciliation.js"
   },
   "dependencies": {
