@@ -56,6 +56,11 @@ test('renewal and automatic expiry fail closed after provider processing begins'
  const processing={transaction_id:transaction,payer_id:'requester',status:'provider_pending',provider_reference:'provider-1',checkout_renewal_count:0,checkout_expires_at:'2020-01-01T00:00:00Z'};const db=database(sql=>/SELECT \* FROM exchange_difference_obligations/.test(sql)?[processing]:[]);await assert.rejects(createExchangeRepository(db).renewDifferenceCheckout({actorId:'requester',transactionId:transaction}),error=>error.code==='exchange_difference_renewal_not_available');assert.equal(db.calls.length,1);
 });
 
+test('due warning creates one internal notice and queues email only when explicitly enabled',async()=>{
+ const due={transaction_id:transaction,payer_id:'requester',email:'requester@example.test',email_verified_at:'2030-01-01',email_enabled:true};const db=database(sql=>/SELECT d\.transaction_id/.test(sql)?[due]:[]);assert.deepEqual(await createExchangeRepository(db).dispatchDifferenceWarnings({limit:10}),{warned:1,emailQueued:1});assert.ok(db.calls.some(({sql})=>/INSERT INTO account_notices/.test(sql)));const email=db.calls.find(({sql})=>/INSERT INTO notification_outbox/.test(sql));assert.deepEqual(email.values.slice(0,1),['requester@example.test']);assert.equal(JSON.parse(email.values[1]).channel,'email');assert.match(db.calls.at(-1).sql,/warning_queued/);
+ const internalOnly=database(sql=>/SELECT d\.transaction_id/.test(sql)?[{...due,email_enabled:false}]:[]);assert.deepEqual(await createExchangeRepository(internalOnly).dispatchDifferenceWarnings({limit:10}),{warned:1,emailQueued:0});assert.ok(internalOnly.calls.every(({sql})=>!/INSERT INTO notification_outbox/.test(sql)));
+});
+
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
