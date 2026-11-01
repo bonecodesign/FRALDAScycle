@@ -201,6 +201,7 @@
         "database/migrations/117_exchange_settlement_reconciliation_sla.sql",
         "database/migrations/118_exchange_reconciliation_decisions.sql",
         "database/migrations/119_exchange_reconciliation_execution_outbox.sql",
+        "database/migrations/120_exchange_reconciliation_closure.sql",
         "database/exchange-repository.js",
         "apps/api/asaas-client.js",
         "workers/exchange-difference-maintenance.js",
@@ -214,9 +215,10 @@
         "tests/exchange-difference.test.mjs",
         "tests/exchange-difference-checkout.test.mjs",
         "tests/bilateral-exchange.test.mjs",
+        "tests/exchange-reconciliation-closure.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 31/10/2026: valores de R$ 80 e R$ 100 criaram obrigação de R$ 20 para quem ofereceu o pacote de menor valor; entregas permaneceram bloqueadas até confirmação idempotente e a conclusão marcou repasse pendente, sem criar payment_intent.",
+      "evidence": "Prova local em 01/11/2026: valores de R$ 80 e R$ 100 criaram obrigação de R$ 20; entregas permaneceram bloqueadas até confirmação idempotente. A cadeia completa de 120 migrações passou em PostgreSQL 16 descartável. Alertas de conciliação agora só são encerrados por webhook autenticado ou polling reconciliado, com evidência SHA-256 imutável e aviso aos níveis 3, 4 e 5, sem armazenar o payload do provedor.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
