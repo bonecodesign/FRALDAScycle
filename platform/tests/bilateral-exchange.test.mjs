@@ -163,6 +163,10 @@ test('provider settlement confirmation notifies both exchange parties without ex
  const result=await createExchangeRepository(db).reconcileDifferenceDisputeSettlement({providerReference:'provider:123',status:'completed',source:'webhook',eventId:'event:123',evidenceSha256:'a'.repeat(64)});assert.equal(result.completed,true);assert.equal(result.partiesNotified,2);assert.equal(result.emailQueued,1);assert.equal(db.calls.filter(({sql})=>/INSERT INTO account_notices/.test(sql)).length,2);const email=db.calls.find(({sql})=>/INSERT INTO notification_outbox/.test(sql));assert.equal(JSON.parse(email.values[1]).status,'completed');
 });
 
+test('unresolved reconciliation escalates to founder after two hours exactly once',async()=>{
+ const db=database(sql=>/SELECT id,transaction_id FROM exchange_difference_settlement_commands/.test(sql)?[{id:'command',transaction_id:transaction}]:/SELECT u\.id,u\.email/.test(sql)?[{id:'founder',email:'founder@example.test',email_verified_at:'2026-01-01',email_enabled:true}]:[]);const result=await createExchangeRepository(db).escalateOverdueSettlementReconciliations({limit:10});assert.deepEqual(result,{escalated:1,staffNotified:1,emailQueued:1});assert.ok(db.calls.some(({sql})=>/audience_access_level/.test(sql)));assert.ok(db.calls.some(({sql})=>/founder_escalated_at=now/.test(sql)));
+});
+
 test('completion blocks unpaid difference and marks paid difference ready for release',async()=>{
  const operation={transaction_id:transaction,requested_listing_id:requested,offered_listing_id:offered,status:'accepted',version:2};
  const pending=database(sql=>/SELECT \* FROM exchange_operations/.test(sql)?[operation]:/SELECT count\(\*\)/.test(sql)?[{legs:2,ready:2,assigned:2}]:/SELECT status FROM exchange_difference/.test(sql)?[{status:'provider_pending'}]:[]);await assert.rejects(createExchangeRepository(pending).complete({actorId:'admin',transactionId:transaction}),error=>error.code==='exchange_difference_payment_pending');
