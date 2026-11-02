@@ -21,7 +21,7 @@ export async function runExchangeReconciliationRetention({mode,env=process.env,c
  const database=createDb({databaseUrl:url.toString(),databaseSsl:env.DATABASE_SSL!=='false'}),repository=createRepository(database);
  try{
   if(mode==='once')return await anonymizeExpiredExchangeReconciliations(repository);
-  while(!signal?.aborted){await wait(millisecondsUntilDailyRetention(clock()),signal);if(signal?.aborted)break;try{const result=await anonymizeExpiredExchangeReconciliations(repository);const recovery=await repository.recordSuccess();console.log(JSON.stringify({type:'exchange.reconciliation.retention.completed',scheduledUtc:'06:30',...result,...recovery}));}catch(error){const failureCode=String(error?.code??'retention_execution_failed').toLowerCase().replace(/[^a-z0-9_:-]/g,'_').slice(0,80);const escalation=await repository.recordFailure({failureCode});console.error(JSON.stringify({type:'exchange.reconciliation.retention.failed',scheduledUtc:'06:30',...escalation}));}}
+  while(!signal?.aborted){await wait(millisecondsUntilDailyRetention(clock()),signal);if(signal?.aborted)break;try{const result=await anonymizeExpiredExchangeReconciliations(repository);const recovery=await repository.recordSuccess({anonymized:result.anonymized});console.log(JSON.stringify({type:'exchange.reconciliation.retention.completed',scheduledUtc:'06:30',...result,...recovery}));}catch(error){const failureCode=String(error?.code??'retention_execution_failed').toLowerCase().replace(/[^a-z0-9_:-]/g,'_').slice(0,80);const escalation=await repository.recordFailure({failureCode});console.error(JSON.stringify({type:'exchange.reconciliation.retention.failed',scheduledUtc:'06:30',...escalation}));}}
   return{stopped:true};
  }finally{await database.close();}
 }

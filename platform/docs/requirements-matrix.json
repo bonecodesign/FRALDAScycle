@@ -204,6 +204,7 @@
         "database/migrations/120_exchange_reconciliation_closure.sql",
         "database/migrations/121_exchange_reconciliation_retention.sql",
         "database/migrations/122_exchange_retention_failure_escalation.sql",
+        "database/migrations/123_exchange_retention_runtime_status.sql",
         "database/exchange-repository.js",
         "database/exchange-reconciliation-retention-repository.js",
         "apps/api/asaas-client.js",
@@ -213,6 +214,8 @@
         "workers/exchange-settlement-escalation.js",
         "workers/exchange-reconciliation-execution.js",
         "workers/exchange-reconciliation-retention.js",
+        "apps/api/exchange-retention-status-service.js",
+        "apps/admin/exchange-retention-status.js",
         "apps/api/exchange-settlement-webhook-service.js",
         "apps/api/exchange-settlement-webhook-handler.js",
         "apps/app/exchange.js",
@@ -221,9 +224,10 @@
         "tests/bilateral-exchange.test.mjs",
         "tests/exchange-reconciliation-closure.test.mjs",
         "tests/exchange-reconciliation-retention.test.mjs",
+        "tests/exchange-retention-admin-status.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: a cadeia completa de 124 migrações passou em PostgreSQL 16 descartável. A retenção anonimiza após cinco anos e roda diariamente às 06:30 UTC. Falhas consecutivas escalam aos níveis 3, 4 e 5. A recuperação encerra o incidente e avisa, de forma idempotente, somente os níveis anteriormente acionados. Ativação permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: a cadeia completa de 125 migrações passou em PostgreSQL 16 descartável. O painel técnico de nível mínimo 2 mostra somente estado, última e próxima execução, falhas consecutivas e nível acionado, sem transação, usuário, hash, payload ou valor financeiro. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
