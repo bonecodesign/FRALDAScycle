@@ -5,12 +5,15 @@ import { requireAccessLevel, requireScope } from "./authorization.js";
 import { sendCsv, sendJson } from "./http.js";
 
 export async function handleAdmin(request, response, {
-  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService,
+  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
 
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-status'){requireAccessLevel(user,2);if(!exchangeRetentionStatusService)throw new AuthError('retention_status_unavailable',503,'Situação da retenção indisponível.');const result=await exchangeRetentionStatusService.snapshot();sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-requests'){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.list(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  if(request.method==='POST'&&url.pathname==='/v1/admin/exchange-retention-requests'){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.request(user,await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  const retentionReview=url.pathname.match(/^\/v1\/admin\/exchange-retention-requests\/([0-9a-f-]{36})\/review$/i);if(request.method==='POST'&&retentionReview){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.review(user,retentionReview[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
 
   if (request.method === "GET" && url.pathname === "/v1/admin/operational-control") {
     requireAccessLevel(user, 2);

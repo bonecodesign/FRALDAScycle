@@ -83,6 +83,7 @@ export function createApiServer({
   deliveryQuoteService = null,
   exchangeSettlementWebhookService = null,
   exchangeRetentionStatusService = null,
+  exchangeRetentionRequestService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -314,7 +315,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService,
       })) return;
 
       if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
