@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+import {createExchangeRetentionStatusService} from '../apps/api/exchange-retention-status-service.js';
+
+test('technical panel exposes only safe retention health fields',async()=>{const service=createExchangeRetentionStatusService({async status(){return{last_run_at:'2030-01-02T06:30:00Z',last_status:'failed',last_anonymized_count:0,consecutive_failures:2,highest_notified_level:4};}},{clock:()=>new Date('2030-01-02T12:00:00Z')});const result=await service.snapshot();assert.equal(result.state,'attention');assert.equal(result.consecutiveFailures,2);assert.equal(result.notifiedAccessLevel,4);assert.equal(result.nextRunAt,'2030-01-03T06:30:00.000Z');assert.equal(result.sensitiveDataIncluded,false);assert.deepEqual(Object.keys(result).sort(),['consecutiveFailures','lastAnonymizedCount','lastRunAt','nextRunAt','notifiedAccessLevel','sensitiveDataIncluded','state'].sort());});
+
+test('alerts page renders retention status with text-only controller',async()=>{const [html,script]=await Promise.all([readFile(new URL('../apps/admin/alerts.html',import.meta.url),'utf8'),readFile(new URL('../apps/admin/exchange-retention-status.js',import.meta.url),'utf8')]);assert.match(html,/Retenção da conciliação/);for(const id of['retention-status-last','retention-status-next','retention-status-failures','retention-status-level'])assert.match(html,new RegExp(`id="${id}"`));assert.match(script,/textContent/);assert.doesNotMatch(script,/innerHTML|insertAdjacentHTML|transaction|providerReference|evidenceSha256/);});
