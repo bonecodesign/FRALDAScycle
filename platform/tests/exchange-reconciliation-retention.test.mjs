@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {createExchangeReconciliationRetentionRepository} from '../database/exchange-reconciliation-retention-repository.js';
-import {anonymizeExpiredExchangeReconciliations,runExchangeReconciliationRetention} from '../workers/exchange-reconciliation-retention.js';
+import {anonymizeExpiredExchangeReconciliations,millisecondsUntilDailyRetention,runExchangeReconciliationRetention} from '../workers/exchange-reconciliation-retention.js';
 
 test('five-year retention removes links and evidence while preserving anonymous statistics',async()=>{
  const calls=[];const client={async query(sql,values){calls.push({sql,values});if(/SELECT id FROM/.test(sql))return{rows:[{id:'11111111-1111-4111-8111-111111111111'}]};if(/UPDATE exchange_settlement_reconciliation_closures/.test(sql))return{rows:[{id:'11111111-1111-4111-8111-111111111111'}]};return{rows:[]};}};
@@ -15,7 +15,13 @@ test('five-year retention removes links and evidence while preserving anonymous 
 });
 
 test('retention worker is disabled without explicit legal acknowledgement',async()=>{
- await assert.rejects(runExchangeReconciliationRetention({env:{NODE_ENV:'production',EXCHANGE_RECONCILIATION_RETENTION_ENABLED:'true'}}),/aprovação jurídica/);
+ await assert.rejects(runExchangeReconciliationRetention({mode:'serve',env:{NODE_ENV:'production',DATABASE_URL:'postgresql://db.example.test/fc',EXCHANGE_RECONCILIATION_RETENTION_ENABLED:'true'}}),/aprovação jurídica/);
+});
+
+test('daily schedule targets 06:30 UTC and rolls to the next day',()=>{
+ assert.equal(millisecondsUntilDailyRetention(new Date('2030-01-02T06:00:00Z')),30*60*1000);
+ assert.equal(millisecondsUntilDailyRetention(new Date('2030-01-02T06:30:00Z')),24*60*60*1000);
+ assert.equal(millisecondsUntilDailyRetention(new Date('2030-01-02T07:00:00Z')),23.5*60*60*1000);
 });
 
 test('retention migration fixes five years and enforces anonymous state',async()=>{
