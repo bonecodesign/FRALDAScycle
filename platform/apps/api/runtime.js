@@ -96,6 +96,7 @@ import {createIncidentRoleService} from './incident-role-service.js';
 import {createExchangeSettlementWebhookService} from './exchange-settlement-webhook-service.js';
 import {createExchangeReconciliationRetentionRepository} from '../../database/exchange-reconciliation-retention-repository.js';
 import {createExchangeRetentionStatusService} from './exchange-retention-status-service.js';
+import {createExchangeRetentionRequestService} from './exchange-retention-request-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -135,6 +136,7 @@ export async function startRuntime(config = null) {
   const operationalControlService = createOperationalControlService(createOperationalControlRepository(database,{stepUpRepository:accountStepUpRepository}));
   const operationalIncidentService = createOperationalIncidentService(createOperationalIncidentRepository(database));
   const exchangeRetentionStatusService=createExchangeRetentionStatusService(createExchangeReconciliationRetentionRepository(database));
+  const exchangeRetentionRequestService=createExchangeRetentionRequestService(createExchangeReconciliationRetentionRepository(database));
   const incidentRoleService=createIncidentRoleService(createIncidentRoleRepository(database,{stepUpRepository:accountStepUpRepository}));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
@@ -244,6 +246,7 @@ export async function startRuntime(config = null) {
     deliveryQuoteService,
     exchangeSettlementWebhookService,
     exchangeRetentionStatusService,
+    exchangeRetentionRequestService,
     telemetry,
   });
 

@@ -206,6 +206,7 @@
         "database/migrations/122_exchange_retention_failure_escalation.sql",
         "database/migrations/123_exchange_retention_runtime_status.sql",
         "database/migrations/124_exchange_retention_run_history.sql",
+        "database/migrations/125_exchange_retention_manual_requests.sql",
         "database/exchange-repository.js",
         "database/exchange-reconciliation-retention-repository.js",
         "apps/api/asaas-client.js",
@@ -216,6 +217,7 @@
         "workers/exchange-reconciliation-execution.js",
         "workers/exchange-reconciliation-retention.js",
         "apps/api/exchange-retention-status-service.js",
+        "apps/api/exchange-retention-request-service.js",
         "apps/admin/exchange-retention-status.js",
         "apps/api/exchange-settlement-webhook-service.js",
         "apps/api/exchange-settlement-webhook-handler.js",
@@ -226,9 +228,10 @@
         "tests/exchange-reconciliation-closure.test.mjs",
         "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-retention-admin-status.test.mjs",
+        "tests/exchange-retention-request-service.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada, além dos indicadores seguros atuais. Não conserva códigos de falha, incidentes, usuários ou dados financeiros nesse histórico. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
