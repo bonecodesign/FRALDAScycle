@@ -205,6 +205,7 @@
         "database/migrations/121_exchange_reconciliation_retention.sql",
         "database/migrations/122_exchange_retention_failure_escalation.sql",
         "database/migrations/123_exchange_retention_runtime_status.sql",
+        "database/migrations/124_exchange_retention_run_history.sql",
         "database/exchange-repository.js",
         "database/exchange-reconciliation-retention-repository.js",
         "apps/api/asaas-client.js",
@@ -227,7 +228,7 @@
         "tests/exchange-retention-admin-status.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: a cadeia completa de 125 migrações passou em PostgreSQL 16 descartável. O painel técnico de nível mínimo 2 mostra somente indicadores seguros, atualiza a cada 60 segundos enquanto visível, pausa em segundo plano e oferece atualização manual sem consultas concorrentes. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada, além dos indicadores seguros atuais. Não conserva códigos de falha, incidentes, usuários ou dados financeiros nesse histórico. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
