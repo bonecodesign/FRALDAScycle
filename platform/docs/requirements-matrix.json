@@ -222,7 +222,7 @@
         "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: a cadeia completa de 123 migrações passou em PostgreSQL 16 descartável. Alertas só encerram após confirmação reconciliada, com evidência imutável. A retenção técnica preserva o vínculo por cinco anos e depois remove IDs, hash e instante exato, mantendo somente estatística anônima; o worker permanece bloqueado até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: a cadeia completa de 123 migrações passou em PostgreSQL 16 descartável. Alertas só encerram após confirmação reconciliada. A retenção preserva o vínculo por cinco anos e depois anonimiza; o serviço agenda uma execução diária para 06:30 UTC sem antecipar após reinício e permanece bloqueado até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
