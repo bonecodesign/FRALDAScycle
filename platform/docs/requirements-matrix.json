@@ -203,6 +203,7 @@
         "database/migrations/119_exchange_reconciliation_execution_outbox.sql",
         "database/migrations/120_exchange_reconciliation_closure.sql",
         "database/migrations/121_exchange_reconciliation_retention.sql",
+        "database/migrations/122_exchange_retention_failure_escalation.sql",
         "database/exchange-repository.js",
         "database/exchange-reconciliation-retention-repository.js",
         "apps/api/asaas-client.js",
@@ -222,7 +223,7 @@
         "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: a cadeia completa de 123 migrações passou em PostgreSQL 16 descartável. Alertas só encerram após confirmação reconciliada. A retenção preserva o vínculo por cinco anos e depois anonimiza; o serviço agenda uma execução diária para 06:30 UTC sem antecipar após reinício e permanece bloqueado até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: a cadeia completa de 124 migrações passou em PostgreSQL 16 descartável. A retenção anonimiza após cinco anos e roda diariamente às 06:30 UTC. Falhas consecutivas escalam obrigatoriamente aos níveis 3, 4 e 5, sem repetir o último nível; sucesso encerra a sequência. Ativação permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
