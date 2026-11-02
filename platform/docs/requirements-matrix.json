@@ -202,13 +202,16 @@
         "database/migrations/118_exchange_reconciliation_decisions.sql",
         "database/migrations/119_exchange_reconciliation_execution_outbox.sql",
         "database/migrations/120_exchange_reconciliation_closure.sql",
+        "database/migrations/121_exchange_reconciliation_retention.sql",
         "database/exchange-repository.js",
+        "database/exchange-reconciliation-retention-repository.js",
         "apps/api/asaas-client.js",
         "workers/exchange-difference-maintenance.js",
         "workers/exchange-dispute-settlement.js",
         "workers/exchange-dispute-reconciliation.js",
         "workers/exchange-settlement-escalation.js",
         "workers/exchange-reconciliation-execution.js",
+        "workers/exchange-reconciliation-retention.js",
         "apps/api/exchange-settlement-webhook-service.js",
         "apps/api/exchange-settlement-webhook-handler.js",
         "apps/app/exchange.js",
@@ -216,9 +219,10 @@
         "tests/exchange-difference-checkout.test.mjs",
         "tests/bilateral-exchange.test.mjs",
         "tests/exchange-reconciliation-closure.test.mjs",
+        "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 01/11/2026: valores de R$ 80 e R$ 100 criaram obrigação de R$ 20; entregas permaneceram bloqueadas até confirmação idempotente. A cadeia completa de 120 migrações passou em PostgreSQL 16 descartável. Alertas de conciliação agora só são encerrados por webhook autenticado ou polling reconciliado, com evidência SHA-256 imutável e aviso aos níveis 3, 4 e 5, sem armazenar o payload do provedor.",
+      "evidence": "Prova local em 02/11/2026: a cadeia completa de 123 migrações passou em PostgreSQL 16 descartável. Alertas só encerram após confirmação reconciliada, com evidência imutável. A retenção técnica preserva o vínculo por cinco anos e depois remove IDs, hash e instante exato, mantendo somente estatística anônima; o worker permanece bloqueado até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {

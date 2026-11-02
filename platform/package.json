@@ -47,6 +47,7 @@
     "worker:exchange-dispute-settlement": "node workers/exchange-dispute-settlement.js",
     "worker:exchange-dispute-reconciliation": "node workers/exchange-dispute-reconciliation.js",
     "worker:exchange-reconciliation-execution": "node workers/exchange-reconciliation-execution.js",
+    "worker:exchange-reconciliation-retention": "node workers/exchange-reconciliation-retention.js",
     "worker:refund-reconciliation": "node workers/supported-refund-reconciliation.js"
   },
   "dependencies": {
