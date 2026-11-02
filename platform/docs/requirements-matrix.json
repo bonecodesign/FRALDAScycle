@@ -223,7 +223,7 @@
         "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-http-postgres.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: a cadeia completa de 124 migrações passou em PostgreSQL 16 descartável. A retenção anonimiza após cinco anos e roda diariamente às 06:30 UTC. Falhas consecutivas escalam obrigatoriamente aos níveis 3, 4 e 5, sem repetir o último nível; sucesso encerra a sequência. Ativação permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
+      "evidence": "Prova local em 02/11/2026: a cadeia completa de 124 migrações passou em PostgreSQL 16 descartável. A retenção anonimiza após cinco anos e roda diariamente às 06:30 UTC. Falhas consecutivas escalam aos níveis 3, 4 e 5. A recuperação encerra o incidente e avisa, de forma idempotente, somente os níveis anteriormente acionados. Ativação permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
       "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
     },
     {
