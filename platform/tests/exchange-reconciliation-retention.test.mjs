@@ -40,9 +40,15 @@ test('retention failures escalate strictly through levels 3, 4 and 5',async()=>{
 });
 
 test('successful daily run resolves the open failure sequence',async()=>{
- const calls=[];const client={async query(sql){calls.push(sql);return/UPDATE exchange_reconciliation_retention_incidents/.test(sql)?{rows:[{id:'incident',consecutive_failures:2,highest_notified_level:4}]}:{rows:[]};}};
+ const calls=[],levels=[];const client={async query(sql,values){calls.push(sql);if(/UPDATE exchange_reconciliation_retention_incidents/.test(sql))return{rows:[{id:'incident',consecutive_failures:2,highest_notified_level:4}]};if(/SELECT u\.id,u\.email/.test(sql)){levels.push(values[0]);return{rows:[{id:`staff-${values[0]}`,email:null,email_verified_at:null,email_enabled:false}]};}return{rows:[]};}};
  const result=await createExchangeReconciliationRetentionRepository({async transaction(work){return work(client);}}).recordSuccess();
- assert.equal(result.resolved,true);assert.ok(calls.some(sql=>/retention_recovered/.test(sql)));
+ assert.equal(result.resolved,true);assert.deepEqual(result.notifiedLevels,[3,4]);assert.equal(result.staffNotified,2);assert.deepEqual(levels,[3,4]);assert.ok(calls.some(sql=>/retention_recovered/.test(sql)));
+});
+
+test('recovery notifies level 5 only when founder escalation happened',async()=>{
+ const levels=[];const client={async query(sql,values){if(/UPDATE exchange_reconciliation_retention_incidents/.test(sql))return{rows:[{id:'incident',consecutive_failures:3,highest_notified_level:5}]};if(/SELECT u\.id,u\.email/.test(sql)){levels.push(values[0]);return{rows:[]};}return{rows:[]};}};
+ const result=await createExchangeReconciliationRetentionRepository({async transaction(work){return work(client);}}).recordSuccess();
+ assert.deepEqual(result.notifiedLevels,[3,4,5]);assert.deepEqual(levels,[3,4,5]);
 });
 
 test('retention migration fixes five years and enforces anonymous state',async()=>{
