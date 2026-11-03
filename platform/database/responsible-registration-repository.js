@@ -84,6 +84,7 @@ export async function persistResponsibleRegistration(client, userId, input) {
      VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
     [userId,familyProfile.id,JSON.stringify({consentVersion:input.familyProfile.consentVersion,emoji:input.familyProfile.emoji,personalizationEnabled:true,registrationFlow:true})],
   );}
+  if(familyProfile)await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi criado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[userId,`child-profile:${familyProfile.id}:created:v${familyProfile.version}`]);
 
   await client.query(
     `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)

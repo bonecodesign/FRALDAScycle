@@ -54,6 +54,20 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal(await createChildProfileRepository(database).operationProfileState(owner),'missing');
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM information_schema.columns WHERE table_name='child_profiles' AND column_name='label'`)).rows[0].count,0);
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,5);
+      const notices=await database.query(`SELECT message,created_at,expires_at FROM account_notices WHERE user_id=$1 AND kind='child_profile_change' ORDER BY created_at`,[owner]);
+      assert.equal(notices.rows.length,5);
+      assert.deepEqual(notices.rows.map(row=>row.message),[
+        'Um perfil da família foi criado.',
+        'Um perfil da família foi criado.',
+        'Um perfil da família foi atualizado.',
+        'Um perfil da família foi removido.',
+        'Um perfil da família foi removido.',
+      ]);
+      for(const notice of notices.rows){
+        assert.doesNotMatch(notice.message,/\d{4}-\d{2}-\d{2}|nascimento|birth/i);
+        const retentionMs=new Date(notice.expires_at).getTime()-new Date(notice.created_at).getTime();
+        assert.ok(retentionMs>=365*24*60*60*1000&&retentionMs<=366*24*60*60*1000);
+      }
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });

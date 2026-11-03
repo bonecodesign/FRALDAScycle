@@ -9,7 +9,7 @@ Estado: planejamento técnico e documental; não representa parecer profissional
 | Pacote | Mudança necessária | Situação atual | Evidência esperada | Gate externo |
 |---|---|---|---|---|
 | Cadastro familiar | Fluxo único, perfil obrigatório e descarte de incompleto em 24h | Implementado localmente e desligado por padrão | HTTP/PostgreSQL, concorrência e expiração | Jurídico/Privacidade |
-| Remoção infantil | Permitir remover último perfil e diferenciar remoção manual de encerramento aos 13 | Implementado localmente, feature ainda desligada | Testes de remoção, purga e relevância geral | Jurídico/Privacidade |
+| Remoção infantil | Permitir remover último perfil, diferenciar remoção manual de encerramento aos 13 e avisar alterações sem expor a data | Implementado localmente, inclusive aviso interno por 12 meses; feature ainda desligada | Testes de remoção, purga, aviso minimizado e relevância geral | Jurídico/Privacidade |
 | Consentimento infantil | Texto versionado, evidência por conta + 5 anos e aviso curto no ponto de coleta | Fundação parcial | Migração, serviço, interface e teste de versão | Texto profissional |
 | Marketing etário | Opt-in separado, faixa ampla interna e fornecedor sem segmento | Decisão documentada, implementação incompleta | Contrato, outbox minimizada e testes | Fornecedor/Privacidade |
 | Acesso emergencial | Dupla aprovação, 15 minutos, somente visualização e marca-d'água | Janela anterior diverge | Testes de expiração e auditoria | Segurança/Privacidade |

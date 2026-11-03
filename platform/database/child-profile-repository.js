@@ -1,6 +1,7 @@
 export function createChildProfileRepository(database) {
   return Object.freeze({
     async notices(accountId) {
+      await database.query(`DELETE FROM account_notices WHERE kind='child_profile_change' AND expires_at<=now()`);
       const result = await database.query(
         `SELECT id,message,created_at FROM account_notices
          WHERE user_id=$1 AND read_at IS NULL ORDER BY created_at DESC LIMIT 20`,
@@ -69,6 +70,7 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
           [accountId, row.id, JSON.stringify({ consentVersion, emoji, personalizationEnabled: true })],
         );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi criado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:created:v${row.version}`]);
         return row;
       });
     },
@@ -99,6 +101,7 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.corrected','child_profile',$2,$3::jsonb)`,
           [accountId, profileId, JSON.stringify({ previousVersion: expectedVersion, newVersion: row.version })],
         );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi atualizado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:updated:v${row.version}`]);
         return row;
       });
     },
@@ -123,6 +126,7 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.removed','child_profile',$2,$3::jsonb)`,
           [accountId, profileId, JSON.stringify({ previousVersion: expectedVersion, newVersion: row.version, personalizationEnabled: false })],
         );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi removido.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:removed:v${row.version}`]);
         return row;
       });
     },

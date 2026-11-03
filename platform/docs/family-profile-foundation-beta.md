@@ -12,7 +12,7 @@ A fundação suporta de 1 a 5 perfis por conta familiar, somente data de nascime
 
 ## Retenção e bloqueio após remoção
 
-A decisão superveniente de 3 de novembro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil pode ser removido manualmente; essa remoção é distinguida do encerramento etário para controlar novas operações.
+A decisão superveniente de 3 de novembro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil pode ser removido manualmente; essa remoção é distinguida do encerramento etário para controlar novas operações. Criação, correção e remoção geram aviso interno genérico, sem data de nascimento, com expiração em 12 meses; não há e-mail para essas alterações.
 
 ## Condições para ativação futura
 
@@ -25,6 +25,7 @@ A data e um emoji do conjunto fixo são obrigatórios ao adicionar um perfil. Ca
 - Migração 033 e contratos de maioridade/faixa etária.
 - Declaração integrada ao cadastro e às novas operações sensíveis.
 - Serviço privado com criação, correção, remoção, múltiplos perfis e proteção concorrente.
+- Avisos internos de alteração minimizados, deduplicados e retidos por 12 meses pela migração 127.
 - Worker idempotente encerra perfis aos 13 anos, elimina a data e enfileira avisos 30 dias antes e no dia; execução periódica exige `CHILD_PROFILE_LIFECYCLE_ENABLED=true`.
 - Interface adulta ativa; interface infantil condicionada ao backend habilitado.
 - 12/12 verificações focadas aprovadas, incluindo HTTP/PostgreSQL nativo, isolamento por conta e papel, dois perfis simultâneos, correção, remoção completa, sessão preservada, auditoria e ausência da antiga coluna de apelido.

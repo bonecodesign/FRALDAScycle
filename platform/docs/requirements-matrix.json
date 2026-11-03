@@ -681,13 +681,14 @@
       "references": [
       "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
       "database/child-profile-repository.js",
+      "database/migrations/127_child_profile_change_notices.sql",
       "apps/api/child-profile-service.js",
       "apps/app/family-profile.js",
       "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis e sessão ainda acessível com lista vazia.",
-    "reason": "Correção e remoção estão implementadas; retenção/purga e regra de novas operações sem perfil aguardam revisão."
+      "evidence": "HTTP/PostgreSQL comprova correção versionada, remoção dos dois perfis, sessão ainda acessível com lista vazia e avisos internos minimizados por 12 meses, sem data de nascimento.",
+    "reason": "Correção, remoção, purga operacional e aviso minimizado estão implementados; ativação continua condicionada à revisão jurídica e de privacidade."
     },
     {
       "id": 34,
