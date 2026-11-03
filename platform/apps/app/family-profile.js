@@ -40,7 +40,7 @@ function emojiOptions(selected, items) {
 }
 
 function profileRows(items, list, reload) {
-  list.innerHTML = items.map((item, index) => `<article class="phone-card" data-child-profile="${item.id}"><div><strong>Perfil ${index + 1} ${escape(item.emoji)}</strong><p>Idade atual: ${escape(item.ageDisplay)} · versão ${item.version}</p><label>Emoji<select class="input" name="emoji" required>${emojiOptions(item.emoji, items)}</select></label><label>Data de nascimento<input class="input" name="birthDate" type="date" value="${escape(item.birthDate)}"></label><div class="action-pair"><button class="button secondary" type="button" data-correct>Salvar</button><button class="button text" type="button" data-remove${items.length === 1 ? ' disabled' : ''}>Excluir perfil</button></div></div></article>`).join('');
+  list.innerHTML = items.map((item, index) => `<article class="phone-card" data-child-profile="${item.id}"><div><strong>Perfil ${index + 1} ${escape(item.emoji)}</strong><p>Idade atual: ${escape(item.ageDisplay)} · versão ${item.version}</p><label>Emoji<select class="input" name="emoji" required>${emojiOptions(item.emoji, items)}</select></label><label>Data de nascimento<input class="input" name="birthDate" type="date" value="${escape(item.birthDate)}"></label><div class="action-pair"><button class="button secondary" type="button" data-correct>Salvar</button><button class="button text" type="button" data-remove>Excluir perfil</button></div></div></article>`).join('');
   list.querySelectorAll('[data-child-profile]').forEach(article => {
     const item = items.find(value => value.id === article.dataset.childProfile);
     article.querySelector('[data-correct]').addEventListener('click', async event => {

@@ -47,12 +47,13 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal((await fetch(`${root}/${created.id}`,{method:'PUT',headers:headers('outsider'),body:JSON.stringify({birthDate:'2026-06-16',emoji:'🌙',expectedVersion:2})})).status,404);
       const removedResponse=await fetch(`${root}/${created.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:2})});assert.equal(removedResponse.status,200);assert.equal((await removedResponse.json()).removed,true);
       const remaining=await (await fetch(root,{headers:headers('owner')})).json();assert.equal(remaining.items.length,1);assert.equal(remaining.items[0].id,second.id);
-      assert.equal((await fetch(`${root}/${second.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:1})})).status,409);
+      assert.equal((await fetch(`${root}/${second.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:1})})).status,200);
       const retained=await database.query(`SELECT birth_date,deleted_at,personalization_enabled FROM child_profiles WHERE account_id=$1 ORDER BY created_at`,[owner]);
-      assert.equal(retained.rows.length,2);assert.equal(retained.rows[0].birth_date,null);assert.ok(retained.rows[0].deleted_at);assert.equal(retained.rows[1].personalization_enabled,true);
-      assert.equal(await createChildProfileRepository(database).hasActive(owner),true);
+      assert.equal(retained.rows.length,2);for(const row of retained.rows){assert.equal(row.birth_date,null);assert.ok(row.deleted_at);assert.equal(row.personalization_enabled,false);}
+      assert.equal(await createChildProfileRepository(database).hasActive(owner),false);
+      assert.equal(await createChildProfileRepository(database).operationProfileState(owner),'missing');
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM information_schema.columns WHERE table_name='child_profiles' AND column_name='label'`)).rows[0].count,0);
-      assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,4);
+      assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,5);
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });

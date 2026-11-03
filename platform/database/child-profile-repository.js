@@ -31,6 +31,20 @@ export function createChildProfileRepository(database) {
       return result.rows[0]?.active === true;
     },
 
+    async operationProfileState(accountId) {
+      const result = await database.query(
+        `SELECT
+           EXISTS(SELECT 1 FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL AND birth_date IS NOT NULL) AS active,
+           (SELECT lifecycle_ended_reason FROM child_profiles
+            WHERE account_id=$1 AND deleted_at IS NOT NULL
+            ORDER BY deleted_at DESC,id DESC LIMIT 1) AS latest_ended_reason`,
+        [accountId],
+      );
+      const row = result.rows[0] ?? {};
+      if (row.active === true) return "active";
+      return row.latest_ended_reason === "age_limit" ? "age_limit_ended" : "missing";
+    },
+
     async create({ accountId, birthDate, emoji, consentVersion }) {
       return database.transaction(async client => {
         await client.query(`SELECT id FROM users WHERE id=$1 FOR UPDATE`, [accountId]);
@@ -99,11 +113,6 @@ export function createChildProfileRepository(database) {
         )).rows[0];
         if (!current) return null;
         if (current.version !== expectedVersion) return { conflict: true };
-        const active = (await client.query(
-          `SELECT count(*)::integer AS count FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL`,
-          [accountId],
-        )).rows[0]?.count ?? 0;
-        if (active <= 1) return { lastProfile: true };
         const row = (await client.query(
           `UPDATE child_profiles SET birth_date=NULL,personalization_enabled=false,deleted_at=now(),version=version+1,updated_at=now()
            WHERE id=$1 AND account_id=$2 RETURNING id,version,deleted_at,personalization_enabled`,

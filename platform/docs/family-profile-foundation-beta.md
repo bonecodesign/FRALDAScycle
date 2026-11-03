@@ -12,7 +12,7 @@ A fundação suporta de 1 a 5 perfis por conta familiar, somente data de nascime
 
 ## Retenção e bloqueio após remoção
 
-A decisão de 22 de outubro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil não pode ser removido manualmente.
+A decisão superveniente de 3 de novembro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil pode ser removido manualmente; essa remoção é distinguida do encerramento etário para controlar novas operações.
 
 ## Condições para ativação futura
 

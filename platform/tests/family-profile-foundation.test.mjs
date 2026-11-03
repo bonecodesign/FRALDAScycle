@@ -103,6 +103,8 @@ test("new operations require an active family profile only when the feature is e
   await assert.rejects(enabled.requireForNewOperation(actor), error => error.code === "child_profile_required" && error.status === 403);
   const ready = createChildProfileService({ async hasActive() { return true; } }, { featureEnabled: true });
   assert.equal(await ready.requireForNewOperation(actor), actor);
+  const agedOut = createChildProfileService({ async operationProfileState() { return "age_limit_ended"; } }, { featureEnabled: true });
+  assert.equal(await agedOut.requireForNewOperation(actor), actor);
 });
 
 test("owner can manage multiple private profiles with explicit consent and versioning", async () => {
@@ -112,7 +114,7 @@ test("owner can manage multiple private profiles with explicit consent and versi
     async list() { return rows; },
     async create(input) { const row = { id: crypto.randomUUID(), birth_date: input.birthDate, emoji: input.emoji, consent_version: input.consentVersion, personalization_enabled: true, version: 1, created_at: reference, updated_at: reference }; rows.push(row); return row; },
     async update(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; Object.assign(row, { birth_date: input.birthDate, emoji: input.emoji, version: row.version + 1, updated_at: reference }); return row; },
-    async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; if (rows.filter(item => item.personalization_enabled).length <= 1) return { lastProfile: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
+    async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
   };
   const service = createChildProfileService(repository, { featureEnabled: true, now: () => reference });
   const actor = { id: "account-1", role: "customer", adultDeclared: true };
@@ -127,7 +129,7 @@ test("owner can manage multiple private profiles with explicit consent and versi
   assert.equal(corrected.version, 2);
   await assert.rejects(service.update(actor, first.id, { birthDate: "2026-05-07", emoji: "⭐", expectedVersion: 1 }), error => error.code === "child_profile_version_conflict");
   assert.deepEqual(await service.remove(actor, second.id, { confirmed: true, expectedVersion: 1 }), { id: second.id, removed: true, personalizationEnabled: false, version: 2 });
-  await assert.rejects(service.remove(actor, first.id, { confirmed: true, expectedVersion: 2 }), error => error.code === "last_child_profile_required");
+  assert.deepEqual(await service.remove(actor, first.id, { confirmed: true, expectedVersion: 2 }), { id: first.id, removed: true, personalizationEnabled: false, version: 3 });
 });
 
 test("child profile rejects missing consent, injected account and non-child date", async () => {

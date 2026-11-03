@@ -12,7 +12,7 @@ Data: 22 de outubro de 2026.
 - A data fica restrita à FraldaCycle. Não há ofertas de parceiros no lançamento nem compartilhamento externo da data, idade ou quantidade de crianças.
 - A data permanece no banco operacional somente enquanto o perfil estiver ativo.
 - Ao remover o perfil, a data é apagada imediatamente do banco operacional. Cópias em backups expiram no ciclo operacional máximo de 30 dias e não podem ser restauradas seletivamente para reativar personalização.
-- O último perfil não pode ser removido manualmente. Ao completar 13 anos, o perfil será encerrado automaticamente, com avisos 30 dias antes e no dia, por aplicativo e e-mail. Nessa hipótese, a conta pode permanecer sem perfil e sem personalização etária.
+- Conforme a decisão superveniente de 3 de novembro, qualquer perfil, inclusive o último, pode ser removido manualmente. A remoção voluntária do último perfil bloqueia novas operações dependentes do perfil até novo cadastro. Ao completar 13 anos, o perfil será encerrado automaticamente, com avisos 30 dias antes e no dia, por aplicativo e e-mail; nessa hipótese, a conta continua ativa com relevância geral.
 - A correção da data e a troca do emoji são livres, versionadas e auditadas sem conservar o valor anterior.
 
 ## Uso no Marketplace
