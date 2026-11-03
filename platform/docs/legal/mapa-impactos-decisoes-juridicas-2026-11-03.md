@@ -24,7 +24,7 @@ Estado: planejamento técnico e documental; não representa parecer profissional
 | Produtos | Whitelist; piloto somente fraldas; recall e devolução | Parcial | Catálogo, moderação e alertas | Jurídico/Segurança do produto |
 | Piloto | Fechado, sem dinheiro; fase financeira pequena após gates | Preparação técnica | Checklist e relatório de execução | Todos os aprovadores |
 | Acessibilidade | WCAG 2.1 AA com validação manual | Parcial | Auditoria automática e humana | Validador especializado |
-| Autoridades | Fluxo 1→2→3; nível 4 avisado; exceção 3→4→5 com ordem | Não implementado | Workflow segregado e auditoria | Jurídico |
+| Autoridades | Fluxo 1→2→3; nível 4 avisado; exceção Jurídico/3→4→5 com ordem | Fundação implementada localmente e desligada por padrão | Migração 131, serviço, rotas, sequência PostgreSQL e auditoria minimizada | Jurídico |
 | Conteúdo | Licença operacional restrita e sem IA/publicidade externa | Texto antigo incompleto | Termos versionados e moderação | Jurídico/IP |
 | Fornecedores | Revisão individual e matriz contratual | Não contratado | Contratos e pareceres anexos | Asaas, Lalamove e operadores |
 

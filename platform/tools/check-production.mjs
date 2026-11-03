@@ -123,6 +123,7 @@ const files = [
   "apps/api/child-profile-responsibility-service.js",
   "apps/api/child-data-emergency-access-service.js",
   "apps/api/authority-request-service.js",
+  "database/authority-request-repository.js",
   "database/admin-repository.js",
   "database/auth-repository.js",
   "database/client.js",

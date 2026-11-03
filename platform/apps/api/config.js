@@ -135,6 +135,9 @@ export function loadConfig(env = process.env) {
   const childDataEmergencyAccessAcknowledged=env.CHILD_DATA_EMERGENCY_ACCESS_ACTIVATION_ACKNOWLEDGED==='true';
   if(childDataEmergencyAccessRequested&&!childProfilesRequested)throw new Error('CHILD_DATA_EMERGENCY_ACCESS_ENABLED requires CHILD_PROFILES_ENABLED=true');
   if(nodeEnv==='production'&&childDataEmergencyAccessRequested&&!childDataEmergencyAccessAcknowledged)throw new Error('CHILD_DATA_EMERGENCY_ACCESS_ACTIVATION_ACKNOWLEDGED=true is required in production');
+  const authorityRequestsRequested=env.AUTHORITY_REQUESTS_ENABLED==='true';
+  const authorityRequestsAcknowledged=env.AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED==='true';
+  if(nodeEnv==='production'&&authorityRequestsRequested&&!authorityRequestsAcknowledged)throw new Error('AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const responsibleRegistrationEnabled = env.RESPONSIBLE_REGISTRATION_ENABLED === "true";
   const responsibleCpfHmacSecret = env.RESPONSIBLE_CPF_HMAC_SECRET ?? null;
   if (responsibleRegistrationEnabled && String(responsibleCpfHmacSecret ?? "").length < 32) {
@@ -242,6 +245,7 @@ export function loadConfig(env = process.env) {
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
     familyResponsibilityDisputesEnabled:familyResponsibilityDisputesRequested&&(nodeEnv!=='production'||familyResponsibilityDisputesAcknowledged),
     childDataEmergencyAccessEnabled:childDataEmergencyAccessRequested&&(nodeEnv!=='production'||childDataEmergencyAccessAcknowledged),
+    authorityRequestsEnabled:authorityRequestsRequested&&(nodeEnv!=='production'||authorityRequestsAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
     registrationDraftsEnabled:registrationDraftsRequested&&(nodeEnv!=='production'||registrationDraftsAcknowledged),

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createAuthorityRequestService} from '../apps/api/authority-request-service.js';
+import {loadConfig} from '../apps/api/config.js';
 
 const id='11111111-1111-4111-8111-111111111111';
 const actor=level=>({id:`${level}1111111-1111-4111-8111-111111111111`,role:'admin',staffAccessLevel:level});
@@ -23,12 +24,17 @@ test('judicial exception requires sequential legal, level 4 and founder decision
  const service=createAuthorityRequestService(repository,{enabled:true});
  await service.protocol(actor(1),{...input,flow:'judicial_exception',judicialOrderReference:'ORDEM-JUDICIAL-TESTE'});
  await service.decide(actor(3),id,{stage:'legal',approved:true,note:'Ordem judicial formalmente validada.'});
+ await service.decide(actor(3),id,{stage:'level3',approved:true,note:'Nível três autorizou a escalada excepcional.'});
  await service.decide(actor(4),id,{stage:'level4',approved:true,note:'Escopo excepcional conferido.'});
  const result=await service.decide(actor(5),id,{stage:'level5',approved:true,note:'Aprovação final do fundador.'});
- assert.equal(result.disclosureAuthorized,true);assert.deepEqual(stages,['legal','level4','level5']);
+ assert.equal(result.disclosureAuthorized,true);assert.deepEqual(stages,['legal','level3','level4','level5']);
 });
 
 test('authority workflow remains disabled by default',async()=>{
  const service=createAuthorityRequestService({});
  await assert.rejects(service.list(actor(5)),error=>error.code==='authority_requests_disabled');
+ assert.equal(loadConfig({NODE_ENV:'test'}).authorityRequestsEnabled,false);
+ const env={NODE_ENV:'production',DATABASE_URL:'postgres://fixture',SESSION_SECRET:'s'.repeat(32),NOTIFICATION_WEBHOOK_URL:'https://notify.example.test',NOTIFICATION_WEBHOOK_SECRET:'synthetic',AUTHORITY_REQUESTS_ENABLED:'true'};
+ assert.throws(()=>loadConfig(env),/AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED=true/);
+ assert.equal(loadConfig({...env,AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED:'true'}).authorityRequestsEnabled,true);
 });

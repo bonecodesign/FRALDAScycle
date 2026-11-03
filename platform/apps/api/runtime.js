@@ -103,6 +103,8 @@ import {createChildProfileResponsibilityRepository} from '../../database/child-p
 import {createChildProfileResponsibilityService} from './child-profile-responsibility-service.js';
 import {createChildDataEmergencyAccessRepository} from '../../database/child-data-emergency-access-repository.js';
 import {createChildDataEmergencyAccessService} from './child-data-emergency-access-service.js';
+import {createAuthorityRequestRepository} from '../../database/authority-request-repository.js';
+import {createAuthorityRequestService} from './authority-request-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -152,6 +154,7 @@ export async function startRuntime(config = null) {
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const childProfileResponsibilityService=createChildProfileResponsibilityService(createChildProfileResponsibilityRepository(database),{enabled:config.familyResponsibilityDisputesEnabled});
   const childDataEmergencyAccessService=createChildDataEmergencyAccessService(createChildDataEmergencyAccessRepository(database),{enabled:config.childDataEmergencyAccessEnabled});
+  const authorityRequestService=createAuthorityRequestService(createAuthorityRequestRepository(database),{enabled:config.authorityRequestsEnabled});
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
   const manufacturerAvailabilitySourceService = createManufacturerAvailabilitySourceService(createManufacturerAvailabilitySourceRepository(database));
@@ -261,6 +264,7 @@ export async function startRuntime(config = null) {
     exchangeRetentionRequestService,
     childProfileResponsibilityService,
     childDataEmergencyAccessService,
+    authorityRequestService,
     registrationDraftService,
     telemetry,
   });
