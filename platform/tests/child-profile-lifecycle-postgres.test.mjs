@@ -62,8 +62,8 @@ test("age limit warning and closure are atomic, private and idempotent in Postgr
         createNotificationRepository(database),
         { notificationWebhookUrl: "https://synthetic.example.test", notificationWebhookSecret: "synthetic" },
         async (_url, options) => { deliveries.push(JSON.parse(options.body)); return { ok: true, status: 200 }; },
-      ), 2);
-      assert.equal(deliveries.length, 2);
+      ), 3);
+      assert.equal(deliveries.length, 3);
       assert.ok(deliveries.every(delivery => delivery.kind === "account_lifecycle_notice"));
       const audit = (await database.query(`SELECT metadata::text AS metadata FROM audit_events WHERE actor_user_id=$1 AND action='child_profile.age_limit_closed'`, [account])).rows;
       assert.equal(audit.length, 1);
