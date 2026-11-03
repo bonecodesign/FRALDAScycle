@@ -127,6 +127,10 @@ export function loadConfig(env = process.env) {
   if (nodeEnv === "production" && childProfilesRequested && !childProfilesActivationAcknowledged) {
     throw new Error("CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true is required with CHILD_PROFILES_ENABLED=true in production");
   }
+  const familyResponsibilityDisputesRequested=env.FAMILY_RESPONSIBILITY_DISPUTES_ENABLED==='true';
+  const familyResponsibilityDisputesAcknowledged=env.FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED==='true';
+  if(familyResponsibilityDisputesRequested&&!childProfilesRequested)throw new Error('FAMILY_RESPONSIBILITY_DISPUTES_ENABLED requires CHILD_PROFILES_ENABLED=true');
+  if(nodeEnv==='production'&&familyResponsibilityDisputesRequested&&!familyResponsibilityDisputesAcknowledged)throw new Error('FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const responsibleRegistrationEnabled = env.RESPONSIBLE_REGISTRATION_ENABLED === "true";
   const responsibleCpfHmacSecret = env.RESPONSIBLE_CPF_HMAC_SECRET ?? null;
   if (responsibleRegistrationEnabled && String(responsibleCpfHmacSecret ?? "").length < 32) {
@@ -232,6 +236,7 @@ export function loadConfig(env = process.env) {
     geocodingProviderUrl: geocoding.url,
     geocodingProviderSecret: geocoding.secret,
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
+    familyResponsibilityDisputesEnabled:familyResponsibilityDisputesRequested&&(nodeEnv!=='production'||familyResponsibilityDisputesAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
     registrationDraftsEnabled:registrationDraftsRequested&&(nodeEnv!=='production'||registrationDraftsAcknowledged),

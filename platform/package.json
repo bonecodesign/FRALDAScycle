@@ -40,6 +40,8 @@
     "worker:manufacturer-availability": "node workers/manufacturer-availability.js --serve",
     "worker:child-profiles:local": "node workers/child-profile-lifecycle.js --once",
     "worker:child-profiles": "node workers/child-profile-lifecycle.js --serve",
+    "worker:family-responsibility-retention:local": "node workers/child-profile-responsibility-retention.js --once",
+    "worker:family-responsibility-retention": "node workers/child-profile-responsibility-retention.js --serve",
     "worker:account-closure:local": "node workers/account-closure.js --once",
     "worker:account-closure": "node workers/account-closure.js --serve",
     "worker:exchange-difference:local": "node workers/exchange-difference-maintenance.js --once",

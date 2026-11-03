@@ -13,7 +13,7 @@ Estado: planejamento técnico e documental; não representa parecer profissional
 | Consentimento infantil | Texto versionado, evidência por conta + 5 anos e aviso curto no ponto de coleta | Implementado localmente e desligado por padrão; fechamento da conta ainda não executa retenção | Migração 128, interfaces e testes PostgreSQL | Texto profissional e integração ao fechamento |
 | Marketing etário | Opt-in separado, faixa ampla interna e fornecedor sem segmento | Decisão documentada, implementação incompleta | Contrato, outbox minimizada e testes | Fornecedor/Privacidade |
 | Acesso emergencial | Dupla aprovação, 15 minutos, somente visualização e marca-d'água | Janela anterior diverge | Testes de expiração e auditoria | Segurança/Privacidade |
-| Disputa de responsabilidade | Suspender perfil, análise independente e apagar anexos em 30 dias | Não consolidado | Workflow, retenção e testes | Jurídico/Operação |
+| Disputa de responsabilidade | Nível 1 registra; nível 2 verifica plausibilidade e só então suspende; nível 3 decide; referências de evidência expiram em 30 dias | Fundação e retenção diária implementadas localmente e desligadas por padrão | Migração 129, serviço, rotas, worker limitado e PostgreSQL | Jurídico/Privacidade/Operação |
 | Doação aberta | Preferência geral da instituição e recusa na retirada | Parcial | Interface, persistência e testes | Política institucional |
 | Impacto socioambiental | Estimativas agregadas com metodologia e incerteza | Não implementado | Documento metodológico e teste de anonimização | Especialista ambiental |
 | Cancelamento e taxas | Suporte, custos externos comprovados e demonstrativo | Parcial | Cálculo, recibo e cenários de culpa | Asaas/Contabilidade |
