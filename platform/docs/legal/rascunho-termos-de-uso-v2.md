@@ -34,7 +34,9 @@ O texto completo sobre tratamento consta da Política de Privacidade. O aceite r
 
 ## 5. Conteúdo do usuário
 
-O usuário mantém a propriedade de fotos e textos e concede licença não exclusiva, gratuita, sem limite territorial e válida durante a publicação e a operação relacionada, apenas para intermediar compra, troca e doação das categorias aprovadas. O uso público termina imediatamente quando o conteúdo é removido. Cópia restrita só permanece enquanto houver operação, disputa ou obrigação legal pendente e é eliminada conforme a retenção aplicável. A licença não permite venda do conteúdo, publicidade externa desconectada da operação nem treinamento de IA.
+O usuário mantém a propriedade de fotos e textos e concede licença não exclusiva, gratuita, sem limite territorial e válida durante a publicação e a operação relacionada, apenas para intermediar compra, troca e doação das categorias aprovadas. O uso público termina imediatamente quando o conteúdo é removido. Durante a operação e por sete dias corridos após sua conclusão, as partes mantêm acesso restrito ao conteúdo relacionado. Disputa formal aberta nesse prazo preserva o acesso restrito até a decisão; depois, somente equipe interna autorizada pode consultá-lo quando necessário. A remoção bloqueia o acesso público imediatamente, elimina cache e CDN em até 24 horas e faz cópias de backup expirarem em até 30 dias. Cópia restrita só permanece enquanto houver operação, disputa ou obrigação legal pendente e é eliminada conforme a retenção aplicável. A licença não permite venda do conteúdo, publicidade externa desconectada da operação nem treinamento de IA.
+
+Retenção excepcional por disputa formal ou ordem judicial exige registro interno fundamentado, referência do caso, prazo e autorizações sucessivas dos níveis 3, 4 e 5. Renovação repete o fluxo completo. Ordem judicial válida prevalece quanto ao prazo e ao escopo obrigatório, sem restabelecer acesso público.
 
 ## 6. Venda, pagamento e contato
 

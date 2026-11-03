@@ -25,7 +25,7 @@ Estado: planejamento técnico e documental; não representa parecer profissional
 | Piloto | Fechado, sem dinheiro; fase financeira pequena após gates | Preparação técnica | Checklist e relatório de execução | Todos os aprovadores |
 | Acessibilidade | WCAG 2.1 AA com validação manual | Parcial | Auditoria automática e humana | Validador especializado |
 | Autoridades | Fluxo 1→2→3; nível 4 avisado; exceção Jurídico/3→4→5 com ordem | Fundação implementada localmente e desligada por padrão | Migração 131, serviço, rotas, sequência PostgreSQL e auditoria minimizada | Jurídico |
-| Conteúdo | Licença operacional restrita; uso público termina na remoção; retenção apenas por operação, disputa ou obrigação; sem IA/publicidade externa | Rascunho jurídico consolidado; proteção técnica de retenção pendente | Termos versionados, moderação e teste de expiração | Jurídico/IP |
+| Conteúdo | Licença restrita; acesso das partes por 7 dias; CDN 24h e backup 30d; retenção excepcional 3→4→5; sem IA/publicidade externa | Decisões e rascunho consolidados; proteção técnica de retenção pendente | Termos versionados, workflow, expiração e testes | Jurídico/IP |
 | Fornecedores | Revisão individual e matriz contratual | Não contratado | Contratos e pareceres anexos | Asaas, Lalamove e operadores |
 
 ## Ordem de execução aprovada
