@@ -63,3 +63,24 @@ COMMENT ON TABLE listing_content_retention IS
   'Metadados de expiração; não duplica fotos, textos ou chaves de armazenamento.';
 COMMENT ON TABLE listing_content_holds IS
   'Retenção excepcional 3→4→5; nunca restabelece publicação ou acesso público.';
+
+CREATE FUNCTION schedule_removed_listing_content() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status='removed' AND (TG_OP='INSERT' OR OLD.status IS DISTINCT FROM NEW.status) THEN
+    INSERT INTO listing_content_retention(listing_id,public_revoked_at,cdn_purge_due_at,backup_expire_by)
+    VALUES(NEW.id,NEW.updated_at,NEW.updated_at+interval '24 hours',NEW.updated_at+interval '30 days')
+    ON CONFLICT(listing_id) DO UPDATE SET public_revoked_at=EXCLUDED.public_revoked_at,
+      cdn_purge_due_at=EXCLUDED.cdn_purge_due_at,cdn_purged_at=NULL,
+      backup_expire_by=EXCLUDED.backup_expire_by,content_delete_due_at=NULL,content_deleted_at=NULL,updated_at=now();
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER listings_content_removal_schedule
+AFTER INSERT OR UPDATE OF status ON listings
+FOR EACH ROW EXECUTE FUNCTION schedule_removed_listing_content();
+
+INSERT INTO listing_content_retention(listing_id,public_revoked_at,cdn_purge_due_at,backup_expire_by)
+SELECT id,updated_at,updated_at+interval '24 hours',updated_at+interval '30 days'
+FROM listings WHERE status='removed'
+ON CONFLICT(listing_id) DO NOTHING;

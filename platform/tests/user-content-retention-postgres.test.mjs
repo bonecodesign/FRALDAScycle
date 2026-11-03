@@ -9,8 +9,10 @@ test('PostgreSQL fixes content deadlines and enforces a single sequential hold',
   await migrate(database,await discoverMigrations());
   const users=['11111111-1111-4111-8111-111111111111','31111111-1111-4111-8111-111111111111','41111111-1111-4111-8111-111111111111','51111111-1111-4111-8111-111111111111'];
   for(let index=0;index<users.length;index++)await database.query("INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level) VALUES($1,$2,'fixture',$3,'admin',$4)",[users[index],'content-'+index+'@example.test','Nível '+(index||1),index===0?1:index+2]);
-  const listing=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio sintético','Conteúdo de teste sem dados reais.','infant','Marca','Modelo','sealed',1,'sale',1000,'removed') RETURNING id",[users[0]])).rows[0];
-  const retention=(await database.query("INSERT INTO listing_content_retention(listing_id,public_revoked_at,cdn_purge_due_at,backup_expire_by,party_access_until) VALUES($1,'2030-01-01T12:00:00Z','2030-01-02T12:00:00Z','2030-01-31T12:00:00Z','2030-01-08T12:00:00Z') RETURNING *",[listing.id])).rows[0];
+  const listing=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio sintético','Conteúdo de teste sem dados reais.','infant','Marca','Modelo','sealed',1,'sale',1000,'review') RETURNING id",[users[0]])).rows[0];
+  await database.query("UPDATE listings SET status='removed',updated_at='2030-01-01T12:00:00Z' WHERE id=$1",[listing.id]);
+  await database.query("UPDATE listing_content_retention SET party_access_until='2030-01-08T12:00:00Z' WHERE listing_id=$1",[listing.id]);
+  const retention=(await database.query("SELECT * FROM listing_content_retention WHERE listing_id=$1",[listing.id])).rows[0];
   assert.equal((new Date(retention.cdn_purge_due_at)-new Date(retention.public_revoked_at))/3600000,24);
   assert.equal((new Date(retention.backup_expire_by)-new Date(retention.public_revoked_at))/86400000,30);
   await assert.rejects(database.query("INSERT INTO listing_content_retention(listing_id,public_revoked_at,cdn_purge_due_at,backup_expire_by) VALUES($1,now(),now()+interval '2 days',now()+interval '30 days')",[listing.id]),error=>['23505','23514'].includes(error.code));
