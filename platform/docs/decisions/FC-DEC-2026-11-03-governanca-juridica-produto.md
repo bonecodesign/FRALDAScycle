@@ -92,7 +92,7 @@ Este registro não é parecer jurídico, aprovação do encarregado, homologaç�
 70. Cada fornecedor recebe revisão contratual individual de dados, suboperadores, transferência, SLA, incidentes, responsabilidade, preço, rescisão e eliminação.
 71. Asaas é o verificador financeiro principal; FraldaCycle mantém controles complementares e não duplica documentos financeiros sem necessidade confirmada.
 72. Solicitação de autoridade segue: nível 1 protocola; nível 2 valida identidade, competência, fundamento e escopo; nível 3 autoriza divulgação mínima; nível 4 é notificado. Exceção exige ordem judicial válida, Jurídico e aprovação dos níveis 3, 4 e 5, sem descumprir prazos legais.
-73. Usuário mantém propriedade do conteúdo e concede licença não exclusiva, gratuita e sem limite territorial, durante a publicação e operação relacionada, restrita à intermediação de compra, troca e doação das categorias aprovadas. A licença não autoriza publicidade externa, venda do conteúdo ou treinamento de IA.
+73. Usuário mantém propriedade do conteúdo e concede licença não exclusiva, gratuita e sem limite territorial, durante a publicação e operação relacionada, restrita à intermediação de compra, troca e doação das categorias aprovadas. O uso público termina imediatamente quando o conteúdo é removido. Cópia restrita só permanece enquanto houver operação, disputa ou obrigação legal pendente e é eliminada conforme a retenção aplicável. A licença não autoriza publicidade externa, venda do conteúdo ou treinamento de IA.
 74. Hierarquia: lei; condições específicas da transação; Termos; Política de Privacidade; políticas específicas; resumos explicativos. Conflito suspende publicação até correção.
 
 ## Conflitos expressamente superados

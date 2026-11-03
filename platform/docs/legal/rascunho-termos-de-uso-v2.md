@@ -34,7 +34,7 @@ O texto completo sobre tratamento consta da Política de Privacidade. O aceite r
 
 ## 5. Conteúdo do usuário
 
-O usuário mantém a propriedade de fotos e textos e concede licença não exclusiva, gratuita, sem limite territorial e válida durante a publicação e a operação relacionada, apenas para intermediar compra, troca e doação das categorias aprovadas. A licença não permite venda do conteúdo, publicidade externa desconectada da operação nem treinamento de IA.
+O usuário mantém a propriedade de fotos e textos e concede licença não exclusiva, gratuita, sem limite territorial e válida durante a publicação e a operação relacionada, apenas para intermediar compra, troca e doação das categorias aprovadas. O uso público termina imediatamente quando o conteúdo é removido. Cópia restrita só permanece enquanto houver operação, disputa ou obrigação legal pendente e é eliminada conforme a retenção aplicável. A licença não permite venda do conteúdo, publicidade externa desconectada da operação nem treinamento de IA.
 
 ## 6. Venda, pagamento e contato
 
