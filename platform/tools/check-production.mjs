@@ -130,6 +130,7 @@ const files = [
   "database/child-profile-responsibility-repository.js",
   "database/payment-repository.js",
   "workers/notifications.js",
+  "workers/child-profile-responsibility-retention.js",
   "apps/api/marketplace-handler.js",
   "apps/api/marketplace-providers.js",
   "apps/api/marketplace-service.js",

@@ -22,7 +22,7 @@ A data e um emoji do conjunto fixo são obrigatórios ao adicionar um perfil. Ca
 
 ## Disputa de responsabilidade
 
-A migração 129 e o serviço interno preparam análise restrita, também desligada por padrão. Nível 1 registra o chamado sem suspender; nível 2 verifica plausibilidade e somente uma conclusão positiva suspende personalização e novas operações; nível 3 restaura ou remove o perfil. Níveis 4 e 5 podem acompanhar a fila. A tabela não copia nascimento, emoji nem conteúdo documental. Uma referência opaca de evidência recebe vencimento em até 30 dias após a decisão. Produção exige `FAMILY_RESPONSIBILITY_DISPUTES_ENABLED=true`, a feature infantil ativa e reconhecimento independente `FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED=true`.
+A migração 129 e o serviço interno preparam análise restrita, também desligada por padrão. Nível 1 registra o chamado sem suspender; nível 2 verifica plausibilidade e somente uma conclusão positiva suspende personalização e novas operações; nível 3 restaura ou remove o perfil. Níveis 4 e 5 podem acompanhar a fila. A tabela não copia nascimento, emoji nem conteúdo documental. Uma referência opaca de evidência recebe vencimento em até 30 dias após a decisão; o worker diário idempotente elimina referências vencidas em lotes limitados. Produção exige `FAMILY_RESPONSIBILITY_DISPUTES_ENABLED=true`, a feature infantil ativa, reconhecimento independente `FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED=true` e `FAMILY_RESPONSIBILITY_RETENTION_ENABLED=true` para o worker.
 
 ## Evidência e limites
 

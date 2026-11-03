@@ -566,6 +566,7 @@
       "database/migrations/129_child_profile_responsibility_disputes.sql",
       "database/child-profile-responsibility-repository.js",
       "apps/api/child-profile-responsibility-service.js",
+      "workers/child-profile-responsibility-retention.js",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
       "tests/child-profile-http-postgres.test.mjs",

@@ -57,5 +57,16 @@ export function createChildProfileResponsibilityRepository(database){return Obje
     await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
       VALUES($1,'child_profile.responsibility_dispute_decided','child_profile_responsibility_dispute',$2,$3::jsonb)`,[input.actorId,row.id,JSON.stringify({outcome:input.outcome,evidenceDeleteWithinDays:30,birthDateCopied:false})]);
     return row;
+  });},
+  async purgeExpiredEvidence(limit=100){return database.transaction(async client=>{
+    const rows=(await client.query(`WITH due AS (
+      SELECT id FROM child_profile_responsibility_disputes
+      WHERE evidence_deleted_at IS NULL AND evidence_delete_by<=now()
+      ORDER BY evidence_delete_by,id FOR UPDATE SKIP LOCKED LIMIT $1
+    ) UPDATE child_profile_responsibility_disputes d SET evidence_reference=NULL,evidence_deleted_at=now(),updated_at=now()
+      FROM due WHERE d.id=due.id RETURNING d.id`,[limit])).rows;
+    if(rows.length)await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata)
+      VALUES('child_profile.responsibility_evidence_purged','retention_batch','family-responsibility-30d',$1::jsonb)`,[JSON.stringify({deletedReferences:rows.length,documentContentStored:false,retentionDays:30})]);
+    return{deleted:rows.length};
   });}
 });}

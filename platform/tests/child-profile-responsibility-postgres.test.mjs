@@ -33,5 +33,8 @@ test('plausibility suspends and levelled decision restores without copying child
   const rejected=await repository.verify({actorId:level2,disputeId:rejectedOpen.id,plausible:false,note:'Não foram encontrados indícios suficientes.'});assert.equal(rejected.status,'rejected');
   const rejectedRetention=(await database.query(`SELECT extract(epoch FROM evidence_delete_by-verified_at)::int AS seconds FROM child_profile_responsibility_disputes WHERE id=$1`,[rejected.id])).rows[0].seconds;assert.equal(rejectedRetention,30*24*60*60);
   assert.equal(await createChildProfileRepository(database).operationProfileState(account),'active');
+  await database.query(`UPDATE child_profile_responsibility_disputes SET evidence_delete_by=now()-interval '1 second' WHERE id=$1`,[opened.id]);
+  assert.deepEqual(await repository.purgeExpiredEvidence(),{deleted:1});
+  const purged=(await database.query(`SELECT evidence_reference,evidence_deleted_at FROM child_profile_responsibility_disputes WHERE id=$1`,[opened.id])).rows[0];assert.equal(purged.evidence_reference,null);assert.ok(purged.evidence_deleted_at);
  }finally{await database.close();}});
 });
