@@ -1,3 +1,5 @@
+import { CHILD_PROFILE_CONSENT_CONTENT_HASH } from "../packages/contracts/child-age-band.js";
+
 export function createChildProfileRepository(database) {
   return Object.freeze({
     async notices(accountId) {
@@ -69,6 +71,12 @@ export function createChildProfileRepository(database) {
           `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
            VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
           [accountId, row.id, JSON.stringify({ consentVersion, emoji, personalizationEnabled: true })],
+        );
+        await client.query(
+          `INSERT INTO child_profile_consent_evidence
+             (account_id,child_profile_id,consent_version,content_hash,accepted_at)
+           VALUES($1,$2,$3,$4,$5)`,
+          [accountId,row.id,consentVersion,CHILD_PROFILE_CONSENT_CONTENT_HASH,row.consented_at],
         );
         await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi criado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:created:v${row.version}`]);
         return row;

@@ -54,6 +54,15 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal(await createChildProfileRepository(database).operationProfileState(owner),'missing');
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM information_schema.columns WHERE table_name='child_profiles' AND column_name='label'`)).rows[0].count,0);
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,5);
+      const consentEvidence=await database.query(`SELECT consent_version,content_hash,accepted_at,account_closed_at,retention_due_at FROM child_profile_consent_evidence WHERE account_id=$1 ORDER BY accepted_at,id`,[owner]);
+      assert.equal(consentEvidence.rows.length,2);
+      for(const evidence of consentEvidence.rows){
+        assert.equal(evidence.consent_version,'FC-CHILD-PROFILE-1');
+        assert.equal(evidence.content_hash,'8197091ecfc2d058d76411092a11ad577ea04dce7548759537ba52335161593a');
+        assert.ok(evidence.accepted_at instanceof Date);assert.equal(evidence.account_closed_at,null);assert.equal(evidence.retention_due_at,null);
+      }
+      const evidenceColumns=(await database.query(`SELECT column_name FROM information_schema.columns WHERE table_name='child_profile_consent_evidence' ORDER BY column_name`)).rows.map(row=>row.column_name);
+      assert.equal(evidenceColumns.includes('birth_date'),false);assert.equal(evidenceColumns.includes('emoji'),false);
       const notices=await database.query(`SELECT message,created_at,expires_at FROM account_notices WHERE user_id=$1 AND kind='child_profile_change' ORDER BY created_at`,[owner]);
       assert.equal(notices.rows.length,5);
       assert.deepEqual(notices.rows.map(row=>row.message),[

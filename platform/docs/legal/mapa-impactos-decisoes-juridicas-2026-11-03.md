@@ -10,7 +10,7 @@ Estado: planejamento técnico e documental; não representa parecer profissional
 |---|---|---|---|---|
 | Cadastro familiar | Fluxo único, perfil obrigatório e descarte de incompleto em 24h | Implementado localmente e desligado por padrão | HTTP/PostgreSQL, concorrência e expiração | Jurídico/Privacidade |
 | Remoção infantil | Permitir remover último perfil, diferenciar remoção manual de encerramento aos 13 e avisar alterações sem expor a data | Implementado localmente, inclusive aviso interno por 12 meses; feature ainda desligada | Testes de remoção, purga, aviso minimizado e relevância geral | Jurídico/Privacidade |
-| Consentimento infantil | Texto versionado, evidência por conta + 5 anos e aviso curto no ponto de coleta | Fundação parcial | Migração, serviço, interface e teste de versão | Texto profissional |
+| Consentimento infantil | Texto versionado, evidência por conta + 5 anos e aviso curto no ponto de coleta | Implementado localmente e desligado por padrão; fechamento da conta ainda não executa retenção | Migração 128, interfaces e testes PostgreSQL | Texto profissional e integração ao fechamento |
 | Marketing etário | Opt-in separado, faixa ampla interna e fornecedor sem segmento | Decisão documentada, implementação incompleta | Contrato, outbox minimizada e testes | Fornecedor/Privacidade |
 | Acesso emergencial | Dupla aprovação, 15 minutos, somente visualização e marca-d'água | Janela anterior diverge | Testes de expiração e auditoria | Segurança/Privacidade |
 | Disputa de responsabilidade | Suspender perfil, análise independente e apagar anexos em 30 dias | Não consolidado | Workflow, retenção e testes | Jurídico/Operação |

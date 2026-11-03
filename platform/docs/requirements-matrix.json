@@ -562,12 +562,13 @@
       "database/migrations/053_child_profile_data_minimization.sql",
       "apps/api/child-profile-service.js",
       "database/child-profile-repository.js",
+      "database/migrations/128_child_profile_consent_evidence.sql",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
       "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data, elimina apelidos, isola contas, exige consentimento e deriva apenas faixa etária.",
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: coleta somente data e emoji, elimina apelidos, isola contas, exige consentimento, deriva apenas faixa etária e registra evidência versionada sem copiar nascimento ou emoji.",
     "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {

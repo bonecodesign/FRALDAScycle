@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { adultDeclaration, ADULT_DECLARATION_VERSION } from "../packages/contracts/account-age.js";
-import { childAgeBand, childAgeDisplay, CHILD_PROFILE_CONSENT_VERSION, CHILD_PROFILE_EMOJIS } from "../packages/contracts/child-age-band.js";
+import { childAgeBand, childAgeDisplay, CHILD_PROFILE_CONSENT_VERSION, CHILD_PROFILE_CONSENT_NOTICE, CHILD_PROFILE_CONSENT_CONTENT_HASH, CHILD_PROFILE_EMOJIS } from "../packages/contracts/child-age-band.js";
 import { loadConfig } from "../apps/api/config.js";
 import { createAdultDeclarationService, requireAdultDeclaration } from "../apps/api/adult-declaration-service.js";
 import { createAdultDeclarationRepository } from "../database/adult-declaration-repository.js";
@@ -24,6 +25,7 @@ test("child age derivation returns only a band and rejects future or adult dates
   assert.equal(childAgeDisplay("2026-01-07", reference), "9 meses");
   assert.equal(childAgeDisplay("2023-08-07", reference), "3 anos e 2 meses");
   assert.deepEqual(CHILD_PROFILE_EMOJIS, ["🍼", "🧸", "⭐", "🌙", "🌈"]);
+  assert.equal(createHash("sha256").update(CHILD_PROFILE_CONSENT_NOTICE).digest("hex"), CHILD_PROFILE_CONSENT_CONTENT_HASH);
   assert.throws(() => childAgeBand("2027-01-01", reference));
   assert.throws(() => childAgeBand("2008-10-07", reference));
 });
@@ -54,6 +56,9 @@ test("schema keeps adult and child consent separate and exact birth date private
   assert.match(retention, /birth_date DROP NOT NULL/);
   assert.match(retention, /deleted_at IS NOT NULL AND birth_date IS NULL/);
   assert.match(retention, /child_profiles_account_active_emoji_idx/);
+  const evidence = await readFile(new URL("../database/migrations/128_child_profile_consent_evidence.sql", import.meta.url), "utf8");
+  assert.match(evidence, /account_closed_at\+interval '5 years'/);
+  assert.doesNotMatch(evidence, /\n\s+(birth_date|emoji)\s/);
 });
 
 test("existing account can declare adulthood only for itself with idempotent audit", async () => {

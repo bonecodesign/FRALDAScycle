@@ -1,4 +1,6 @@
 export const CHILD_PROFILE_CONSENT_VERSION = "FC-CHILD-PROFILE-1";
+export const CHILD_PROFILE_CONSENT_NOTICE = "Usaremos a data de nascimento somente para calcular a faixa etária e organizar ofertas. Você pode corrigir ou remover o perfil; consulte a Política de Privacidade.";
+export const CHILD_PROFILE_CONSENT_CONTENT_HASH = "8197091ecfc2d058d76411092a11ad577ea04dce7548759537ba52335161593a";
 export const CHILD_PROFILE_EMOJIS = Object.freeze(["🍼", "🧸", "⭐", "🌙", "🌈"]);
 
 function utcDate(value) {

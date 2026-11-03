@@ -85,6 +85,10 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
       assert.doesNotMatch(familyNotice.message,/2026-04-25|nascimento|birth/i);
       const familyNoticeRetention=new Date(familyNotice.expires_at).getTime()-new Date(familyNotice.created_at).getTime();
       assert.ok(familyNoticeRetention>=365*24*60*60*1000&&familyNoticeRetention<=366*24*60*60*1000);
+      const familyConsent=(await database.query(`SELECT consent_version,content_hash,accepted_at,retention_due_at FROM child_profile_consent_evidence WHERE account_id=$1`,[account.id])).rows[0];
+      assert.equal(familyConsent.consent_version,'FC-CHILD-PROFILE-1');
+      assert.equal(familyConsent.content_hash,'8197091ecfc2d058d76411092a11ad577ea04dce7548759537ba52335161593a');
+      assert.ok(familyConsent.accepted_at instanceof Date);assert.equal(familyConsent.retention_due_at,null);
 
       const address = (await database.query(`SELECT postal_code,street,number,complement,district,city,state,
         is_primary,version,postal_verification_provider FROM addresses WHERE user_id=$1`, [account.id])).rows[0];
