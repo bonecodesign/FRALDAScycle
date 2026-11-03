@@ -3,8 +3,10 @@ CREATE TABLE listing_content_retention (
   public_revoked_at timestamptz NOT NULL,
   party_access_until timestamptz,
   cdn_purge_due_at timestamptz NOT NULL,
+  cdn_purge_queued_at timestamptz,
   cdn_purged_at timestamptz,
   backup_expire_by timestamptz NOT NULL,
+  backup_expiry_queued_at timestamptz,
   content_delete_due_at timestamptz,
   content_deleted_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -63,6 +65,27 @@ COMMENT ON TABLE listing_content_retention IS
   'Metadados de expiração; não duplica fotos, textos ou chaves de armazenamento.';
 COMMENT ON TABLE listing_content_holds IS
   'Retenção excepcional 3→4→5; nunca restabelece publicação ou acesso público.';
+
+CREATE TABLE listing_content_storage_outbox (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  media_id uuid NOT NULL REFERENCES listing_media(id) ON DELETE CASCADE,
+  action text NOT NULL CHECK (action IN ('purge_cdn','expire_backup','delete_source')),
+  storage_key text NOT NULL,
+  due_at timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','processing','completed','failed')),
+  attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 20),
+  completed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(media_id,action),
+  CHECK ((status='completed')=(completed_at IS NOT NULL))
+);
+CREATE INDEX listing_content_storage_due_idx ON listing_content_storage_outbox(status,due_at,id)
+  WHERE status IN ('pending','failed');
+
+COMMENT ON TABLE listing_content_storage_outbox IS
+  'Comandos técnicos preparados para adaptador externo; nunca contém a imagem ou o texto do anúncio.';
 
 CREATE FUNCTION schedule_removed_listing_content() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

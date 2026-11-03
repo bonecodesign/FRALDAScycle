@@ -138,6 +138,9 @@ export function loadConfig(env = process.env) {
   const authorityRequestsRequested=env.AUTHORITY_REQUESTS_ENABLED==='true';
   const authorityRequestsAcknowledged=env.AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED==='true';
   if(nodeEnv==='production'&&authorityRequestsRequested&&!authorityRequestsAcknowledged)throw new Error('AUTHORITY_REQUESTS_ACTIVATION_ACKNOWLEDGED=true is required in production');
+  const userContentRetentionRequested=env.USER_CONTENT_RETENTION_ENABLED==='true';
+  const userContentRetentionAcknowledged=env.USER_CONTENT_RETENTION_ACTIVATION_ACKNOWLEDGED==='true';
+  if(nodeEnv==='production'&&userContentRetentionRequested&&!userContentRetentionAcknowledged)throw new Error('USER_CONTENT_RETENTION_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const responsibleRegistrationEnabled = env.RESPONSIBLE_REGISTRATION_ENABLED === "true";
   const responsibleCpfHmacSecret = env.RESPONSIBLE_CPF_HMAC_SECRET ?? null;
   if (responsibleRegistrationEnabled && String(responsibleCpfHmacSecret ?? "").length < 32) {
@@ -246,6 +249,7 @@ export function loadConfig(env = process.env) {
     familyResponsibilityDisputesEnabled:familyResponsibilityDisputesRequested&&(nodeEnv!=='production'||familyResponsibilityDisputesAcknowledged),
     childDataEmergencyAccessEnabled:childDataEmergencyAccessRequested&&(nodeEnv!=='production'||childDataEmergencyAccessAcknowledged),
     authorityRequestsEnabled:authorityRequestsRequested&&(nodeEnv!=='production'||authorityRequestsAcknowledged),
+    userContentRetentionEnabled:userContentRetentionRequested&&(nodeEnv!=='production'||userContentRetentionAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
     registrationDraftsEnabled:registrationDraftsRequested&&(nodeEnv!=='production'||registrationDraftsAcknowledged),
