@@ -73,3 +73,11 @@ test("recusa campos extras, inclusive documento e prova de vida no cadastro norm
   input.document = "base64";
   assert.throws(() => validateResponsibleRegistration(input, { expectedTerms }), error => error.code === "invalid_responsible_registration");
 });
+
+test('perfil familiar pode ser obrigatório no mesmo cadastro',()=>{
+  const input=validInput();
+  assert.throws(()=>validateResponsibleRegistration(input,{expectedTerms,familyProfileRequired:true,now:new Date('2026-10-25T12:00:00Z')}),error=>error.code==='invalid_family_profile');
+  input.familyProfile={birthDate:'2026-04-25',emoji:'🍼',consentConfirmed:true,consentVersion:'FC-CHILD-PROFILE-1',personalizationEnabled:true};
+  const result=validateResponsibleRegistration(input,{expectedTerms,familyProfileRequired:true,now:new Date('2026-10-25T12:00:00Z')});
+  assert.deepEqual(result.familyProfile,{birthDate:'2026-04-25',emoji:'🍼',consentVersion:'FC-CHILD-PROFILE-1'});
+});
