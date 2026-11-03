@@ -24,6 +24,10 @@ A data e um emoji do conjunto fixo são obrigatórios ao adicionar um perfil. Ca
 
 A migração 129 e o serviço interno preparam análise restrita, também desligada por padrão. Nível 1 registra o chamado sem suspender; nível 2 verifica plausibilidade e somente uma conclusão positiva suspende personalização e novas operações; nível 3 restaura ou remove o perfil. Níveis 4 e 5 podem acompanhar a fila. A tabela não copia nascimento, emoji nem conteúdo documental. Uma referência opaca de evidência recebe vencimento em até 30 dias após a decisão; o worker diário idempotente elimina referências vencidas em lotes limitados. Produção exige `FAMILY_RESPONSIBILITY_DISPUTES_ENABLED=true`, a feature infantil ativa, reconhecimento independente `FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED=true` e `FAMILY_RESPONSIBILITY_RETENTION_ENABLED=true` para o worker.
 
+## Acesso humano emergencial
+
+A migração 130 prepara uma exceção estrita para a data completa. Um profissional de nível 2 ou superior registra justificativa; Segurança e Privacidade precisam aprovar em domínios distintos, por duas pessoas diferentes de nível 4 ou 5, e o solicitante não pode aprovar o próprio pedido. A concessão pertence somente ao solicitante, é de leitura, expira exatamente em 15 minutos e cada acesso recebe marca-d'água com ator e horário. A conta responsável recebe aviso interno genérico quando a concessão é criada. A auditoria nunca copia a data. O recurso permanece desligado e produção exige `CHILD_DATA_EMERGENCY_ACCESS_ENABLED=true`, a feature infantil ativa e `CHILD_DATA_EMERGENCY_ACCESS_ACTIVATION_ACKNOWLEDGED=true`.
+
 ## Evidência e limites
 
 - Migração 033 e contratos de maioridade/faixa etária.
