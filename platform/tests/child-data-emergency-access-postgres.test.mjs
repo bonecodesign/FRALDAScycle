@@ -23,7 +23,7 @@ test('double approval grants a private watermarked read for exactly fifteen minu
   const log=(await database.query(`SELECT watermark FROM child_data_emergency_access_logs WHERE grant_id=$1`,[second.grant.id])).rows[0];assert.equal(log.watermark,read.watermark);
   const columns=(await database.query(`SELECT column_name FROM information_schema.columns WHERE table_name='child_data_emergency_access_logs'`)).rows.map(row=>row.column_name);assert.equal(columns.includes('birth_date'),false);
   const notice=(await database.query(`SELECT message FROM account_notices WHERE user_id=$1 AND kind='child_data_emergency_access'`,[account])).rows[0];assert.match(notice.message,/15 minutos/);assert.doesNotMatch(notice.message,/2025|nascimento/i);
-  const audit=(await database.query(`SELECT metadata::text AS metadata FROM audit_events WHERE entity_id=$1 ORDER BY created_at`,[request.id])).rows;assert.ok(audit.length>=4);assert.ok(audit.every(row=>!/2025-01-01|birthDate":"2025/i.test(row.metadata)));
+  const audit=(await database.query(`SELECT metadata::text AS metadata FROM audit_events WHERE entity_id=$1 ORDER BY occurred_at,id`,[request.id])).rows;assert.ok(audit.length>=4);assert.ok(audit.every(row=>!/2025-01-01|birthDate":"2025/i.test(row.metadata)));
   await database.query(`UPDATE child_data_emergency_access_grants SET granted_at=now()-interval '16 minutes',expires_at=now()-interval '1 minute' WHERE id=$1`,[second.grant.id]);assert.equal(await repository.read({actorId:requester,grantId:second.grant.id,now:new Date()}),null);
  }finally{await database.close();}});
 });
