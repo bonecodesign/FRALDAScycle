@@ -1,4 +1,5 @@
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
+const dateOnly=value=>value instanceof Date?value.toISOString().slice(0,10):String(value).slice(0,10);
 export function createChildDataEmergencyAccessRepository(database){return Object.freeze({
  async list(){return(await database.query(`SELECT r.id,r.profile_id,r.account_id,r.requested_by,r.justification,r.status,r.created_at,r.decided_at,
    (SELECT count(*)::int FROM child_data_emergency_access_approvals a WHERE a.request_id=r.id AND a.approved) AS approvals
@@ -28,6 +29,6 @@ export function createChildDataEmergencyAccessRepository(database){return Object
   const watermark=`FraldaCycle • acesso emergencial • ${input.actorId} • ${new Date(input.now).toISOString()}`;
   await client.query(`INSERT INTO child_data_emergency_access_logs(request_id,grant_id,actor_id,profile_id,watermark) VALUES($1,$2,$3,$4,$5)`,[row.request_id,row.grant_id,input.actorId,row.profile_id,watermark]);
   await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'child_data.emergency_access_read','child_data_emergency_access',$2,$3::jsonb)`,[input.actorId,row.request_id,JSON.stringify({grantId:row.grant_id,profileId:row.profile_id,watermarked:true,birthDateCopied:false})]);
-  return{profileId:row.profile_id,birthDate:row.birth_date,expiresAt:row.expires_at,watermark};
+  return{profileId:row.profile_id,birthDate:dateOnly(row.birth_date),expiresAt:row.expires_at,watermark};
  });}
 });}
