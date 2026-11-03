@@ -13,8 +13,8 @@ const draft={fullName:'Maria da Silva',displayName:'Maria',contact:'maria@exampl
 test('registration draft is encrypted and expires physically in PostgreSQL',{skip:!native&&!process.env.CI?'PostgreSQL nativo ausente neste ambiente.':false,timeout:60_000},async()=>{
  await withNativeTestPostgres(async databaseUrl=>{const database=createDatabase({databaseUrl,databaseSsl:false});try{
   await migrate(database,await discoverMigrations());const repository=createRegistrationDraftRepository(database),service=createRegistrationDraftService(repository,{encryptionKey:key});
-  const saved=await service.save({draft}),stored=(await database.query(`SELECT encrypted_payload::text AS encrypted,expires_at-created_at AS ttl FROM responsible_registration_drafts`)).rows[0];
-  assert.doesNotMatch(stored.encrypted,/Maria|Afonso|example/);assert.equal(String(stored.ttl),'24:00:00');
+	  const saved=await service.save({draft}),stored=(await database.query(`SELECT encrypted_payload::text AS encrypted,extract(epoch FROM expires_at-created_at)::int AS ttl_seconds FROM responsible_registration_drafts`)).rows[0];
+	  assert.doesNotMatch(stored.encrypted,/Maria|Afonso|example/);assert.equal(stored.ttl_seconds,86_400);
   assert.deepEqual((await service.resume({resumeToken:saved.resumeToken})).draft,draft);
   await database.query(`UPDATE responsible_registration_drafts SET expires_at=now()-interval '1 second'`);
   assert.deepEqual(await repository.purgeExpired(),{deleted:1});

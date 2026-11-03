@@ -53,7 +53,7 @@ test("age limit warning and closure are atomic, private and idempotent in Postgr
       const ended = profiles.find(row => row.lifecycle_ended_reason === "age_limit");
       assert.equal(ended.birth_date, null);
       assert.ok(ended.deleted_at);
-      assert.equal((await database.query(`SELECT count(*)::int AS count FROM account_notices WHERE user_id=$1`, [account])).rows[0].count, 2);
+      assert.equal((await database.query(`SELECT count(*)::int AS count FROM account_notices WHERE user_id=$1 AND kind='child_profile_age_limit'`, [account])).rows[0].count, 2);
       const jobs = (await database.query(`SELECT payload::text AS payload FROM notification_outbox WHERE recipient_user_id=$1 AND kind='account_lifecycle_notice'`, [account])).rows;
       assert.equal(jobs.length, 2);
       assert.ok(jobs.every(row => !/2013|birth/i.test(row.payload)));
