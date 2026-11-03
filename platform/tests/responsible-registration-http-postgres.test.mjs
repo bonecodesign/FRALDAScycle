@@ -28,6 +28,7 @@ function registration(email = "responsible@example.test") {
         number: "1000", complement: "Apto 10", noComplement: false, district: "Centro", city: "Belo Horizonte", state: "MG" },
       truthDeclaration: { confirmed: true, version: "FC-RESPONSIBLE-1" },
       terms: { accepted: true, version: terms.version, contentHash },
+      familyProfile:{birthDate:'2026-04-25',emoji:'🍼',consentConfirmed:true,consentVersion:'FC-CHILD-PROFILE-1',personalizationEnabled:true},
     },
   };
 }
@@ -42,7 +43,7 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
     try {
       await migrate(database, await discoverMigrations());
       const authService = createAuthService(createAuthRepository(database), { responsibleRegistration: {
-        enabled: true, cpfHmacSecret: "responsible-postgres-hmac-secret-0001", terms, postalCodeService,
+        enabled: true, cpfHmacSecret: "responsible-postgres-hmac-secret-0001", terms, postalCodeService,familyProfileRequired:true,
       } });
       api = createApiServer({ config: loadConfig({ NODE_ENV: "test", RATE_LIMIT_MAX: "1000" }), authService });
       await new Promise(resolve => api.listen(0, "127.0.0.1", resolve));
@@ -52,6 +53,7 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
       const configBody = await configResponse.json();
       assert.equal(configResponse.status, 200);
       assert.deepEqual(configBody.terms, { version: terms.version, contentHash });
+      assert.equal(configBody.familyProfileRequired,true);
       assert.equal("documents" in configBody.terms, false);
 
       const postalResponse = await fetch(`${origin}/v1/auth/registration-postal-code/30110-028`);
@@ -76,6 +78,17 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
       assert.equal(adultBirthDate, "1990-05-12");
       assert.equal(account.responsible_truth_version, "FC-RESPONSIBLE-1");
       assert.ok(account.responsible_registration_completed_at instanceof Date);
+      const family=(await database.query(`SELECT birth_date,emoji,consent_version,personalization_enabled FROM child_profiles WHERE account_id=$1`,[account.id])).rows[0];
+      const familyBirthDate=family.birth_date instanceof Date?family.birth_date.toISOString().slice(0,10):String(family.birth_date);assert.equal(familyBirthDate,'2026-04-25');assert.equal(family.emoji,'🍼');assert.equal(family.consent_version,'FC-CHILD-PROFILE-1');assert.equal(family.personalization_enabled,true);
+      const familyNotice=(await database.query(`SELECT message,created_at,expires_at FROM account_notices WHERE user_id=$1 AND kind='child_profile_change'`,[account.id])).rows[0];
+      assert.equal(familyNotice.message,'Um perfil da família foi criado.');
+      assert.doesNotMatch(familyNotice.message,/2026-04-25|nascimento|birth/i);
+      const familyNoticeRetention=new Date(familyNotice.expires_at).getTime()-new Date(familyNotice.created_at).getTime();
+      assert.ok(familyNoticeRetention>=365*24*60*60*1000&&familyNoticeRetention<=366*24*60*60*1000);
+      const familyConsent=(await database.query(`SELECT consent_version,content_hash,accepted_at,retention_due_at FROM child_profile_consent_evidence WHERE account_id=$1`,[account.id])).rows[0];
+      assert.equal(familyConsent.consent_version,'FC-CHILD-PROFILE-1');
+      assert.equal(familyConsent.content_hash,'8197091ecfc2d058d76411092a11ad577ea04dce7548759537ba52335161593a');
+      assert.ok(familyConsent.accepted_at instanceof Date);assert.equal(familyConsent.retention_due_at,null);
 
       const address = (await database.query(`SELECT postal_code,street,number,complement,district,city,state,
         is_primary,version,postal_verification_provider FROM addresses WHERE user_id=$1`, [account.id])).rows[0];
@@ -99,8 +112,9 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
       const counts = await database.query(`SELECT
         (SELECT count(*)::int FROM users) AS users,
         (SELECT count(*)::int FROM addresses) AS addresses,
-        (SELECT count(*)::int FROM terms_acceptances) AS acceptances`);
-      assert.deepEqual(counts.rows[0], { users: 1, addresses: 1, acceptances: 1 });
+        (SELECT count(*)::int FROM terms_acceptances) AS acceptances,
+        (SELECT count(*)::int FROM child_profiles) AS profiles`);
+      assert.deepEqual(counts.rows[0], { users: 1, addresses: 1, acceptances: 1,profiles:1 });
     } finally {
       if (api?.listening) await new Promise(resolve => api.close(resolve));
       await database.close();

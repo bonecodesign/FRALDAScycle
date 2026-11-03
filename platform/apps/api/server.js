@@ -84,6 +84,7 @@ export function createApiServer({
   exchangeSettlementWebhookService = null,
   exchangeRetentionStatusService = null,
   exchangeRetentionRequestService = null,
+  registrationDraftService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -155,8 +156,21 @@ export function createApiServer({
       }
 
       if (request.method === "GET" && url.pathname === "/v1/auth/registration-config") {
-        sendJson(response, 200, { ...authService.registrationConfiguration(), requestId: id }, headers);
+        sendJson(response, 200, { ...authService.registrationConfiguration(), registrationDraftsEnabled:Boolean(registrationDraftService), requestId: id }, headers);
         return;
+      }
+
+      if(request.method==='POST'&&url.pathname==='/v1/auth/registration-draft'){
+        if(!registrationDraftService){sendJson(response,404,{error:{code:'registration_drafts_disabled',message:'Rascunhos de cadastro indisponíveis.'},requestId:id},headers);return;}
+        const result=await registrationDraftService.save(await readJson(request));sendJson(response,201,{...result,requestId:id},{...headers,'cache-control':'no-store'});return;
+      }
+      if(request.method==='POST'&&url.pathname==='/v1/auth/registration-draft/resume'){
+        if(!registrationDraftService){sendJson(response,404,{error:{code:'registration_drafts_disabled',message:'Rascunhos de cadastro indisponíveis.'},requestId:id},headers);return;}
+        const result=await registrationDraftService.resume(await readJson(request));sendJson(response,200,{...result,requestId:id},{...headers,'cache-control':'no-store'});return;
+      }
+      if(request.method==='DELETE'&&url.pathname==='/v1/auth/registration-draft'){
+        if(!registrationDraftService){sendJson(response,404,{error:{code:'registration_drafts_disabled',message:'Rascunhos de cadastro indisponíveis.'},requestId:id},headers);return;}
+        const result=await registrationDraftService.remove(await readJson(request));sendJson(response,200,{...result,requestId:id},{...headers,'cache-control':'no-store'});return;
       }
 
       const postalCodeMatch = request.method === "GET"

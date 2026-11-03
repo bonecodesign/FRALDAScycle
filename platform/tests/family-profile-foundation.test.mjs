@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { adultDeclaration, ADULT_DECLARATION_VERSION } from "../packages/contracts/account-age.js";
-import { childAgeBand, childAgeDisplay, CHILD_PROFILE_CONSENT_VERSION, CHILD_PROFILE_EMOJIS } from "../packages/contracts/child-age-band.js";
+import { childAgeBand, childAgeDisplay, CHILD_PROFILE_CONSENT_VERSION, CHILD_PROFILE_CONSENT_NOTICE, CHILD_PROFILE_CONSENT_CONTENT_HASH, CHILD_PROFILE_EMOJIS } from "../packages/contracts/child-age-band.js";
 import { loadConfig } from "../apps/api/config.js";
 import { createAdultDeclarationService, requireAdultDeclaration } from "../apps/api/adult-declaration-service.js";
 import { createAdultDeclarationRepository } from "../database/adult-declaration-repository.js";
@@ -24,6 +25,7 @@ test("child age derivation returns only a band and rejects future or adult dates
   assert.equal(childAgeDisplay("2026-01-07", reference), "9 meses");
   assert.equal(childAgeDisplay("2023-08-07", reference), "3 anos e 2 meses");
   assert.deepEqual(CHILD_PROFILE_EMOJIS, ["🍼", "🧸", "⭐", "🌙", "🌈"]);
+  assert.equal(createHash("sha256").update(CHILD_PROFILE_CONSENT_NOTICE).digest("hex"), CHILD_PROFILE_CONSENT_CONTENT_HASH);
   assert.throws(() => childAgeBand("2027-01-01", reference));
   assert.throws(() => childAgeBand("2008-10-07", reference));
 });
@@ -54,6 +56,9 @@ test("schema keeps adult and child consent separate and exact birth date private
   assert.match(retention, /birth_date DROP NOT NULL/);
   assert.match(retention, /deleted_at IS NOT NULL AND birth_date IS NULL/);
   assert.match(retention, /child_profiles_account_active_emoji_idx/);
+  const evidence = await readFile(new URL("../database/migrations/128_child_profile_consent_evidence.sql", import.meta.url), "utf8");
+  assert.match(evidence, /account_closed_at\+interval '5 years'/);
+  assert.doesNotMatch(evidence, /\n\s+(birth_date|emoji)\s/);
 });
 
 test("existing account can declare adulthood only for itself with idempotent audit", async () => {
@@ -103,6 +108,8 @@ test("new operations require an active family profile only when the feature is e
   await assert.rejects(enabled.requireForNewOperation(actor), error => error.code === "child_profile_required" && error.status === 403);
   const ready = createChildProfileService({ async hasActive() { return true; } }, { featureEnabled: true });
   assert.equal(await ready.requireForNewOperation(actor), actor);
+  const agedOut = createChildProfileService({ async operationProfileState() { return "age_limit_ended"; } }, { featureEnabled: true });
+  assert.equal(await agedOut.requireForNewOperation(actor), actor);
 });
 
 test("owner can manage multiple private profiles with explicit consent and versioning", async () => {
@@ -112,7 +119,7 @@ test("owner can manage multiple private profiles with explicit consent and versi
     async list() { return rows; },
     async create(input) { const row = { id: crypto.randomUUID(), birth_date: input.birthDate, emoji: input.emoji, consent_version: input.consentVersion, personalization_enabled: true, version: 1, created_at: reference, updated_at: reference }; rows.push(row); return row; },
     async update(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; Object.assign(row, { birth_date: input.birthDate, emoji: input.emoji, version: row.version + 1, updated_at: reference }); return row; },
-    async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; if (rows.filter(item => item.personalization_enabled).length <= 1) return { lastProfile: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
+    async remove(input) { const row = rows.find(item => item.id === input.profileId); if (!row) return null; if (row.version !== input.expectedVersion) return { conflict: true }; row.version += 1; row.personalization_enabled = false; return { id: row.id, version: row.version }; },
   };
   const service = createChildProfileService(repository, { featureEnabled: true, now: () => reference });
   const actor = { id: "account-1", role: "customer", adultDeclared: true };
@@ -127,7 +134,7 @@ test("owner can manage multiple private profiles with explicit consent and versi
   assert.equal(corrected.version, 2);
   await assert.rejects(service.update(actor, first.id, { birthDate: "2026-05-07", emoji: "⭐", expectedVersion: 1 }), error => error.code === "child_profile_version_conflict");
   assert.deepEqual(await service.remove(actor, second.id, { confirmed: true, expectedVersion: 1 }), { id: second.id, removed: true, personalizationEnabled: false, version: 2 });
-  await assert.rejects(service.remove(actor, first.id, { confirmed: true, expectedVersion: 2 }), error => error.code === "last_child_profile_required");
+  assert.deepEqual(await service.remove(actor, first.id, { confirmed: true, expectedVersion: 2 }), { id: first.id, removed: true, personalizationEnabled: false, version: 3 });
 });
 
 test("child profile rejects missing consent, injected account and non-child date", async () => {

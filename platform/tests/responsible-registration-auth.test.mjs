@@ -51,6 +51,13 @@ test("Termos em rascunho bloqueiam cadastro antes de qualquer escrita", async ()
   assert.equal(writes, 0);
 });
 
+test('cadastro familiar obrigatório chega normalizado para persistência atômica',async()=>{
+  let saved;const repository={async createUserWithVerification(input){saved=input;return{id:'user-1',email:input.email,display_name:input.displayName,role:'customer',adult_declared_at:new Date(),adult_declaration_version:input.adultDeclarationVersion};}};
+  const service=createAuthService(repository,{responsibleRegistration:{...responsibleOptions,familyProfileRequired:true}}),input=payload();
+  input.responsible.familyProfile={birthDate:'2026-04-25',emoji:'🍼',consentConfirmed:true,consentVersion:'FC-CHILD-PROFILE-1',personalizationEnabled:true};
+  await service.register(input);assert.deepEqual(saved.responsibleRegistration.familyProfile,{birthDate:'2026-04-25',emoji:'🍼',consentVersion:'FC-CHILD-PROFILE-1'});
+});
+
 test("feature fica desligada por padrão e exige segredo exclusivo ao ativar", () => {
   assert.equal(loadConfig({ NODE_ENV: "test" }).responsibleRegistrationEnabled, false);
   assert.throws(() => loadConfig({ NODE_ENV: "test", RESPONSIBLE_REGISTRATION_ENABLED: "true" }),
@@ -60,6 +67,15 @@ test("feature fica desligada por padrão e exige segredo exclusivo ao ativar", (
   assert.equal(config.responsibleCpfHmacSecret, secret);
   assert.throws(() => loadConfig({ NODE_ENV: "test", RESPONSIBLE_REGISTRATION_ENABLED: "true",
     RESPONSIBLE_CPF_HMAC_SECRET: secret, SESSION_SECRET: secret }), /must not reuse SESSION_SECRET/);
+});
+
+test('rascunho de cadastro exige chave dedicada e reconhecimento em produção',()=>{
+  const draftKey=Buffer.alloc(32,9).toString('base64url');
+  assert.throws(()=>loadConfig({NODE_ENV:'test',REGISTRATION_DRAFTS_ENABLED:'true'}),/RESPONSIBLE_REGISTRATION_ENABLED/);
+  assert.throws(()=>loadConfig({NODE_ENV:'test',RESPONSIBLE_REGISTRATION_ENABLED:'true',RESPONSIBLE_CPF_HMAC_SECRET:secret,REGISTRATION_DRAFTS_ENABLED:'true'}),/REGISTRATION_DRAFT_ENCRYPTION_KEY/);
+  const config=loadConfig({NODE_ENV:'test',RESPONSIBLE_REGISTRATION_ENABLED:'true',RESPONSIBLE_CPF_HMAC_SECRET:secret,REGISTRATION_DRAFTS_ENABLED:'true',REGISTRATION_DRAFT_ENCRYPTION_KEY:draftKey});
+  assert.equal(config.registrationDraftsEnabled,true);
+  assert.throws(()=>loadConfig({NODE_ENV:'production',DATABASE_URL:'postgres://db/test',SESSION_SECRET:'different-session-secret-000000001',NOTIFICATION_WEBHOOK_URL:'https://notify.example.test',NOTIFICATION_WEBHOOK_SECRET:'notification-secret',RESPONSIBLE_REGISTRATION_ENABLED:'true',RESPONSIBLE_CPF_HMAC_SECRET:secret,REGISTRATION_DRAFTS_ENABLED:'true',REGISTRATION_DRAFT_ENCRYPTION_KEY:draftKey}),/REGISTRATION_DRAFTS_ACTIVATION_ACKNOWLEDGED/);
 });
 
 test("colisão da impressão do CPF retorna conflito específico sem revelar o CPF", async () => {

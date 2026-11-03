@@ -135,6 +135,13 @@ export function loadConfig(env = process.env) {
   if (responsibleRegistrationEnabled && responsibleCpfHmacSecret === env.SESSION_SECRET) {
     throw new Error("RESPONSIBLE_CPF_HMAC_SECRET must not reuse SESSION_SECRET");
   }
+  const registrationDraftsRequested=env.REGISTRATION_DRAFTS_ENABLED==='true';
+  const registrationDraftEncryptionKey=env.REGISTRATION_DRAFT_ENCRYPTION_KEY??null;
+  const registrationDraftsAcknowledged=env.REGISTRATION_DRAFTS_ACTIVATION_ACKNOWLEDGED==='true';
+  if(registrationDraftsRequested&&!responsibleRegistrationEnabled)throw new Error('REGISTRATION_DRAFTS_ENABLED requires RESPONSIBLE_REGISTRATION_ENABLED=true');
+  if(registrationDraftsRequested&&Buffer.from(String(registrationDraftEncryptionKey??''),'base64url').length!==32)throw new Error('REGISTRATION_DRAFT_ENCRYPTION_KEY must be a base64url-encoded 32-byte key');
+  if(registrationDraftsRequested&&registrationDraftEncryptionKey===env.SESSION_SECRET)throw new Error('REGISTRATION_DRAFT_ENCRYPTION_KEY must not reuse SESSION_SECRET');
+  if(nodeEnv==='production'&&registrationDraftsRequested&&!registrationDraftsAcknowledged)throw new Error('REGISTRATION_DRAFTS_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const asaasSandboxEnabled=env.ASAAS_SANDBOX_ENABLED==='true';
   const asaasSandboxApiKey=env.ASAAS_SANDBOX_API_KEY??null;
   const asaasEnabled=env.ASAAS_ENABLED==='true'||asaasSandboxEnabled;
@@ -227,6 +234,8 @@ export function loadConfig(env = process.env) {
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
+    registrationDraftsEnabled:registrationDraftsRequested&&(nodeEnv!=='production'||registrationDraftsAcknowledged),
+    registrationDraftEncryptionKey,
     asaasSandboxEnabled,
     asaasSandboxApiKey,
     asaasEnabled,

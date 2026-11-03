@@ -108,6 +108,7 @@ export function createAuthService(repository, {
           postalCodeEvidence: postal.evidence,
         }, {
           expectedTerms: responsibleRegistration.terms,
+          familyProfileRequired:responsibleRegistration.familyProfileRequired===true,
         });
         const { cpf, ...safeResponsible } = validated;
         let geocode=null;
@@ -169,6 +170,7 @@ export function createAuthService(repository, {
         terms: responsibleRegistration.enabled && responsibleRegistration.terms?.status === "active"
           ? Object.freeze({ version: responsibleRegistration.terms.version, contentHash: responsibleRegistration.terms.contentHash })
           : null,
+        familyProfileRequired:responsibleRegistration.familyProfileRequired===true,
       });
     },
 

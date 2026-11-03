@@ -47,12 +47,36 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal((await fetch(`${root}/${created.id}`,{method:'PUT',headers:headers('outsider'),body:JSON.stringify({birthDate:'2026-06-16',emoji:'🌙',expectedVersion:2})})).status,404);
       const removedResponse=await fetch(`${root}/${created.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:2})});assert.equal(removedResponse.status,200);assert.equal((await removedResponse.json()).removed,true);
       const remaining=await (await fetch(root,{headers:headers('owner')})).json();assert.equal(remaining.items.length,1);assert.equal(remaining.items[0].id,second.id);
-      assert.equal((await fetch(`${root}/${second.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:1})})).status,409);
+      assert.equal((await fetch(`${root}/${second.id}`,{method:'DELETE',headers:headers('owner'),body:JSON.stringify({confirmed:true,expectedVersion:1})})).status,200);
       const retained=await database.query(`SELECT birth_date,deleted_at,personalization_enabled FROM child_profiles WHERE account_id=$1 ORDER BY created_at`,[owner]);
-      assert.equal(retained.rows.length,2);assert.equal(retained.rows[0].birth_date,null);assert.ok(retained.rows[0].deleted_at);assert.equal(retained.rows[1].personalization_enabled,true);
-      assert.equal(await createChildProfileRepository(database).hasActive(owner),true);
+      assert.equal(retained.rows.length,2);for(const row of retained.rows){assert.equal(row.birth_date,null);assert.ok(row.deleted_at);assert.equal(row.personalization_enabled,false);}
+      assert.equal(await createChildProfileRepository(database).hasActive(owner),false);
+      assert.equal(await createChildProfileRepository(database).operationProfileState(owner),'missing');
       assert.equal((await database.query(`SELECT count(*)::integer AS count FROM information_schema.columns WHERE table_name='child_profiles' AND column_name='label'`)).rows[0].count,0);
-      assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,4);
+      assert.equal((await database.query(`SELECT count(*)::integer AS count FROM audit_events WHERE entity_type='child_profile'`)).rows[0].count,5);
+      const consentEvidence=await database.query(`SELECT consent_version,content_hash,accepted_at,account_closed_at,retention_due_at FROM child_profile_consent_evidence WHERE account_id=$1 ORDER BY accepted_at,id`,[owner]);
+      assert.equal(consentEvidence.rows.length,2);
+      for(const evidence of consentEvidence.rows){
+        assert.equal(evidence.consent_version,'FC-CHILD-PROFILE-1');
+        assert.equal(evidence.content_hash,'8197091ecfc2d058d76411092a11ad577ea04dce7548759537ba52335161593a');
+        assert.ok(evidence.accepted_at instanceof Date);assert.equal(evidence.account_closed_at,null);assert.equal(evidence.retention_due_at,null);
+      }
+      const evidenceColumns=(await database.query(`SELECT column_name FROM information_schema.columns WHERE table_name='child_profile_consent_evidence' ORDER BY column_name`)).rows.map(row=>row.column_name);
+      assert.equal(evidenceColumns.includes('birth_date'),false);assert.equal(evidenceColumns.includes('emoji'),false);
+      const notices=await database.query(`SELECT message,created_at,expires_at FROM account_notices WHERE user_id=$1 AND kind='child_profile_change' ORDER BY created_at`,[owner]);
+      assert.equal(notices.rows.length,5);
+      assert.deepEqual(notices.rows.map(row=>row.message),[
+        'Um perfil da família foi criado.',
+        'Um perfil da família foi criado.',
+        'Um perfil da família foi atualizado.',
+        'Um perfil da família foi removido.',
+        'Um perfil da família foi removido.',
+      ]);
+      for(const notice of notices.rows){
+        assert.doesNotMatch(notice.message,/\d{4}-\d{2}-\d{2}|nascimento|birth/i);
+        const retentionMs=new Date(notice.expires_at).getTime()-new Date(notice.created_at).getTime();
+        assert.ok(retentionMs>=365*24*60*60*1000&&retentionMs<=366*24*60*60*1000);
+      }
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });

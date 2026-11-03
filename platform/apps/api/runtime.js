@@ -97,6 +97,8 @@ import {createExchangeSettlementWebhookService} from './exchange-settlement-webh
 import {createExchangeReconciliationRetentionRepository} from '../../database/exchange-reconciliation-retention-repository.js';
 import {createExchangeRetentionStatusService} from './exchange-retention-status-service.js';
 import {createExchangeRetentionRequestService} from './exchange-retention-request-service.js';
+import {createRegistrationDraftRepository} from '../../database/registration-draft-repository.js';
+import {createRegistrationDraftService} from './registration-draft-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -117,8 +119,12 @@ export async function startRuntime(config = null) {
       terms: legalTerms,
       postalCodeService: createPostalCodeService(),
       addressGeocoder,
+      familyProfileRequired:config.childProfilesEnabled,
     },
   });
+  const registrationDraftService=config.registrationDraftsEnabled?createRegistrationDraftService(
+    createRegistrationDraftRepository(database),{encryptionKey:config.registrationDraftEncryptionKey},
+  ):null;
   const moderationRepository = createModerationRepository(database);
   const donationService = createDonationService(createDonationRepository(database,{pilotBh:config.pilotBh}));
   const institutionAccessService = createInstitutionAccessService(createInstitutionAccessRepository(database));
@@ -247,6 +253,7 @@ export async function startRuntime(config = null) {
     exchangeSettlementWebhookService,
     exchangeRetentionStatusService,
     exchangeRetentionRequestService,
+    registrationDraftService,
     telemetry,
   });
 

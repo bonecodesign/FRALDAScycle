@@ -1,8 +1,9 @@
 import { normalizeBrazilianPostalCode, requireVerifiedPostalCode } from "./postal-code-verification.js";
+import {childAgeBand,CHILD_PROFILE_CONSENT_VERSION,CHILD_PROFILE_EMOJIS} from './child-age-band.js';
 
 export const RESPONSIBLE_TRUTH_DECLARATION_VERSION = "FC-RESPONSIBLE-1";
 
-const ALLOWED_FIELDS = new Set(["fullName", "cpf", "birthDate", "address", "postalCodeEvidence", "truthDeclaration", "terms"]);
+const ALLOWED_FIELDS = new Set(["fullName", "cpf", "birthDate", "address", "postalCodeEvidence", "truthDeclaration", "terms", "familyProfile"]);
 const ADDRESS_FIELDS = new Set(["id", "version", "postalCode", "street", "number", "complement", "noComplement", "district", "city", "state"]);
 
 function registrationError(code, message) {
@@ -101,7 +102,17 @@ function normalizeTerms(value, expectedTerms) {
   return Object.freeze({ accepted: true, version, contentHash });
 }
 
-export function validateResponsibleRegistration(input, { expectedTerms, now = new Date() } = {}) {
+function normalizeFamilyProfile(value,now,required){
+  if(value==null&&!required)return null;
+  assertExactFields(value,new Set(['birthDate','emoji','consentConfirmed','consentVersion','personalizationEnabled']),'invalid_family_profile');
+  if(value.consentConfirmed!==true||value.consentVersion!==CHILD_PROFILE_CONSENT_VERSION||value.personalizationEnabled!==true)throw registrationError('family_profile_consent_required','Confirme o uso da data para organizar as ofertas por faixa etária.');
+  const birthDate=String(value.birthDate??''),emoji=String(value.emoji??'');
+  try{childAgeBand(birthDate,now);}catch{throw registrationError('invalid_child_birth_date','Informe uma data válida para uma criança de até 12 anos.');}
+  if(!CHILD_PROFILE_EMOJIS.includes(emoji))throw registrationError('invalid_family_profile_emoji','Escolha um emoji disponível.');
+  return Object.freeze({birthDate,emoji,consentVersion:CHILD_PROFILE_CONSENT_VERSION});
+}
+
+export function validateResponsibleRegistration(input, { expectedTerms, now = new Date(),familyProfileRequired=false } = {}) {
   assertExactFields(input, ALLOWED_FIELDS, "invalid_responsible_registration");
   const fullName = normalizedText(input.fullName, { min: 3, max: 160, code: "invalid_full_name", label: "o nome completo" });
   if (fullName.split(" ").length < 2) throw registrationError("invalid_full_name", "Informe o nome completo.");
@@ -112,5 +123,6 @@ export function validateResponsibleRegistration(input, { expectedTerms, now = ne
     address: normalizeAddress(input.address, input.postalCodeEvidence),
     truthDeclaration: normalizeTruthDeclaration(input.truthDeclaration),
     terms: normalizeTerms(input.terms, expectedTerms),
+    familyProfile:normalizeFamilyProfile(input.familyProfile,now,familyProfileRequired),
   });
 }

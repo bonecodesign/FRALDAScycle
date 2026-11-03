@@ -57,7 +57,10 @@ export function createChildProfileService(repository, { featureEnabled = false, 
     async requireForNewOperation(actor) {
       if (!featureEnabled || actor?.role !== "customer") return actor;
       requireFamilyAccount(actor);
-      if (!(await repository.hasActive(actor.id))) {
+      const state = repository.operationProfileState
+        ? await repository.operationProfileState(actor.id)
+        : (await repository.hasActive(actor.id) ? "active" : "missing");
+      if (state === "missing") {
         throw fail("child_profile_required", 403, "Cadastre ao menos um perfil familiar antes de iniciar uma nova operação.");
       }
       return actor;
@@ -98,7 +101,6 @@ export function createChildProfileService(repository, { featureEnabled = false, 
       const row = await repository.remove({ accountId: actor.id, profileId, expectedVersion: input.expectedVersion });
       if (!row) throw fail("child_profile_not_found", 404, "Perfil infantil não encontrado.");
       if (row.conflict) throw fail("child_profile_version_conflict", 409, "O perfil foi atualizado; consulte novamente.");
-      if (row.lastProfile) throw fail("last_child_profile_required", 409, "Adicione outro perfil antes de remover o último perfil infantil.");
       return { id: row.id, removed: true, personalizationEnabled: false, version: row.version };
     },
     async personalizationSignals(actor) {

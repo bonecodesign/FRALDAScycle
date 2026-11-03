@@ -1,6 +1,9 @@
+import { CHILD_PROFILE_CONSENT_CONTENT_HASH } from "../packages/contracts/child-age-band.js";
+
 export function createChildProfileRepository(database) {
   return Object.freeze({
     async notices(accountId) {
+      await database.query(`DELETE FROM account_notices WHERE kind='child_profile_change' AND expires_at<=now()`);
       const result = await database.query(
         `SELECT id,message,created_at FROM account_notices
          WHERE user_id=$1 AND read_at IS NULL ORDER BY created_at DESC LIMIT 20`,
@@ -31,6 +34,20 @@ export function createChildProfileRepository(database) {
       return result.rows[0]?.active === true;
     },
 
+    async operationProfileState(accountId) {
+      const result = await database.query(
+        `SELECT
+           EXISTS(SELECT 1 FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL AND birth_date IS NOT NULL) AS active,
+           (SELECT lifecycle_ended_reason FROM child_profiles
+            WHERE account_id=$1 AND deleted_at IS NOT NULL
+            ORDER BY deleted_at DESC,id DESC LIMIT 1) AS latest_ended_reason`,
+        [accountId],
+      );
+      const row = result.rows[0] ?? {};
+      if (row.active === true) return "active";
+      return row.latest_ended_reason === "age_limit" ? "age_limit_ended" : "missing";
+    },
+
     async create({ accountId, birthDate, emoji, consentVersion }) {
       return database.transaction(async client => {
         await client.query(`SELECT id FROM users WHERE id=$1 FOR UPDATE`, [accountId]);
@@ -55,6 +72,13 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
           [accountId, row.id, JSON.stringify({ consentVersion, emoji, personalizationEnabled: true })],
         );
+        await client.query(
+          `INSERT INTO child_profile_consent_evidence
+             (account_id,child_profile_id,consent_version,content_hash,accepted_at)
+           VALUES($1,$2,$3,$4,$5)`,
+          [accountId,row.id,consentVersion,CHILD_PROFILE_CONSENT_CONTENT_HASH,row.consented_at],
+        );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi criado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:created:v${row.version}`]);
         return row;
       });
     },
@@ -85,6 +109,7 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.corrected','child_profile',$2,$3::jsonb)`,
           [accountId, profileId, JSON.stringify({ previousVersion: expectedVersion, newVersion: row.version })],
         );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi atualizado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:updated:v${row.version}`]);
         return row;
       });
     },
@@ -99,11 +124,6 @@ export function createChildProfileRepository(database) {
         )).rows[0];
         if (!current) return null;
         if (current.version !== expectedVersion) return { conflict: true };
-        const active = (await client.query(
-          `SELECT count(*)::integer AS count FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL`,
-          [accountId],
-        )).rows[0]?.count ?? 0;
-        if (active <= 1) return { lastProfile: true };
         const row = (await client.query(
           `UPDATE child_profiles SET birth_date=NULL,personalization_enabled=false,deleted_at=now(),version=version+1,updated_at=now()
            WHERE id=$1 AND account_id=$2 RETURNING id,version,deleted_at,personalization_enabled`,
@@ -114,6 +134,7 @@ export function createChildProfileRepository(database) {
            VALUES($1,'child_profile.removed','child_profile',$2,$3::jsonb)`,
           [accountId, profileId, JSON.stringify({ previousVersion: expectedVersion, newVersion: row.version, personalizationEnabled: false })],
         );
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi removido.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[accountId,`child-profile:${row.id}:removed:v${row.version}`]);
         return row;
       });
     },

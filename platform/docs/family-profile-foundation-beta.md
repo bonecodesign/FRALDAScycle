@@ -6,13 +6,13 @@ O cadastro exige declaração explícita e versionada `FC-AGE-1`, sem coletar da
 
 ## Perfis infantis preparados, mas inativos
 
-A fundação suporta de 1 a 5 perfis por conta familiar, somente data de nascimento privada, emoji obrigatório e exclusivo, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. Contas de entregador, moderador e administrador não podem usar essa área. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças não integram os sinais externos.
+A fundação suporta de 1 a 5 perfis por conta familiar, somente data de nascimento privada, emoji obrigatório e exclusivo, consentimento `FC-CHILD-PROFILE-1`, correção versionada e remoção que interrompe a personalização. O ponto de coleta mostra aviso curto sobre dado, finalidade, remoção e Política de Privacidade. A migração 128 preserva evidência versionada e seu hash, sem copiar nascimento, emoji ou outro atributo infantil; o vencimento será cinco anos após o encerramento da conta. Contas de entregador, moderador e administrador não podem usar essa área. A migração 053 apaga eventuais apelidos de ambientes de teste anteriores e remove a coluna. O mecanismo interno deriva somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças não integram os sinais externos.
 
 `CHILD_PROFILES_ENABLED` é falso por padrão. Em produção, habilitá-lo exige também `CHILD_PROFILES_ACTIVATION_ACKNOWLEDGED=true`; definir somente a flag de recurso interrompe a inicialização. Esse segundo valor é um controle operacional explícito e não substitui revisão jurídica, aprovação de privacidade ou decisão formal. Enquanto a flag estiver desligada, o serviço retorna `404` antes de consultar ou escrever no banco e a interface infantil não é criada. Nenhuma coleta infantil fica ativa nesta entrega.
 
 ## Retenção e bloqueio após remoção
 
-A decisão de 22 de outubro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil não pode ser removido manualmente.
+A decisão superveniente de 3 de novembro define retenção ativa: a data existe somente enquanto o perfil estiver ativo. A remoção substitui a data por `NULL` na mesma transação que desativa o perfil e registra auditoria sem a data. Backups operacionais expiram em até 30 dias. O último perfil pode ser removido manualmente; essa remoção é distinguida do encerramento etário para controlar novas operações. Criação, correção e remoção geram aviso interno genérico, sem data de nascimento, com expiração em 12 meses; não há e-mail para essas alterações.
 
 ## Condições para ativação futura
 
@@ -25,6 +25,8 @@ A data e um emoji do conjunto fixo são obrigatórios ao adicionar um perfil. Ca
 - Migração 033 e contratos de maioridade/faixa etária.
 - Declaração integrada ao cadastro e às novas operações sensíveis.
 - Serviço privado com criação, correção, remoção, múltiplos perfis e proteção concorrente.
+- Avisos internos de alteração minimizados, deduplicados e retidos por 12 meses pela migração 127.
+- Evidência de consentimento separada e minimizada pela migração 128, preparada para retenção durante a conta e cinco anos após seu encerramento.
 - Worker idempotente encerra perfis aos 13 anos, elimina a data e enfileira avisos 30 dias antes e no dia; execução periódica exige `CHILD_PROFILE_LIFECYCLE_ENABLED=true`.
 - Interface adulta ativa; interface infantil condicionada ao backend habilitado.
 - 12/12 verificações focadas aprovadas, incluindo HTTP/PostgreSQL nativo, isolamento por conta e papel, dois perfis simultâneos, correção, remoção completa, sessão preservada, auditoria e ausência da antiga coluna de apelido.
