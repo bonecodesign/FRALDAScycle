@@ -131,6 +131,10 @@ export function loadConfig(env = process.env) {
   const familyResponsibilityDisputesAcknowledged=env.FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED==='true';
   if(familyResponsibilityDisputesRequested&&!childProfilesRequested)throw new Error('FAMILY_RESPONSIBILITY_DISPUTES_ENABLED requires CHILD_PROFILES_ENABLED=true');
   if(nodeEnv==='production'&&familyResponsibilityDisputesRequested&&!familyResponsibilityDisputesAcknowledged)throw new Error('FAMILY_RESPONSIBILITY_DISPUTES_ACTIVATION_ACKNOWLEDGED=true is required in production');
+  const childDataEmergencyAccessRequested=env.CHILD_DATA_EMERGENCY_ACCESS_ENABLED==='true';
+  const childDataEmergencyAccessAcknowledged=env.CHILD_DATA_EMERGENCY_ACCESS_ACTIVATION_ACKNOWLEDGED==='true';
+  if(childDataEmergencyAccessRequested&&!childProfilesRequested)throw new Error('CHILD_DATA_EMERGENCY_ACCESS_ENABLED requires CHILD_PROFILES_ENABLED=true');
+  if(nodeEnv==='production'&&childDataEmergencyAccessRequested&&!childDataEmergencyAccessAcknowledged)throw new Error('CHILD_DATA_EMERGENCY_ACCESS_ACTIVATION_ACKNOWLEDGED=true is required in production');
   const responsibleRegistrationEnabled = env.RESPONSIBLE_REGISTRATION_ENABLED === "true";
   const responsibleCpfHmacSecret = env.RESPONSIBLE_CPF_HMAC_SECRET ?? null;
   if (responsibleRegistrationEnabled && String(responsibleCpfHmacSecret ?? "").length < 32) {
@@ -237,6 +241,7 @@ export function loadConfig(env = process.env) {
     geocodingProviderSecret: geocoding.secret,
     childProfilesEnabled: childProfilesRequested && (nodeEnv !== "production" || childProfilesActivationAcknowledged),
     familyResponsibilityDisputesEnabled:familyResponsibilityDisputesRequested&&(nodeEnv!=='production'||familyResponsibilityDisputesAcknowledged),
+    childDataEmergencyAccessEnabled:childDataEmergencyAccessRequested&&(nodeEnv!=='production'||childDataEmergencyAccessAcknowledged),
     responsibleRegistrationEnabled,
     responsibleCpfHmacSecret,
     registrationDraftsEnabled:registrationDraftsRequested&&(nodeEnv!=='production'||registrationDraftsAcknowledged),

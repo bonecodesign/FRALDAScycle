@@ -564,15 +564,20 @@
       "database/child-profile-repository.js",
       "database/migrations/128_child_profile_consent_evidence.sql",
       "database/migrations/129_child_profile_responsibility_disputes.sql",
+      "database/migrations/130_child_data_emergency_access.sql",
       "database/child-profile-responsibility-repository.js",
       "apps/api/child-profile-responsibility-service.js",
+      "database/child-data-emergency-access-repository.js",
+      "apps/api/child-data-emergency-access-service.js",
       "workers/child-profile-responsibility-retention.js",
+      "tests/child-data-emergency-access-service.test.mjs",
+      "tests/child-data-emergency-access-postgres.test.mjs",
       "apps/app/family-profile.js",
       "tests/family-profile-foundation.test.mjs",
       "tests/child-profile-http-postgres.test.mjs",
       "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: minimiza perfis, registra consentimento separado e prepara disputa restrita em que nível 1 registra, nível 2 verifica antes de suspender e nível 3 decide, sem copiar nascimento, emoji ou conteúdo documental.",
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: minimiza perfis, registra consentimento separado, governa disputas e limita acesso humano emergencial a dupla aprovação independente, leitura por 15 minutos, marca-d'água e auditoria sem copiar nascimento.",
     "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {

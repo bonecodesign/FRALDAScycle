@@ -101,6 +101,8 @@ import {createRegistrationDraftRepository} from '../../database/registration-dra
 import {createRegistrationDraftService} from './registration-draft-service.js';
 import {createChildProfileResponsibilityRepository} from '../../database/child-profile-responsibility-repository.js';
 import {createChildProfileResponsibilityService} from './child-profile-responsibility-service.js';
+import {createChildDataEmergencyAccessRepository} from '../../database/child-data-emergency-access-repository.js';
+import {createChildDataEmergencyAccessService} from './child-data-emergency-access-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -149,6 +151,7 @@ export async function startRuntime(config = null) {
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const childProfileResponsibilityService=createChildProfileResponsibilityService(createChildProfileResponsibilityRepository(database),{enabled:config.familyResponsibilityDisputesEnabled});
+  const childDataEmergencyAccessService=createChildDataEmergencyAccessService(createChildDataEmergencyAccessRepository(database),{enabled:config.childDataEmergencyAccessEnabled});
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
   const manufacturerAvailabilitySourceService = createManufacturerAvailabilitySourceService(createManufacturerAvailabilitySourceRepository(database));
@@ -257,6 +260,7 @@ export async function startRuntime(config = null) {
     exchangeRetentionStatusService,
     exchangeRetentionRequestService,
     childProfileResponsibilityService,
+    childDataEmergencyAccessService,
     registrationDraftService,
     telemetry,
   });
