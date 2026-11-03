@@ -15,7 +15,7 @@ export function createChildProfileRepository(database) {
     async list(accountId) {
       const result = await database.query(
         `SELECT id, birth_date, emoji, consent_version, consented_at,
-                personalization_enabled, version, created_at, updated_at
+                personalization_enabled,responsibility_suspended_at, version, created_at, updated_at
          FROM child_profiles WHERE account_id = $1 AND deleted_at IS NULL
          ORDER BY created_at, id`,
         [accountId],
@@ -27,7 +27,7 @@ export function createChildProfileRepository(database) {
       const result = await database.query(
         `SELECT EXISTS(
            SELECT 1 FROM child_profiles
-           WHERE account_id = $1 AND deleted_at IS NULL AND birth_date IS NOT NULL
+           WHERE account_id = $1 AND deleted_at IS NULL AND birth_date IS NOT NULL AND responsibility_suspended_at IS NULL
          ) AS active`,
         [accountId],
       );
@@ -37,7 +37,8 @@ export function createChildProfileRepository(database) {
     async operationProfileState(accountId) {
       const result = await database.query(
         `SELECT
-           EXISTS(SELECT 1 FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL AND birth_date IS NOT NULL) AS active,
+           EXISTS(SELECT 1 FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL AND birth_date IS NOT NULL AND responsibility_suspended_at IS NULL) AS active,
+           EXISTS(SELECT 1 FROM child_profiles WHERE account_id=$1 AND deleted_at IS NULL AND responsibility_suspended_at IS NOT NULL) AS suspended,
            (SELECT lifecycle_ended_reason FROM child_profiles
             WHERE account_id=$1 AND deleted_at IS NOT NULL
             ORDER BY deleted_at DESC,id DESC LIMIT 1) AS latest_ended_reason`,
@@ -45,6 +46,7 @@ export function createChildProfileRepository(database) {
       );
       const row = result.rows[0] ?? {};
       if (row.active === true) return "active";
+      if (row.suspended === true) return "suspended";
       return row.latest_ended_reason === "age_limit" ? "age_limit_ended" : "missing";
     },
 
@@ -88,7 +90,7 @@ export function createChildProfileRepository(database) {
         await client.query(`SELECT id FROM users WHERE id=$1 FOR UPDATE`, [accountId]);
         const current = (await client.query(
           `SELECT id,version FROM child_profiles
-           WHERE id=$1 AND account_id=$2 AND deleted_at IS NULL FOR UPDATE`,
+           WHERE id=$1 AND account_id=$2 AND deleted_at IS NULL AND responsibility_suspended_at IS NULL FOR UPDATE`,
           [profileId, accountId],
         )).rows[0];
         if (!current) return null;
@@ -119,7 +121,7 @@ export function createChildProfileRepository(database) {
         await client.query(`SELECT id FROM users WHERE id=$1 FOR UPDATE`, [accountId]);
         const current = (await client.query(
           `SELECT id,version FROM child_profiles
-           WHERE id=$1 AND account_id=$2 AND deleted_at IS NULL FOR UPDATE`,
+           WHERE id=$1 AND account_id=$2 AND deleted_at IS NULL AND responsibility_suspended_at IS NULL FOR UPDATE`,
           [profileId, accountId],
         )).rows[0];
         if (!current) return null;

@@ -43,6 +43,7 @@ function publicProfile(row, referenceDate) {
     ageBand: childAgeBand(birthDate, referenceDate),
     ageDisplay: childAgeDisplay(birthDate, referenceDate),
     consentVersion: row.consent_version, personalizationEnabled: Boolean(row.personalization_enabled),
+    responsibilitySuspended: Boolean(row.responsibility_suspended_at),
     version: row.version, createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
@@ -63,6 +64,7 @@ export function createChildProfileService(repository, { featureEnabled = false, 
       if (state === "missing") {
         throw fail("child_profile_required", 403, "Cadastre ao menos um perfil familiar antes de iniciar uma nova operação.");
       }
+      if(state==='suspended')throw fail('child_profile_responsibility_suspended',403,'O perfil familiar está temporariamente suspenso para análise.');
       return actor;
     },
     async list(actor) {
@@ -106,7 +108,7 @@ export function createChildProfileService(repository, { featureEnabled = false, 
     async personalizationSignals(actor) {
       enabled(featureEnabled); requireFamilyAccount(actor);
       const rows = await repository.list(actor.id);
-      const bands = new Set(rows.filter(row => row.personalization_enabled)
+      const bands = new Set(rows.filter(row => row.personalization_enabled&&!row.responsibility_suspended_at)
         .map(row => childAgeBand(storedBirthDate(row.birth_date), now())));
       return [...bands].sort().map(ageBand => ({ ageBand }));
     },

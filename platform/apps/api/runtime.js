@@ -99,6 +99,8 @@ import {createExchangeRetentionStatusService} from './exchange-retention-status-
 import {createExchangeRetentionRequestService} from './exchange-retention-request-service.js';
 import {createRegistrationDraftRepository} from '../../database/registration-draft-repository.js';
 import {createRegistrationDraftService} from './registration-draft-service.js';
+import {createChildProfileResponsibilityRepository} from '../../database/child-profile-responsibility-repository.js';
+import {createChildProfileResponsibilityService} from './child-profile-responsibility-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -146,6 +148,7 @@ export async function startRuntime(config = null) {
   const incidentRoleService=createIncidentRoleService(createIncidentRoleRepository(database,{stepUpRepository:accountStepUpRepository}));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
+  const childProfileResponsibilityService=createChildProfileResponsibilityService(createChildProfileResponsibilityRepository(database),{enabled:config.familyResponsibilityDisputesEnabled});
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
   const manufacturerAvailabilitySourceService = createManufacturerAvailabilitySourceService(createManufacturerAvailabilitySourceRepository(database));
@@ -253,6 +256,7 @@ export async function startRuntime(config = null) {
     exchangeSettlementWebhookService,
     exchangeRetentionStatusService,
     exchangeRetentionRequestService,
+    childProfileResponsibilityService,
     registrationDraftService,
     telemetry,
   });
