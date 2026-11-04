@@ -27,6 +27,15 @@ services:
     command: ["node", "workers/premium.js", "--serve"]
     restart: unless-stopped
 
+  moderation-suspensions-worker:
+    profiles: ["moderation-suspensions"]
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    env_file: ${FRALDACYCLE_ENV_FILE:-platform/.env.production}
+    command: ["node", "workers/moderation-suspensions.js", "--serve"]
+    restart: unless-stopped
+
   site:
     build:
       context: .

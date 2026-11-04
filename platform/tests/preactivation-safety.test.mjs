@@ -15,7 +15,7 @@ test("preactivation gate accepts an inert environment", () => {
   });
   assert.equal(report.safe, true);
   assert.equal(report.mode, "preactivation");
-  assert.equal(report.checkedFlags, 21);
+  assert.equal(report.checkedFlags, 22);
   assert.deepEqual(report.blockers, []);
 });
 

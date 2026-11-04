@@ -1,5 +1,18 @@
 import { createHash } from 'node:crypto';
 const fail = (code,status,message) => Object.assign(new Error(message), {code,status});
+async function releaseSuspension(client,decision,reason) {
+  const existing=(await client.query('SELECT * FROM moderation_suspension_releases WHERE decision_id=$1',[decision.id])).rows[0];
+  if(existing)return {reused:true,restoredListings:existing.restored_listings};
+  const restored=(await client.query(`UPDATE listings l SET status='published',updated_at=now() FROM moderation_listing_pauses p
+    WHERE p.decision_id=$1 AND p.listing_id=l.id AND p.restored_at IS NULL AND l.status='paused'
+      AND NOT EXISTS(SELECT 1 FROM moderation_decisions d WHERE d.owner_id=l.seller_id AND d.surface='account' AND d.id<>$1 AND d.status<>'overturned' AND d.suspended_until>clock_timestamp())
+      AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=l.id AND t.status NOT IN('cancelled','refunded','completed'))
+    RETURNING l.id`,[decision.id])).rows;
+  await client.query('UPDATE moderation_listing_pauses SET restored_at=now() WHERE restored_at IS NULL AND listing_id=ANY($1::uuid[])',[restored.map(row=>row.id)]);
+  await client.query('INSERT INTO moderation_suspension_releases(decision_id,reason,restored_listings) VALUES($1,$2,$3)',[decision.id,reason,restored.length]);
+  await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES(NULL,'moderation.account.released','moderation_decision',$1,$2::jsonb)`,[decision.id,JSON.stringify({reason,restoredListings:restored.length})]);
+  return {reused:false,restoredListings:restored.length};
+}
 export async function newOperationsAllowed(client,userId) {
   const result=await client.query(`SELECT
     EXISTS(SELECT 1 FROM moderation_decisions WHERE owner_id=$1 AND surface='account' AND status<>'overturned' AND suspended_until>clock_timestamp()) AS suspended,
@@ -71,6 +84,7 @@ export function createModerationRepository(database) {
         }
         await client.query('UPDATE moderation_appeals SET outcome=$2,review_reason=$3,reviewed_by=$4,reviewed_at=now() WHERE id=$1',[a.id,outcome,reason,actorId]);
         await client.query('UPDATE moderation_decisions SET status=$2 WHERE id=$1',[decisionId,outcome]);
+        if(outcome==='overturned'&&d.surface==='account')await releaseSuspension(client,d,'overturned');
         await client.query('INSERT INTO support_ticket_messages(ticket_id,author_id,body) VALUES($1,$2,$3)',[a.ticket_id,actorId,reason]);
         await client.query("UPDATE support_tickets SET status='resolved',updated_at=now() WHERE id=$1",[a.ticket_id]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.appeal.reviewed','moderation_decision',$2,$3::jsonb)`,[actorId,decisionId,JSON.stringify({outcome})]);
@@ -90,9 +104,22 @@ export function createModerationRepository(database) {
         const decision=(await client.query(`INSERT INTO moderation_decisions(owner_id,surface,rule_version,reason,decided_by,suspended_until,idempotency_key)
           SELECT $1,'account','FC-MODERATION-1',$2,$3,$4::timestamptz,$5 WHERE $4::timestamptz>clock_timestamp() ON CONFLICT(idempotency_key) DO NOTHING RETURNING id`,[userId,reason,actorId,until,idempotencyKey])).rows[0];
         if(!decision) throw fail('invalid_suspension_period',422,'Informe término futuro da suspensão temporária.');
-        await client.query("UPDATE listings SET status='paused',updated_at=now() WHERE seller_id=$1 AND status='published' AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=listings.id AND t.status NOT IN ('cancelled','refunded','completed'))",[userId]);
+        await client.query(`INSERT INTO moderation_listing_pauses(decision_id,listing_id)
+          SELECT $1,l.id FROM listings l WHERE l.seller_id=$2 AND (l.status='published' OR (l.status='paused' AND EXISTS(
+            SELECT 1 FROM moderation_listing_pauses prior WHERE prior.listing_id=l.id AND prior.restored_at IS NULL)))
+            AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=l.id AND t.status NOT IN('cancelled','refunded','completed'))
+          ON CONFLICT DO NOTHING`,[decision.id,userId]);
+        await client.query("UPDATE listings SET status='paused',updated_at=now() WHERE id IN(SELECT listing_id FROM moderation_listing_pauses WHERE decision_id=$1)",[decision.id]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.account.suspended','moderation_decision',$2,$3::jsonb)`,[actorId,decision.id,JSON.stringify({until})]);
         return {decision,reused:false};
+      });
+    },
+    releaseExpired(limit=50) {
+      return database.transaction(async client=>{
+        const due=(await client.query(`SELECT d.* FROM moderation_decisions d WHERE d.surface='account' AND d.status<>'overturned' AND d.suspended_until<=clock_timestamp()
+          AND NOT EXISTS(SELECT 1 FROM moderation_suspension_releases r WHERE r.decision_id=d.id) ORDER BY d.suspended_until,d.id FOR UPDATE SKIP LOCKED LIMIT $1`,[limit])).rows;
+        let restoredListings=0;for(const decision of due)restoredListings+=(await releaseSuspension(client,decision,'expired')).restoredListings;
+        return {released:due.length,restoredListings,permanentBansApplied:0};
       });
     },
   });

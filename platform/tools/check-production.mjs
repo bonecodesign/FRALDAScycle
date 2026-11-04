@@ -139,6 +139,7 @@ const files = [
   "database/payment-repository.js",
   "workers/notifications.js",
   "workers/child-profile-responsibility-retention.js",
+  "workers/moderation-suspensions.js",
   "apps/api/marketplace-handler.js",
   "apps/api/marketplace-providers.js",
   "apps/api/marketplace-service.js",

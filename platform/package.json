@@ -6,6 +6,8 @@
     "node": ">=20"
   },
   "scripts": {
+    "worker:moderation-suspensions:local": "node workers/moderation-suspensions.js --once",
+    "worker:moderation-suspensions": "node workers/moderation-suspensions.js --serve",
     "worker:user-content-retention": "node workers/user-content-retention.js",
     "test": "node --test tests/*.test.mjs",
     "test:listing-postgres": "node tools/check-listing-postgres.mjs",
