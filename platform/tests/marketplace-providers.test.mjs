@@ -71,11 +71,14 @@ test("media verification rejects missing, foreign, mutable and unprocessed image
   const key = "listings/user-1/one.webp";
   const ready = { storageKey: key, ownerId: "user-1", exists: true, processed: true,
     immutable: true, contentType: "image/webp", exifRemoved: true, scanStatus: "clean",
+    contactScanStatus:'clear',contactRuleVersion:'FC-CONTENT-1',ocrTextStored:false,qrCodeDetected:false,contactReasons:[],
     sizeBytes: 2_048, width: 800, height: 800 };
   for (const patch of [
     { exists: false }, { ownerId: "another-user" }, { processed: false },
     { immutable: false }, { contentType: "text/html" }, { exifRemoved: false },
-    { scanStatus: "pending" }, { sizeBytes: 10_000_001 }, { width: 1_601 }, { height: 0 },
+    { scanStatus: "pending" }, { contactScanStatus:'pending' }, { contactRuleVersion:'old' },
+    { ocrTextStored:true }, { qrCodeDetected:true }, { contactReasons:['phone'] },
+    { sizeBytes: 10_000_001 }, { width: 1_601 }, { height: 0 },
   ]) {
     const providers = createMarketplaceProviders(configured, async () => response({ ...ready, ...patch }));
     await assert.rejects(providers.verifyListingMedia("user-1", [key]), error => error.code === "media_not_ready");
@@ -87,6 +90,7 @@ test("media verification rejects missing, foreign, mutable and unprocessed image
   assert.deepEqual(await providers.verifyListingMedia("user-1", [key]), { verified: true, count: 1 });
   assert.equal(request.operation, "verify-listing-media");
   assert.equal(request.ownerId, "user-1");
+  assert.equal(request.contactRuleVersion,'FC-CONTENT-1');assert.equal(request.requireOcr,true);assert.equal(request.requireQrDetection,true);assert.equal(request.storeOcrText,false);
   await assert.rejects(providers.verifyListingMedia("user-1", ["listings/other/one.webp"]), error => error.code === "invalid_media");
 });
 

@@ -787,7 +787,10 @@
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
+        "apps/api/marketplace-providers.js",
         "database/communications-repository.js",
+        "tests/marketplace-providers.test.mjs",
+        "tests/publication-draft-assets.test.mjs",
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md",
         "database/review-moderation-repository.js",
@@ -833,8 +836,8 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: administrador registra suspensão temporária com motivo e término; novas operações são bloqueadas; titular abre recurso com protocolo; o mesmo revisor é recusado; outro administrador revoga a decisão e restaura as operações. Nenhum banimento automático ou permanente é criado.",
-      "reason": "Título/descrição filtrados na API, fotos encaminhadas a review; conferência real de mídia bloqueada por fornecedor."
+      "evidence": "Título e descrição usam a regra FC-CONTENT-1. O contrato de mídia exige OCR, detecção de QR, regra coincidente, resultado explícito sem contatos e confirmação de que o texto reconhecido não foi armazenado; respostas ausentes, antigas, pendentes ou positivas falham fechadas. Quatorze testes focados, incluindo sessão HTTP com porta local autorizada, foram aprovados em 4/11/2026.",
+      "reason": "Proteção técnica de texto e contrato fail-closed de imagem concluídos localmente; homologação do OCR/moderação visual e conferência real de mídia continuam dependentes do fornecedor."
     },
     {
       "id": 42,
@@ -930,11 +933,13 @@
         "tests/account-closure-http-postgres.test.mjs",
         "tests/account-closure-maintenance.test.mjs"
         ,"database/migrations/093_account_closure_data_inventory.sql"
+        ,"database/migrations/133_account_closure_retention_classification.sql"
         ,"tests/account-closure-inventory.test.mjs"
+        ,"tests/account-closure-retention-postgres.test.mjs"
         ,"docs/privacy-deletion-beta.md"
       ],
-      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Ao ficar pronto para revisão, o sistema cria inventário único das categorias de dados sem executar exclusão e mantém automaticErasureAllowed falso.",
-      "reason": "Fluxo e inventário técnico estão implementados. Classificação de retenção, purga final, identidade humana e atendimento integral dependem de revisão jurídica, privacidade e operação."
+      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Prova PostgreSQL dedicada confirma que retenção de conteúdo e disputa de responsabilidade familiar impedem o avanço; após resolver obrigações, é criado um único inventário FC-CLOSURE-INVENTORY-2 com categorias de identidade, família, consentimentos, conteúdo e financeiro, sem excluir a conta e mantendo automaticErasureAllowed falso.",
+      "reason": "Fluxo, gates e inventário técnico classificado estão implementados. Purga final, identidade humana, decisão jurídica de cada categoria e atendimento integral dependem de revisão jurídica, privacidade e operação."
     },
     {
       "id": 46,

@@ -1,4 +1,5 @@
 import { ServiceError } from "./service-error.js";
+import {CONTENT_RULE_VERSION} from '../../packages/contracts/content-moderation.js';
 export class ProviderError extends ServiceError {
   constructor(code, status, message) {
     super(code, status, message);
@@ -62,10 +63,14 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
       for (const storageKey of storageKeys) {
         const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
           operation: "verify-listing-media", ownerId, storageKey,
+          contactRuleVersion:CONTENT_RULE_VERSION,requireOcr:true,requireQrDetection:true,storeOcrText:false,
         }, fetchImpl);
         if (result?.storageKey !== storageKey || result.ownerId !== ownerId ||
             result.exists !== true || result.processed !== true || result.immutable !== true ||
             result.contentType !== "image/webp" || result.exifRemoved !== true || result.scanStatus !== "clean" ||
+            result.contactScanStatus !== "clear" || result.contactRuleVersion !== CONTENT_RULE_VERSION ||
+            result.ocrTextStored !== false || result.qrCodeDetected !== false ||
+            !Array.isArray(result.contactReasons) || result.contactReasons.length !== 0 ||
             !Number.isInteger(result.sizeBytes) || result.sizeBytes < 1 || result.sizeBytes > 10_000_000 ||
             !Number.isInteger(result.width) || result.width < 1 || result.width > 1_600 ||
             !Number.isInteger(result.height) || result.height < 1 || result.height > 1_600) {
