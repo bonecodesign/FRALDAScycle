@@ -87,6 +87,7 @@ export function createApiServer({
   childProfileResponsibilityService = null,
   childDataEmergencyAccessService = null,
   authorityRequestService = null,
+  userContentRetentionService = null,
   registrationDraftService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
@@ -332,7 +333,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
       })) return;
 
       if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;

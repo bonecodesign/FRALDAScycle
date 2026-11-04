@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "worker:user-content-retention": "node workers/user-content-retention.js",
     "test": "node --test tests/*.test.mjs",
     "test:listing-postgres": "node tools/check-listing-postgres.mjs",
     "dev:site": "node tools/dev-server.mjs site 4101",

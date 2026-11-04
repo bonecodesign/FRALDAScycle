@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 const platformRoot = fileURLToPath(new URL("../", import.meta.url));
 const files = [
   "packages/contracts/support-reply-key.js",
+  "packages/contracts/user-content-retention.js",
+  "apps/api/user-content-retention-service.js",
+  "database/user-content-retention-repository.js",
+  "workers/user-content-retention.js",
   "packages/contracts/exchange-difference.js",
   "packages/contracts/exchange-difference-checkout.js",
   "packages/contracts/exchange-difference-window.js",

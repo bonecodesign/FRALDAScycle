@@ -105,6 +105,8 @@ import {createChildDataEmergencyAccessRepository} from '../../database/child-dat
 import {createChildDataEmergencyAccessService} from './child-data-emergency-access-service.js';
 import {createAuthorityRequestRepository} from '../../database/authority-request-repository.js';
 import {createAuthorityRequestService} from './authority-request-service.js';
+import {createUserContentRetentionRepository} from '../../database/user-content-retention-repository.js';
+import {createUserContentRetentionService} from './user-content-retention-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -155,6 +157,7 @@ export async function startRuntime(config = null) {
   const childProfileResponsibilityService=createChildProfileResponsibilityService(createChildProfileResponsibilityRepository(database),{enabled:config.familyResponsibilityDisputesEnabled});
   const childDataEmergencyAccessService=createChildDataEmergencyAccessService(createChildDataEmergencyAccessRepository(database),{enabled:config.childDataEmergencyAccessEnabled});
   const authorityRequestService=createAuthorityRequestService(createAuthorityRequestRepository(database),{enabled:config.authorityRequestsEnabled});
+  const userContentRetentionService=createUserContentRetentionService(createUserContentRetentionRepository(database),{enabled:config.userContentRetentionEnabled});
   const pilotInvitationService = createPilotInvitationService(createPilotInvitationRepository(database));
   const manufacturerCatalogService = createManufacturerCatalogService(createManufacturerCatalogRepository(database));
   const manufacturerAvailabilitySourceService = createManufacturerAvailabilitySourceService(createManufacturerAvailabilitySourceRepository(database));
@@ -265,6 +268,7 @@ export async function startRuntime(config = null) {
     childProfileResponsibilityService,
     childDataEmergencyAccessService,
     authorityRequestService,
+    userContentRetentionService,
     registrationDraftService,
     telemetry,
   });
