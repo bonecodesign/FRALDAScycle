@@ -11,7 +11,7 @@ test('draft photo access requires ownership and verified processing before signi
   let processed=true;
   const provider=createMarketplaceProviders({mediaProviderUrl:'https://media.example/sign',mediaProviderSecret:'private'},async(url,options)=>{
     const input=JSON.parse(options.body);requests.push(input);
-    return {ok:true,json:async()=>input.operation==='verify-listing-media'?{storageKey:key,ownerId:'owner',exists:true,processed,immutable:true,contentType:'image/webp',exifRemoved:true,scanStatus:'clean',sizeBytes:1024,width:800,height:600}:{readUrl:'https://media.example/photo?token=temporary',expiresAt:new Date(Date.now()+60_000).toISOString()}};
+    return {ok:true,json:async()=>input.operation==='verify-listing-media'?{storageKey:key,ownerId:'owner',exists:true,processed,immutable:true,contentType:'image/webp',exifRemoved:true,scanStatus:'clean',contactScanStatus:'clear',contactRuleVersion:'FC-CONTENT-1',ocrTextStored:false,qrCodeDetected:false,contactReasons:[],sizeBytes:1024,width:800,height:600}:{readUrl:'https://media.example/photo?token=temporary',expiresAt:new Date(Date.now()+60_000).toISOString()}};
   });
   for(const storageKey of ['listings/other/photo.webp','private/proof.webp','listings/owner/../photo.webp'])await assert.rejects(provider.signedListingRead('owner',{storageKey}),error=>error.code==='invalid_media');
   assert.equal(requests.length,0);

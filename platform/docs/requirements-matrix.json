@@ -787,7 +787,10 @@
         "packages/contracts/content-moderation.js",
         "database/moderation-repository.js",
         "apps/api/moderation-service.js",
+        "apps/api/marketplace-providers.js",
         "database/communications-repository.js",
+        "tests/marketplace-providers.test.mjs",
+        "tests/publication-draft-assets.test.mjs",
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md",
         "database/review-moderation-repository.js",
@@ -833,8 +836,8 @@
         "tools/beta-moderation-check.mjs",
         "docs/moderation-beta.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: administrador registra suspensão temporária com motivo e término; novas operações são bloqueadas; titular abre recurso com protocolo; o mesmo revisor é recusado; outro administrador revoga a decisão e restaura as operações. Nenhum banimento automático ou permanente é criado.",
-      "reason": "Título/descrição filtrados na API, fotos encaminhadas a review; conferência real de mídia bloqueada por fornecedor."
+      "evidence": "Título e descrição usam a regra FC-CONTENT-1. O contrato de mídia exige OCR, detecção de QR, regra coincidente, resultado explícito sem contatos e confirmação de que o texto reconhecido não foi armazenado; respostas ausentes, antigas, pendentes ou positivas falham fechadas. Quatorze testes focados, incluindo sessão HTTP com porta local autorizada, foram aprovados em 4/11/2026.",
+      "reason": "Proteção técnica de texto e contrato fail-closed de imagem concluídos localmente; homologação do OCR/moderação visual e conferência real de mídia continuam dependentes do fornecedor."
     },
     {
       "id": 42,
