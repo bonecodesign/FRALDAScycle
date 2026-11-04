@@ -22,6 +22,8 @@ test('temporary suspension appeal requires an independent reviewer and can resto
         ($1,'appeal-owner@example.test','fixture','Titular fictício','customer'),
         ($2,'appeal-first@example.test','fixture','Primeiro revisor','admin'),
         ($3,'appeal-second@example.test','fixture','Revisor independente','admin')`,[ids.owner,ids.initialReviewer,ids.independentReviewer]);
+      const published=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio publicado','Deve ser restaurado somente pela decisão correspondente.','infant','Marca','Modelo','sealed',1,'sale',1000,'published') RETURNING id",[ids.owner])).rows[0];
+      const manuallyPaused=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio pausado','Pausa manual deve permanecer intocada.','infant','Marca','Modelo','sealed',1,'sale',1000,'paused') RETURNING id",[ids.owner])).rows[0];
       const repository=createModerationRepository(database),service=createModerationService(repository);
       const actors={owner:{id:ids.owner,role:'customer'},first:{id:ids.initialReviewer,role:'admin'},second:{id:ids.independentReviewer,role:'admin'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),moderationService:service,authService:{async session(token){return actors[token]??null;}}});
@@ -29,6 +31,8 @@ test('temporary suspension appeal requires an independent reviewer and can resto
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({'content-type':'application/json',cookie:`fc_session=${token}`});
       const suspended=await fetch(`${origin}/v1/moderation/suspensions`,{method:'POST',headers:headers('first'),body:JSON.stringify({userId:ids.owner,reason:'Suspensão temporária fictícia sujeita a recurso independente.',until:new Date(Date.now()+86400000).toISOString(),idempotencyKey:'moderation-appeal-http-postgres'})});
       const suspension=await suspended.json();assert.equal(suspended.status,200,JSON.stringify(suspension));const decisionId=suspension.decision.id;
+      assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[published.id])).rows[0].status,'paused');
+      assert.equal((await database.query('SELECT count(*)::integer AS n FROM moderation_listing_pauses WHERE decision_id=$1',[decisionId])).rows[0].n,1);
       assert.equal(await database.transaction(client=>newOperationsAllowed(client,ids.owner)),false);
       const appeal=await fetch(`${origin}/v1/moderation/decisions/${decisionId}/appeal`,{method:'POST',headers:headers('owner'),body:JSON.stringify({body:'Peço revisão desta suspensão temporária fictícia e apresento meu contexto.'})});
       const appealBody=await appeal.json();assert.equal(appeal.status,200,JSON.stringify(appealBody));assert.ok(appealBody.appeal.id);assert.ok(appealBody.protocol);
@@ -39,6 +43,9 @@ test('temporary suspension appeal requires an independent reviewer and can resto
       assert.equal(await database.transaction(client=>newOperationsAllowed(client,ids.owner)),true);
       const stored=(await database.query('SELECT d.status,a.outcome,st.status AS ticket_status FROM moderation_decisions d JOIN moderation_appeals a ON a.decision_id=d.id JOIN support_tickets st ON st.id=a.ticket_id WHERE d.id=$1',[decisionId])).rows[0];
       assert.deepEqual(stored,{status:'overturned',outcome:'overturned',ticket_status:'resolved'});
+      assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[published.id])).rows[0].status,'published');
+      assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[manuallyPaused.id])).rows[0].status,'paused');
+      assert.deepEqual((await database.query('SELECT reason,restored_listings FROM moderation_suspension_releases WHERE decision_id=$1',[decisionId])).rows[0],{reason:'overturned',restored_listings:1});
       assert.equal((await database.query("SELECT count(*)::integer AS n FROM audit_events WHERE action='moderation.appeal.reviewed' AND entity_id=$1",[decisionId])).rows[0].n,1);
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
