@@ -82,3 +82,16 @@ export function requireSectorScope(user,scope){
   if(!hasSectorScope(user,scope))throw new AuthError('forbidden',403,'Seu setor não permite esta operação.');
   return user;
 }
+
+export function hasAdminSector(user,sectors){
+  if(accessLevel(user)===5)return true;
+  const sector=staffSector(user);
+  if(!sector)return accessLevel(user)>0;
+  return Array.isArray(sectors)&&sectors.includes(sector);
+}
+
+export function requireAdminSector(user,sectors,minimum=1){
+  requireAccessLevel(user,minimum);
+  if(!hasAdminSector(user,sectors))throw new AuthError('forbidden',403,'Seu setor não permite esta operação.');
+  return user;
+}

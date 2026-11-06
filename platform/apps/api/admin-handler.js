@@ -1,14 +1,30 @@
 import { readJson } from "./body.js";
 import { authenticatedUser } from "./session.js";
 import { AuthError } from "./auth-service.js";
-import { requireAccessLevel, requireSectorScope } from "./authorization.js";
+import { requireAccessLevel, requireAdminSector, requireSectorScope } from "./authorization.js";
 import { sendCsv, sendJson } from "./http.js";
+
+const routeSectors=Object.freeze([
+  ['/v1/admin/exchange-retention',['finance']],
+  ['/v1/admin/supported-cancellations',['finance']],
+  ['/v1/admin/family-responsibility-disputes',['support','legal_privacy']],
+  ['/v1/admin/child-data-emergency-access',['legal_privacy','security']],
+  ['/v1/admin/authority-requests',['legal_privacy']],
+  ['/v1/admin/content-retention-holds',['legal_privacy','moderation']],
+  ['/v1/admin/operational-control',['operations','finance']],
+  ['/v1/admin/operational-resume-requests',['operations','finance']],
+  ['/v1/admin/incidents',['operations','finance','security']],
+  ['/v1/admin/incident-roles',['operations','security']],
+  ['/v1/admin/access-level-changes',['operations']],
+]);
+export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
 export async function handleAdmin(request, response, {
   url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
+  requireAdminRouteSector(user,url.pathname);
 
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-status'){requireAccessLevel(user,2);if(!exchangeRetentionStatusService)throw new AuthError('retention_status_unavailable',503,'Situação da retenção indisponível.');const result=await exchangeRetentionStatusService.snapshot();sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-requests'){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.list(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}

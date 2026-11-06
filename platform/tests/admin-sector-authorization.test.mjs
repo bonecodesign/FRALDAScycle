@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {ADMIN_SCOPE_SECTORS,hasSectorScope,requireSectorScope,staffSector} from '../apps/api/authorization.js';
+import {ADMIN_SCOPE_SECTORS,hasAdminSector,hasSectorScope,requireAdminSector,requireSectorScope,staffSector} from '../apps/api/authorization.js';
+import {requireAdminRouteSector} from '../apps/api/admin-handler.js';
 
 const actor=(sector,level=4)=>({id:`actor-${sector}`,role:'admin',staffAccessLevel:level,staffSector:sector});
 
@@ -24,4 +25,14 @@ test('legacy staff without a sector remains compatible until account regularizat
  const legacy={role:'admin',staffAccessLevel:4};
  assert.equal(staffSector(legacy),null);
  assert.equal(hasSectorScope(legacy,'admin:operations:read'),true);
+});
+
+test('specialized admin routes combine their service level with a bounded sector',()=>{
+ assert.equal(hasAdminSector(actor('finance',3),['finance']),true);
+ assert.equal(hasAdminSector(actor('support',3),['finance']),false);
+ assert.throws(()=>requireAdminSector(actor('support',3),['finance'],3),error=>error.code==='forbidden');
+ assert.doesNotThrow(()=>requireAdminRouteSector(actor('finance',3),'/v1/admin/supported-cancellations'));
+ assert.throws(()=>requireAdminRouteSector(actor('operations',4),'/v1/admin/supported-cancellations'),error=>error.code==='forbidden');
+ assert.doesNotThrow(()=>requireAdminRouteSector(actor('security',4),'/v1/admin/child-data-emergency-access'));
+ assert.doesNotThrow(()=>requireAdminRouteSector(actor('founder',5),'/v1/admin/authority-requests'));
 });
