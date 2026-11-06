@@ -6,7 +6,7 @@ const ROLES = new Set(["customer", "courier", "moderator", "admin"]);
 const STAFF_SECTORS=new Set(['support','finance','operations','logistics','institutions','moderation','legal_privacy','security','communications','technical']);
 const USER_STATUSES = new Set(["active", "suspended"]);
 const LISTING_STATUSES = new Set(["draft", "review", "published", "completed", "paused", "removed", "unavailable"]);
-const EMAIL_PATTERN = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INVITATION_TTL_MS = 72 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
