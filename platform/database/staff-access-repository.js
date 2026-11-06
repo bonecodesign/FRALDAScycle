@@ -5,6 +5,17 @@ export function createStaffAccessRepository(database,{stepUpRepository}){return 
     FROM staff_access_change_requests r JOIN users target ON target.id=r.target_user_id
     JOIN users proposer ON proposer.id=r.proposed_by LEFT JOIN users decider ON decider.id=r.decided_by
     ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END,r.created_at DESC LIMIT 100`).then(result=>result.rows);},
+ listSectors(){return database.transaction(async client=>{const [requests,unassigned]=await Promise.all([
+   client.query(`SELECT r.*,target.display_name AS target_name,target.email AS target_email,
+    proposer.display_name AS proposer_name,decider.display_name AS decider_name
+    FROM staff_sector_change_requests r JOIN users target ON target.id=r.target_user_id
+    JOIN users proposer ON proposer.id=r.proposed_by LEFT JOIN users decider ON decider.id=r.decided_by
+    ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END,r.created_at DESC LIMIT 100`),
+   client.query(`SELECT id,display_name,email,staff_access_level FROM users u
+    WHERE role IN('admin','moderator') AND staff_sector IS NULL AND disabled_at IS NULL
+      AND NOT EXISTS(SELECT 1 FROM staff_sector_change_requests r WHERE r.target_user_id=u.id AND r.status='pending')
+    ORDER BY staff_access_level DESC,display_name LIMIT 100`),
+  ]);return{requests:requests.rows,unassigned:unassigned.rows};});},
  propose({actorId,targetUserId,requestedLevel,reason,grantId}){return database.transaction(async client=>{
    const actorRow=(await client.query('SELECT id,staff_access_level FROM users WHERE id=$1 AND disabled_at IS NULL FOR UPDATE',[actorId])).rows[0];
    if(!actorRow||Number(actorRow.staff_access_level)<4)throw fail('insufficient_access_level',403,'Nível 4 ou 5 obrigatório.');
@@ -34,5 +45,30 @@ export function createStaffAccessRepository(database,{stepUpRepository}){return 
     decision_step_up_id=$4,decision_reason=$5,decided_at=now() WHERE id=$1 RETURNING *`,[requestId,status,actorId,grantId,reason])).rows[0];
    await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
     VALUES($1,$2,'staff_access_change',$3,$4::jsonb)`,[actorId,approved?'staff.access_change.approved':'staff.access_change.rejected',requestId,JSON.stringify({targetUserId:request.target_user_id,previousLevel:request.previous_level,requestedLevel:request.requested_level})]);return row;
+ });},
+ proposeSector({actorId,targetUserId,requestedSector,reason,grantId}){return database.transaction(async client=>{
+   const actor=(await client.query('SELECT id,staff_access_level FROM users WHERE id=$1 AND disabled_at IS NULL FOR UPDATE',[actorId])).rows[0];
+   if(!actor||Number(actor.staff_access_level)<4)throw fail('insufficient_access_level',403,'Nível 4 ou 5 obrigatório.');
+   const grant=await stepUpRepository.consume(client,{grantId,userId:actorId,purpose:'staff_access_change'});if(!grant)throw fail('staff_access_step_up_required',409,'Confirmação de segurança inválida ou expirada.');
+   const target=(await client.query("SELECT id,staff_access_level,staff_sector,disabled_at FROM users WHERE id=$1 AND role IN('admin','moderator') FOR UPDATE",[targetUserId])).rows[0];
+   if(!target||target.disabled_at||!target.staff_access_level)throw fail('staff_account_not_found',404,'Conta interna não encontrada.');
+   if(actorId===targetUserId||Number(target.staff_access_level)>=Number(actor.staff_access_level)||Number(target.staff_access_level)===5)throw fail('staff_access_hierarchy_violation',403,'A hierarquia não permite esta regularização.');
+   if(target.staff_sector)throw fail('staff_sector_already_assigned',409,'A conta já possui setor; este fluxo regulariza somente contas legadas.');
+   const row=(await client.query(`INSERT INTO staff_sector_change_requests(target_user_id,target_access_level,requested_sector,reason,proposed_by,proposal_step_up_id)
+    VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[targetUserId,target.staff_access_level,requestedSector,reason,actorId,grantId])).rows[0];
+   await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'staff.sector_change.proposed','staff_sector_change',$2,$3::jsonb)`,[actorId,row.id,JSON.stringify({targetUserId,requestedSector,targetAccessLevel:Number(target.staff_access_level)})]);return row;
+ });},
+ decideSector({actorId,requestId,approved,reason,grantId}){return database.transaction(async client=>{
+   const actor=(await client.query('SELECT staff_access_level FROM users WHERE id=$1 AND disabled_at IS NULL FOR UPDATE',[actorId])).rows[0];
+   if(Number(actor?.staff_access_level)!==5)throw fail('founder_approval_required',403,'A autorização final exige nível 5.');
+   const grant=await stepUpRepository.consume(client,{grantId,userId:actorId,purpose:'staff_access_change'});if(!grant)throw fail('staff_access_step_up_required',409,'Confirmação de segurança inválida ou expirada.');
+   const request=(await client.query("SELECT * FROM staff_sector_change_requests WHERE id=$1 AND status='pending' FOR UPDATE",[requestId])).rows[0];
+   if(!request)throw fail('staff_sector_request_not_found',404,'Solicitação setorial pendente não encontrada.');
+   if(approved){const target=(await client.query('SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND disabled_at IS NULL FOR UPDATE',[request.target_user_id])).rows[0];
+    if(!target||target.staff_sector||Number(target.staff_access_level)!==Number(request.target_access_level))throw fail('staff_sector_request_conflict',409,'A conta mudou; rejeite e crie nova solicitação.');
+    await client.query('UPDATE users SET staff_sector=$2,updated_at=now() WHERE id=$1',[request.target_user_id,request.requested_sector]);
+    await client.query('UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL',[request.target_user_id]);}
+   const status=approved?'approved':'rejected';const row=(await client.query(`UPDATE staff_sector_change_requests SET status=$2,decided_by=$3,decision_step_up_id=$4,decision_reason=$5,decided_at=now() WHERE id=$1 RETURNING *`,[requestId,status,actorId,grantId,reason])).rows[0];
+   await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,$2,'staff_sector_change',$3,$4::jsonb)`,[actorId,approved?'staff.sector_change.approved':'staff.sector_change.rejected',requestId,JSON.stringify({targetUserId:request.target_user_id,requestedSector:request.requested_sector,sessionsRevoked:approved})]);return row;
  });},
 });}
