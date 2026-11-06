@@ -10,19 +10,24 @@ END WHERE staff_access_level IS NOT NULL;
 
 ALTER TABLE users ADD CONSTRAINT users_staff_sector_check CHECK (
   (role NOT IN('admin','moderator') AND staff_sector IS NULL)
-  OR (role IN('admin','moderator') AND staff_sector IS NOT NULL AND staff_access_level IS NOT NULL AND staff_sector IN(
-    'support','finance','operations','logistics','institutions','moderation',
-    'legal_privacy','security','communications','technical','founder'
-  ) AND ((staff_access_level=5)=(staff_sector='founder')))
+  OR (role IN('admin','moderator') AND staff_access_level IS NOT NULL AND (
+    staff_sector IS NULL OR (staff_sector IN(
+      'support','finance','operations','logistics','institutions','moderation',
+      'legal_privacy','security','communications','technical','founder'
+    ) AND ((staff_access_level=5)=(staff_sector='founder')))
+  ))
 );
 
 ALTER TABLE admin_invitations ADD CONSTRAINT admin_invitations_staff_sector_check CHECK (
   (role NOT IN('admin','moderator') AND staff_sector IS NULL)
-  OR (role IN('admin','moderator') AND staff_sector IS NOT NULL AND staff_sector IN(
+  OR (role IN('admin','moderator') AND (staff_sector IS NULL OR staff_sector IN(
     'support','finance','operations','logistics','institutions','moderation',
     'legal_privacy','security','communications','technical'
-  ))
+  )))
 );
+
+COMMENT ON COLUMN users.staff_sector IS
+  'Setor obrigatório para usar o fluxo administrativo novo; contas legadas sem setor existem apenas para migração e falham fechadas no serviço.';
 
 CREATE TABLE admin_work_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
