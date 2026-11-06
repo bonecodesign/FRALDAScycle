@@ -110,7 +110,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const adminPort=await freeLocalPort(),adminOrigin=`http://127.0.0.1:${adminPort}`;
       const adminFixture={email:'browser-admin@example.test',displayName:'Admin fictício navegador',password:'synthetic-only-admin-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(adminFixture);
-      await database.query("UPDATE users SET role='admin' WHERE email=$1",[adminFixture.email]);
+      await database.query("UPDATE users SET role='admin',staff_access_level=5,staff_sector='founder' WHERE email=$1",[adminFixture.email]);
       const adminChallenge=await authService.login(adminFixture);
       assert.equal(adminChallenge.mfaRequired,true);
       const adminCode=(await database.query("SELECT payload->>'token' AS code FROM notification_outbox WHERE recipient=$1 AND kind='admin_login_mfa' ORDER BY created_at DESC LIMIT 1",[adminFixture.email])).rows[0].code;
