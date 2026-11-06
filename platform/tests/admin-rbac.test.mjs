@@ -162,7 +162,7 @@ test("user suspension revokes sessions and persists an audit reason atomically",
   const client = {
     async query(text, values) {
       statements.push({ text, values });
-      if (/SELECT id, disabled_at/.test(text)) return { rows: [{ id: targetId, disabled_at: null }] };
+      if (/SELECT id, role/.test(text)) return { rows: [{ id: targetId, role:'customer', staff_access_level:null, staff_sector:null, disabled_at: null }] };
       if (/UPDATE users/.test(text)) return { rows: [{ id: targetId, disabled_at: new Date() }] };
       return { rows: [] };
     },
