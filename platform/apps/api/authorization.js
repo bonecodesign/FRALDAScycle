@@ -69,29 +69,29 @@ export function staffSector(user){
 
 export function hasSectorScope(user,scope){
   if(!hasScope(user,scope))return false;
-  if(accessLevel(user)===5)return true;
   const sector=staffSector(user);
-  // Compatibilidade temporária para sessões legadas criadas antes da migração setorial.
-  // Convites novos exigem setor e a fila administrativa falha fechada sem ele.
-  if(!sector)return true;
+  if(!sector)return false;
+  if(accessLevel(user)===5)return sector==='founder';
   return (ADMIN_SCOPE_SECTORS[scope]??[]).includes(sector);
 }
 
 export function requireSectorScope(user,scope){
   if(!user)throw new AuthError('unauthenticated',401,'Sessão não autenticada.');
+  if(accessLevel(user)>0&&!staffSector(user))throw new AuthError('staff_sector_required',403,'Regularize o setor da conta interna antes de acessar o painel.');
   if(!hasSectorScope(user,scope))throw new AuthError('forbidden',403,'Seu setor não permite esta operação.');
   return user;
 }
 
 export function hasAdminSector(user,sectors){
-  if(accessLevel(user)===5)return true;
   const sector=staffSector(user);
-  if(!sector)return accessLevel(user)>0;
+  if(!sector)return false;
+  if(accessLevel(user)===5)return sector==='founder';
   return Array.isArray(sectors)&&sectors.includes(sector);
 }
 
 export function requireAdminSector(user,sectors,minimum=1){
   requireAccessLevel(user,minimum);
+  if(!staffSector(user))throw new AuthError('staff_sector_required',403,'Regularize o setor da conta interna antes de acessar o painel.');
   if(!hasAdminSector(user,sectors))throw new AuthError('forbidden',403,'Seu setor não permite esta operação.');
   return user;
 }

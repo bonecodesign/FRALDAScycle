@@ -30,7 +30,7 @@ test('paid chat blocks contact patterns and grants only an exact reviewed except
         VALUES($1,$2,'Venda fictícia no chat','Pacote fictício para validar contatos no chat.','infant','Pampers','Confort Sec','sealed',1,'sale',10000,'unavailable')`,[ids.listing,ids.seller]);
       await database.query("INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,$4,'paid',10000)",[ids.transaction,ids.listing,ids.buyer,ids.seller]);
       const moderationRepository=createModerationRepository(database),moderationService=createModerationService(moderationRepository);
-      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},admin:{id:ids.admin,role:'moderator'}};
+      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},admin:{id:ids.admin,role:'moderator',staffSector:'moderation'}};
       api=createApiServer({
         config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),
         marketplaceService:createMarketplaceService(createMarketplaceRepository(database),moderationRepository),

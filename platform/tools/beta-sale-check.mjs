@@ -77,8 +77,8 @@ export async function validateSyntheticSale(database, { user, other, transaction
   assert.equal(receipts.filter(receipt => receipt.reused === false).length, 1);
   const validation = { validated: true, reason: 'Conferência fictícia sem mídia de fornecedor real.' };
   await assert.rejects(service.validateProof({ id: other, role: 'customer' }, shipment.id, validation), error => error.status === 403);
-  await assert.rejects(service.validateProof({ id: other, role: 'admin' }, shipment.id, validation), error => error.code === 'independent_validation_required');
-  const reviews = await Promise.all([service.validateProof({ id: admin, role: 'admin' }, shipment.id, validation), service.validateProof({ id: admin, role: 'admin' }, shipment.id, validation)]);
+  await assert.rejects(service.validateProof({ id: other, role: 'admin', staffSector: 'logistics' }, shipment.id, validation), error => error.code === 'independent_validation_required');
+  const reviews = await Promise.all([service.validateProof({ id: admin, role: 'admin', staffSector: 'logistics' }, shipment.id, validation), service.validateProof({ id: admin, role: 'admin', staffSector: 'logistics' }, shipment.id, validation)]);
   assert.equal(reviews.filter(review => review.reused === false).length, 1);
   await assert.rejects(service.receiptEvidence({ id: '10000000-0000-4000-8000-000000000099', role: 'customer' }, shipment.id), error => error.status === 404);
   const status = await service.settlementStatus({ id: user, role: 'customer' }, shipment.id);
@@ -89,8 +89,8 @@ export async function validateSyntheticSale(database, { user, other, transaction
   assert.match(String(ticket.ticket.protocol), /^[1-9]\d*$/);
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).requirementsMet, false);
   await assert.rejects(support.replySupportTicket({ id: other, role: 'customer' }, ticket.ticket.id, { body: 'Resposta fictícia de teste', status: 'resolved' }), error => error.status === 403);
-  await assert.rejects(support.replySupportTicket({ id: admin, role: 'admin' }, ticket.ticket.id, { body: 'Análise fictícia encerrada sem decisão específica.', status: 'resolved', idempotencyKey:'synthetic-beta-sale-support-reply' }),error=>error.code==='occurrence_decision_required');
-  await support.supportOccurrenceDecision({id:admin,role:'admin'},ticket.ticket.id,{confirmed:true,outcome:'dismissed',reason:'Ocorrência fictícia improcedente após análise registrada.'});
+  await assert.rejects(support.replySupportTicket({ id: admin, role: 'admin', staffSector: 'support' }, ticket.ticket.id, { body: 'Análise fictícia encerrada sem decisão específica.', status: 'resolved', idempotencyKey:'synthetic-beta-sale-support-reply' }),error=>error.code==='occurrence_decision_required');
+  await support.supportOccurrenceDecision({id:admin,role:'admin',staffSector:'support'},ticket.ticket.id,{confirmed:true,outcome:'dismissed',reason:'Ocorrência fictícia improcedente após análise registrada.'});
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).requirementsMet, true);
   assert.equal((await service.settlementStatus({ id: user, role: 'customer' }, shipment.id)).payoutAllowed, false);
   const audit = await database.query('SELECT metadata FROM audit_events');

@@ -33,7 +33,7 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
     ($5,'exchange-courier-2@example.test','fixture','Entregador fictício 2','courier',now())`,Object.values(ids));
    for(let index=0;index<listingIds.length;index++)await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,open_package_attested,size,quantity,kind,status,city,state,published_at)
     VALUES($1,$2,$3,'Pacote fictício lacrado para prova integrada.','infant','Marca fictícia','Modelo fictício','sealed',false,'M',1,'exchange','published','Belo Horizonte','MG',now())`,[listingIds[index],index%2===0?ids.owner:ids.requester,`Troca fictícia ${index+1}`]);
-   const actors={requester:{id:ids.requester,role:'customer'},owner:{id:ids.owner,role:'customer'},admin:{id:ids.admin,role:'admin'},courier1:{id:ids.courier1,role:'courier'},courier2:{id:ids.courier2,role:'courier'}};
+   const actors={requester:{id:ids.requester,role:'customer'},owner:{id:ids.owner,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'},courier1:{id:ids.courier1,role:'courier'},courier2:{id:ids.courier2,role:'courier'}};
    const exchangeRepository=createExchangeRepository(database);const exchangeService=createExchangeService(exchangeRepository);
    const logisticsService=createLogisticsService(createLogisticsRepository(database));
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),exchangeService,logisticsService,authService:{async session(token){return actors[token]??null;}}});

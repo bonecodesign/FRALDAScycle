@@ -6,7 +6,7 @@ import { createOperationalControlService, controlledDomain } from "../apps/api/o
 import { createOperationalControlRepository } from "../database/operational-control-repository.js";
 import { handleAdmin } from "../apps/api/admin-handler.js";
 
-const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin" };
+const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin", staffSector: "operations" };
 
 test("operational control targets only creation of new commitments", () => {
   const id = "22222222-2222-4222-8222-222222222222";

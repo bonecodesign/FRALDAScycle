@@ -30,7 +30,7 @@ test('minimum delivery proof is assigned, private and audited over HTTP/PostgreS
       await database.query("INSERT INTO shipments(id,transaction_id,buyer_id,seller_id,courier_id,mode,insured,idempotency_key,status) VALUES($1,$2,$3,$4,$5,'partner',false,'delivery-proof-http-fixture','in_transit')",[ids.shipment,ids.transaction,ids.buyer,ids.seller,ids.courier]);
       const reads=[];
       const logisticsService=createLogisticsService(createLogisticsRepository(database),null,{async signedProofRead(actorId,mediaKey){reads.push({actorId,mediaKey});return {url:'https://private.invalid/signed-proof',expiresInSeconds:60};}});
-      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},courier:{id:ids.courier,role:'courier'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin'}};
+      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},courier:{id:ids.courier,role:'courier'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),logisticsService,authService:{async session(token){return actors[token]??null;}}});
       await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),proofUrl=`${origin}/v1/shipments/${ids.shipment}/proof`;

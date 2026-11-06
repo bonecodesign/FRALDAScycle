@@ -36,7 +36,7 @@ test('seller settlement status is private and remains informational over HTTP/Po
       await database.query('INSERT INTO delivery_receipt_approvals(proof_id,approver_id) VALUES($1,$2)',[ids.proof,ids.buyer]);
       await database.query("INSERT INTO delivery_proof_validations(proof_id,validator_id,reason) VALUES($1,$2,'Comprovante sintético validado para consulta.')",[ids.proof,ids.admin]);
       const service=createLogisticsService(createLogisticsRepository(database),null,null);
-      const actors={seller:{id:ids.seller,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin'}};
+      const actors={seller:{id:ids.seller,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),logisticsService:service,authService:{async session(token){return actors[token]??null;}}});
       await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
       const endpoint=`http://127.0.0.1:${api.address().port}/v1/shipments/${ids.shipment}/settlement-status`,headers=token=>({cookie:`fc_session=${token}`});

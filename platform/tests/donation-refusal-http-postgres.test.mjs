@@ -43,7 +43,7 @@ test('donation refusal and donor relist, redirect or close cross HTTP and Postgr
     ($2,'representative-refusal@example.test','fixture','Representante fictício','customer',now(),now(),'FC-AGE-1'),
     ($3,'target-representative@example.test','fixture','Representante de destino fictício','customer',now(),now(),'FC-AGE-1'),
     ($4,'admin-refusal@example.test','fixture','Admin fictício','admin',now(),now(),'FC-AGE-1')`,Object.values(ids));
-   const actors={donor:{id:ids.donor,role:'customer',adultDeclared:true},representative:{id:ids.representative,role:'customer',adultDeclared:true},target:{id:ids.targetRepresentative,role:'customer',adultDeclared:true},admin:{id:ids.admin,role:'admin',adultDeclared:true}};
+   const actors={donor:{id:ids.donor,role:'customer',adultDeclared:true},representative:{id:ids.representative,role:'customer',adultDeclared:true},target:{id:ids.targetRepresentative,role:'customer',adultDeclared:true},admin:{id:ids.admin,role:'admin',staffSector:'institutions',adultDeclared:true}};
    const institution=await prepareInstitution(database,{representative:actors.representative,taxId:'11111111111111'},actors.admin);
    const targetInstitution=await prepareInstitution(database,{representative:actors.target,taxId:'22222222222222'},actors.admin);
    await database.query('UPDATE institutions SET open_packages_accepted=true WHERE id=$1',[institution]);

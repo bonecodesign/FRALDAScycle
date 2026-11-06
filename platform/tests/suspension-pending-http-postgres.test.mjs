@@ -34,7 +34,7 @@ test('temporary suspension blocks new operations but preserves existing follow-u
         VALUES($1,$2,'suspension-existing-payment','pix',12000,960,0,11040,'suspension-existing-reference','paid')`,[ids.transaction,ids.user]);
       const moderationRepository=createModerationRepository(database);
       const marketplaceService=createMarketplaceService(createMarketplaceRepository(database),moderationRepository,{async verifyListingMedia(){}});
-      const actors={user:{id:ids.user,role:'customer',adultDeclared:true},admin:{id:ids.admin,role:'admin',adultDeclared:true}};
+      const actors={user:{id:ids.user,role:'customer',adultDeclared:true},admin:{id:ids.admin,role:'admin',staffSector:'moderation',adultDeclared:true}};
       api=createApiServer({
         config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),
         marketplaceService,

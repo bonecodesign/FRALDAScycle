@@ -4,6 +4,9 @@ import { createCourierEligibilityService } from "../apps/api/courier-eligibility
 
 const courierId = "11111111-1111-4111-8111-111111111111";
 const documentId = "22222222-2222-4222-8222-222222222222";
+const logisticsAdmin = { id: "admin-1", role: "admin", staffSector: "logistics" };
+const supportAdmin = { id: "admin-1", role: "admin", staffSector: "support" };
+const operationsAdmin = { id: "admin-1", role: "admin", staffSector: "operations" };
 
 test("courier reads only their own operational status while admin may inspect another profile", async () => {
   const calls = [];
@@ -11,7 +14,7 @@ test("courier reads only their own operational status while admin may inspect an
     async status(id) { calls.push(id); return { profile: { user_id: id } }; },
   });
   assert.equal((await service.status({ id: courierId, role: "courier" })).profile.user_id, courierId);
-  assert.equal((await service.status({ id: "admin-1", role: "admin" }, courierId)).profile.user_id, courierId);
+  assert.equal((await service.status(operationsAdmin, courierId)).profile.user_id, courierId);
   await assert.rejects(
     service.status({ id: "33333333-3333-4333-8333-333333333333", role: "courier" }, courierId),
     error => error.code === "forbidden",
@@ -30,7 +33,7 @@ test("restricted clearance access requires admin scope and an explicit auditable
     }),
     error => error.code === "forbidden",
   );
-  const result = await service.restrictedDocument({ id: "admin-1", role: "admin" }, documentId, {
+  const result = await service.restrictedDocument(logisticsAdmin, documentId, {
     purpose: "verification", requestReference: "request-reference-123",
   });
   assert.equal(result.document.id, documentId);
@@ -44,7 +47,7 @@ test("invalid purpose or weak request reference never reaches the repository", a
     async restrictedDocument() { throw new Error("must not run"); },
   });
   await assert.rejects(
-    service.restrictedDocument({ id: "admin-1", role: "admin" }, documentId, {
+    service.restrictedDocument(logisticsAdmin, documentId, {
       purpose: "download", requestReference: "short",
     }),
     error => error.code === "invalid_clearance_access",
@@ -88,10 +91,10 @@ test("review approval requires official issuer validity while rejection does not
   const service = createCourierEligibilityService({
     async decideClearanceReview(input) { calls.push(input); return input; },
   }, { clock: () => Date.parse("2030-01-01T12:00:00Z") });
-  await assert.rejects(service.decideReview({ id: "admin-1", role: "admin" }, documentId, {
+  await assert.rejects(service.decideReview(logisticsAdmin, documentId, {
     decision: "approved", decidedAt: "2030-01-01T12:00:00Z", auditReference: "audit/reference/12345",
   }), error => error.code === "invalid_clearance_validity");
-  const rejected = await service.decideReview({ id: "admin-1", role: "admin" }, documentId, {
+  const rejected = await service.decideReview(logisticsAdmin, documentId, {
     decision: "rejected", decidedAt: "2030-01-01T12:00:00Z", auditReference: "audit/reference/12345",
   });
   assert.equal(rejected.decision, "rejected");
@@ -124,10 +127,10 @@ test("support release and SLA closure require support scope and server time", as
   await assert.rejects(service.releaseSuspension({ id: courierId, role: "courier" }, documentId, {
     confirmed: true, auditReference: "support/audit/reference/1",
   }), error => error.code === "forbidden");
-  await service.releaseSuspension({ id: "admin-1", role: "admin" }, documentId, {
+  await service.releaseSuspension(supportAdmin, documentId, {
     confirmed: true, auditReference: "support/audit/reference/1",
   });
-  await service.closeExpiredSupportRequests({ id: "admin-1", role: "admin" });
+  await service.closeExpiredSupportRequests(supportAdmin);
   assert.equal(calls[0][1].decidedAt, "2030-01-01T12:00:00.000Z");
   assert.equal(calls[1][1].closedAt, "2030-01-01T12:00:00.000Z");
 });
@@ -139,9 +142,9 @@ test("administrative queues enforce their scopes and a bounded page size", async
     async pendingSupportQueue(input) { calls.push(["support", input]); return []; },
   });
   await assert.rejects(service.reviewQueue({ id: courierId, role: "courier" }), error => error.code === "forbidden");
-  await service.reviewQueue({ id: "admin-1", role: "admin" }, { limit: "25" });
-  await service.supportQueue({ id: "admin-1", role: "admin" }, { limit: "50" });
-  await assert.rejects(service.supportQueue({ id: "admin-1", role: "admin" }, { limit: "51" }),
+  await service.reviewQueue(logisticsAdmin, { limit: "25" });
+  await service.supportQueue(supportAdmin, { limit: "50" });
+  await assert.rejects(service.supportQueue(supportAdmin, { limit: "51" }),
     error => error.code === "invalid_queue_limit");
   assert.deepEqual(calls, [["review", { limit: 25 }], ["support", { limit: 50 }]]);
 });
@@ -152,7 +155,7 @@ test("maintenance scheduling requires operations scope and uses only server time
     async scheduleMaintenanceTasks(input) { received = input; return { renewalNotice: 1 }; },
   }, { clock: () => Date.parse("2030-01-01T12:00:00Z") });
   await assert.rejects(service.scheduleMaintenance({ id: courierId, role: "courier" }), error => error.code === "forbidden");
-  const result = await service.scheduleMaintenance({ id: "admin-1", role: "admin" });
+  const result = await service.scheduleMaintenance(operationsAdmin);
   assert.equal(result.renewalNotice, 1);
   assert.deepEqual(received, { actorId: "admin-1", now: "2030-01-01T12:00:00.000Z" });
 });

@@ -9,17 +9,17 @@ export async function bootstrapFounder(database,{userId,confirmation}){
   if(confirmation!==FOUNDER_CONFIRMATION)throw new Error(`Explicit confirmation ${FOUNDER_CONFIRMATION} is required`);
   return database.transaction(async client=>{
     await client.query("SELECT pg_advisory_xact_lock(hashtextextended('fraldacycle:founder-bootstrap',0))");
-    const target=(await client.query('SELECT id,role,staff_access_level,disabled_at FROM users WHERE id=$1 FOR UPDATE',[userId])).rows[0];
+    const target=(await client.query('SELECT id,role,staff_access_level,staff_sector,disabled_at FROM users WHERE id=$1 FOR UPDATE',[userId])).rows[0];
     if(!target||target.disabled_at)throw new Error('Founder account must exist and be active');
     if(!['admin','moderator'].includes(target.role))throw new Error('Founder account must already be an internal administrative account');
-    const existing=(await client.query('SELECT id FROM users WHERE staff_access_level=5 AND disabled_at IS NULL FOR UPDATE')).rows[0];
+    const existing=(await client.query('SELECT id,staff_sector FROM users WHERE staff_access_level=5 AND disabled_at IS NULL FOR UPDATE')).rows[0];
     if(existing&&existing.id!==userId)throw new Error('An active founder already exists');
-    if(existing?.id===userId)return {userId,reused:true,sessionsRevoked:0,accessLevel:5};
-    const updated=(await client.query(`UPDATE users SET role='admin',staff_access_level=5,updated_at=now()
-      WHERE id=$1 RETURNING id,staff_access_level`,[userId])).rows[0];
+    if(existing?.id===userId&&existing.staff_sector==='founder')return {userId,reused:true,sessionsRevoked:0,accessLevel:5};
+    const updated=(await client.query(`UPDATE users SET role='admin',staff_access_level=5,staff_sector='founder',updated_at=now()
+      WHERE id=$1 RETURNING id,staff_access_level,staff_sector`,[userId])).rows[0];
     const revoked=await client.query('UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL RETURNING id',[userId]);
     await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-      VALUES($1,'staff.founder.bootstrapped','user',$1,$2::jsonb)`,[userId,JSON.stringify({previousAccessLevel:target.staff_access_level,accessLevel:5,sessionsRevoked:revoked.rowCount})]);
+      VALUES($1,'staff.founder.bootstrapped','user',$1,$2::jsonb)`,[userId,JSON.stringify({previousAccessLevel:target.staff_access_level,previousSector:target.staff_sector??null,accessLevel:5,staffSector:'founder',sessionsRevoked:revoked.rowCount})]);
     return {userId:updated.id,reused:false,sessionsRevoked:revoked.rowCount,accessLevel:Number(updated.staff_access_level)};
   });
 }

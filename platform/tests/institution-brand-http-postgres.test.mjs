@@ -25,7 +25,7 @@ test('institution brand authorization crosses HTTP and PostgreSQL with represent
     ($1,'brand-representative@example.test','fixture','Representante fictício','customer',now()),
     ($2,'brand-admin@example.test','fixture','Admin fictício','admin',now()),
     ($3,'brand-outsider@example.test','fixture','Pessoa sem vínculo','customer',now())`,Object.values(ids));
-   const actors={representative:{id:ids.representative,role:'customer'},admin:{id:ids.admin,role:'admin'},outsider:{id:ids.outsider,role:'customer'}};
+   const actors={representative:{id:ids.representative,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'institutions'},outsider:{id:ids.outsider,role:'customer'}};
    const institutions=createInstitutionService(createInstitutionRepository(database));
    const repository=createInstitutionAccessRepository(database),access=createInstitutionAccessService(repository);
    const institution=await seedSyntheticInstitution(database,ids.representative,'33333333333333');

@@ -9,8 +9,8 @@ const token = "b".repeat(43);
 test("pilot invitation HTTP routes enforce RBAC and expose a token only on first issue", async context => {
   const users = {
     customer: { id: "11111111-1111-4111-8111-111111111111", role: "customer" },
-    moderator: { id: "22222222-2222-4222-8222-222222222222", role: "moderator" },
-    admin: { id: "33333333-3333-4333-8333-333333333333", role: "admin" },
+    moderator: { id: "22222222-2222-4222-8222-222222222222", role: "moderator", staffSector: "operations" },
+    admin: { id: "33333333-3333-4333-8333-333333333333", role: "admin", staffSector: "operations" },
   };
   let issued = false;
   const repository = {

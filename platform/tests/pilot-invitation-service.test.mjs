@@ -3,8 +3,8 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { createPilotInvitationService } from "../apps/api/pilot-invitation-service.js";
 
-const admin = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", role: "admin" };
-const moderator = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", role: "moderator" };
+const admin = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", role: "admin", staffSector: "operations" };
+const moderator = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", role: "moderator", staffSector: "operations" };
 const now = Date.parse("2030-01-01T12:00:00Z");
 const token = "a".repeat(43);
 

@@ -12,7 +12,7 @@ import {createLogisticsRepository} from '../database/logistics-repository.js';
 import {createLogisticsService} from '../apps/api/logistics-service.js';
 
 const databaseUrl=process.env.FC_LISTING_TEST_DATABASE_URL;
-const admin={id:'10000000-0000-4000-8000-000000000099',role:'admin'};
+const admin={id:'10000000-0000-4000-8000-000000000099',role:'admin',staffAccessLevel:4,staffSector:'operations'};
 
 test('BH pilot issues, consumes and revokes one-time invitations across HTTP and PostgreSQL',{
   skip:!databaseUrl?'Banco temporário de validação não configurado.':false,
@@ -23,8 +23,8 @@ test('BH pilot issues, consumes and revokes one-time invitations across HTTP and
   const database=createDatabase({databaseUrl,databaseSsl:false});let server;
   try{
     await migrate(database,await discoverMigrations());
-    await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,email_verified_at,adult_declared_at,adult_declaration_version)
-      VALUES($1,'pilot-admin@example.test','fixture','Admin fictício','admin',now(),now(),'FC-AGE-1')`,[admin.id]);
+    await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector,email_verified_at,adult_declared_at,adult_declaration_version)
+      VALUES($1,'pilot-admin@example.test','fixture','Admin fictício','admin',4,'operations',now(),now(),'FC-AGE-1')`,[admin.id]);
     const config=loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000',PILOT_BH_ENABLED:'true',PILOT_BH_INVITED_EMAILS:'bootstrap@example.test'});
     const realAuth=createAuthService(createAuthRepository(database),{pilotBh:config.pilotBh});
     const authService={...realAuth,async session(token){return token==='admin'?admin:realAuth.session(token);}};

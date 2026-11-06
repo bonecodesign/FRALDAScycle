@@ -23,7 +23,7 @@ test('privacy requests are private, typed, assessed independently and never eras
         ($2,'privacy-outsider@example.test','fixture','Pessoa externa','customer'),
         ($3,'privacy-admin@example.test','fixture','Revisor fictício','admin')`,[ids.owner,ids.outsider,ids.admin]);
       const service=createPrivacyRequestService(createPrivacyRequestRepository(database));
-      const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin'}};
+      const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'legal_privacy'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),privacyRequestService:service,authService:{async session(token){return actors[token]??null;}}});
       await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({'content-type':'application/json',cookie:`fc_session=${token}`});

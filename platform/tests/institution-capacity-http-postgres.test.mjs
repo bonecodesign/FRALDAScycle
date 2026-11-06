@@ -28,7 +28,7 @@ test('institution capacity pause and resume cross HTTP and PostgreSQL without ab
     ($2,'capacity-admin@example.test','fixture','Admin fictício','admin',now()),
     ($3,'capacity-outsider@example.test','fixture','Pessoa sem vínculo','customer',now()),
     ($4,'capacity-donor@example.test','fixture','Doador fictício','customer',now())`,Object.values(ids));
-   const actors={representative:{id:ids.representative,role:'customer'},admin:{id:ids.admin,role:'admin'},outsider:{id:ids.outsider,role:'customer'}};
+   const actors={representative:{id:ids.representative,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'institutions'},outsider:{id:ids.outsider,role:'customer'}};
    const institutions=createInstitutionService(createInstitutionRepository(database));
    const repository=createInstitutionAccessRepository(database),access=createInstitutionAccessService(repository);
    const institution=await seedSyntheticInstitution(database,ids.representative,'44444444444444');

@@ -87,8 +87,8 @@ test("role changes and audit records share one database transaction", async () =
 test("admin HTTP endpoints enforce moderator and administrator boundaries", async (context) => {
   const users = {
     customer: { id: "customer-1", role: "customer" },
-    moderator: { id: "moderator-1", role: "moderator" },
-    admin: { id: "admin-1", role: "admin" },
+    moderator: { id: "moderator-1", role: "moderator", staffSector: "security" },
+    admin: { id: "admin-1", role: "admin", staffAccessLevel: 5, staffSector: "founder" },
   };
   const authService = { async session(token) { return users[token] ?? null; } };
   const adminService = {
@@ -195,8 +195,9 @@ test("audit CSV neutralizes spreadsheet formulas", async () => {
 
 test("live user directory, status mutation and CSV export enforce scopes", async (context) => {
   const users = {
-    moderator: { id: "moderator-1", role: "moderator" },
-    admin: { id: "admin-1", role: "admin" },
+    moderator: { id: "moderator-1", role: "moderator", staffSector: "support" },
+    auditor: { id: "auditor-1", role: "moderator", staffSector: "security" },
+    admin: { id: "admin-1", role: "admin", staffAccessLevel: 5, staffSector: "founder" },
   };
   const authService = { async session(token) { return users[token] ?? null; } };
   const adminService = {
@@ -231,7 +232,7 @@ test("live user directory, status mutation and CSV export enforce scopes", async
   assert.equal(suspended.status, 200);
 
   const exported = await fetch(`${origin}/v1/admin/audit-events.csv`, {
-    headers: { cookie: "fc_session=moderator" },
+    headers: { cookie: "fc_session=auditor" },
   });
   assert.equal(exported.status, 200);
   assert.match(exported.headers.get("content-type"), /text\/csv/);
@@ -263,8 +264,8 @@ test("revoking other sessions preserves the current session and audits the count
 
 test("session management endpoints preserve current access and require admin scope", async (context) => {
   const identities = {
-    moderator: { id: "moderator-1", role: "moderator", sessionId: "33333333-3333-4333-8333-333333333333" },
-    admin: { id: "admin-1", role: "admin", sessionId: "33333333-3333-4333-8333-333333333333" },
+    moderator: { id: "moderator-1", role: "moderator", staffSector: "moderation", sessionId: "33333333-3333-4333-8333-333333333333" },
+    admin: { id: "admin-1", role: "admin", staffAccessLevel: 5, staffSector: "founder", sessionId: "33333333-3333-4333-8333-333333333333" },
   };
   const authService = { async session(token) { return identities[token] ?? null; } };
   const adminService = {
