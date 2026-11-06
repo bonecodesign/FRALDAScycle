@@ -23,8 +23,8 @@ test("admin revokes other sessions over HTTP and PostgreSQL while preserving the
     try {
       await migrate(database, await discoverMigrations());
       await database.query(
-        `INSERT INTO users(id,email,password_hash,display_name,role)
-         VALUES($1,'session-admin@example.test','synthetic-unusable-hash','Admin de sessões fictício','admin')`, [userId]);
+        `INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector)
+         VALUES($1,'session-admin@example.test','synthetic-unusable-hash','Admin de sessões fictício','admin',5,'founder')`, [userId]);
       await database.query(
         `INSERT INTO sessions(id,user_id,token_hash,expires_at,user_agent)
          VALUES($1,$3,decode('01','hex'),now()+interval '1 hour','current-test-agent'),
@@ -35,9 +35,9 @@ test("admin revokes other sessions over HTTP and PostgreSQL while preserving the
         const sessionId = sessionsByToken.get(token);
         if (!sessionId) return null;
         const row = (await database.query(
-          `SELECT u.id,u.role,u.display_name,s.id AS session_id FROM sessions s JOIN users u ON u.id=s.user_id
+          `SELECT u.id,u.role,u.staff_access_level,u.staff_sector,u.display_name,s.id AS session_id FROM sessions s JOIN users u ON u.id=s.user_id
            WHERE s.id=$1 AND s.revoked_at IS NULL AND s.expires_at>now()`, [sessionId])).rows[0];
-        return row ? { id:row.id, role:row.role, displayName:row.display_name, sessionId:row.session_id } : null;
+        return row ? { id:row.id, role:row.role, staffAccessLevel:row.staff_access_level, staffSector:row.staff_sector, displayName:row.display_name, sessionId:row.session_id } : null;
       } };
       api = createApiServer({ config:loadConfig({ NODE_ENV:"test", RATE_LIMIT_MAX:"1000" }), authService,
         adminService:createAdminService(createAdminRepository(database)) });

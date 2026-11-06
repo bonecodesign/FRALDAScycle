@@ -22,7 +22,7 @@ test('incident console and financial stops are private, persistent and audited o
    await database.query(`INSERT INTO users(id,email,password_hash,display_name,role) VALUES
     ($1,'incident-admin@example.test','fixture','Admin fictício','admin'),
     ($2,'incident-moderator@example.test','fixture','Moderador fictício','moderator')`,Object.values(ids));
-   const actors={admin:{id:ids.admin,role:'admin'},moderator:{id:ids.moderator,role:'moderator'}};
+   const actors={admin:{id:ids.admin,role:'admin',staffSector:'operations'},moderator:{id:ids.moderator,role:'moderator',staffSector:'operations'}};
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),authService:{async session(token){return actors[token]??null;}},
     operationalControlService:createOperationalControlService(createOperationalControlRepository(database)),
     operationalIncidentService:createOperationalIncidentService(createOperationalIncidentRepository(database),{clock:()=>Date.parse('2026-10-29T12:00:00Z')})});

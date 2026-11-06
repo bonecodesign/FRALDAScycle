@@ -32,7 +32,7 @@ test('reviews require completed participation and leave public consultation when
       await database.query("INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,$4,'paid',10000)",[ids.transaction,ids.listing,ids.buyer,ids.seller]);
       const moderationRepository=createModerationRepository(database);
       const communicationsService=createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
-      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},outsider:{id:ids.outsider,role:'customer'},moderator:{id:ids.moderator,role:'moderator'}};
+      const actors={seller:{id:ids.seller,role:'customer'},buyer:{id:ids.buyer,role:'customer'},outsider:{id:ids.outsider,role:'customer'},moderator:{id:ids.moderator,role:'moderator',staffSector:'moderation'}};
       api=createApiServer({
         config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),
         communicationsService,

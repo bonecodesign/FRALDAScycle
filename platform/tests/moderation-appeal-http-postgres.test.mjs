@@ -25,7 +25,7 @@ test('temporary suspension appeal requires an independent reviewer and can resto
       const published=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio publicado','Deve ser restaurado somente pela decisão correspondente.','infant','Marca','Modelo','sealed',1,'sale',1000,'published') RETURNING id",[ids.owner])).rows[0];
       const manuallyPaused=(await database.query("INSERT INTO listings(seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,'Anúncio pausado','Pausa manual deve permanecer intocada.','infant','Marca','Modelo','sealed',1,'sale',1000,'paused') RETURNING id",[ids.owner])).rows[0];
       const repository=createModerationRepository(database),service=createModerationService(repository);
-      const actors={owner:{id:ids.owner,role:'customer'},first:{id:ids.initialReviewer,role:'admin'},second:{id:ids.independentReviewer,role:'admin'}};
+      const actors={owner:{id:ids.owner,role:'customer'},first:{id:ids.initialReviewer,role:'admin',staffSector:'moderation'},second:{id:ids.independentReviewer,role:'admin',staffSector:'moderation'}};
       api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),moderationService:service,authService:{async session(token){return actors[token]??null;}}});
       await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({'content-type':'application/json',cookie:`fc_session=${token}`});

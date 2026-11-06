@@ -59,7 +59,7 @@ test("courier clearance rejection is enforced over HTTP and PostgreSQL", {
       });
       const actors = {
         courier: { id: ids.courier, role: "courier" },
-        admin: { id: ids.admin, role: "admin" },
+        admin: { id: ids.admin, role: "admin", staffSector: "logistics" },
       };
       api = createApiServer({
         config: loadConfig({ NODE_ENV: "test", RATE_LIMIT_MAX: "1000" }),

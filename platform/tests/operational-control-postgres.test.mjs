@@ -21,15 +21,15 @@ test("operational pause and resume are persisted, audited and enforced over HTTP
     try {
       await migrate(database, await discoverMigrations());
       await database.query(
-        `INSERT INTO users(id, email, password_hash, display_name, role)
-         VALUES($1, 'operational-admin@example.test', 'synthetic-unusable-hash', 'Admin operacional fictício', 'admin')`,
+        `INSERT INTO users(id, email, password_hash, display_name, role, staff_access_level, staff_sector)
+         VALUES($1, 'operational-admin@example.test', 'synthetic-unusable-hash', 'Admin operacional fictício', 'admin', 4, 'operations')`,
         [adminId],
       );
 
       const authService = {
         async session(token) {
           return token === "operational-admin-session"
-            ? { id: adminId, role: "admin", displayName: "Admin operacional fictício" }
+            ? { id: adminId, role: "admin", staffAccessLevel: 4, staffSector: "operations", displayName: "Admin operacional fictício" }
             : null;
         },
       };
