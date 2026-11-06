@@ -10,7 +10,7 @@ END WHERE staff_access_level IS NOT NULL;
 
 ALTER TABLE users ADD CONSTRAINT users_staff_sector_check CHECK (
   (role NOT IN('admin','moderator') AND staff_sector IS NULL)
-  OR (role IN('admin','moderator') AND staff_access_level IS NOT NULL AND (
+  OR (role IN('admin','moderator') AND (
     staff_sector IS NULL OR (staff_sector IN(
       'support','finance','operations','logistics','institutions','moderation',
       'legal_privacy','security','communications','technical','founder'

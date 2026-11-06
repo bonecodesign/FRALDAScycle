@@ -589,7 +589,7 @@ test("transfers Admin security moderation audit webhooks and settings governance
 });
 
 
-test("closes all nineteen approved Admin routes with growth launch and support", async () => {
+test("closes all twenty approved Admin routes with growth launch, support and sector workflow", async () => {
   const routes = [
     ["partnerships", /Expansão e parcerias/],
     ["innovation", /Inovação e produtos/],
@@ -610,9 +610,9 @@ test("closes all nineteen approved Admin routes with growth launch and support",
   assert.match(behavior, /nenhuma ação comercial ou experimental é simulada/);
   assert.doesNotMatch(behavior, /setTimeout|data-partner-review|data-experiment-review|data-launch-evidence/);
   assert.match(await readFile(resolve(root, "apps/admin/support-management.js"), "utf8"), /\/v1\/support\/tickets/);
-  assert.equal(provenance.source.routes.length, 19);
-  assert.equal(provenance.destination.routes.length, 19);
-  assert.equal(new Set(provenance.destination.routes).size, 19);
+  assert.equal(provenance.source.routes.length, 20);
+  assert.equal(provenance.destination.routes.length, 20);
+  assert.equal(new Set(provenance.destination.routes).size, 20);
   assert.deepEqual(provenance.modifiedSourceFiles, ["app.js", "qa-regression.mjs"]);
 });
 
