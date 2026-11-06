@@ -195,10 +195,16 @@ export function createAdminRepository(database) {
     async setUserStatus({ actorUserId, targetUserId, status, reason }) {
       return database.transaction(async (client) => {
         const current = await client.query(
-          "SELECT id, disabled_at FROM users WHERE id = $1 FOR UPDATE",
+          "SELECT id, role, staff_access_level, staff_sector, disabled_at FROM users WHERE id = $1 FOR UPDATE",
           [targetUserId],
         );
         if (!current.rows[0]) return null;
+        if (['admin','moderator'].includes(current.rows[0].role)
+            || current.rows[0].staff_access_level != null || current.rows[0].staff_sector != null) {
+          throw Object.assign(new Error('Internal staff status changes require the governed approval workflow'),{
+            code:'staff_status_change_governed',status:409,
+          });
+        }
         const wasSuspended = Boolean(current.rows[0].disabled_at);
         const updated = await client.query(
           `UPDATE users SET disabled_at = CASE WHEN $2 = 'suspended' THEN COALESCE(disabled_at, now()) ELSE NULL END,
