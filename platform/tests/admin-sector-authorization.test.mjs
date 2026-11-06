@@ -21,10 +21,13 @@ test('founder keeps full view while non-staff never inherits admin access',()=>{
  assert.equal(hasSectorScope({role:'customer',staffSector:'finance'},'admin:finance:read'),false);
 });
 
-test('legacy staff without a sector remains compatible until account regularization',()=>{
+test('legacy staff without a sector fails closed until account regularization',()=>{
  const legacy={role:'admin',staffAccessLevel:4};
  assert.equal(staffSector(legacy),null);
- assert.equal(hasSectorScope(legacy,'admin:operations:read'),true);
+ assert.equal(hasSectorScope(legacy,'admin:operations:read'),false);
+ assert.equal(hasAdminSector(legacy,['operations']),false);
+ assert.throws(()=>requireSectorScope(legacy,'admin:operations:read'),error=>error.code==='staff_sector_required');
+ assert.throws(()=>requireAdminSector(legacy,['operations'],4),error=>error.code==='staff_sector_required');
 });
 
 test('specialized admin routes combine their service level with a bounded sector',()=>{

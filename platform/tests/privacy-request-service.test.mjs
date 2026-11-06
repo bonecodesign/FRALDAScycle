@@ -11,8 +11,8 @@ test('privacy request uses session identity and does not accept erasure authoriz
 });
 test('privacy assessment requires authorized scope, version and explicit confirmation',()=>{
   const service=createPrivacyRequestService({assess(v){return v;},list(v){return v;}});
-  assert.throws(()=>service.assess({id:'mod',role:'moderator'},'id',null),e=>e.status===403);
+  assert.throws(()=>service.assess({id:'mod',role:'moderator',staffSector:'moderation'},'id',null),e=>e.status===403);
   assert.equal(service.list({id:'own',role:'customer'}).reviewer,false);
-  assert.throws(()=>service.assess({id:'admin',role:'admin'},'id',{expectedVersion:0,reason:input.details,confirmed:false}),e=>e.code==='invalid_privacy_assessment');
-  assert.equal(service.assess({id:'admin',role:'admin'},'id',{expectedVersion:0,reason:input.details,confirmed:true}).expectedVersion,0);
+  assert.throws(()=>service.assess({id:'admin',role:'admin',staffSector:'legal_privacy'},'id',{expectedVersion:0,reason:input.details,confirmed:false}),e=>e.code==='invalid_privacy_assessment');
+  assert.equal(service.assess({id:'admin',role:'admin',staffSector:'legal_privacy'},'id',{expectedVersion:0,reason:input.details,confirmed:true}).expectedVersion,0);
 });

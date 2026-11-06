@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { runSyntheticIncidentDrill } from "../apps/api/incident-drill-runner.js";
 
-const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin" };
+const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin", staffSector: "operations" };
 const base = {
   confirmed: true, version: "pilot-bh-local-2026.10.23", environment: "isolated-local", syntheticDataOnly: true,
   domain: "payments", scenario: "Falha sintética impede uma compra fictícia sem criar cobrança.", severity: "high",

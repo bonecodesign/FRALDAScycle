@@ -10,7 +10,7 @@ test('review risk report binds identity and requires confirmed category without 
 test('review moderation scope and version cannot be forged by customer',()=>{
   const service=createReviewModerationService({decide(v){return v;},appeal(v){return v;}}),input={outcome:'removed',reason:'Análise fictícia da avaliação.',expectedVersion:1,confirmed:true};
   assert.throws(()=>service.decide({id:'owner',role:'customer'},'review',input),e=>e.status===403);
-  assert.throws(()=>service.decide({id:'admin',role:'admin'},'review',{...input,expectedVersion:-1}),e=>e.status===422);
-  assert.equal(service.decide({id:'mod',role:'moderator'},'review',input).actorId,'mod');
+  assert.throws(()=>service.decide({id:'admin',role:'admin',staffSector:'moderation'},'review',{...input,expectedVersion:-1}),e=>e.status===422);
+  assert.equal(service.decide({id:'mod',role:'moderator',staffSector:'moderation'},'review',input).actorId,'mod');
   assert.equal(service.appeal({id:'owner'},'review',{details:input.reason,expectedVersion:1,confirmed:true}).actorId,'owner');
 });

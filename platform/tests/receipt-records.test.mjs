@@ -71,10 +71,10 @@ test('service requires explicit boolean approval and scoped validation with reas
     await assert.rejects(service.approveReceipt('buyer', shipmentId, { approved }), error => error.code === 'explicit_approval_required');
   }
   for (const role of ['customer', 'courier', 'moderator']) {
-    await assert.rejects(service.validateProof({ id: 'reviewer', role }, shipmentId, { validated: true, reason: 'Comprovante conferido.' }),
+    await assert.rejects(service.validateProof({ id: 'reviewer', role, ...(role === 'moderator' ? { staffSector: 'moderation' } : {}) }, shipmentId, { validated: true, reason: 'Comprovante conferido.' }),
       error => error.code === 'forbidden');
   }
-  await assert.rejects(service.validateProof({ id: 'admin', role: 'admin' }, shipmentId, { validated: true, reason: 'ok' }),
+  await assert.rejects(service.validateProof({ id: 'admin', role: 'admin', staffSector: 'logistics' }, shipmentId, { validated: true, reason: 'ok' }),
     error => error.code === 'invalid_proof_validation');
 });
 
@@ -85,7 +85,7 @@ test('evidence read limits access to parties or authorized reviewer and reports 
     return { id: 'proof-1', media_key: 'proofs/photo', courier_id: 'courier', created_at: '2030-01-01' };
   } }, {});
   for (const role of ['customer', 'moderator', 'admin']) {
-    const proof = await service.receiptEvidence({ id: 'actor', role }, shipmentId);
+    const proof = await service.receiptEvidence({ id: 'actor', role, ...(role === 'admin' ? { staffSector: 'logistics' } : {}) }, shipmentId);
     assert.equal(inputs.at(-1).reviewer, role === 'admin');
     assert.equal(proof.approvedAt, null);
     assert.equal(proof.validatedAt, null);
@@ -99,7 +99,7 @@ test('evidence read limits access to parties or authorized reviewer and reports 
 });
 
 test('HTTP routes authenticate receipt writes and enforce validation scopes', async context => {
-  const actors = { buyer: { id: 'buyer', role: 'customer' }, admin: { id: 'admin', role: 'admin' } };
+  const actors = { buyer: { id: 'buyer', role: 'customer' }, admin: { id: 'admin', role: 'admin', staffSector: 'logistics' } };
   const writes = [];
   const logisticsService = createLogisticsService({
     async recordReceiptDecision(input) { writes.push(input); return { reused: false, recordedAt: '2030-01-01' }; },

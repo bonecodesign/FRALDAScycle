@@ -21,8 +21,8 @@ test("only administrators with catalog scope may import a validated batch", asyn
   const csv = `${MANUFACTURER_CATALOG_COLUMNS.join(",")}\nSKU-1,infant,Marca,Linha,M,6,18,,\n`;
   const input = { csv, manufacturer: "Marca", sourceUrl: "https://marca.example/tabela.pdf",
     documentSha256: "a".repeat(64), effectiveDate: "2026-10-24" };
-  await assert.rejects(service.importBatch({ id: "moderator", role: "moderator" }, input), error => error.code === "forbidden");
-  assert.equal((await service.importBatch({ id: "admin", role: "admin" }, input)).id, batchId);
+  await assert.rejects(service.importBatch({ id: "moderator", role: "moderator", staffSector: "support" }, input), error => error.code === "forbidden");
+  assert.equal((await service.importBatch({ id: "admin", role: "admin", staffSector: "moderation" }, input)).id, batchId);
   assert.equal(received.actorId, "admin");
   assert.equal(received.catalog.entries.length, 1);
 });

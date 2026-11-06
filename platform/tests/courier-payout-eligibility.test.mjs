@@ -45,5 +45,5 @@ test('exchange leg does not display a transaction-level payment as its own freig
 test('only delivery reviewer can prepare and explicit confirmation is mandatory',async()=>{
  const service=createLogisticsService({prepareCourierPayout:()=>assert.fail('must not persist')});
  await assert.rejects(service.prepareCourierPayout({id:'courier',role:'courier'},shipmentId,{confirmed:true}),error=>error.code==='forbidden');
- await assert.rejects(service.prepareCourierPayout({id:'admin',role:'admin'},shipmentId,{confirmed:false}),error=>error.code==='explicit_payout_preparation_required');
+ await assert.rejects(service.prepareCourierPayout({id:'admin',role:'admin',staffSector:'logistics'},shipmentId,{confirmed:false}),error=>error.code==='explicit_payout_preparation_required');
 });
