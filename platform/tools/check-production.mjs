@@ -26,6 +26,7 @@ const files = [
   "apps/api/exchange-settlement-webhook-handler.js",
   "apps/admin/operational-control.js",
   "apps/admin/work-items.js",
+  "apps/admin/staff-sector.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",
   "tools/beta-logistics-webhook-check.mjs",

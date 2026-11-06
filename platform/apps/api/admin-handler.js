@@ -16,6 +16,7 @@ const routeSectors=Object.freeze([
   ['/v1/admin/incidents',['operations','finance','security']],
   ['/v1/admin/incident-roles',['operations','security']],
   ['/v1/admin/access-level-changes',['operations']],
+  ['/v1/admin/staff-sector-changes',['operations']],
 ]);
 export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
@@ -113,6 +114,20 @@ export async function handleAdmin(request, response, {
   if(request.method==='POST'&&accessDecision){
     if(!staffAccessService)throw new AuthError('staff_access_unavailable',503,'Gestão de níveis indisponível.');
     const result=await staffAccessService.decide(user,accessDecision[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+
+  if(request.method==='GET'&&url.pathname==='/v1/admin/staff-sector-changes'){
+    if(!staffAccessService)throw new AuthError('staff_access_unavailable',503,'Gestão de setores indisponível.');
+    const result=await staffAccessService.listSectors(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  if(request.method==='POST'&&url.pathname==='/v1/admin/staff-sector-changes'){
+    if(!staffAccessService)throw new AuthError('staff_access_unavailable',503,'Gestão de setores indisponível.');
+    const result=await staffAccessService.proposeSector(user,await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const sectorDecision=url.pathname.match(/^\/v1\/admin\/staff-sector-changes\/([0-9a-f-]{36})\/decision$/i);
+  if(request.method==='POST'&&sectorDecision){
+    if(!staffAccessService)throw new AuthError('staff_access_unavailable',503,'Gestão de setores indisponível.');
+    const result=await staffAccessService.decideSector(user,sectorDecision[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
 
   const supportedRefund=url.pathname.match(/^\/v1\/admin\/supported-cancellations\/([0-9a-f-]{36})$/i);
