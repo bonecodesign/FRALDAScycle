@@ -34,6 +34,7 @@ import { handleDataExport } from './data-export-handler.js';
 import { handleAsaasWebhook } from './asaas-webhook-handler.js';
 import { handleDeliveryQuotes } from './delivery-quote-handler.js';
 import { handleExchangeSettlementWebhook } from './exchange-settlement-webhook-handler.js';
+import { handleAdminWorkItems } from './admin-work-item-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -89,6 +90,7 @@ export function createApiServer({
   authorityRequestService = null,
   userContentRetentionService = null,
   registrationDraftService = null,
+  adminWorkItemService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -330,6 +332,10 @@ export function createApiServer({
 
       if (await handleInstitutions(request, response, {
         url, headers, requestId: id, authService, institutionService,
+      })) return;
+
+      if (await handleAdminWorkItems(request,response,{
+        url,headers,requestId:id,authService,service:adminWorkItemService,
       })) return;
 
       if (await handleAdmin(request, response, {

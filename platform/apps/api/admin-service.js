@@ -3,6 +3,7 @@ import { ServiceError } from "./service-error.js";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { hashPassword } from "./security.js";
 const ROLES = new Set(["customer", "courier", "moderator", "admin"]);
+const STAFF_SECTORS=new Set(['support','finance','operations','logistics','institutions','moderation','legal_privacy','security','communications','technical']);
 const USER_STATUSES = new Set(["active", "suspended"]);
 const LISTING_STATUSES = new Set(["draft", "review", "published", "completed", "paused", "removed", "unavailable"]);
 const EMAIL_PATTERN = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
@@ -116,13 +117,15 @@ export function createAdminService(repository, mediaProvider = null, { reviewSec
       const email = String(input?.email ?? "").trim().toLocaleLowerCase("pt-BR");
       const displayName = String(input?.displayName ?? "").trim();
       const role = String(input?.role ?? "");
+      const staffSector=input?.staffSector==null?null:String(input.staffSector);
       if (!EMAIL_PATTERN.test(email)) throw new AdminError("invalid_email", 422, "Informe um e-mail válido.");
       if (displayName.length < 2 || displayName.length > 100) throw new AdminError("invalid_display_name", 422, "Informe o nome da pessoa convidada.");
       if (!ROLES.has(role)) throw new AdminError("invalid_role", 422, "Escolha um papel válido.");
+      if (['admin','moderator'].includes(role)!==Boolean(staffSector&&STAFF_SECTORS.has(staffSector))) throw new AdminError('invalid_staff_sector',422,'Contas internas exigem um setor válido.');
       const token = randomBytes(32).toString("base64url");
       const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
       const invitation = await repository.createInvitation({
-        actorUserId: actor.id, email, displayName, role,
+        actorUserId: actor.id, email, displayName, role, staffSector,
         token, tokenHash: invitationHash(token), expiresAt,
       });
       if (!invitation) {

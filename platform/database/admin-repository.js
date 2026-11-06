@@ -227,7 +227,7 @@ export function createAdminRepository(database) {
       });
     },
 
-    async createInvitation({ actorUserId, email, displayName, role, tokenHash, token, expiresAt }) {
+    async createInvitation({ actorUserId, email, displayName, role, staffSector=null, tokenHash, token, expiresAt }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
           "SELECT id FROM users WHERE email = $1 LIMIT 1",
@@ -241,24 +241,24 @@ export function createAdminRepository(database) {
         );
         const created = await client.query(
           `INSERT INTO admin_invitations
-             (email, display_name, role, staff_access_level, token_hash, invited_by, expires_at)
-           VALUES ($1,$2,$3::user_role,CASE WHEN $3='admin' THEN 4 WHEN $3='moderator' THEN 1 ELSE NULL END,$4,$5,$6)
-           RETURNING id, email, display_name, role, staff_access_level, expires_at, created_at`,
-          [email, displayName, role, tokenHash, actorUserId, expiresAt],
+             (email, display_name, role, staff_access_level, staff_sector, token_hash, invited_by, expires_at)
+           VALUES ($1,$2,$3::user_role,CASE WHEN $3='admin' THEN 4 WHEN $3='moderator' THEN 1 ELSE NULL END,$4,$5,$6,$7)
+           RETURNING id, email, display_name, role, staff_access_level, staff_sector, expires_at, created_at`,
+          [email, displayName, role, staffSector, tokenHash, actorUserId, expiresAt],
         );
         const invitation = created.rows[0];
         await client.query(
           `INSERT INTO notification_outbox (kind, recipient, payload)
            VALUES ('admin_invitation'::auth_token_kind, $1, $2::jsonb)`,
           [email, JSON.stringify({
-            token, channel: "email", displayName, role,
+            token, channel: "email", displayName, role, staffSector,
             expiresAt: expiresAt.toISOString(),
           })],
         );
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1, 'admin.invitation.created', 'admin_invitation', $2, $3::jsonb)`,
-          [actorUserId, invitation.id, JSON.stringify({ email, role, expiresAt })],
+          [actorUserId, invitation.id, JSON.stringify({ email, role, staffSector, expiresAt })],
         );
         return invitation;
       });
@@ -269,16 +269,16 @@ export function createAdminRepository(database) {
         const consumed = await client.query(
           `UPDATE admin_invitations SET consumed_at = now()
            WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
-           RETURNING id, email, display_name, role, staff_access_level, invited_by`,
+           RETURNING id, email, display_name, role, staff_access_level, staff_sector, invited_by`,
           [tokenHash],
         );
         const invitation = consumed.rows[0];
         if (!invitation) return null;
         const created = await client.query(
-          `INSERT INTO users (email, password_hash, display_name, role, staff_access_level, email_verified_at)
-           VALUES ($1,$2,$3,$4::user_role,$5,now())
-           RETURNING id, email, phone, display_name, role, staff_access_level, email_verified_at, created_at`,
-          [invitation.email, passwordHash, invitation.display_name, invitation.role, invitation.staff_access_level],
+          `INSERT INTO users (email, password_hash, display_name, role, staff_access_level, staff_sector, email_verified_at)
+           VALUES ($1,$2,$3,$4::user_role,$5,$6,now())
+           RETURNING id, email, phone, display_name, role, staff_access_level, staff_sector, email_verified_at, created_at`,
+          [invitation.email, passwordHash, invitation.display_name, invitation.role, invitation.staff_access_level,invitation.staff_sector],
         );
         const user = created.rows[0];
         await client.query(

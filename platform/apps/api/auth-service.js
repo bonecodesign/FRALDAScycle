@@ -60,6 +60,7 @@ function publicUser(user) {
     displayName: user.display_name,
     role: user.role,
     ...(user.staff_access_level ? { staffAccessLevel: Number(user.staff_access_level) } : {}),
+    ...(user.staff_sector ? { staffSector: user.staff_sector } : {}),
     emailVerified: Boolean(user.email_verified_at),
     adultDeclared: Boolean(user.adult_declared_at),
     adultDeclarationVersion: user.adult_declaration_version ?? null,

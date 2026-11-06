@@ -107,6 +107,8 @@ import {createAuthorityRequestRepository} from '../../database/authority-request
 import {createAuthorityRequestService} from './authority-request-service.js';
 import {createUserContentRetentionRepository} from '../../database/user-content-retention-repository.js';
 import {createUserContentRetentionService} from './user-content-retention-service.js';
+import {createAdminWorkItemRepository} from '../../database/admin-work-item-repository.js';
+import {createAdminWorkItemService} from './admin-work-item-service.js';
 
 export async function startRuntime(config = null) {
   if (!config) config = loadConfig(await resolveRuntimeEnv());
@@ -146,6 +148,7 @@ export async function startRuntime(config = null) {
   const accountConsentService = createAccountConsentService(createAccountConsentRepository(database));
   const institutionService = createInstitutionService(createInstitutionRepository(database),{pilotBh:config.pilotBh});
   const adminService = createAdminService(createAdminRepository(database),marketplaceProviders, { reviewSecret: config.sessionSecret });
+  const adminWorkItemService=createAdminWorkItemService(createAdminWorkItemRepository(database));
   const accountStepUpRepository = createAccountStepUpRepository(database);
   const operationalControlService = createOperationalControlService(createOperationalControlRepository(database,{stepUpRepository:accountStepUpRepository}));
   const operationalIncidentService = createOperationalIncidentService(createOperationalIncidentRepository(database));
@@ -244,6 +247,7 @@ export async function startRuntime(config = null) {
     donationService,
     logisticsProvider,
     adminService,
+    adminWorkItemService,
     realtimeService,
     operationalControlService,
     operationalIncidentService,
