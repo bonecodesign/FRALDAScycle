@@ -1,4 +1,4 @@
-import {requireScope} from './authorization.js';
+import {requireSectorScope as requireScope} from './authorization.js';
 import {ServiceError} from './service-error.js';
 import {assertContentAllowed} from './content-guard.js';
 const fail=message=>new ServiceError('invalid_review_moderation',422,message);

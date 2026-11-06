@@ -1,5 +1,5 @@
 import { ServiceError } from "./service-error.js";
-import { hasScope, requireScope } from "./authorization.js";
+import { hasSectorScope as hasScope, requireSectorScope as requireScope } from "./authorization.js";
 import { institutionReceiptReadiness } from "../../packages/contracts/institution-receipt-readiness.js";
 import { sellerSettlementReadiness } from "../../packages/contracts/settlement-readiness.js";
 import { pilotBhLocation, pilotBhPostalCode } from "./pilot-bh.js";

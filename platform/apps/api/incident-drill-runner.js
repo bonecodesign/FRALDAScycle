@@ -1,5 +1,5 @@
 import { localIncidentDrill } from "../../packages/contracts/incident-drill.js";
-import { requireScope } from "./authorization.js";
+import { requireSectorScope } from "./authorization.js";
 import { ServiceError } from "./service-error.js";
 
 const pauseReason = "Ensaio sintético: contenção preventiva do domínio afetado.";
@@ -10,7 +10,7 @@ export async function runSyntheticIncidentDrill({
   actor, operationalControlService, input, clock = Date.now,
   safeContinuationsProbe, technicalRecoveryProbe, postRecoveryProbe,
 }) {
-  requireScope(actor, "admin:operations:write");
+  requireSectorScope(actor, "admin:operations:write");
   if (input?.confirmed !== true || input?.environment !== "isolated-local" || input?.syntheticDataOnly !== true) {
     throw new ServiceError("invalid_incident_drill_confirmation", 422, "Confirme o ensaio isolado com dados exclusivamente sintéticos.");
   }

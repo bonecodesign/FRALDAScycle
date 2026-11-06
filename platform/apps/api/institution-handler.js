@@ -1,6 +1,6 @@
 import { readJson } from "./body.js";
 import { authenticatedUser } from "./session.js";
-import { requireScope } from "./authorization.js";
+import { requireSectorScope } from "./authorization.js";
 import { sendJson } from "./http.js";
 
 export async function handleInstitutions(request, response, {
@@ -20,7 +20,7 @@ export async function handleInstitutions(request, response, {
   }
   if (request.method === "GET" && url.pathname === "/v1/admin/institutions") {
     const user = await authenticatedUser(request, authService, { optionalService: true });
-    requireScope(user, "admin:institutions:read");
+    requireSectorScope(user, "admin:institutions:read");
     const items = await institutionService.applications(Object.fromEntries(url.searchParams));
     sendJson(response, 200, { items, requestId }, headers);
     return true;
@@ -28,7 +28,7 @@ export async function handleInstitutions(request, response, {
   const status = url.pathname.match(/^\/v1\/admin\/institutions\/([0-9a-f-]{36})\/status$/i);
   if (request.method === "PATCH" && status) {
     const user = await authenticatedUser(request, authService, { optionalService: true });
-    requireScope(user, "admin:institutions:write");
+    requireSectorScope(user, "admin:institutions:write");
     const institution = await institutionService.changeStatus(user.id, status[1], await readJson(request));
     sendJson(response, 200, { institution, requestId }, headers);
     return true;

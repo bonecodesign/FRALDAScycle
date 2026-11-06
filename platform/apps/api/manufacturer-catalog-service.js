@@ -1,4 +1,4 @@
-import { requireScope } from "./authorization.js";
+import { requireSectorScope as requireScope } from "./authorization.js";
 import { ServiceError } from "./service-error.js";
 import { parseManufacturerCatalogCsv } from "../../packages/contracts/manufacturer-catalog-import.js";
 

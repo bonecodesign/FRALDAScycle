@@ -1,4 +1,4 @@
-import {hasScope,requireScope} from './authorization.js';
+import {hasSectorScope as hasScope,requireSectorScope as requireScope} from './authorization.js';
 import {ServiceError} from './service-error.js';
 function invalid(code,message){return new ServiceError(code,422,message);}
 function strict(input,fields){if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k)))throw invalid('invalid_privacy_request','Solicitação inválida.');}

@@ -1,14 +1,30 @@
 import { readJson } from "./body.js";
 import { authenticatedUser } from "./session.js";
 import { AuthError } from "./auth-service.js";
-import { requireAccessLevel, requireScope } from "./authorization.js";
+import { requireAccessLevel, requireAdminSector, requireSectorScope } from "./authorization.js";
 import { sendCsv, sendJson } from "./http.js";
+
+const routeSectors=Object.freeze([
+  ['/v1/admin/exchange-retention',['finance']],
+  ['/v1/admin/supported-cancellations',['finance']],
+  ['/v1/admin/family-responsibility-disputes',['support','legal_privacy']],
+  ['/v1/admin/child-data-emergency-access',['legal_privacy','security']],
+  ['/v1/admin/authority-requests',['legal_privacy']],
+  ['/v1/admin/content-retention-holds',['legal_privacy','moderation']],
+  ['/v1/admin/operational-control',['operations','finance']],
+  ['/v1/admin/operational-resume-requests',['operations','finance']],
+  ['/v1/admin/incidents',['operations','finance','security']],
+  ['/v1/admin/incident-roles',['operations','security']],
+  ['/v1/admin/access-level-changes',['operations']],
+]);
+export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
 export async function handleAdmin(request, response, {
   url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
+  requireAdminRouteSector(user,url.pathname);
 
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-status'){requireAccessLevel(user,2);if(!exchangeRetentionStatusService)throw new AuthError('retention_status_unavailable',503,'Situação da retenção indisponível.');const result=await exchangeRetentionStatusService.snapshot();sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-requests'){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.list(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
@@ -125,7 +141,7 @@ export async function handleAdmin(request, response, {
 
   const listingReview = url.pathname.match(/^\/v1\/admin\/listings\/([0-9a-f-]{36})\/review$/i);
   if (listingReview && request.method === "GET") {
-    requireScope(user, "admin:moderate");
+    requireSectorScope(user, "admin:moderate");
     if (!marketplaceProviders) throw new AuthError("media_provider_unavailable", 503, "Mídia de revisão indisponível.");
     const detail = await adminService.listingReviewDetail(user, listingReview[1]);
     const media = await Promise.all(detail.media.map(async item => ({
@@ -136,55 +152,55 @@ export async function handleAdmin(request, response, {
     return true;
   }
   if (listingReview && request.method === "POST") {
-    requireScope(user, "admin:moderate");
+    requireSectorScope(user, "admin:moderate");
     const listing = await adminService.reviewListing(user, listingReview[1], await readJson(request));
     sendJson(response, 200, { listing, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/webhook-events") {
-    requireScope(user, "admin:audit:read");
+    requireSectorScope(user, "admin:audit:read");
     const result = await adminService.webhookSnapshot(user, Object.fromEntries(url.searchParams));
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/access-snapshot") {
-    requireScope(user, "admin:users:read");
+    requireSectorScope(user, "admin:users:read");
     const result = await adminService.accessSnapshot(user);
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/catalog-snapshot") {
-    requireScope(user, "admin:moderate");
+    requireSectorScope(user, "admin:moderate");
     const result = await adminService.catalogSnapshot(user, Object.fromEntries(url.searchParams));
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/overview-snapshot") {
-    requireScope(user, "admin:operations:read");
+    requireSectorScope(user, "admin:operations:read");
     const result = await adminService.overviewSnapshot(user, Object.fromEntries(url.searchParams));
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/finance-snapshot") {
-    requireScope(user, "admin:finance:read");
+    requireSectorScope(user, "admin:finance:read");
     const result = await adminService.financeSnapshot(user, Object.fromEntries(url.searchParams));
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
   if (request.method === "GET" && url.pathname === "/v1/admin/logistics-snapshot") {
-    requireScope(user, "admin:deliveries:validate");
+    requireSectorScope(user, "admin:deliveries:validate");
     const result = await adminService.logisticsSnapshot(user, Object.fromEntries(url.searchParams));
     sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/events/stream") {
-    requireScope(user, "admin:audit:read");
+    requireSectorScope(user, "admin:audit:read");
     if (!realtimeService) throw new AuthError("realtime_unavailable", 503, "Monitoramento em tempo real indisponível.");
     realtimeService.open(response, {
       afterId: request.headers["last-event-id"] ?? url.searchParams.get("after") ?? 0,
@@ -194,41 +210,41 @@ export async function handleAdmin(request, response, {
   }
 
   if (request.method === "POST" && url.pathname === "/v1/admin/invitations") {
-    requireScope(user, "admin:users:write");
+    requireSectorScope(user, "admin:users:write");
     const result = await adminService.createInvitation(user, await readJson(request));
     sendJson(response, 201, { ...result, requestId }, headers);
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/sessions") {
-    requireScope(user, "admin:security:write");
+    requireSectorScope(user, "admin:security:write");
     const items = await adminService.sessions(user);
     sendJson(response, 200, { items, requestId }, headers);
     return true;
   }
 
   if (request.method === "POST" && url.pathname === "/v1/admin/sessions/revoke-others") {
-    requireScope(user, "admin:security:write");
+    requireSectorScope(user, "admin:security:write");
     const result = await adminService.revokeOtherSessions(user);
     sendJson(response, 200, { ...result, requestId }, headers);
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/users") {
-    requireScope(user, "admin:users:read");
+    requireSectorScope(user, "admin:users:read");
     const items = await adminService.users(Object.fromEntries(url.searchParams));
     sendJson(response, 200, { items, requestId }, headers);
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/audit-events.csv") {
-    requireScope(user, "admin:audit:read");
+    requireSectorScope(user, "admin:audit:read");
     sendCsv(response, "fraldacycle-auditoria.csv", await adminService.auditCsv(), headers);
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/v1/admin/audit-events") {
-    requireScope(user, "admin:audit:read");
+    requireSectorScope(user, "admin:audit:read");
     const items = await adminService.auditEvents(Object.fromEntries(url.searchParams));
     sendJson(response, 200, { items, requestId }, headers);
     return true;
@@ -236,7 +252,7 @@ export async function handleAdmin(request, response, {
 
   const statusChange = url.pathname.match(/^\/v1\/admin\/users\/([0-9a-f-]{36})\/status$/i);
   if (request.method === "PATCH" && statusChange) {
-    requireScope(user, "admin:users:write");
+    requireSectorScope(user, "admin:users:write");
     const changedUser = await adminService.setUserStatus(user, statusChange[1], await readJson(request));
     sendJson(response, 200, { user: changedUser, requestId }, headers);
     return true;
@@ -244,7 +260,7 @@ export async function handleAdmin(request, response, {
 
   const roleChange = url.pathname.match(/^\/v1\/admin\/users\/([0-9a-f-]{36})\/role$/i);
   if (request.method === "PATCH" && roleChange) {
-    requireScope(user, "admin:roles:write");
+    requireSectorScope(user, "admin:roles:write");
     const changedUser = await adminService.changeUserRole(user, roleChange[1], await readJson(request));
     sendJson(response, 200, { user: changedUser, requestId }, headers);
     return true;
