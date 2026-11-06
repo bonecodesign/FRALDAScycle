@@ -1,4 +1,4 @@
-import {hasScope,requireScope} from './authorization.js';
+import {hasSectorScope,requireSectorScope} from './authorization.js';
 import {ServiceError} from './service-error.js';
 const invalid=()=>new ServiceError('invalid_institution_authorization',422,'Confirme o vínculo, sua versão e a justificativa de conferência.');
 const brandInvalid=()=>new ServiceError('invalid_institution_brand_authorization',422,'Informe finalidade, canais, materiais, validade e confirme a autorização.');
@@ -11,11 +11,11 @@ export function createInstitutionAccessService(repository){return Object.freeze(
    if(!input||input.confirmed!==true||typeof input.acceptingDonations!=='boolean'||!Number.isSafeInteger(input.expectedVersion)||input.expectedVersion<1||value.length<10||value.length>1000)throw new ServiceError('invalid_institution_capacity',422,'Informe a disponibilidade, versão, justificativa e confirme a alteração.');
    return repository.changeCapacity({actorId:actor.id,institutionId,acceptingDonations:input.acceptingDonations,expectedVersion:input.expectedVersion,reason:value});
  },
- list(actor){return repository.list({actorId:actor.id,reviewer:hasScope(actor,'admin:institutions:write')});},
- assign(actor,institutionId,input){requireScope(actor,'admin:institutions:write');strict(input,['userId','expectedVersion','reason','confirmed']);if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.userId??''))throw invalid();return repository.assign({actorId:actor.id,institutionId,userId:input.userId,expectedVersion:input.expectedVersion,reason:reason(input)});},
+ list(actor){return repository.list({actorId:actor.id,reviewer:hasSectorScope(actor,'admin:institutions:write')});},
+ assign(actor,institutionId,input){requireSectorScope(actor,'admin:institutions:write');strict(input,['userId','expectedVersion','reason','confirmed']);if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.userId??''))throw invalid();return repository.assign({actorId:actor.id,institutionId,userId:input.userId,expectedVersion:input.expectedVersion,reason:reason(input)});},
  accept(actor,institutionId,input){strict(input,['expectedVersion','confirmed']);return repository.accept({actorId:actor.id,institutionId,expectedVersion:input.expectedVersion});},
- review(actor,institutionId,input){requireScope(actor,'admin:institutions:write');strict(input,['expectedVersion','outcome','reason','confirmed']);if(!['verified','revoked'].includes(input.outcome))throw invalid();return repository.review({actorId:actor.id,institutionId,expectedVersion:input.expectedVersion,outcome:input.outcome,reason:reason(input)});},
- brandAuthorizations(actor){return repository.brandAuthorizations({actorId:actor.id,reviewer:hasScope(actor,'admin:institutions:read')});},
+ review(actor,institutionId,input){requireSectorScope(actor,'admin:institutions:write');strict(input,['expectedVersion','outcome','reason','confirmed']);if(!['verified','revoked'].includes(input.outcome))throw invalid();return repository.review({actorId:actor.id,institutionId,expectedVersion:input.expectedVersion,outcome:input.outcome,reason:reason(input)});},
+ brandAuthorizations(actor){return repository.brandAuthorizations({actorId:actor.id,reviewer:hasSectorScope(actor,'admin:institutions:read')});},
  authorizeBrand(actor,institutionId,input){
    const allowedChannels=['marketplace','website','app','promotional_materials'],allowedAssets=['public_name','logo','photos','stories'];
    if(!input||input.confirmed!==true||input.noticeVersion!=='FC-INSTITUTION-BRAND-1')throw brandInvalid();
