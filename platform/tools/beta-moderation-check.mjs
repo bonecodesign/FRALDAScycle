@@ -16,8 +16,8 @@ export async function seedBrowserCommunication(database,userId,sellerId) {
   return transaction;
 }
 export async function validateSyntheticModeration(database,{user,other,transaction}) {
-  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin'};
-  const reviewer={id:'60000000-0000-4000-8000-000000000003',role:'moderator'};
+  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin',staffSector:'moderation'};
+  const reviewer={id:'60000000-0000-4000-8000-000000000003',role:'moderator',staffSector:'moderation'};
   await database.query("INSERT INTO users(id,email,password_hash,display_name,role) VALUES($1,'synthetic-reviewer@example.test','synthetic-unusable-hash','Revisor fictício','moderator')",[reviewer.id]);
   const moderation=createModerationRepository(database),service=createModerationService(moderation);
   const communications=createCommunicationsService(createCommunicationsRepository(database),moderation);
@@ -35,7 +35,7 @@ export async function validateSyntheticModeration(database,{user,other,transacti
   await assert.rejects(service.detail({id:other,role:'customer'},contact.id),e=>e.status===404);
   const appeals=await Promise.all([service.appeal({id:user},contact.id,{body:'Solicito revisão da ocorrência fictícia.'}),service.appeal({id:user},contact.id,{body:'Solicito revisão da ocorrência fictícia.'})]);
   assert.equal(appeals.filter(item=>!item.reused).length,1);
-  await assert.rejects(service.reviewAppeal({id:user,role:'admin'},contact.id,{confirmed:true,outcome:'upheld',reason:'Revisão fictícia por titular indevida.'}),e=>e.code==='moderation_independent_reviewer_required');
+  await assert.rejects(service.reviewAppeal({id:user,role:'admin',staffSector:'moderation'},contact.id,{confirmed:true,outcome:'upheld',reason:'Revisão fictícia por titular indevida.'}),e=>e.code==='moderation_independent_reviewer_required');
   const upheld=await Promise.all([service.reviewAppeal(admin,contact.id,{confirmed:true,outcome:'upheld',reason:'Contato identificado, a regra permanece aplicada.'}),service.reviewAppeal(admin,contact.id,{confirmed:true,outcome:'upheld',reason:'Contato identificado, a regra permanece aplicada.'})]);
   assert.equal(upheld.filter(item=>!item.reused).length,1);
   const barcode='Lote fictício 12345678 da embalagem.';

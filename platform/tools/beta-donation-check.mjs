@@ -19,7 +19,7 @@ export async function seedDonationListing(database,donorId,institutionId){
 }
 const consent={confirmed:true,noticeVersion:'FC-DONATION-2',logisticsResponsibility:'institution'};
 export async function validateSyntheticDonation(database,{user,other}){
- const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin'},courier='10000000-0000-4000-8000-000000000004',donor={id:user,role:'customer'},representative={id:other,role:'customer'};
+ const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin',staffSector:'institutions'},courier='10000000-0000-4000-8000-000000000004',donor={id:user,role:'customer'},representative={id:other,role:'customer'};
  const institutions=createInstitutionService(createInstitutionRepository(database)),access=createInstitutionAccessService(createInstitutionAccessRepository(database));
  const institutionId=await seedSyntheticInstitution(database,other,'22222222222222');
  await institutions.changeStatus(admin.id,institutionId,{status:'active',reason:'Instituição fictícia ativa para validar doação.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});

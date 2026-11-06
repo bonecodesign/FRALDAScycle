@@ -5,7 +5,7 @@ import {createModerationRepository} from '../database/moderation-repository.js';
 import {createCommunicationsRepository} from '../database/communications-repository.js';
 export async function validateSyntheticReviewModeration(database,{user,other,transaction}){
   const service=createReviewModerationService(createReviewModerationRepository(database),createModerationRepository(database));
-  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin'},moderator={id:'60000000-0000-4000-8000-000000000003',role:'moderator'},courier={id:'10000000-0000-4000-8000-000000000004',role:'courier'};
+  const admin={id:'10000000-0000-4000-8000-000000000003',role:'admin',staffSector:'moderation'},moderator={id:'60000000-0000-4000-8000-000000000003',role:'moderator',staffSector:'moderation'},courier={id:'10000000-0000-4000-8000-000000000004',role:'courier'};
   const owner={id:other,role:'customer'},reporter={id:user,role:'customer'},publicRepository=createCommunicationsRepository(database);
   const review=(await publicRepository.publicReviews(user))[0];
   const report={category:'fraud',details:'Suspeita fictícia para validar o encaminhamento.',confirmed:true};
@@ -16,7 +16,7 @@ export async function validateSyntheticReviewModeration(database,{user,other,tra
   await assert.rejects(service.appeal(reporter,review.id,appeal),e=>e.status===404);
   const appeals=await Promise.all([service.appeal(owner,review.id,appeal),service.appeal(owner,review.id,appeal)]);assert.equal(appeals.filter(x=>!x.reused).length,1);
   const restore={expectedVersion:1,outcome:'public',reason:'Análise fictícia não confirma o risco da denúncia.',confirmed:true};
-  await assert.rejects(service.decide({id:user,role:'admin'},review.id,restore),e=>e.code==='review_independent_moderator_required');
+  await assert.rejects(service.decide({id:user,role:'admin',staffSector:'moderation'},review.id,restore),e=>e.code==='review_independent_moderator_required');
   const restored=await Promise.all([service.decide(admin,review.id,restore),service.decide(admin,review.id,restore)]);assert.equal(restored.filter(x=>!x.reused).length,1);
   assert.equal((await publicRepository.publicReviews(user)).length,1);
   await service.report(reporter,review.id,report);assert.equal((await publicRepository.publicReviews(user)).length,1); // Semantic retry does not hide the reviewed content again.

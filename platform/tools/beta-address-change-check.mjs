@@ -11,11 +11,11 @@ export async function validateSyntheticAddressChange(database,{service,repositor
   assert.equal(requests.filter(x=>!x.reused).length,1);assert.equal(requests[0].id,requests[1].id);
   assert.equal((await service.sharedAddresses(other,shipment.id))[0].address_snapshot.street,address.street);
   await assert.rejects(changes.detail({id:other,role:'customer'},requests[0].id),e=>e.status===404);
-  const adminActor={id:admin,role:'admin'};
+  const adminActor={id:admin,role:'admin',staffSector:'support'};
   assert.equal((await changes.detail(adminActor,requests[0].id)).requested_snapshot.street,next.street);
   assert.throws(()=>changes.review({id:other,role:'customer'},requests[0].id,{}),e=>e.status===403);
   const review={confirmed:true,outcome:'approved',reason:'Conferência sintética do titular, consentimento e retirada.'};
-  await assert.rejects(changes.review({id:user,role:'admin'},requests[0].id,review),e=>e.code==='independent_address_review_required');
+  await assert.rejects(changes.review({id:user,role:'admin',staffSector:'support'},requests[0].id,review),e=>e.code==='independent_address_review_required');
   await assert.rejects(changes.review(adminActor,requests[0].id,review),e=>e.code==='address_provider_update_not_configured'&&e.status===409);
   await changes.review(adminActor,requests[0].id,{...review,outcome:'rejected',reason:'Alteração rejeitada até a homologação do fornecedor de entrega.'});
   const unchanged=(await service.sharedAddresses(other,shipment.id))[0];assert.equal(unchanged.revision,0);assert.equal(unchanged.address_snapshot.street,address.street);assert.equal(String(unchanged.shared_at),String(share.shared_at));
