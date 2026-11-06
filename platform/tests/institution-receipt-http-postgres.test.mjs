@@ -31,13 +31,14 @@ test('institutional receipt requires verified representative and independent val
     ($3,'receipt-outsider@example.test','fixture','Pessoa externa','customer',now(),now(),'FC-AGE-1'),
     ($4,'receipt-courier@example.test','fixture','Transportador sintético','courier',now(),now(),'FC-AGE-1'),
     ($5,'receipt-admin@example.test','fixture','Admin independente','admin',now(),now(),'FC-AGE-1')`,Object.values(ids));
-   const actors={donor:{id:ids.donor,role:'customer'},representative:{id:ids.representative,role:'customer'},outsider:{id:ids.outsider,role:'customer'},courier:{id:ids.courier,role:'courier'},admin:{id:ids.admin,role:'admin',staffSector:'institutions'}};
+   const actors={donor:{id:ids.donor,role:'customer'},representative:{id:ids.representative,role:'customer'},outsider:{id:ids.outsider,role:'customer'},courier:{id:ids.courier,role:'courier'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'}};
+   const institutionAdmin={id:ids.admin,role:'admin',staffSector:'institutions'};
    const institutionId=await seedSyntheticInstitution(database,ids.representative,'33333333333333');
    const institutions=createInstitutionService(createInstitutionRepository(database)),access=createInstitutionAccessService(createInstitutionAccessRepository(database));
    await institutions.changeStatus(ids.admin,institutionId,{status:'active',reason:'Ativação exclusivamente fictícia para teste de recebimento.',verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true}});
-   await access.assign(actors.admin,institutionId,{userId:ids.representative,expectedVersion:0,confirmed:true,reason:'Vínculo fictício para prova de recebimento institucional.'});
+   await access.assign(institutionAdmin,institutionId,{userId:ids.representative,expectedVersion:0,confirmed:true,reason:'Vínculo fictício para prova de recebimento institucional.'});
    await access.accept(actors.representative,institutionId,{expectedVersion:1,confirmed:true});
-   await access.review(actors.admin,institutionId,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Conferência independente exclusivamente fictícia.'});
+   await access.review(institutionAdmin,institutionId,{expectedVersion:2,confirmed:true,outcome:'verified',reason:'Conferência independente exclusivamente fictícia.'});
    const donation=createDonationService(createDonationRepository(database)),listingId=await seedDonationListing(database,ids.donor,institutionId);
    const operation=await donation.create(actors.donor,{...consent,listingId,idempotencyKey:'institution-receipt-http-donation'});
    await donation.accept(actors.representative,operation.transaction_id,{...consent,expectedVersion:1});

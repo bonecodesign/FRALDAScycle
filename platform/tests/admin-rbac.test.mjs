@@ -196,6 +196,7 @@ test("audit CSV neutralizes spreadsheet formulas", async () => {
 test("live user directory, status mutation and CSV export enforce scopes", async (context) => {
   const users = {
     moderator: { id: "moderator-1", role: "moderator", staffSector: "support" },
+    auditor: { id: "auditor-1", role: "moderator", staffSector: "security" },
     admin: { id: "admin-1", role: "admin", staffAccessLevel: 5, staffSector: "founder" },
   };
   const authService = { async session(token) { return users[token] ?? null; } };
@@ -231,7 +232,7 @@ test("live user directory, status mutation and CSV export enforce scopes", async
   assert.equal(suspended.status, 200);
 
   const exported = await fetch(`${origin}/v1/admin/audit-events.csv`, {
-    headers: { cookie: "fc_session=moderator" },
+    headers: { cookie: "fc_session=auditor" },
   });
   assert.equal(exported.status, 200);
   assert.match(exported.headers.get("content-type"), /text\/csv/);
