@@ -322,11 +322,17 @@ export function createAdminRepository(database) {
     async changeUserRole({ actorUserId, targetUserId, role }) {
       return database.transaction(async (client) => {
         const current = await client.query(
-          "SELECT id, role FROM users WHERE id = $1 FOR UPDATE",
+          "SELECT id, role, staff_access_level, staff_sector FROM users WHERE id = $1 FOR UPDATE",
           [targetUserId],
         );
         if (!current.rows[0]) return null;
         const previousRole = current.rows[0].role;
+        if (['admin','moderator'].includes(previousRole) || ['admin','moderator'].includes(role)
+            || current.rows[0].staff_access_level != null || current.rows[0].staff_sector != null) {
+          throw Object.assign(new Error('Internal staff role changes require the governed access workflow'),{
+            code:'staff_role_change_governed',status:409,
+          });
+        }
         const updated = await client.query(
           `UPDATE users SET role = $2::user_role, updated_at = now()
            WHERE id = $1 RETURNING id, email, phone, display_name, role, updated_at`,

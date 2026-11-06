@@ -54,6 +54,10 @@ test("admin service validates roles and prevents accidental self-demotion", asyn
     (error) => error.code === "invalid_role",
   );
   await assert.rejects(
+    service.changeUserRole({ id: "admin-1" }, targetId, { role: "moderator" }),
+    (error) => error.code === "staff_role_change_governed",
+  );
+  await assert.rejects(
     service.changeUserRole({ id: targetId }, targetId, { role: "customer" }),
     (error) => error.code === "self_demotion_forbidden",
   );
@@ -64,8 +68,8 @@ test("role changes and audit records share one database transaction", async () =
   const client = {
     async query(text, values) {
       statements.push({ text, values });
-      if (/SELECT id, role/.test(text)) return { rows: [{ id: targetId, role: "customer" }] };
-      if (/UPDATE users/.test(text)) return { rows: [{ id: targetId, role: "moderator" }] };
+      if (/SELECT id, role/.test(text)) return { rows: [{ id: targetId, role: "customer", staff_access_level:null, staff_sector:null }] };
+      if (/UPDATE users/.test(text)) return { rows: [{ id: targetId, role: "courier" }] };
       return { rows: [] };
     },
   };
@@ -76,9 +80,9 @@ test("role changes and audit records share one database transaction", async () =
   const changed = await createAdminRepository(database).changeUserRole({
     actorUserId: "22222222-2222-4222-8222-222222222222",
     targetUserId: targetId,
-    role: "moderator",
+    role: "courier",
   });
-  assert.equal(changed.role, "moderator");
+  assert.equal(changed.role, "courier");
   assert.equal(statements.length, 3);
   assert.match(statements[2].text, /INSERT INTO audit_events/);
   assert.match(statements[2].values[2], /previousRole/);

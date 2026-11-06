@@ -212,6 +212,9 @@ export function createAdminService(repository, mediaProvider = null, { reviewSec
     async changeUserRole(actor, targetUserId, input) {
       const role = String(input?.role ?? "");
       if (!ROLES.has(role)) throw new AdminError("invalid_role", 422, "Escolha um papel válido.");
+      if (["admin","moderator"].includes(role)) {
+        throw new AdminError("staff_role_change_governed", 409, "Contas internas exigem convite e aprovação pelo fluxo de acessos.");
+      }
       if (actor.id === targetUserId && role !== "admin") {
         throw new AdminError("self_demotion_forbidden", 409, "Um administrador não pode remover o próprio acesso.");
       }
