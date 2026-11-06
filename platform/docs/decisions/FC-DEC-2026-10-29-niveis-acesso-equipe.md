@@ -4,7 +4,9 @@
 
 Aprovada pelo fundador em 29 de outubro de 2026. Base de sessão, autorização, proposta, aprovação final e gestão visual estão implementadas; ativação de identidades reais ainda está pendente.
 
-## Hierarquia cumulativa
+## Hierarquia originalmente cumulativa
+
+> **Superada parcialmente em 5 de novembro de 2026:** níveis deixaram de ser cumulativos entre setores. Toda capacidade agora exige nível, setor e escopo. Consulte `FC-DEC-2026-11-05-operacao-piloto-painel.md`.
 
 | Nível | Nome | Capacidades |
 | --- | --- | --- |
@@ -24,7 +26,9 @@ Aprovada pelo fundador em 29 de outubro de 2026. Base de sessão, autorização,
 4. decisão de nível 2 nunca chama fornecedor nem movimenta valor;
 5. nível 3 não altera silenciosamente a decisão: divergência exige retorno à análise e nova decisão auditada.
 
-## Perfil técnico de nível 2
+## Perfil técnico de nível 2 — regra superada
+
+> **Não aplicar a novas concessões:** design e desenvolvimento passaram ao fluxo técnico nível 3 → nível 4 → nível 5. Níveis 1 e 2 podem registrar e detalhar demandas, mas não alterar código ou design.
 
 Edição de frontend, backend, design ou código exige um perfil **técnico de nível 2**. Esse perfil pertence ao repositório e aos ambientes de desenvolvimento, não ao painel com dados reais.
 

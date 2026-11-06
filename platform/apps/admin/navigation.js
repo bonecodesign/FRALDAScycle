@@ -5,6 +5,7 @@ const adminNavIcons={
   '/admin/roles':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
   '/admin/ads':'<path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 8 9 5 9-5M3 13l9 5 9-5"/>',
   '/admin/operations':'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  '/admin/work-items':'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   '/admin/finance':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
   '/admin/logistics':'<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
   '/admin/reports':'<path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/>',
@@ -24,7 +25,7 @@ const adminNavIcons={
 
 const adminNavGroups=[
   {label:'Visão geral',paths:['/admin/dashboard']},
-  {label:'Gestão',paths:['/admin/users','/admin/pilot-invitations','/admin/roles','/admin/ads','/admin/operations','/admin/logistics']},
+  {label:'Gestão',paths:['/admin/users','/admin/pilot-invitations','/admin/roles','/admin/ads','/admin/operations','/admin/work-items','/admin/logistics']},
   {label:'Financeiro',paths:['/admin/finance']},
   {label:'Inteligência',paths:['/admin/reports','/admin/data','/admin/forecast']},
   {label:'Estratégia',paths:['/admin/partnerships','/admin/innovation','/admin/launch']},
@@ -41,6 +42,11 @@ function setupAdminNavigation(){
     const invitation=document.createElement('a');invitation.href='/admin/pilot-invitations';invitation.textContent='Convites piloto';
     if(location.pathname.replace(/\.html$/,'')==='/admin/pilot-invitations')invitation.className='active';
     sidebar.querySelector('a[href="/admin/users"]')?.after(invitation);
+  }
+  if(!sidebar.querySelector('a[href="/admin/work-items"]')){
+    const queue=document.createElement('a');queue.href='/admin/work-items';queue.textContent='Demandas internas';
+    if(location.pathname.replace(/\.html$/,'')==='/admin/work-items')queue.className='active';
+    sidebar.querySelector('a[href="/admin/operations"]')?.after(queue);
   }
   const links=[...sidebar.querySelectorAll('a')];
   links.forEach(link=>{
