@@ -1379,7 +1379,7 @@
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md.",
+      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md. Em 07/11/2026, a pré-validação local passou a rejeitar identificadores duplicados/inválidos nos 21 registros e nas listas de 19 evidências cobertas e 2 pendentes; testes sintéticos adicionados, sujeitos ao CI. As duas validações humanas continuam pendentes e não alteram a cobertura.",
       "reason": "Modo local desligado por padrão; convite, admissão, destino/CEP e 19 evidências técnicas foram comprovados com dados sintéticos. Leitor de tela, nomeação/aceite humano, revisão das contas e decisão de início continuam pendentes; NO-GO mantido."
     },
     {
