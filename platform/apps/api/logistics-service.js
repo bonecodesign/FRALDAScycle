@@ -85,7 +85,7 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
       if(!row.approved_at)blockers.push('receiver_approval_pending');
       if(!row.validated_at)blockers.push('proof_validation_pending');
       if(!row.courier_id)blockers.push('courier_not_assigned');
-      return {eligible:blockers.length===0,blockers,status:sale?row.payout_status??'not_prepared':'not_prepared',freightCents:sale?financial.freightCents??null:null,platformFeeCents:sale?(row.payout_status?row.platform_fee_cents:null):null,courierAmountCents:sale?(row.payout_status?row.courier_amount_cents:null):null,preparedAt:sale?row.prepared_at??null:null,payoutAllowed:false};
+      return {eligible:blockers.length===0,blockers,status:sale?row.payout_status??'not_prepared':'not_prepared',freightCents:sale?financial.freightCents??null:null,platformFeeCents:sale?(row.payout_status?row.payout_platform_fee_cents:null):null,courierAmountCents:sale?(row.payout_status?row.courier_amount_cents:null):null,preparedAt:sale?row.prepared_at??null:null,payoutAllowed:false};
     },
     async prepareCourierPayout(actor,shipmentId,input){requireScope(actor,'admin:deliveries:validate');if(input?.confirmed!==true)throw new LogisticsError('explicit_payout_preparation_required',422,'Confirme a preparação da obrigação de repasse.');return repository.prepareCourierPayout({actorId:actor.id,shipmentId});},
     async proofPhoto(actor, shipmentId) {
