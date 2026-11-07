@@ -71,6 +71,28 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
       WHERE id=$1 AND status='submitted' RETURNING *`,[cancellationId,failureCode])).rows[0];if(refund)await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
       VALUES($1,'refund.execution.failed','supported_cancellation',$2,$3::jsonb)`,[actorId,cancellationId,JSON.stringify({failureCode})]);return refund;});},
 
+    async checkoutPreview({ buyerId, transactionId }) {
+      const result = await database.query(`
+        SELECT t.id, t.status, t.amount_cents, l.kind,
+          q.id AS quote_id, q.status AS quote_status, q.provider AS quote_provider,
+          q.base_freight_cents, q.platform_fee_cents AS freight_platform_fee_cents,
+          q.customer_total_cents, q.expires_at AS quote_expires_at,
+          q.confirmed_by AS quote_confirmed_by
+        FROM transactions t
+        JOIN listings l ON l.id = t.listing_id
+        LEFT JOIN LATERAL (
+          SELECT id,status,provider,base_freight_cents,platform_fee_cents,
+            customer_total_cents,expires_at,confirmed_by
+          FROM delivery_quotes
+          WHERE transaction_id=t.id AND shipment_id IS NULL
+            AND status IN ('quoted','confirmed','locked')
+          ORDER BY created_at DESC,id DESC LIMIT 1
+        ) q ON true
+        WHERE t.id=$1 AND t.buyer_id=$2
+      `, [transactionId,buyerId]);
+      return result.rows[0] ?? null;
+    },
+
     async context({ buyerId, transactionId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
@@ -81,7 +103,10 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         );
         if (existing.rows[0]) return { existing: true, intent: existing.rows[0] };
         const transaction = await client.query(
-          `SELECT t.id, t.buyer_id, t.seller_id, t.status, t.amount_cents, l.kind
+          `SELECT t.id, t.buyer_id, t.seller_id, t.status, t.amount_cents, l.kind,
+             EXISTS (SELECT 1 FROM delivery_quotes q
+               WHERE q.transaction_id=t.id AND q.shipment_id IS NULL
+                 AND q.status IN ('quoted','confirmed','locked')) AS active_delivery_quote
            FROM transactions t JOIN listings l ON l.id = t.listing_id
            WHERE t.id = $1 AND t.buyer_id = $2 FOR UPDATE OF t`,
           [transactionId, buyerId],
@@ -93,9 +118,12 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     async createIntent(input) {
       return database.transaction(async (client) => {
         const eligibility = await client.query(`SELECT id FROM transactions
-          WHERE id=$1 AND buyer_id=$2 AND status IN ('initiated','payment_pending') FOR UPDATE`,
+          WHERE id=$1 AND buyer_id=$2 AND status IN ('initiated','payment_pending')
+            AND NOT EXISTS (SELECT 1 FROM delivery_quotes q WHERE q.transaction_id=transactions.id
+              AND q.shipment_id IS NULL AND q.status IN ('quoted','confirmed','locked'))
+          FOR UPDATE`,
           [input.transactionId,input.buyerId]);
-        if (!eligibility.rows[0]) throw Object.assign(new Error("Esta transação não pode ser paga."), {code:"transaction_not_payable",status:409});
+        if (!eligibility.rows[0]) throw Object.assign(new Error("Transação indisponível ou frete ainda sem liquidação homologada."), {code:"transaction_not_payable",status:409});
         const created = await client.query(
           `INSERT INTO payment_intents
              (transaction_id, buyer_id, idempotency_key, method, amount_cents,
