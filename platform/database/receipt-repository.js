@@ -201,10 +201,12 @@ export function createReceiptRepository(database) {
         const context = await client.query(
           `SELECT s.status, s.buyer_id, s.seller_id, s.courier_id,
                   t.status AS transaction_status, l.kind,
-                  COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version, p.id AS proof_id
+                  COALESCE(d.version=2 AND d.representative_id=s.buyer_id AND ir.user_id=s.buyer_id AND ir.status='verified' AND i.status='active' AND ru.email_verified_at IS NOT NULL AND lower(ru.email)=lower(i.representative_email),false) AS donation_authorized,d.institution_id AS donation_institution_id,d.version AS donation_version,
+                   p.id AS proof_id,a.approver_id AS receipt_approver_id,a.approved_at AS receipt_approved_at
            FROM shipments s JOIN transactions t ON t.id=s.transaction_id
            JOIN listings l ON l.id=t.listing_id LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN institutions i ON i.id=d.institution_id LEFT JOIN institution_representatives ir ON ir.institution_id=i.id LEFT JOIN users ru ON ru.id=ir.user_id
            LEFT JOIN delivery_proofs p ON p.shipment_id=s.id
+           LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id
            WHERE s.id=$1 FOR UPDATE OF s,t`, [shipmentId],
         );
         const row = context.rows[0];
@@ -221,6 +223,13 @@ export function createReceiptRepository(database) {
         if(row.kind==='donation'&&row.donation_authorized!==true)throw failure("institution_receipt_authority_pending",409,"Aguarde a análise da autoridade institucional pelo suporte.");
         if (row.status !== "delivered" || !row.proof_id || row.transaction_status !== "in_delivery") {
           throw failure("receipt_not_ready", 409, "Aguarde a entrega e o envio do comprovante.");
+        }
+        // Donation review must follow the institution's own verified receipt
+        // approval. A staff decision can never stand in for that approval.
+        if (validation && row.kind === "donation"
+          && (!row.receipt_approved_at || row.receipt_approver_id !== row.buyer_id)) {
+          throw failure("institution_receipt_approval_pending", 409,
+            "A instituição precisa confirmar o recebimento antes da validação independente.");
         }
         const table = validation ? "delivery_proof_validations" : "delivery_receipt_approvals";
         const result = validation

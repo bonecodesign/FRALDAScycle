@@ -7,6 +7,7 @@ export function institutionReceiptReadiness(row,now=Date.now()){
  const approval=row.approved_at==null?NaN:new Date(row.approved_at).getTime(),validation=row.validated_at==null?NaN:new Date(row.validated_at).getTime();
  if(!Number.isFinite(approval)||approval>now)blockers.push('institution_approval_pending');
  if(!Number.isFinite(validation)||validation>now)blockers.push('independent_proof_validation_pending');
+ if(Number.isFinite(approval)&&Number.isFinite(validation)&&validation<approval)blockers.push('institution_validation_precedes_approval');
  if(row.financial_case_pending!==false)blockers.push('operational_issue_pending');
  return {operationalRequirementsMet:blockers.length===0,requirementsMet:false,blockers:[...blockers,'institutional_pickup_pending'],logisticsResponsibility:'institution',payoutAllowed:false,payoutStatus:'not_applicable'};
 }
