@@ -25,3 +25,11 @@ O item 57 continua parcial: as evidências não comprovam cofre/armazenamento op
 O adaptador de armazenamento protegido permanece desligado por padrão. Antes de qualquer upload ele exige endpoint HTTPS, credencial, chave KMS e retenção explícita entre 1 e 365 dias. A publicação revalida arquivo privado e checksum, usa nomes únicos, `If-None-Match: *`, criptografia `aws:kms`, checksum SHA-256 do provedor e Object Lock em modo `COMPLIANCE`. O dump local não é removido automaticamente. Testes usam somente transporte sintético e não comprovam conta, bucket, KMS, cofre ou restauração externa.
 
 Matriz atual em 2026-10-18: 37 concluídos / 70 = 52,86%; 21 parciais e 12 bloqueados. Prontidão para produção permanece bloqueada.
+
+## Endurecimento do destino de armazenamento — 07/11/2026
+
+O adaptador protegido agora só considera configurado um endpoint `https://` **sem usuário ou senha embutidos, sem parâmetros de consulta, sem fragmentos e com caminho de prefixo encerrado por `/`**. Isso impede o uso acidental de URL contendo credenciais ou assinatura e evita que o nome de objeto substitua o último segmento do caminho remoto. Um endereço com apenas domínio e `/` continua permitido.
+
+Cada upload usa `redirect: 'error'`, de modo que redirecionamentos não sejam seguidos automaticamente com a autorização de armazenamento. As regressões usam transporte simulado e verificam recusas antes de qualquer chamada ao fornecedor e preservação dos cabeçalhos de não sobrescrita, KMS e Object Lock.
+
+**Limite:** solicitar cabeçalhos não prova que o provedor realmente aplicou retenção imutável, criptografia, checksum ou durabilidade. A homologação externa deve verificar esses comportamentos com conta/bucket reais, autorização e equipe responsável. O requisito 57 segue **parcial**, sem backup externo ativado, agendamento ou recuperação de produção.
