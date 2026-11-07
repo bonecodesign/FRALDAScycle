@@ -120,7 +120,7 @@ export function createReceiptRepository(database) {
         fsp.platform_fee_cents AS freight_plan_platform_fee_cents,
         fsp.customer_total_cents AS freight_plan_total_cents,
         p.id AS proof_id,a.approved_at,v.validated_at,
-          pi.id AS payment_intent_id,pi.status AS payment_status,pi.delivery_fee_cents,pi.provider_reference AS payment_provider_reference,
+          pi.id AS payment_intent_id,pi.status AS payment_status,pi.amount_cents,pi.platform_fee_cents,pi.delivery_fee_cents,pi.seller_amount_cents,pi.provider_reference AS payment_provider_reference,
           (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
           EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR
           EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_case_pending
