@@ -65,7 +65,7 @@ test("operational resume requires independent password/email step-up and records
         const outbox = (await database.query(`SELECT payload->>'token' AS code
           FROM notification_outbox WHERE kind='account_step_up' AND recipient=$1
           ORDER BY id DESC LIMIT 1`, [email])).rows[0];
-        assert.match(outbox.code, /^\\d{6}$/);
+        assert.match(outbox.code, /^\d{6}$/);
         const verified = await send(actor, "POST", "/v1/account/step-up/confirm",
           { challenge: issued.body.challenge, code: outbox.code, purpose: "operational_resume" });
         assert.equal(verified.status, 200, JSON.stringify(verified.body));
