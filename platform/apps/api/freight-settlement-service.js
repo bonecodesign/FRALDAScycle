@@ -1,6 +1,7 @@
 import { requireAccessLevel, requireSectorScope } from "./authorization.js";
 import { ServiceError } from "./service-error.js";
 import { freightSettlementReconciliation } from "../../packages/contracts/freight-settlement.js";
+import { exchangeFreightLegReadiness } from "../../packages/contracts/exchange-freight-readiness.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function finance(actor) {
@@ -30,6 +31,17 @@ function publicPlan(plan) {
 }
 export function createFreightSettlementService(repository) {
   return Object.freeze({
+    async exchangeFreightSummary(actor,transactionId) {
+      finance(actor);
+      validId(transactionId);
+      const context=await repository.exchangeLegs(transactionId);
+      if(!context)throw new ServiceError("exchange_transaction_not_found",404,
+        "Troca não encontrada para análise financeira.");
+      return exchangeFreightLegReadiness({
+        transactionId,buyerId:context.buyerId,sellerId:context.sellerId,
+        rows:context.rows,
+      });
+    },
     async prepare(actor, input) {
       finance(actor);
       if (!input || typeof input !== "object" || Array.isArray(input)

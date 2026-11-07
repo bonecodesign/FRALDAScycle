@@ -128,6 +128,44 @@ export function createFreightSettlementRepository(database) {
       });
     },
 
+    async exchangeLegs(transactionId) {
+      const rows = (await database.query(`SELECT
+        t.id AS transaction_id,t.buyer_id AS transaction_buyer_id,
+        t.seller_id AS transaction_seller_id,
+        s.id AS shipment_id,s.transaction_id AS shipment_transaction_id,
+        s.exchange_leg,s.buyer_id AS shipment_recipient_id,
+        s.seller_id AS shipment_sender_id,s.logistics_payer_id AS shipment_payer_id,
+        q.id AS quote_id,q.shipment_id AS quote_shipment_id,
+        q.transaction_id AS quote_transaction_id,q.status AS quote_status,
+        q.confirmed_by AS quote_confirmed_by,q.provider AS quote_provider,
+        q.currency AS quote_currency,q.expires_at AS quote_expires_at,
+        q.base_freight_cents AS quote_base_cents,
+        q.platform_fee_cents AS quote_platform_fee_cents,
+        q.customer_total_cents AS quote_total_cents,
+        p.id AS plan_id,p.delivery_quote_id AS plan_quote_id,
+        p.transaction_id AS plan_transaction_id,p.shipment_id AS plan_shipment_id,
+        p.payer_id AS plan_payer_id,p.provider AS plan_provider,
+        p.provider_amount_cents AS plan_provider_amount_cents,
+        p.platform_fee_cents AS plan_platform_fee_cents,
+        p.customer_total_cents AS plan_total_cents
+        FROM transactions t
+        JOIN listings l ON l.id=t.listing_id AND l.kind='exchange'
+        LEFT JOIN shipments s ON s.transaction_id=t.id AND s.exchange_leg IN(1,2)
+        LEFT JOIN LATERAL (
+          SELECT * FROM delivery_quotes candidate
+          WHERE candidate.transaction_id=t.id AND candidate.shipment_id=s.id
+            AND candidate.status IN ('quoted','confirmed','locked')
+          ORDER BY candidate.created_at DESC,candidate.id DESC LIMIT 1
+        ) q ON true
+        LEFT JOIN freight_settlement_plans p ON p.delivery_quote_id=q.id
+        WHERE t.id=$1 ORDER BY s.exchange_leg NULLS LAST,s.id`,[transactionId])).rows;
+      return rows.length ? {
+        buyerId: rows[0].transaction_buyer_id,
+        sellerId: rows[0].transaction_seller_id,
+        rows,
+      } : null;
+    },
+
     async context(planId) {
       const row = (await database.query(`SELECT
         p.*,q.id AS current_quote_id,q.status AS quote_status,q.confirmed_by AS quote_confirmed_by,
