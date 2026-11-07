@@ -41,6 +41,21 @@ export function createFreightSettlementService(repository) {
       const result = await repository.prepare({ actorId: actor.id, quoteId: input.quoteId });
       return { plan: publicPlan(result.plan), reused: result.reused };
     },
+    async checkAndRecord(actor, planId, input) {
+      finance(actor);
+      validId(planId);
+      if (!input || typeof input !== "object" || Array.isArray(input)
+        || Object.keys(input).some(key => key !== "confirmed") || input.confirmed !== true) {
+        throw new ServiceError("freight_reconciliation_confirmation_required",422,
+          "Confirme a verificação local sem execução financeira.");
+      }
+      const reviewed = await this.reconcileLocal(actor,planId);
+      const codes = reviewed.reconciliation.blockers.filter(
+        code => code !== "external_reconciliation_not_homologated",
+      );
+      const incidents = await repository.recordIncidents({actorId:actor.id,planId,codes});
+      return { ...reviewed, incidents };
+    },
     async reconcileLocal(actor, planId) {
       finance(actor);
       validId(planId);
