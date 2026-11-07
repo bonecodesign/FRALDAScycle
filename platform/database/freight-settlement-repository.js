@@ -56,6 +56,33 @@ export function createFreightSettlementRepository(database) {
       });
     },
 
+    async recordIncidents({ actorId, planId, codes }) {
+      return database.transaction(async client => {
+        const locked = (await client.query(
+          'SELECT id FROM freight_settlement_plans WHERE id=$1 FOR UPDATE', [planId],
+        )).rows[0];
+        if (!locked) throw fail('freight_plan_not_found',404,'Preparação financeira não encontrada.');
+        for (const code of codes) {
+          await client.query(`INSERT INTO freight_reconciliation_incidents
+            (freight_settlement_plan_id,code,detected_by)
+            VALUES($1,$2,$3)
+            ON CONFLICT (freight_settlement_plan_id,code) WHERE status='open'
+            DO UPDATE SET last_detected_at=now()`,[planId,code,actorId]);
+        }
+        await client.query(`UPDATE freight_reconciliation_incidents
+          SET status='resolved',resolved_at=now(),resolved_by=$2
+          WHERE freight_settlement_plan_id=$1 AND status='open'
+            AND NOT (code=ANY($3::text[]))`,[planId,actorId,codes]);
+        const incidents=(await client.query(`SELECT id,code,status,first_detected_at,last_detected_at,resolved_at
+          FROM freight_reconciliation_incidents WHERE freight_settlement_plan_id=$1
+          ORDER BY first_detected_at DESC,id DESC`,[planId])).rows;
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'freight.reconciliation.local.checked','freight_settlement_plan',$2,$3::jsonb)`,
+          [actorId,planId,JSON.stringify({localCodes:codes,openCount:incidents.filter(i=>i.status==='open').length,providerReconciled:false})]);
+        return incidents;
+      });
+    },
+
     async context(planId) {
       const row = (await database.query(`SELECT
         p.*,q.id AS current_quote_id,q.status AS quote_status,q.confirmed_by AS quote_confirmed_by,
