@@ -130,6 +130,30 @@ test("finance prepares freight obligation once and reconciles local split, misma
         (payment_intent_id,requester_id,kind,idempotency_key,reason,details)
         VALUES($1,$2,'dispute','freight-plan-test-dispute','problema','Revisão sintética de pagamento e entrega.')`,
         [ids.payment,ids.buyer]);
+      const check=await fetch(`${root}/${planId}/reconciliation/check`,{
+        method:"POST",headers:headers("finance"),body:JSON.stringify({confirmed:true}),
+      });
+      assert.equal(check.status,200);
+      assert.ok((await check.json()).incidents.some(x=>x.code==="financial_case_pending"));
+      const operationalId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+      await db.query(`INSERT INTO operational_incidents
+        (id,reference,idempotency_key,title,summary,severity,domain,created_by)
+        VALUES($1,'FIN-FREIGHT-TEST',$2,'Divergência financeira de frete',
+          'Encaminhamento de divergência local fictícia para acompanhamento humano.',
+          'medium','payments',$3)`,[operationalId,"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",ids.operations]);
+      const supervisionUrl=`${root}/${planId}/supervision`;
+      const link=token=>fetch(supervisionUrl,{
+        method:"POST",headers:headers(token),
+        body:JSON.stringify({incidentId:operationalId,confirmed:true}),
+      });
+      assert.equal((await link("operations")).status,403);
+      assert.equal((await link("finance")).status,201);
+      assert.equal((await link("finance")).status,201);
+      const linked=await (await fetch(supervisionUrl,{headers:headers("finance")})).json();
+      assert.equal(linked.supervision.incident_id,operationalId);
+      assert.equal((await db.query("SELECT count(*)::int AS n FROM freight_incident_supervision")).rows[0].n,1);
+      assert.equal((await db.query(`SELECT count(*)::int AS n FROM audit_events
+        WHERE action='freight.reconciliation.supervision.linked'`)).rows[0].n,1);
       const disputed = await (await review("finance")).json();
       assert.equal(disputed.reconciliation.localMatched, false);
       assert.ok(disputed.reconciliation.blockers.includes("financial_case_pending"));
