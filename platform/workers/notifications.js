@@ -15,10 +15,17 @@ export async function deliverNotification(job, config, fetchImpl = fetch) {
   if (!config.notificationWebhookUrl || !config.notificationWebhookSecret) {
     throw new Error("Notification delivery is not configured");
   }
+  let endpoint;
+  try { endpoint = new URL(config.notificationWebhookUrl); }
+  catch { throw new Error("Notification provider URL must be HTTPS without credentials or query"); }
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+    throw new Error("Notification provider URL must be HTTPS without credentials or query");
+  }
   let response;
   try {
     response = await fetchImpl(config.notificationWebhookUrl, {
       method: "POST",
+      redirect: "error",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${config.notificationWebhookSecret}`,
