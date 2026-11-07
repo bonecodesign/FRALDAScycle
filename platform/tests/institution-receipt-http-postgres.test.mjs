@@ -52,8 +52,23 @@ test('institutional receipt requires verified representative and independent val
    const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),receiptUrl=`${origin}/v1/shipments/${shipment.id}/receipt`,validationUrl=`${origin}/v1/shipments/${shipment.id}/proof/validate`;
    for(const token of ['donor','outsider']){const response=await fetch(receiptUrl,{method:'POST',headers:headers(token),body:JSON.stringify({approved:true})});assert.equal(response.status,404);}
    const explicit=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:false})});assert.equal(explicit.status,422);
+   // An independent reviewer cannot approve evidence before the
+   // institution's verified representative has accepted the received package.
+   const earlyValidation=await fetch(validationUrl,{method:'POST',
+     headers:headers('admin'),body:JSON.stringify({validated:true,reason:'Revisão antecipada bloqueada antes do recebimento institucional.'})});
+   assert.equal(earlyValidation.status,409);
+   assert.equal((await earlyValidation.json()).error.code,'institution_receipt_approval_pending');
+   assert.equal((await database.query('SELECT count(*)::int AS n FROM delivery_proof_validations')).rows[0].n,0);
    const approved=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:true})}),approvedBody=await approved.json();assert.equal(approved.status,201,JSON.stringify(approvedBody));assert.equal(approvedBody.decision.reused,false);
    const replay=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:true})});assert.equal(replay.status,200);assert.equal((await replay.json()).decision.reused,true);
+   // Tampering with the persisted approver must not allow the administrator
+   // to validate a receipt supposedly signed by the institutional beneficiary.
+   await database.query('UPDATE delivery_receipt_approvals SET approver_id=$2 WHERE proof_id=(SELECT id FROM delivery_proofs WHERE shipment_id=$1)',[shipment.id,ids.donor]);
+   const wrongApprover=await fetch(validationUrl,{method:'POST',
+     headers:headers('admin'),body:JSON.stringify({validated:true,reason:'Identidade divergente do comprovante institucional.'})});
+   assert.equal(wrongApprover.status,409);
+   assert.equal((await wrongApprover.json()).error.code,'institution_receipt_approval_pending');
+   await database.query('UPDATE delivery_receipt_approvals SET approver_id=$2 WHERE proof_id=(SELECT id FROM delivery_proofs WHERE shipment_id=$1)',[shipment.id,ids.representative]);
    const participantValidation=await fetch(validationUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({validated:true,reason:'Tentativa da própria participante.'})});assert.equal(participantValidation.status,403);
    const validation=await fetch(validationUrl,{method:'POST',headers:headers('admin'),body:JSON.stringify({validated:true,reason:'Comprovante sintético conferido de forma independente.'})}),validationBody=await validation.json();assert.equal(validation.status,201,JSON.stringify(validationBody));
    const statusResponse=await fetch(`${origin}/v1/shipments/${shipment.id}/settlement-status`,{headers:headers('admin')}),statusBody=await statusResponse.json();assert.equal(statusResponse.status,200,JSON.stringify(statusBody));assert.equal(statusBody.settlement.operationalRequirementsMet,true);assert.equal(statusBody.settlement.requirementsMet,false);assert.equal(statusBody.settlement.payoutAllowed,false);assert.deepEqual(statusBody.settlement.blockers,['institutional_pickup_pending']);
