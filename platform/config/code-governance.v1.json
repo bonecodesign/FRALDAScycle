@@ -22,6 +22,24 @@
     "platform/database/child-profile-",
     "platform/database/staff-access-",
     "platform/deploy/",
-    "platform/config/"
+    "platform/config/",
+    ".github/",
+    "platform/apps/api/operational-",
+    "platform/apps/api/incident-",
+    "platform/apps/api/account-closure-",
+    "platform/apps/api/pilot-",
+    "platform/apps/api/meta-whatsapp-",
+    "platform/apps/api/notifications.js",
+    "platform/apps/admin/",
+    "platform/workers/",
+    "platform/database/",
+    "platform/packages/contracts/",
+    "platform/tools/code-governance.mjs",
+    "platform/tools/pilot-",
+    "platform/tools/preactivation-safety.mjs",
+    "platform/tools/production-doctor.mjs",
+    "platform/docs/requirements-matrix.json",
+    "platform/docs/decisions/",
+    "platform/docs/repository-access-governance.md"
   ]
 }
