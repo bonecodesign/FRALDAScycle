@@ -19,8 +19,8 @@ test('invalid or expired quote timestamp is rejected before any persistence',asy
     baseFreightCents:2000,customerTotalCents:2100,currency:'BRL',
   };
   for(const expiresAt of ['not-a-date',null,'2020-01-01T00:00:00.000Z']) {
-    await assert.rejects(
-      service.registerCalculated(transactionId,{...quote,expiresAt},request),
+    assert.throws(
+      ()=>service.registerCalculated(transactionId,{...quote,expiresAt},request),
       error=>error.code==='invalid_delivery_quote'&&error.status===422,
     );
   }
