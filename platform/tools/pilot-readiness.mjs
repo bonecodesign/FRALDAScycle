@@ -34,7 +34,7 @@ export function validatePilotReadinessManifest(value) {
         errors.push(at + ".evidence is invalid");
       }
     }
-    if (ids.size !== PILOT_GATES.length || PILOT_GATES.some(id => !ids.has(id))) {
+    if (value.gates.length !== PILOT_GATES.length || ids.size !== PILOT_GATES.length || PILOT_GATES.some(id => !ids.has(id))) {
       errors.push("readiness must list all seven official gates exactly once");
     }
   }
