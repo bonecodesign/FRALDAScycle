@@ -13,3 +13,7 @@ O validador mantém `humanValidationComplete=false` e `launchAuthorized=false`. 
 A pré-validação isolada rejeita agora identificadores ausentes, vazios ou duplicados, tanto no catálogo original de 21 evidências quanto nas listas de 19 itens com cobertura técnica e dois itens pendentes. Um identificador repetido não pode inflar nem mascarar a cobertura por efeito da deduplicação de `Set`. Listas que não sejam arrays também falham fechadas, em vez de serem interpretadas como cobertura válida.
 
 Testes sintéticos exercitam duplicatas, entrada malformada e registro inconsistente. **Não houve aumento de cobertura:** permanecem 19/21 evidências técnicas e pendem observação por leitor de tela e nomeação/aceite do responsável pelo rollback. `humanValidationComplete=false` e `launchAuthorized=false` continuam obrigatórios. O requisito 67 permanece parcial, e o piloto BH continua NO-GO.
+
+## Procedimento humano preparado — 07/11/2026
+
+O roteiro [`pilot-bh-human-homologation.md`](pilot-bh-human-homologation.md) detalha a futura sessão de leitor de tela e o aceite nominal e independente dos responsáveis por rollback, com campos de evidência privada, tratamento de achados e decisão formal. **O roteiro não equivale à execução** e não altera o registro técnico 19/21, os dois itens pendentes, a decisão NO-GO ou as flags desligadas.
