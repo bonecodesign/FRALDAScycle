@@ -185,7 +185,9 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
              AND EXISTS (SELECT 1 FROM transactions t JOIN listings l ON l.id=t.listing_id
                LEFT JOIN exchange_operations e ON e.transaction_id=t.id
                WHERE t.id=s.transaction_id AND (
-                 (s.exchange_leg IS NOT NULL AND l.kind='exchange' AND t.status='in_delivery' AND e.status IN ('accepted','in_delivery')) OR
+                 (s.exchange_leg IS NOT NULL AND l.kind='exchange' AND t.status='in_delivery' AND e.status IN ('accepted','in_delivery')
+                    AND NOT EXISTS (SELECT 1 FROM exchange_difference_obligations d
+                      WHERE d.transaction_id=t.id AND d.status<>'paid')) OR
                  (s.exchange_leg IS NULL AND l.kind='sale' AND t.status IN ('paid','in_delivery')))
                AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
                  AND st.status<>'resolved' AND st.category IN ('cancellation','receipt_problem'))
@@ -217,7 +219,23 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
           AND EXISTS(SELECT 1 FROM users u JOIN courier_profiles p ON p.user_id=u.id WHERE u.id=$2 AND u.role='courier' AND u.disabled_at IS NULL AND p.account_status='active' AND p.identity_status='verified' AND p.email_verified_at IS NOT NULL AND p.phone_verified_at IS NOT NULL AND p.payout_status='verified' AND p.terms_version='FC-COURIER-1' AND p.terms_accepted_at IS NOT NULL AND p.admin_approval_status='approved')
           AND EXISTS(SELECT 1 FROM courier_vehicles v WHERE v.courier_id=$2 AND v.status='approved' AND (v.vehicle_type='bicycle' OR (v.driver_license_status='verified' AND v.driver_license_expires_at>now())))
           AND EXISTS(SELECT 1 FROM courier_clearance_documents d WHERE d.courier_id=$2 AND d.status='verified' AND d.expires_at>now())
-          AND NOT EXISTS(SELECT 1 FROM courier_clearance_suspensions cs WHERE cs.courier_id=$2 AND cs.status='suspended') RETURNING *`,[shipmentId,courierId])).rows[0];
+          AND NOT EXISTS(SELECT 1 FROM courier_clearance_suspensions cs WHERE cs.courier_id=$2 AND cs.status='suspended')
+           AND EXISTS (SELECT 1 FROM transactions t
+             JOIN listings l ON l.id=t.listing_id
+             LEFT JOIN exchange_operations e ON e.transaction_id=t.id
+             WHERE t.id=s.transaction_id AND (
+               (s.exchange_leg IS NULL AND l.kind='sale' AND t.status IN ('paid','in_delivery')) OR
+               (s.exchange_leg IS NOT NULL AND l.kind='exchange'
+                 AND s.status IN ('awaiting_pickup','assigned') AND t.status='in_delivery'
+                 AND e.status IN ('accepted','in_delivery')
+                 AND NOT EXISTS(SELECT 1 FROM exchange_difference_obligations d
+                   WHERE d.transaction_id=t.id AND d.status<>'paid'))
+             )
+             AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id
+               AND st.status<>'resolved' AND st.category IN ('cancellation','receipt_problem'))
+             AND NOT EXISTS (SELECT 1 FROM payment_cases pc JOIN payment_intents p ON p.id=pc.payment_intent_id
+               WHERE p.transaction_id=t.id AND pc.status<>'rejected'))
+           RETURNING *`,[shipmentId,courierId])).rows[0];
         if(!assigned)return null;
         await client.query(`UPDATE courier_delivery_offers SET status=CASE WHEN id=$2 THEN 'accepted' ELSE 'expired' END,responded_at=now() WHERE shipment_id=$1 AND status='pending'`,[shipmentId,offerId]);
         await client.query(`INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'assigned','Entregador elegível aceitou a oferta vigente.')`,[shipmentId]);
