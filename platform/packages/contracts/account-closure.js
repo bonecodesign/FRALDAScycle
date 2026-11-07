@@ -33,7 +33,7 @@ export function validateAccountClosureSubmission(userId,input){
 export function accountClosureProgress({ status, cancelUntil, obligations }, now = Date.now()) {
   const deadline = Date.parse(cancelUntil ?? "");
   if (!Number.isFinite(deadline)) throw new Error("invalid_account_closure_state");
-  const pending = Object.entries(obligations ?? {}).filter(([, count]) => !Number.isSafeInteger(count) || count > 0).map(([kind]) => kind);
+  const pending = Object.entries(obligations ?? {}).filter(([, count]) => !Number.isSafeInteger(count) || count !== 0).map(([kind]) => kind);
   const coolingOff = now < deadline;
   return Object.freeze({
     status,

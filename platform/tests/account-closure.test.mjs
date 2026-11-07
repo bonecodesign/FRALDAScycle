@@ -32,6 +32,41 @@ test("closure progress preserves seven-day cancellation and never authorizes era
   assert.deepEqual(accountClosureProgress({ ...state, obligations: { activeTransactions: 1, financialCases: 0 } }, Date.parse("2030-01-09T00:00:00Z")).pendingObligations, ["activeTransactions"]);
 });
 
+test("closure progress treats malformed and negative obligations as pending", () => {
+  const end = "2030-01-08T12:00:00Z";
+  for (const count of [-1, null, "0", 0.5, Infinity]) {
+    const result = accountClosureProgress({ status: "cooling_off", cancelUntil: end, obligations: { activeTransactions: count } }, Date.parse("2030-01-09T00:00:00Z"));
+    assert.deepEqual(result.pendingObligations, ["activeTransactions"]);
+    assert.equal(result.eligibleForReview, false);
+    assert.equal(result.automaticErasureAllowed, false);
+  }
+});
+
+test("closure repository never classifies incomplete SQL obligation counts as ready", async () => {
+  const zeros = { active_transactions:0, payment_cases:0, operational_disputes:0, content_holds:0, content_storage_actions:0, family_responsibility_disputes:0 };
+  const invalid = [
+    { ...zeros, content_holds: null },
+    { ...zeros, active_transactions: -1 },
+    { ...zeros, payment_cases: "0" },
+    { ...zeros, operational_disputes: Infinity },
+    { ...zeros, family_responsibility_disputes: undefined },
+  ];
+  for (const obligations of invalid) {
+    const queries = [];
+    const database = { async transaction(fn) { return fn({ async query(sql) {
+      queries.push(sql);
+      if (sql.includes("FROM account_closure_requests WHERE id=$1")) return { rows: [{ id: requestId, status: "cooling_off" }] };
+      if (sql.includes("AS active_transactions")) return { rows: [obligations] };
+      return { rows: [] };
+    } }); } };
+    const result = await createAccountClosureRepository(database).reviewDue({requestId,userId});
+    assert.equal(result.status, "awaiting_obligations");
+    assert.equal(result.changed, true);
+    assert.equal(queries.some(sql=>sql.includes("INSERT INTO account_closure_data_inventories")), false);
+    assert.equal(queries.some(sql=>sql.includes("UPDATE account_closure_requests")), true);
+  }
+});
+
 test("service refuses client-provided pseudo proof and validates cancellation version", async () => {
   const calls = [];
   const service = createAccountClosureService({ request: async value => { calls.push(value); return value; }, cancel: async value => value }, { clock: () => now });

@@ -973,7 +973,7 @@
         "tests/account-closure-retention-postgres.test.mjs",
         "docs/privacy-deletion-beta.md"
       ],
-      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Prova PostgreSQL dedicada confirma que retenção de conteúdo e disputa de responsabilidade familiar impedem o avanço; após resolver obrigações, é criado um único inventário FC-CLOSURE-INVENTORY-2 com categorias de identidade, família, consentimentos, conteúdo e financeiro, sem excluir a conta e mantendo automaticErasureAllowed falso.",
+      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Prova PostgreSQL dedicada confirma que retenção de conteúdo e disputa de responsabilidade familiar impedem o avanço; após resolver obrigações, é criado um único inventário FC-CLOSURE-INVENTORY-2 com categorias de identidade, família, consentimentos, conteúdo e financeiro, sem excluir a conta e mantendo automaticErasureAllowed falso. Em 07/11/2026, rotina técnica reforçada para tratar toda contagem de obrigação inválida/negativa/incompleta como pendente, antes de preparar inventário, e limitar a manutenção a 50 solicitações por lote; regressões unitárias adicionadas, sujeitas à aprovação do CI.",
       "reason": "Fluxo, gates e inventário técnico classificado estão implementados. Purga final, identidade humana, decisão jurídica de cada categoria e atendimento integral dependem de revisão jurídica, privacidade e operação."
     },
     {
