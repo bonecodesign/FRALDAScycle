@@ -1229,9 +1229,10 @@
         "packages/contracts/secret-rotation.js",
         "tools/secret-access-governance.mjs",
         "tests/secret-governance.test.mjs",
-        "docs/production-runbook.md"
+        "docs/production-runbook.md",
+        "tests/observability.test.mjs"
       ],
-      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática.",
+      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática. Em 07/11/2026, chamadas autenticadas ao cofre receberam `redirect:error` para não encaminhar bearer tokens em redirecionamentos; regressões sintéticas de rejeição, não exposição e ausência de fallback foram acrescentadas, sujeitas à aprovação do CI. Identidades e cofre reais continuam pendentes.",
       "reason": "Allowlist, separação por serviço e contrato de rotação estão preparados; identidades, políticas, cofre e rotação real no ambiente ainda não foram homologados."
     },
     {

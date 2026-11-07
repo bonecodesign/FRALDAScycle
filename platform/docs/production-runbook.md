@@ -32,7 +32,7 @@ Os itens desta seção permanecem em standby até a retomada explícita das inte
 
 O adaptador `apps/api/secrets.js` exige HTTPS sem credenciais, parâmetros de consulta ou fragmentos na URL, token opaco sem espaços externos ou caracteres de controle e uma lista explícita em `SECRETS_PROVIDER_KEYS`. As chaves aceitas são as listadas em `.env.example`: conexão do banco, segredo de sessão e segredos dos provedores/webhooks. Configurações gerais, como `NODE_ENV`, domínios e URLs de serviços, não podem ser sobrescritas pelo cofre. O token de acesso ao próprio cofre deve ser injetado pelo ambiente.
 
-O adaptador envia `POST` com `{ "keys": [...] }` e espera `{ "secrets": { "CHAVE_SOLICITADA": "valor" } }`. Campos não solicitados são ignorados. Falhas de comunicação, JSON inválido e segredos solicitados ausentes, vazios, compostos somente por espaços ou contendo quebra de linha/NUL interrompem a resolução, sem recorrer aos valores antigos do ambiente. Erros de leitura da resposta não expõem seu conteúdo.
+O adaptador envia `POST` com `{ "keys": [...] }` e espera `{ "secrets": { "CHAVE_SOLICITADA": "valor" } }`. A requisição autenticada usa `redirect: "error"`: nenhum redirecionamento HTTP é seguido com o token do cofre, inclusive em respostas 3xx. Redirecionamento ou resposta recusada bloqueia a inicialização; não existe fallback silencioso para credenciais antigas. Campos não solicitados são ignorados. Falhas de comunicação, JSON inválido e segredos solicitados ausentes, vazios, compostos somente por espaços ou contendo quebra de linha/NUL interrompem a resolução, sem recorrer aos valores antigos do ambiente. Erros de leitura da resposta não expõem seu conteúdo.
 
 Validação local, sem conexão ao fornecedor:
 

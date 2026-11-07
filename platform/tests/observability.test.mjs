@@ -30,6 +30,7 @@ test("external secrets resolver requests only allowlisted keys over authenticate
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].options.headers.authorization, "Bearer vault-token");
+  assert.equal(calls[0].options.redirect, "error");
   assert.deepEqual(JSON.parse(calls[0].options.body), {
     keys: ["DATABASE_URL", "SESSION_SECRET"],
   });
@@ -72,6 +73,43 @@ test("external secrets configuration fails closed on insecure or incomplete cont
       fetchImpl() { assert.fail("Invalid provider configuration must fail before a request"); },
     }), /must not contain|opaque token/);
   }
+});
+
+test("external secrets never follow bearer-authenticated redirects or expose a vault token", async () => {
+  const environment = {
+    NODE_ENV: "production",
+    SECRETS_PROVIDER_URL: "https://vault.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "private-vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "previous-synthetic-secret",
+  };
+  let calls = 0;
+  await assert.rejects(resolveRuntimeEnv(environment, {
+    async fetchImpl(url, options) {
+      calls++;
+      assert.equal(String(url), environment.SECRETS_PROVIDER_URL);
+      assert.equal(options.method, "POST");
+      assert.equal(options.redirect, "error");
+      assert.equal(options.headers.authorization, "Bearer private-vault-token");
+      // A fetch implementation must reject rather than follow this redirect.
+      throw new Error("Redirect disallowed: private-vault-token should never reach another origin");
+    },
+  }), error => {
+    assert.equal(error.message, "External secrets provider is unavailable");
+    assert.doesNotMatch(error.message, /private-vault-token/);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.equal(calls, 1);
+  assert.equal(environment.SESSION_SECRET, "previous-synthetic-secret");
+
+  await assert.rejects(resolveRuntimeEnv(environment, {
+    async fetchImpl(_url, options) {
+      assert.equal(options.redirect, "error");
+      return Response.redirect("https://other.example.test/vault", 302);
+    },
+  }), /External secrets provider rejected the request/);
+  assert.equal(environment.SESSION_SECRET, "previous-synthetic-secret");
 });
 
 test("external secrets failures do not expose provider response content or fall back to old credentials", async () => {
