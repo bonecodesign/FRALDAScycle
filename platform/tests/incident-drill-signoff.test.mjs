@@ -41,6 +41,46 @@ test("technical automation alone cannot complete the human exercise", () => {
   assert.ok(result.blockers.includes("formal_decision_required"));
 });
 
+test("incident signoff rejects acceptance recorded after the exercise began", () => {
+  const modified = structuredClone(complete);
+  modified.roleAcceptances[0].acceptedAt = "2026-10-23T10:00:01Z";
+  const result = assessIncidentDrillSignoff(modified, clock);
+  assert.equal(result.status, "pending");
+  assert.equal(result.launchAuthorized, false);
+  assert.ok(result.blockers.includes("triage_acceptance_required"));
+});
+
+test("incident signoff rejects observation before technical recovery", () => {
+  const result = assessIncidentDrillSignoff({
+    ...complete,
+    observation: { observerRef: "internal:observer", observedAt: "2026-10-23T10:09:00Z" },
+  }, clock);
+  assert.equal(result.status, "pending");
+  assert.equal(result.launchAuthorized, false);
+  assert.ok(result.blockers.includes("independent_observer_required"));
+});
+
+test("incident signoff rejects a decision taken before observation", () => {
+  const result = assessIncidentDrillSignoff({
+    ...complete,
+    decision: { ...complete.decision, decidedAt: "2026-10-23T10:14:59Z" },
+  }, clock);
+  assert.equal(result.status, "pending");
+  assert.equal(result.launchAuthorized, false);
+  assert.ok(result.blockers.includes("formal_decision_required"));
+});
+
+test("incident signoff accepts equality at required boundaries without authorizing launch", () => {
+  const result = assessIncidentDrillSignoff({
+    ...complete,
+    roleAcceptances: complete.roleAcceptances.map(item => ({ ...item, acceptedAt: "2026-10-23T10:00:00Z" })),
+    observation: { observerRef: "internal:observer", observedAt: "2026-10-23T10:10:00Z" },
+    decision: { ...complete.decision, decidedAt: "2026-10-23T10:10:00Z" },
+  }, clock);
+  assert.equal(result.status, "complete");
+  assert.equal(result.launchAuthorized, false);
+});
+
 test("rejects tampering, accumulated roles and unresolved high-risk findings", () => {
   const result = assessIncidentDrillSignoff({
     ...complete,
