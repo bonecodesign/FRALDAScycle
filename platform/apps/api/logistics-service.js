@@ -2,6 +2,7 @@ import { ServiceError } from "./service-error.js";
 import { hasSectorScope as hasScope, requireSectorScope as requireScope } from "./authorization.js";
 import { institutionReceiptReadiness } from "../../packages/contracts/institution-receipt-readiness.js";
 import { sellerSettlementReadiness } from "../../packages/contracts/settlement-readiness.js";
+import { prepareFreightLinkedPayout } from "../../packages/contracts/freight-payout-link.js";
 import { pilotBhLocation, pilotBhPostalCode } from "./pilot-bh.js";
 export class LogisticsError extends ServiceError {
   constructor(code, status, message) {
@@ -68,24 +69,23 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
       if (!proof) throw new LogisticsError("receipt_not_found", 404, "Recebimento não encontrado.");
       return proof.kind==='donation'?institutionReceiptReadiness(proof):sellerSettlementReadiness(proof);
     },
-    async sellerPayoutStatus(actor,shipmentId){const row=await repository.sellerPayoutStatus({actorId:actor.id,shipmentId,reviewer:hasScope(actor,'admin:deliveries:validate')});if(!row)throw new LogisticsError('seller_payout_not_found',404,'Repasse do vendedor não encontrado.');const blockers=[];if(row.kind!=='sale')blockers.push('unsupported_transaction_kind');if(row.shipment_status!=='delivered'||!row.proof_id)blockers.push('delivery_proof_pending');if(row.transaction_status!=='in_delivery')blockers.push('transaction_not_eligible');if(row.paid_count!==1||row.payment_status!=='paid'||!row.payment_provider_reference)blockers.push('payment_not_confirmed');if(row.financial_case_pending!==false)blockers.push('financial_case_pending');if(!row.approved_at)blockers.push('receiver_approval_pending');if(!row.validated_at)blockers.push('proof_validation_pending');return {eligible:blockers.length===0,blockers,status:row.payout_status??'not_prepared',grossProductCents:row.amount_cents??null,platformFeeCents:row.platform_fee_cents??null,sellerAmountCents:row.seller_amount_cents??null,preparedAt:row.prepared_at??null,payoutAllowed:false};},
+    async sellerPayoutStatus(actor,shipmentId){const row=await repository.sellerPayoutStatus({actorId:actor.id,shipmentId,reviewer:hasScope(actor,'admin:deliveries:validate')});if(!row)throw new LogisticsError('seller_payout_not_found',404,'Repasse do vendedor não encontrado.');const financial=prepareFreightLinkedPayout(row,'seller');const blockers=[...financial.blockers];if(row.kind!=='sale')blockers.push('unsupported_transaction_kind');if(row.shipment_status!=='delivered'||!row.proof_id)blockers.push('delivery_proof_pending');if(row.transaction_status!=='in_delivery')blockers.push('transaction_not_eligible');if(row.paid_count!==1||row.payment_status!=='paid'||!row.payment_provider_reference)blockers.push('payment_not_confirmed');if(row.financial_case_pending!==false)blockers.push('financial_case_pending');if(!row.approved_at)blockers.push('receiver_approval_pending');if(!row.validated_at)blockers.push('proof_validation_pending');return {eligible:blockers.length===0,blockers,status:row.payout_status??'not_prepared',grossProductCents:financial.grossProductCents??null,platformFeeCents:financial.productPlatformFeeCents??null,sellerAmountCents:financial.sellerAmountCents??null,preparedAt:row.prepared_at??null,payoutAllowed:false};},
     async prepareSellerPayout(actor,shipmentId,input){requireScope(actor,'admin:deliveries:validate');if(input?.confirmed!==true)throw new LogisticsError('explicit_payout_preparation_required',422,'Confirme a preparação da obrigação de repasse.');return repository.prepareSellerPayout({actorId:actor.id,shipmentId});},
     async courierPayoutStatus(actor,shipmentId){
       const row=await repository.courierPayoutStatus({actorId:actor.id,shipmentId,reviewer:hasScope(actor,'admin:deliveries:validate')});
       if(!row)throw new LogisticsError('courier_payout_not_found',404,'Repasse do entregador não encontrado.');
-      const sale=row.kind==='sale',exchange=row.kind==='exchange',blockers=[];
+      const sale=row.kind==='sale',exchange=row.kind==='exchange';const financial=sale?prepareFreightLinkedPayout(row,'courier'):null;const blockers=[...(financial?.blockers??[])];
       if(!sale)blockers.push(exchange?'exchange_freight_not_configured':'unsupported_transaction_kind');
       if(row.shipment_status!=='delivered'||!row.proof_id)blockers.push('delivery_proof_pending');
       if(row.transaction_status!=='in_delivery')blockers.push('transaction_not_eligible');
       if(sale){
         if(row.paid_count!==1||row.payment_status!=='paid'||!row.payment_provider_reference)blockers.push('payment_not_confirmed');
-        if(!Number.isSafeInteger(row.delivery_fee_cents)||row.delivery_fee_cents<=0)blockers.push('freight_not_charged');
       }
       if(row.financial_case_pending!==false)blockers.push('financial_case_pending');
       if(!row.approved_at)blockers.push('receiver_approval_pending');
       if(!row.validated_at)blockers.push('proof_validation_pending');
       if(!row.courier_id)blockers.push('courier_not_assigned');
-      return {eligible:blockers.length===0,blockers,status:sale?row.payout_status??'not_prepared':'not_prepared',freightCents:sale?row.delivery_fee_cents??null:null,platformFeeCents:sale?row.platform_fee_cents??null:null,courierAmountCents:sale?row.courier_amount_cents??null:null,preparedAt:sale?row.prepared_at??null:null,payoutAllowed:false};
+      return {eligible:blockers.length===0,blockers,status:sale?row.payout_status??'not_prepared':'not_prepared',freightCents:sale?financial.freightCents??null:null,platformFeeCents:sale?(row.payout_status?row.payout_platform_fee_cents:null):null,courierAmountCents:sale?(row.payout_status?row.courier_amount_cents:null):null,preparedAt:sale?row.prepared_at??null:null,payoutAllowed:false};
     },
     async prepareCourierPayout(actor,shipmentId,input){requireScope(actor,'admin:deliveries:validate');if(input?.confirmed!==true)throw new LogisticsError('explicit_payout_preparation_required',422,'Confirme a preparação da obrigação de repasse.');return repository.prepareCourierPayout({actorId:actor.id,shipmentId});},
     async proofPhoto(actor, shipmentId) {
