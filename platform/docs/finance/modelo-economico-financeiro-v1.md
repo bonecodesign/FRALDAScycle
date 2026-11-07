@@ -21,7 +21,7 @@ Números simulados neste documento **não são resultados reais, projeções gar
 - Logística intermediada: comissão FraldaCycle de **5% sobre o frete**.
 - Premium: **R$ 14,90/mês**.
 - Plano gratuito: até **3 anúncios** conforme regras vigentes.
-- Doação: **sem comissão sobre o produto**; logística segue as regras aplicáveis quando houver entrega.
+- Doação institucional: **sem comissão sobre o produto, sem cobrança de frete, sem comissão logística e sem repasse financeiro**. A instituição aprovada organiza a retirada diretamente com o doador, sem entregador parceiro ou da plataforma. A retirada direta entre participantes é exceção exclusiva das doações institucionais; vendas e trocas exigem entregador parceiro ou da plataforma.
 - Processamento do pagamento do produto: custo do provedor deve ser apresentado no líquido do vendedor conforme a configuração homologada.
 
 Nenhuma alteração dessas taxas é aprovada por este documento.
