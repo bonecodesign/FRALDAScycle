@@ -1377,9 +1377,10 @@
         "docs/pilot-bh-technical-gate.md",
         "docs/pilot-run-2026-10-02.md",
         "config/pilot-session.v1.json",
-        "tests/pilot-session.test.mjs"
+        "tests/pilot-session.test.mjs",
+        "docs/pilot-bh-human-homologation.md"
       ],
-      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md. Em 07/11/2026, a pré-validação local passou a rejeitar identificadores duplicados/inválidos nos 21 registros e nas listas de 19 evidências cobertas e 2 pendentes; testes sintéticos adicionados, sujeitos ao CI. As duas validações humanas continuam pendentes e não alteram a cobertura.",
+      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md. Em 07/11/2026, a pré-validação local passou a rejeitar identificadores duplicados/inválidos nos 21 registros e nas listas de 19 evidências cobertas e 2 pendentes; testes sintéticos adicionados, sujeitos ao CI. As duas validações humanas continuam pendentes e não alteram a cobertura. Procedimento humano preparado em 07/11/2026 para leitor de tela e nomeação/aceite do rollback, sem comprovantes de execução, sem responsáveis identificados e sem liberação do piloto.",
       "reason": "Modo local desligado por padrão; convite, admissão, destino/CEP e 19 evidências técnicas foram comprovados com dados sintéticos. Leitor de tela, nomeação/aceite humano, revisão das contas e decisão de início continuam pendentes; NO-GO mantido."
     },
     {
