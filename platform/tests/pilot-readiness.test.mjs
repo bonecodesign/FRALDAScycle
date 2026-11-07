@@ -59,3 +59,17 @@ test("pilot validator requires accountable owners and evidence", () => {
   assert.match(report.errors.join("\n"), /owner/);
   assert.match(report.errors.join("\n"), /evidence/);
 });
+
+
+test("readiness manifest rejects an omitted or substituted official gate", async () => {
+  const { manifest } = await inspectPilotReadinessManifest();
+  for (const gates of [
+    manifest.gates.slice(0, 6),
+    manifest.gates.map((g, i) => i === 0 ? { ...g, id: "invented-gate" } : g),
+    [...manifest.gates, manifest.gates[0]],
+  ]) {
+    const result = validatePilotReadinessManifest({ ...manifest, gates });
+    assert.equal(result.valid, false, JSON.stringify(gates));
+    assert.match(result.errors.join(" | "), /seven official gates exactly once/);
+  }
+});
