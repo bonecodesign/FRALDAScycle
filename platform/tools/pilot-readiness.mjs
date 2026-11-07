@@ -1,4 +1,4 @@
-import { PILOT_ID as ID } from "./pilot-contract.mjs";
+import { PILOT_ID as ID, PILOT_GATES } from "./pilot-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
@@ -33,6 +33,9 @@ export function validatePilotReadinessManifest(value) {
       if (!Array.isArray(gate?.evidence) || gate.evidence.length === 0 || gate.evidence.some((item) => !ID.test(item))) {
         errors.push(at + ".evidence is invalid");
       }
+    }
+    if (ids.size !== PILOT_GATES.length || PILOT_GATES.some(id => !ids.has(id))) {
+      errors.push("readiness must list all seven official gates exactly once");
     }
   }
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
