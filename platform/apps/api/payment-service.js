@@ -1,5 +1,5 @@
 import { ServiceError } from "./service-error.js";
-import { saleSplit } from "../../packages/contracts/commercial-rules.js";
+import { saleSplit, deliverySplit, externalPartnerDeliveryCharge } from "../../packages/contracts/commercial-rules.js";
 import { verifyBillingCpf } from "../../packages/contracts/payment-billing-identity.js";
 import { requireAccessLevel } from './authorization.js';
 export class PaymentError extends ServiceError {
@@ -87,6 +87,62 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       }
     },
 
+    async checkoutPreview(buyerId, transactionId) {
+      if (!/^[0-9a-f-]{36}$/i.test(String(transactionId ?? ""))) {
+        throw new PaymentError("invalid_transaction", 422, "Transação inválida.");
+      }
+      const context = await repository.checkoutPreview({ buyerId, transactionId });
+      if (!context) throw new PaymentError("transaction_not_found", 404, "Transação não encontrada.");
+      if (context.kind !== "sale" || !PAYABLE_STATUSES.has(context.status)) {
+        throw new PaymentError("transaction_not_payable", 409, "Esta transação não pode ser paga.");
+      }
+      const productCents = Number(context.amount_cents);
+      if (!Number.isSafeInteger(productCents) || productCents <= 0) {
+        throw new PaymentError("invalid_amount", 409, "Valor da transação inválido.");
+      }
+      const sale = saleSplit(productCents);
+      let freight = null;
+      if (context.quote_id) {
+        if (context.quote_status !== "confirmed"
+          || context.quote_confirmed_by !== buyerId
+          || !Number.isFinite(Date.parse(context.quote_expires_at))
+          || Date.parse(context.quote_expires_at) <= Date.now()) {
+          throw new PaymentError("delivery_quote_not_ready", 409, "Confirme uma cotação de frete válida antes de continuar.");
+        }
+        const base = Number(context.base_freight_cents);
+        if (!Number.isSafeInteger(base) || base <= 0) {
+          throw new PaymentError("invalid_delivery_quote_total", 409, "O frete registrado é inválido.");
+        }
+        const computed = context.quote_provider === "fraldacycle_courier"
+          ? deliverySplit(base)
+          : externalPartnerDeliveryCharge(base);
+        if (computed.platformCents !== context.freight_platform_fee_cents
+          || computed.customerTotalCents !== context.customer_total_cents) {
+          throw new PaymentError("invalid_delivery_quote_total", 409, "O frete registrado não confere com as regras comerciais.");
+        }
+        freight = {
+          quoteId: context.quote_id,
+          provider: context.quote_provider,
+          partnerOrCourierCents: base,
+          platformFeeCents: computed.platformCents,
+          customerTotalCents: computed.customerTotalCents,
+          settlementStatus: "awaiting_provider_homologation",
+        };
+      }
+      const totalCents = productCents + (freight?.customerTotalCents ?? 0);
+      if (!Number.isSafeInteger(totalCents)) {
+        throw new PaymentError("invalid_amount", 409, "O valor total ultrapassa o limite permitido.");
+      }
+      return {
+        transactionId, currency: "BRL",
+        product: { amountCents: productCents, platformFeeCents: sale.platformCents, sellerCents: sale.sellerCents },
+        freight, totalCents,
+        providerProcessingFeeCents: null,
+        externalChargeCreated: false,
+        freightCheckoutBlocked: Boolean(freight),
+      };
+    },
+
     async tokenizationSession(userId) {
       return provider.createTokenizationSession({ userId });
     },
@@ -134,7 +190,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       if (!transaction) throw new PaymentError("transaction_not_found", 404, "Transação não encontrada.");
       if (!PAYABLE_STATUSES.has(transaction.status)) throw new PaymentError("transaction_not_payable", 409, "Esta transação não pode ser paga.");
       if (!["sale", "exchange", "donation"].includes(transaction.kind)) throw new PaymentError("invalid_transaction_kind", 409, "Tipo de transação inválido.");
-      if (input?.deliveryRequested || transaction.kind !== "sale") {
+      if (input?.deliveryRequested || transaction.active_delivery_quote || transaction.kind !== "sale") {
         throw new PaymentError("settlement_not_configured", 503, "Pagamento de troca ou frete depende de configuração dos recebedores e homologação do fornecedor.");
       }
       const amountCents = Number(transaction.amount_cents ?? 0);
