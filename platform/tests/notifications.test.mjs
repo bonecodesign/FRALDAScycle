@@ -54,7 +54,49 @@ test("notification delivery uses HTTPS contract, authentication and idempotency"
   );
   assert.equal(calls[0][0], "https://provider.example/deliver");
   assert.equal(calls[0][1].headers.authorization, "Bearer secret");
+  assert.equal(calls[0][1].redirect, "error");
   assert.equal(calls[0][1].headers["idempotency-key"], "job-1");
+});
+
+test("notification delivery fails closed for unsafe provider URLs before any transport", async () => {
+  const job = { id: "synthetic-safe-job", kind: "payment_reminder", recipient: "synthetic@example.test", payload: {} };
+  let calls = 0;
+  for (const url of [
+    "http://notify.example.test/deliver",
+    "https://operator:secret@notify.example.test/deliver",
+    "https://notify.example.test/deliver?token=synthetic",
+    "https://notify.example.test/deliver#fragment",
+    "invalid-url",
+  ]) {
+    await assert.rejects(deliverNotification(job, {
+      notificationWebhookUrl: url,
+      notificationWebhookSecret: "synthetic-secret",
+    }, async () => { calls++; throw new Error("should never contact provider"); }), /URL must be HTTPS without credentials or query/);
+  }
+  assert.equal(calls, 0);
+});
+
+test("notification worker does not follow authenticated redirects or leak provider details", async () => {
+  const job = { id: "synthetic-redirect-job", kind: "email_verification", recipient: "synthetic@example.test", payload: { token: "synthetic-code" } };
+  const config = { notificationWebhookUrl: "https://notify.example.test/deliver", notificationWebhookSecret: "synthetic-secret" };
+  let calls = 0;
+  await assert.rejects(deliverNotification(job, config, async (_url, options) => {
+    calls++;
+    assert.equal(options.redirect, "error");
+    assert.equal(options.headers.authorization, "Bearer synthetic-secret");
+    throw new Error("synthetic-secret and synthetic-code must not appear in errors");
+  }), error => {
+    assert.equal(error.message, "Notification provider is unavailable");
+    assert.doesNotMatch(error.message, /synthetic-secret|synthetic-code/);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  await assert.rejects(deliverNotification(job, config, async (_url, options) => {
+    calls++;
+    assert.equal(options.redirect, "error");
+    return Response.redirect("https://other.example.test/redirect", 302);
+  }), /Notification provider returned 302/);
+  assert.equal(calls, 2);
 });
 
 test("worker retries failures with bounded exponential backoff", async () => {
