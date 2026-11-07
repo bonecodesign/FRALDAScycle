@@ -90,19 +90,42 @@ export function createRestorePlan(env = process.env) {
   });
 }
 
-export function executePlan(plan, { spawnImpl = spawn, parentEnv = process.env } = {}) {
+export function executePlan(plan, { spawnImpl = spawn, parentEnv = process.env, timeoutMs = 120_000 } = {}) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
+    throw new Error("PostgreSQL command timeout must be a positive integer");
+  }
   const inheritedEnv = Object.fromEntries(Object.entries(parentEnv)
     .filter(([name]) => name !== "DATABASE_URL" && name !== "RESTORE_DATABASE_URL")
     .filter(([name]) => !/^PG/i.test(name) || PG_TLS_ENVIRONMENT.has(name)));
   return new Promise((resolvePromise, reject) => {
-    const child = spawnImpl(plan.command, plan.args, {
-      stdio: "inherit",
-      env: { ...inheritedEnv, ...plan.env },
-      shell: false,
-      umask: 0o077,
-    });
-    child.once("error", () => reject(new Error(`${plan.command} is unavailable`)));
-    child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${plan.command} failed with exit code ${code}`)));
+    let child;
+    try {
+      child = spawnImpl(plan.command, plan.args, {
+        stdio: "inherit",
+        env: { ...inheritedEnv, ...plan.env },
+        shell: false,
+        umask: 0o077,
+      });
+    } catch {
+      reject(new Error(`${plan.command} is unavailable`));
+      return;
+    }
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolvePromise();
+    };
+    const timer = setTimeout(() => {
+      try { child.kill("SIGKILL"); } catch { /* A failed kill must not report success. */ }
+      finish(new Error(`${plan.command} timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
+    child.once("error", () => finish(new Error(`${plan.command} is unavailable`)));
+    child.once("exit", (code) => code === 0
+      ? finish()
+      : finish(new Error(`${plan.command} failed with exit code ${code}`)));
   });
 }
 

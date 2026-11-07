@@ -229,3 +229,33 @@ async function writeChecksum(path) {
   const digest = createHash("sha256").update(content).digest("hex");
   await writeFile(`${path}.sha256`, `${digest}\n`, { mode: 0o600 });
 }
+
+
+test("PostgreSQL subprocess timeout kills the child and rejects without success", async () => {
+  const child = new EventEmitter();
+  let killedWith;
+  child.kill = signal => { killedWith = signal; queueMicrotask(() => child.emit("exit", null)); return true; };
+  await assert.rejects(
+    executePlan({ command: "pg_dump", args: [], env: {} }, {
+      timeoutMs: 10,
+      parentEnv: {},
+      spawnImpl: () => child,
+    }),
+    /pg_dump timed out after 10 ms/,
+  );
+  assert.equal(killedWith, "SIGKILL");
+});
+
+test("PostgreSQL subprocess timeout is validated and does not kill successful commands", async () => {
+  const child = new EventEmitter();
+  child.kill = () => assert.fail("A completed subprocess must not be killed");
+  assert.throws(() => executePlan({ command: "pg_restore", args: [], env: {} }, {
+    timeoutMs: 0,
+    spawnImpl: () => assert.fail("Invalid timeout must not spawn"),
+  }), /positive integer/);
+  await executePlan({ command: "pg_restore", args: [], env: {} }, {
+    timeoutMs: 100,
+    parentEnv: {},
+    spawnImpl: () => { queueMicrotask(() => child.emit("exit", 0)); return child; },
+  });
+});
