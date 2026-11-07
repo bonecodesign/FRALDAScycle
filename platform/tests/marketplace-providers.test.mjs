@@ -78,6 +78,11 @@ test("media verification rejects missing, foreign, mutable and unprocessed image
     { immutable: false }, { contentType: "text/html" }, { exifRemoved: false },
     { scanStatus: "pending" }, { contactScanStatus:'pending' }, { contactRuleVersion:'old' },
     { ocrTextStored:true }, { qrCodeDetected:true }, { contactReasons:['phone'] },
+    // Missing/ambiguous results cannot be treated as a completed contact scan.
+    { contactScanStatus: undefined }, { contactRuleVersion: undefined },
+    { ocrTextStored: undefined }, { qrCodeDetected: undefined },
+    { contactReasons: undefined }, { contactReasons: null },
+    { contactReasons: ['external_contact'] }, { scanStatus: undefined },
     { sizeBytes: 10_000_001 }, { width: 1_601 }, { height: 0 },
   ]) {
     const providers = createMarketplaceProviders(configured, async () => response({ ...ready, ...patch }));
