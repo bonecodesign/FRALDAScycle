@@ -12,7 +12,10 @@ function validPastTimestamp(value, now) {
 export function assessIncidentDrillSignoff(input, clock = Date.now) {
   const blockers = [];
   const now = clock();
-  if (!verifyIncidentDrillEvidence(input?.evidence)) blockers.push("verified_technical_evidence_required");
+  const verifiedEvidence = verifyIncidentDrillEvidence(input?.evidence);
+  if (!verifiedEvidence) blockers.push("verified_technical_evidence_required");
+  const startedAt = verifiedEvidence ? Date.parse(input.evidence.record.startedAt) : NaN;
+  const recoveredAt = verifiedEvidence ? Date.parse(input.evidence.record.recovery.recoveredAt) : NaN;
   if (input?.humanObserved !== true) blockers.push("human_observation_required");
 
   const acceptances = Array.isArray(input?.roleAcceptances) ? input.roleAcceptances : [];
@@ -20,7 +23,8 @@ export function assessIncidentDrillSignoff(input, clock = Date.now) {
   for (const role of REQUIRED_ROLES) {
     const matching = acceptances.filter(item => item?.role === role);
     if (matching.length !== 1 || matching[0]?.accepted !== true || !REF.test(String(matching[0]?.participantRef ?? "")) ||
-        !validPastTimestamp(matching[0]?.acceptedAt, now)) {
+        !validPastTimestamp(matching[0]?.acceptedAt, now) ||
+        (verifiedEvidence && Date.parse(matching[0].acceptedAt) > startedAt)) {
       blockers.push(`${role}_acceptance_required`);
     } else {
       acceptedRefs.add(matching[0].participantRef);
@@ -29,13 +33,18 @@ export function assessIncidentDrillSignoff(input, clock = Date.now) {
   if (acceptedRefs.size !== REQUIRED_ROLES.length) blockers.push("distinct_role_holders_required");
 
   const observerRef = String(input?.observation?.observerRef ?? "");
-  if (!REF.test(observerRef) || acceptedRefs.has(observerRef) || !validPastTimestamp(input?.observation?.observedAt, now)) {
+  const observedAt = Date.parse(String(input?.observation?.observedAt ?? ""));
+  if (!REF.test(observerRef) || acceptedRefs.has(observerRef) ||
+      !validPastTimestamp(input?.observation?.observedAt, now) ||
+      (verifiedEvidence && observedAt < recoveredAt)) {
     blockers.push("independent_observer_required");
   }
 
   const outcome = String(input?.decision?.outcome ?? "");
   if (!OUTCOMES.has(outcome) || !REF.test(String(input?.decision?.decidedByRef ?? "")) ||
-      !validPastTimestamp(input?.decision?.decidedAt, now) || String(input?.decision?.rationale ?? "").trim().length < 20) {
+      !validPastTimestamp(input?.decision?.decidedAt, now) ||
+      (Number.isFinite(observedAt) && Date.parse(String(input?.decision?.decidedAt ?? "")) < observedAt) ||
+      String(input?.decision?.rationale ?? "").trim().length < 20) {
     blockers.push("formal_decision_required");
   }
   const unresolved = (Array.isArray(input?.findings) ? input.findings : [])
