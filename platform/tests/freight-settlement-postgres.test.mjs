@@ -174,6 +174,7 @@ test("exchange legs produce independent non-executing plans for their own confir
 }, async () => {
   await withNativeTestPostgres(async databaseUrl => {
     const db = createDatabase({ databaseUrl, databaseSsl: false });
+    let api;
     try {
       await migrate(db,await discoverMigrations());
       await db.query(`INSERT INTO users(id,email,password_hash,display_name)
@@ -218,8 +219,48 @@ test("exchange legs produce independent non-executing plans for their own confir
         assert.equal(prepared.plan.shipmentId,legs[index]);
         assert.equal(prepared.plan.customerTotalCents,index===0?2100:3150);
         plans.push(prepared.plan.id);
+        if (index === 0) {
+          const partial = await settlement.exchangeFreightSummary(finance,ids.transaction);
+          assert.equal(partial.localReady,false);
+          assert.equal(partial.totals,null);
+          assert.ok(partial.legs[1].blockers.includes("exchange_leg_quote_missing"));
+        }
       }
       assert.notEqual(plans[0],plans[1]);
+      const summary = await settlement.exchangeFreightSummary(finance,ids.transaction);
+      assert.equal(summary.localReady,true);
+      assert.deepEqual(summary.legs.map(item=>item.payerId),[ids.seller,ids.buyer]);
+      assert.deepEqual(summary.legs.map(item=>item.payerTotalCents),[2100,3150]);
+      assert.deepEqual(summary.legs.map(item=>item.platformFeeCents),[100,150]);
+      assert.deepEqual(summary.totals,{
+        providerAmountCents:5000,platformFeeCents:250,combinedForAccountingOnlyCents:5250,
+      });
+      assert.equal(summary.payoutAllowed,false);
+      assert.equal(summary.externalChargeCreated,false);
+      const actors={
+        finance,
+        operations:{id:ids.finance,role:"admin",staffSector:"operations",staffAccessLevel:4},
+        outsider:{id:ids.buyer,role:"customer"},
+      };
+      api=createApiServer({
+        config:loadConfig({NODE_ENV:"test",RATE_LIMIT_MAX:"1000"}),
+        freightSettlementService:settlement,
+        authService:{async session(token){return actors[token]??null;}},
+      });
+      await new Promise(resolve=>api.listen(0,"127.0.0.1",resolve));
+      const url=`http://127.0.0.1:${api.address().port}/v1/admin/freight-settlement-plans/exchanges/${ids.transaction}/legs`;
+      const get=token=>fetch(url,{headers:{cookie:`fc_session=${token}`}});
+      assert.equal((await get("operations")).status,403);
+      assert.equal((await get("outsider")).status,403);
+      const response=await get("finance");
+      assert.equal(response.status,200);
+      assert.equal(response.headers.get("cache-control"),"no-store");
+      const body=await response.json();
+      assert.equal(body.localReady,true);
+      assert.deepEqual(body.legs.map(item=>item.payerId),[ids.seller,ids.buyer]);
+      assert.equal(body.providerReconciled,false);
+      assert.equal(body.externalChargeCreated,false);
+      assert.equal((await db.query("SELECT count(*)::int AS n FROM payment_intents")).rows[0].n,0);
       const first=await settlement.reconcileLocal(finance,plans[0]);
       const second=await settlement.reconcileLocal(finance,plans[1]);
       for(const value of [first,second]){
@@ -228,6 +269,7 @@ test("exchange legs produce independent non-executing plans for their own confir
       }
       assert.equal((await db.query("SELECT count(*)::int AS n FROM freight_settlement_plans")).rows[0].n,2);
     } finally {
+      if(api?.listening)await new Promise(resolve=>api.close(resolve));
       await db.close();
     }
   });
