@@ -7,8 +7,8 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyl
 const labels = Object.freeze({ sale: "Venda", exchange: "Troca", donation: "Doação", proposed: "Proposta", reserved: "Reservada", payment_pending: "Pagamento pendente", paid: "Paga", in_delivery: "Em entrega", donation_confirmed: "Doação confirmada", completed: "Concluída", cancelled: "Cancelada", disputed: "Em disputa", refunded: "Reembolsada" });
 let currentResult = null;
 
-function count(value) { return Number(value ?? 0).toLocaleString("pt-BR"); }
-function currency(value) { return money.format(Number(value ?? 0) / 100); }
+function count(value) { return value == null ? "—" : Number(value).toLocaleString("pt-BR"); }
+function currency(value) { return value == null ? "—" : money.format(Number(value) / 100); }
 function set(id, value) { const element = document.getElementById(id); if (element) element.textContent = value; }
 function cell(row, value) { const element = document.createElement("td"); element.textContent = value; row.append(element); }
 function csvCell(value) { let text = String(value ?? ""); if (/^[=+\-@]/.test(text)) text = `'${text}`; return `"${text.replaceAll('"', '""')}"`; }
@@ -85,9 +85,20 @@ async function loadOverview() {
   try {
     currentResult = await apiRequest("/v1/admin/overview-snapshot?limit=50");
     renderSummary(currentResult.summary ?? {}); renderTransactions(currentResult.items ?? []); renderAlerts(currentResult.summary ?? {});
-    status.textContent = `Consulta concluída: ${count(currentResult.items?.length)} transação(ões) recente(s) exibida(s).`;
+    status.textContent = `Consulta concluída: ${count(currentResult.items?.length)} transação(ões) recente(s) exibida(s). Última consulta bem-sucedida nesta tela: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date())}. Este horário não indica atualização dos dados na origem.`;
     if (exportButton) exportButton.disabled = false;
-  } catch (error) { currentResult = null; status.textContent = unavailable(error); }
+  } catch (error) {
+    currentResult = null;
+    status.textContent = unavailable(error);
+    for (const id of ["overview-users", "overview-listings", "overview-transactions", "overview-volume", "overview-completed", "overview-active", "overview-exceptions", "overview-shipments", "overview-delivered", "overview-shipment-exceptions", "overview-payment-exceptions", "overview-payment-cases", "overview-paused"]) set(id, "—");
+    document.getElementById("overview-rows")?.replaceChildren();
+    document.getElementById("verified-alert-list")?.replaceChildren();
+    const emptyTransactions = document.getElementById("overview-empty");
+    if (emptyTransactions) emptyTransactions.hidden = true;
+    const emptyAlerts = document.getElementById("verified-alert-empty");
+    if (emptyAlerts) emptyAlerts.hidden = true;
+    set("alert-count", "Pendências indisponíveis nesta consulta.");
+  }
   finally { refresh.disabled = false; }
 }
 
