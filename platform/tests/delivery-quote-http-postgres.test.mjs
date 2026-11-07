@@ -26,7 +26,16 @@ test('buyer confirms exact external quote while tampering and paid replacement f
   assert.equal((await fetch(endpoint,{method:'POST',headers:headers('buyer'),body:JSON.stringify({...body,customerTotalCents:2099})})).status,409);
   const confirmed=await fetch(endpoint,{method:'POST',headers:headers('buyer'),body:JSON.stringify(body)});assert.equal(confirmed.status,201,JSON.stringify(await confirmed.clone().json()));
   const stored=(await database.query('SELECT provider,base_freight_cents,platform_fee_cents,customer_total_cents,status FROM delivery_quotes WHERE id=$1',[quote.id])).rows[0];assert.deepEqual(stored,{provider:'lalamove',base_freight_cents:2000,platform_fee_cents:100,customer_total_cents:2100,status:'confirmed'});
+  // Defense in depth: even if persisted confirmation is corrupted,
+  // a seller-confirmed quote cannot be promoted to a sale payment lock.
+  await database.query('UPDATE delivery_quotes SET confirmed_by=$2 WHERE id=$1',[quote.id,ids.seller]);
+  await assert.rejects(
+    repository.lockForPayment({transactionId:ids.transaction,paymentIntentId:'synthetic-payment-reference'}),
+    error=>error.code==='confirmed_delivery_quote_required');
+  assert.equal((await database.query('SELECT status FROM delivery_quotes WHERE id=$1',[quote.id])).rows[0].status,'confirmed');
+  await database.query('UPDATE delivery_quotes SET confirmed_by=$2 WHERE id=$1',[quote.id,ids.buyer]);
   await repository.lockForPayment({transactionId:ids.transaction,paymentIntentId:'synthetic-payment-reference'});
+  assert.equal((await database.query('SELECT status FROM delivery_quotes WHERE id=$1',[quote.id])).rows[0].status,'locked');
   await assert.rejects(service.registerCalculated(ids.transaction,{provider:'loggi_express',quoteId:'loggi-replacement-quote-1',baseFreightCents:1900,customerTotalCents:1995,currency:'BRL',expiresAt:new Date(Date.now()+60000).toISOString()},request),error=>error.code==='paid_transaction_locked');
  }finally{if(server?.listening)await new Promise(resolve=>server.close(resolve));await database.close();}
 });
@@ -41,7 +50,7 @@ test('each exchange receiver confirms only the quote for their own delivery leg'
   await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,status) VALUES($1,$2,'Troca com duas pernas','Fixture sintética de frete bilateral.','infant','Marca','Modelo','sealed',1,'exchange','unavailable')`,[ids.listing,ids.owner]);
   await database.query("INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status) VALUES($1,$2,$3,$4,'in_delivery')",[ids.transaction,ids.listing,ids.requester,ids.owner]);
   await database.query(`INSERT INTO shipments(id,transaction_id,buyer_id,seller_id,mode,insured,idempotency_key,status,exchange_leg,logistics_payer_id) VALUES($1,$3,$4,$5,'partner',false,'exchange-quote-leg-1','awaiting_pickup',1,$4),($2,$3,$5,$4,'partner',false,'exchange-quote-leg-2','awaiting_pickup',2,$5)`,[ids.leg1,ids.leg2,ids.transaction,ids.owner,ids.requester]);
-  const service=createDeliveryQuoteService(createDeliveryQuoteRepository(database));
+  const repository=createDeliveryQuoteRepository(database),service=createDeliveryQuoteService(repository);
   const leg1=await service.registerCalculatedForShipment(ids.transaction,ids.leg1,{provider:'lalamove',quoteId:'exchange-leg-one-quote',baseFreightCents:2000,customerTotalCents:2100,currency:'BRL',expiresAt:new Date(Date.now()+60000).toISOString()},quoteRequest(1));
   const leg2=await service.registerCalculatedForShipment(ids.transaction,ids.leg2,{provider:'loggi_express',quoteId:'exchange-leg-two-quote',baseFreightCents:3000,customerTotalCents:3150,currency:'BRL',expiresAt:new Date(Date.now()+60000).toISOString()},quoteRequest(2));
   const accounts={requester:ids.requester,owner:ids.owner};
@@ -53,5 +62,11 @@ test('each exchange receiver confirms only the quote for their own delivery leg'
   assert.equal((await confirm({quote:leg2,providerQuoteId:'exchange-leg-two-quote',total:3150,request:quoteRequest(2),token:'requester'})).status,201);
   const stored=(await database.query('SELECT shipment_id,confirmed_by,customer_total_cents,status FROM delivery_quotes WHERE transaction_id=$1 ORDER BY shipment_id',[ids.transaction])).rows;
   assert.deepEqual(stored,[{shipment_id:ids.leg1,confirmed_by:ids.owner,customer_total_cents:2100,status:'confirmed'},{shipment_id:ids.leg2,confirmed_by:ids.requester,customer_total_cents:3150,status:'confirmed'}]);
+  // The sale lock must never lock one or both exchange shipment quotes.
+  await assert.rejects(
+    repository.lockForPayment({transactionId:ids.transaction,paymentIntentId:'synthetic-sale-lock'}),
+    error=>error.code==='confirmed_delivery_quote_required');
+  const after=(await database.query('SELECT shipment_id,status FROM delivery_quotes WHERE transaction_id=$1 ORDER BY shipment_id',[ids.transaction])).rows;
+  assert.deepEqual(after,[{shipment_id:ids.leg1,status:'confirmed'},{shipment_id:ids.leg2,status:'confirmed'}]);
  }finally{if(server?.listening)await new Promise(resolve=>server.close(resolve));await database.close();}
 });

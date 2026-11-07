@@ -10,3 +10,19 @@ test('external partner keeps its full quoted service price and FraldaCycle adds 
 test('payer confirmation is bound to quote id total and the same input fingerprint',async()=>{let confirmed;const service=createDeliveryQuoteService({confirm:async value=>{confirmed=value;return value;}});await service.confirm('buyer',{quoteId,providerQuoteId:'lalamove-quote-1',customerTotalCents:2100,request});assert.equal(confirmed.quoteId,quoteId);assert.equal(confirmed.totalCents,2100);assert.match(confirmed.requestFingerprint,/^[A-Za-z0-9_-]+$/);});
 test('persistence supersedes unpaid quotes but explicitly locks paid transactions',async()=>{const source=await readFile(new URL('../database/delivery-quote-repository.js',import.meta.url),'utf8');assert.match(source,/paid_transaction_locked/);assert.match(source,/status='locked'/);assert.match(source,/delivery.quote.confirmed/);assert.doesNotMatch(source,/mode\s*=\s*['"](?:pickup|postal)['"]|correios/i);});
 test('schema stores no full address coordinates or contacts',async()=>{const source=await readFile(new URL('../database/migrations/076_delivery_quote_confirmation.sql',import.meta.url),'utf8');assert.doesNotMatch(source,/street|postal_code|latitude|longitude|phone|recipient_name/i);assert.match(source,/provider_quote_id/);assert.match(source,/request_fingerprint/);});
+
+test('invalid or expired quote timestamp is rejected before any persistence',async()=>{
+  let registrations=0;
+  const service=createDeliveryQuoteService({register:async()=>{registrations++;}});
+  const quote={
+    provider:'lalamove',quoteId:'sale-invalid-expiry-quote',
+    baseFreightCents:2000,customerTotalCents:2100,currency:'BRL',
+  };
+  for(const expiresAt of ['not-a-date',null,'2020-01-01T00:00:00.000Z']) {
+    assert.throws(
+      ()=>service.registerCalculated(transactionId,{...quote,expiresAt},request),
+      error=>error.code==='invalid_delivery_quote'&&error.status===422,
+    );
+  }
+  assert.equal(registrations,0);
+});

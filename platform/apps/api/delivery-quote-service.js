@@ -4,7 +4,8 @@ const PROVIDERS=new Set(['lalamove','fraldacycle_courier','loggi_express','uber_
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fail=(code,message)=>Object.assign(new Error(message),{code,status:422});
 function registration(transactionId,shipmentId,quote,request){
-  if(!UUID.test(String(transactionId??''))||(shipmentId!==null&&!UUID.test(String(shipmentId??'')))||!PROVIDERS.has(quote?.provider)||typeof quote.quoteId!=='string'||quote.quoteId.length<8||!Number.isSafeInteger(quote.baseFreightCents)||quote.baseFreightCents<=0||quote.currency!=='BRL'||Date.parse(quote.expiresAt)<=Date.now())throw fail('invalid_delivery_quote','Cotação de entrega inválida.');
+  const expiry=Date.parse(quote?.expiresAt);
+  if(!UUID.test(String(transactionId??''))||(shipmentId!==null&&!UUID.test(String(shipmentId??'')))||!PROVIDERS.has(quote?.provider)||typeof quote.quoteId!=='string'||quote.quoteId.length<8||!Number.isSafeInteger(quote.baseFreightCents)||quote.baseFreightCents<=0||quote.currency!=='BRL'||!Number.isFinite(expiry)||expiry<=Date.now())throw fail('invalid_delivery_quote','Cotação de entrega inválida.');
   const external=quote.provider!=='fraldacycle_courier',split=external?externalPartnerDeliveryCharge(quote.baseFreightCents):deliverySplit(quote.baseFreightCents);
   if(quote.customerTotalCents!==split.customerTotalCents)throw fail('invalid_delivery_quote_total','Total de entrega inválido.');
   const courierCandidates=quote.provider==='fraldacycle_courier'?quote.courierCandidates:null;
