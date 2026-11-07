@@ -1185,7 +1185,7 @@
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5 com nova autenticação reforçada.",
+      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5 com nova autenticação reforçada. Em 07/11/2026, o aceite do ensaio sintético passou a conferir cronologia entre início técnico e aceite das funções, recuperação e observação independente, e observação e decisão final; regressões foram preparadas e dependem de CI. Isso não comprova identidades ou exercício humano real.",
       "reason": "Console, aprovação conjunta, nomeação/aceite e adaptador Meta inativo estão implementados; conta Meta, número, template aprovado, pessoas reais e exercício humano permanecem pendentes."
     },
     {
