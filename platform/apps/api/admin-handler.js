@@ -34,7 +34,7 @@ export async function handleAdmin(request, response, {
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
     return true;
   }
-  const freightSupervision = url.pathname.match(/^\\/v1\\/admin\\/freight-settlement-plans\\/([0-9a-f-]{36})\\/supervision$/i);
+  const freightSupervision = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/([0-9a-f-]{36})\/supervision$/i);
   if (freightSupervision && (request.method === 'GET' || request.method === 'POST')) {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Supervisão financeira indisponível.');
     const result=request.method === 'GET'
