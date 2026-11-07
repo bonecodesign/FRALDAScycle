@@ -34,6 +34,15 @@ export async function handleAdmin(request, response, {
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
     return true;
   }
+  const freightSupervision = url.pathname.match(/^\\/v1\\/admin\\/freight-settlement-plans\\/([0-9a-f-]{36})\\/supervision$/i);
+  if (freightSupervision && (request.method === 'GET' || request.method === 'POST')) {
+    if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Supervisão financeira indisponível.');
+    const result=request.method === 'GET'
+      ? await freightSettlementService.supervision(user,freightSupervision[1])
+      : await freightSettlementService.linkSupervision(user,freightSupervision[1],await readJson(request));
+    sendJson(response,request.method==='GET'?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
   const freightPlan = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/([0-9a-f-]{36})\/reconciliation(?:\/check)?$/i);
   if (request.method === 'POST' && freightPlan
     && url.pathname.endsWith('/reconciliation/check')) {
