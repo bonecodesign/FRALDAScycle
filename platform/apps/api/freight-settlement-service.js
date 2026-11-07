@@ -41,6 +41,24 @@ export function createFreightSettlementService(repository) {
       const result = await repository.prepare({ actorId: actor.id, quoteId: input.quoteId });
       return { plan: publicPlan(result.plan), reused: result.reused };
     },
+    async supervision(actor,planId) {
+      finance(actor);
+      validId(planId);
+      const result=await repository.supervision(planId);
+      return { supervision:result };
+    },
+    async linkSupervision(actor,planId,input) {
+      finance(actor);
+      validId(planId);
+      if(!input||typeof input!=="object"||Array.isArray(input)
+        ||Object.keys(input).some(key=>!["incidentId","confirmed"].includes(key))
+        ||input.confirmed!==true) {
+        throw new ServiceError("freight_supervision_confirmation_required",422,
+          "Confirme o vínculo para supervisão humana.");
+      }
+      validId(input.incidentId);
+      return repository.linkSupervision({actorId:actor.id,planId,incidentId:input.incidentId});
+    },
     async checkAndRecord(actor, planId, input) {
       finance(actor);
       validId(planId);
