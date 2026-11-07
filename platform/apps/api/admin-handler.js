@@ -34,7 +34,14 @@ export async function handleAdmin(request, response, {
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
     return true;
   }
-  const freightPlan = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/([0-9a-f-]{36})\/reconciliation$/i);
+  const freightPlan = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/([0-9a-f-]{36})\/reconciliation(?:\/check)?$/i);
+  if (request.method === 'POST' && freightPlan
+    && url.pathname.endsWith('/reconciliation/check')) {
+    if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Conciliação financeira indisponível.');
+    const result = await freightSettlementService.checkAndRecord(user,freightPlan[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
   if (request.method === 'GET' && freightPlan) {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
     const result = await freightSettlementService.reconcileLocal(user,freightPlan[1]);
