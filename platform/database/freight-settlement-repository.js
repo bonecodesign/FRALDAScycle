@@ -83,6 +83,51 @@ export function createFreightSettlementRepository(database) {
       });
     },
 
+    async supervision(planId) {
+      const row=(await database.query(`SELECT s.freight_settlement_plan_id AS plan_id,
+        i.id AS incident_id,i.reference,i.domain,i.severity,i.status,i.assigned_to,i.version,
+        s.linked_at
+        FROM freight_incident_supervision s
+        JOIN operational_incidents i ON i.id=s.operational_incident_id
+        WHERE s.freight_settlement_plan_id=$1`,[planId])).rows[0];
+      return row??null;
+    },
+
+    async linkSupervision({actorId,planId,incidentId}) {
+      return database.transaction(async client=>{
+        const plan=(await client.query(`SELECT id FROM freight_settlement_plans
+          WHERE id=$1 FOR UPDATE`,[planId])).rows[0];
+        if(!plan)throw fail("freight_plan_not_found",404,"Preparação financeira não encontrada.");
+        const existing=(await client.query(`SELECT operational_incident_id
+          FROM freight_incident_supervision WHERE freight_settlement_plan_id=$1`,[planId])).rows[0];
+        if(existing) {
+          if(existing.operational_incident_id!==incidentId)
+            throw fail("freight_supervision_already_linked",409,"Este plano já possui incidente vinculado.");
+          return {planId,incidentId,reused:true};
+        }
+        const active=(await client.query(`SELECT 1 FROM freight_reconciliation_incidents
+          WHERE freight_settlement_plan_id=$1 AND status='open' LIMIT 1`,[planId])).rows[0];
+        if(!active)throw fail("freight_supervision_no_open_discrepancy",409,
+          "É necessário registrar uma divergência local aberta antes do encaminhamento.");
+        const incident=(await client.query(`SELECT id,domain,status FROM operational_incidents
+          WHERE id=$1 FOR UPDATE`,[incidentId])).rows[0];
+        if(!incident||!['payments','payouts'].includes(incident.domain)||incident.status==='resolved')
+          throw fail("freight_supervision_incident_ineligible",409,
+            "Selecione um incidente financeiro operacional ativo.");
+        const occupied=(await client.query(`SELECT freight_settlement_plan_id
+          FROM freight_incident_supervision WHERE operational_incident_id=$1`,[incidentId])).rows[0];
+        if(occupied)throw fail("freight_supervision_incident_already_linked",409,
+          "Este incidente já está associado a outro plano.");
+        await client.query(`INSERT INTO freight_incident_supervision
+          (freight_settlement_plan_id,operational_incident_id,linked_by)
+          VALUES($1,$2,$3)`,[planId,incidentId,actorId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'freight.reconciliation.supervision.linked','freight_settlement_plan',$2,$3::jsonb)`,
+          [actorId,planId,JSON.stringify({operationalIncidentId:incidentId,execution:false})]);
+        return {planId,incidentId,reused:false};
+      });
+    },
+
     async context(planId) {
       const row = (await database.query(`SELECT
         p.*,q.id AS current_quote_id,q.status AS quote_status,q.confirmed_by AS quote_confirmed_by,
