@@ -16,7 +16,7 @@ export async function runSyntheticIncidentDrill({
   requireAccessLevel(actor, 2);
   requireSectorScope(founder, "admin:operations:write");
   requireAccessLevel(founder, 5);
-  if (accessLevel(actor) === 5 || actor.id === founder.id) {
+  if (accessLevel(actor) === 5 || !uuid.test(String(actor.id ?? "")) || !uuid.test(String(founder.id ?? "")) || actor.id === founder.id) {
     throw new ServiceError("independent_resume_approval_required", 403, "A proposta e a autorização precisam de pessoas distintas.");
   }
   if (!uuid.test(String(technicalGrantId ?? "")) || !uuid.test(String(founderGrantId ?? ""))) {
@@ -40,7 +40,7 @@ export async function runSyntheticIncidentDrill({
     startedAt, scenario: input.scenario, severity: input.severity, roles: input.roles,
     internalChannel: input.internalChannel,
     containment: { domain: input.domain, version: 1, auditAction: "operations.paused", reason: pauseReason },
-    recovery: { authorized: input.recovery?.authorized === true, authorizedBy: input.recovery?.authorizedBy,
+    recovery: { authorized: input.recovery?.authorized === true, authorizedBy: founder.id,
       recoveredAt: startedAt, auditAction: "operations.resumed", criterion: input.recovery?.criterion },
     findings: [...(input.findings ?? []), "Nenhum fornecedor, pagamento, usuário ou mensagem real foi acionado."],
   };
