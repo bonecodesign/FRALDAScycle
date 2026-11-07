@@ -85,7 +85,7 @@ export function createReceiptRepository(database) {
           (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
           EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR
           EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_case_pending,
-          cpo.id AS obligation_id,cpo.platform_fee_cents,cpo.courier_amount_cents,cpo.status AS payout_status,cpo.prepared_at
+          cpo.id AS obligation_id,cpo.platform_fee_cents AS payout_platform_fee_cents,cpo.courier_amount_cents,cpo.status AS payout_status,cpo.prepared_at
           FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
           LEFT JOIN delivery_proofs p ON p.shipment_id=s.id LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id
           LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
