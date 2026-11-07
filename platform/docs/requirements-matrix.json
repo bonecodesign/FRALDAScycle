@@ -46,10 +46,13 @@
         "packages/contracts/commercial-rules.js",
         "apps/api/payment-service.js",
         "tests/commercial-rules.test.mjs",
-        "tests/payments.test.mjs"
+        "tests/payments.test.mjs",
+        "packages/contracts/product-processing-cost.js",
+        "tests/product-processing-cost.test.mjs",
+        "docs/requirement-03-product-processing.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Oferta e contrato do processador ausentes; tarifa desconhecida não é zero."
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: projeção local da tarifa do processador com valor desconhecido preservado como null; cenários sintéticos de custo absorvido pelo vendedor, margem insuficiente e checkout sem chamada externa; evidências ainda sujeitas a CI.",
+      "reason": "Tarifa real desconhecida não equivale a zero; projeção econômica e indicação no checkout preparadas. Oferta e contrato do processador, split real, homologação, reconciliação e execução permanecem ausentes."
     },
     {
       "id": 4,
