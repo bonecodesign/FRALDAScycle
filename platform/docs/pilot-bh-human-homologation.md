@@ -53,3 +53,9 @@
 5. Enquanto não houver decisão positiva completa, não ativar `PILOT_BH_ENABLED`, não admitir usuários reais e não realizar cobranças ou entregas.
 
 **Proibição de dados no repositório:** não registrar nomes civis, CPF, e-mail, telefone, credencial, token, gravação contendo dados pessoais ou aceite individual identificável no GitHub público. Referências de evidências privadas podem ser mencionadas após aprovação da política de acesso e retenção; o documento atual contém apenas o roteiro.
+
+## Validação dos sete portões oficiais — 07/11/2026
+
+O contrato de decisão do ensaio interno não admite mais um `go` baseado em um subconjunto dos controles. O validador `tools/pilot-execution.mjs` exige, **exatamente uma vez**, os sete IDs oficiais do plano `tools/pilot-contract.mjs`: regras do produto, identidade, jornada, segurança/privacidade, acessibilidade/dispositivos, suporte/incidentes e saída do piloto. Uma decisão `go` sintética só pode ser validada se **todos** os sete resultados forem `passed`, sem achados abertos, e houver próximas ações registradas. O manifesto de prontidão também é recusado caso omita ou substitua um dos sete portões.
+
+**Distinção essencial:** `go` no registro de um **ensaio interno sintético** não representa autorização de lançamento, contratação, usuários reais, pagamentos ou entregas. Este relatório não substitui os portões humanos H1/H2, a revisão das contas, a homologação das integrações ou uma decisão formal específica de início. A pré-validação técnica permanece **19/21**, com as mesmas duas verificações humanas pendentes. O piloto BH continua **NO-GO**.
