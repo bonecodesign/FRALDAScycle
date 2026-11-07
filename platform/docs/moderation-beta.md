@@ -31,3 +31,9 @@ Uma prova HTTP/PostgreSQL dedicada acrescentada em 15 de outubro confirma a jorn
 Outra prova HTTP/PostgreSQL de 15 de outubro confirma o chat: acesso somente após pagamento confirmado, persistência idempotente, bloqueio de e-mail/telefone/convite externo sem cópia na auditoria e exceção de falso positivo limitada ao conteúdo exato revisado. A detecção não promete reconhecer todo disfarce futuro.
 
 Matriz atualizada conserva denominador 70 e sete concluídos (10%): item 43 concluído pelo recurso protocolado e revisão independente efetivamente validados. Há 38 parciais, 13 pendentes e 12 bloqueados; demais itens de moderação continuam parciais. Prontidão para produção bloqueada, sem percentual atribuído.
+
+## Endurecimento do lote de expiração — 07/11/2026
+
+A rotina `maintainModerationSuspensions` aceita somente lote inteiro entre 1 e 50 decisões por execução (50 por padrão) e recusa valores fracionários, negativos, nulos, não numéricos ou acima do máximo **antes de consultar o repositório**. O teste unitário inclui bloqueio do acesso à base para limites inválidos. A rotina de restauração continua temporária, idempotente e sem banimento definitivo; o worker permanece desativado por padrão, sem autorização para automação decisória de sanções.
+
+O requisito 42 segue **parcial**: aplicação humana, revisão, disponibilidade de equipe e supervisão no piloto não foram homologadas.
