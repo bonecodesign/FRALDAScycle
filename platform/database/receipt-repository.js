@@ -8,13 +8,28 @@ export function createReceiptRepository(database) {
   return Object.freeze({
     async sellerPayoutStatus({actorId,shipmentId,reviewer=false}){return database.transaction(async client=>{
       const row=(await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.seller_id,s.status AS shipment_status,t.status AS transaction_status,l.kind,
+        t.amount_cents AS product_amount_cents,s.buyer_id AS buyer_id,
+        q.id AS active_quote_id,q.shipment_id AS active_quote_shipment_id,
+        q.status AS active_quote_status,q.confirmed_by AS active_quote_confirmed_by,
+        q.provider AS active_quote_provider,q.base_freight_cents AS active_quote_base_cents,
+        q.platform_fee_cents AS active_quote_platform_fee_cents,q.customer_total_cents AS active_quote_total_cents,
+        fsp.id AS freight_settlement_plan_id,fsp.payer_id AS freight_plan_payer_id,
+        fsp.provider AS freight_plan_provider,fsp.provider_amount_cents AS freight_provider_amount_cents,
+        fsp.platform_fee_cents AS freight_plan_platform_fee_cents,fsp.customer_total_cents AS freight_plan_total_cents,
         p.id AS proof_id,a.approved_at,v.validated_at,pi.id AS payment_intent_id,pi.status AS payment_status,pi.amount_cents,pi.platform_fee_cents,pi.delivery_fee_cents,pi.seller_amount_cents,pi.provider_reference AS payment_provider_reference,
         (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
         EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS financial_case_pending,
         spo.id AS obligation_id,spo.status AS payout_status,spo.prepared_at
         FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
         LEFT JOIN delivery_proofs p ON p.shipment_id=s.id LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
-        LEFT JOIN payment_intents pi ON pi.transaction_id=t.id AND pi.status='paid' LEFT JOIN seller_payout_obligations spo ON spo.shipment_id=s.id
+        LEFT JOIN payment_intents pi ON pi.transaction_id=t.id AND pi.status='paid' LEFT JOIN seller_payout_obligations spo ON spo.shipment_id=s.id  LEFT JOIN LATERAL (
+          SELECT q.id,q.shipment_id,q.status,q.confirmed_by,q.provider,
+            q.base_freight_cents,q.platform_fee_cents,q.customer_total_cents
+          FROM delivery_quotes q WHERE q.transaction_id=t.id AND q.shipment_id IS NULL
+            AND q.status IN ('quoted','confirmed','locked')
+          ORDER BY q.created_at DESC,q.id DESC LIMIT 1
+        ) q ON true
+        LEFT JOIN freight_settlement_plans fsp ON fsp.delivery_quote_id=q.id 
         WHERE s.id=$1 AND ($3::boolean OR s.seller_id=$2)`,[shipmentId,actorId,reviewer])).rows[0];
       if(!row)return null;await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'seller.payout.status.read','shipment',$2,$3::jsonb)`,[actorId,shipmentId,JSON.stringify({reviewer,status:row.payout_status??'not_prepared'})]);return row;
     });},
@@ -56,7 +71,16 @@ export function createReceiptRepository(database) {
     async courierPayoutStatus({actorId,shipmentId,reviewer=false}){
       return database.transaction(async client=>{
         const result=await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.courier_id,s.status AS shipment_status,
-          t.status AS transaction_status,l.kind,p.id AS proof_id,a.approved_at,v.validated_at,
+          t.status AS transaction_status,l.kind,pi.amount_cents,pi.platform_fee_cents,pi.seller_amount_cents,
+          t.amount_cents AS product_amount_cents,s.buyer_id AS buyer_id,
+        q.id AS active_quote_id,q.shipment_id AS active_quote_shipment_id,
+        q.status AS active_quote_status,q.confirmed_by AS active_quote_confirmed_by,
+        q.provider AS active_quote_provider,q.base_freight_cents AS active_quote_base_cents,
+        q.platform_fee_cents AS active_quote_platform_fee_cents,q.customer_total_cents AS active_quote_total_cents,
+        fsp.id AS freight_settlement_plan_id,fsp.payer_id AS freight_plan_payer_id,
+        fsp.provider AS freight_plan_provider,fsp.provider_amount_cents AS freight_provider_amount_cents,
+        fsp.platform_fee_cents AS freight_plan_platform_fee_cents,fsp.customer_total_cents AS freight_plan_total_cents,
+          p.id AS proof_id,a.approved_at,v.validated_at,
           pi.id AS payment_intent_id,pi.status AS payment_status,pi.delivery_fee_cents,pi.provider_reference AS payment_provider_reference,
           (SELECT count(*)::integer FROM payment_intents paid WHERE paid.transaction_id=t.id AND paid.status='paid') AS paid_count,
           EXISTS(SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=pi.id AND pc.status<>'rejected') OR
@@ -66,7 +90,14 @@ export function createReceiptRepository(database) {
           LEFT JOIN delivery_proofs p ON p.shipment_id=s.id LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id
           LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
           LEFT JOIN payment_intents pi ON pi.transaction_id=t.id AND pi.status='paid'
-          LEFT JOIN courier_payout_obligations cpo ON cpo.shipment_id=s.id
+          LEFT JOIN courier_payout_obligations cpo ON cpo.shipment_id=s.id  LEFT JOIN LATERAL (
+          SELECT q.id,q.shipment_id,q.status,q.confirmed_by,q.provider,
+            q.base_freight_cents,q.platform_fee_cents,q.customer_total_cents
+          FROM delivery_quotes q WHERE q.transaction_id=t.id AND q.shipment_id IS NULL
+            AND q.status IN ('quoted','confirmed','locked')
+          ORDER BY q.created_at DESC,q.id DESC LIMIT 1
+        ) q ON true
+        LEFT JOIN freight_settlement_plans fsp ON fsp.delivery_quote_id=q.id 
           WHERE s.id=$1 AND ($3::boolean OR s.courier_id=$2)`,[shipmentId,actorId,reviewer]);
         const row=result.rows[0];if(!row)return null;
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
