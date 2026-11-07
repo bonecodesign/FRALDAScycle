@@ -22,3 +22,9 @@ Para a regra produzir bloqueio remoto, será necessário:
 6. impedir que o autor aprove o próprio PR.
 
 Nenhum usuário ou equipe fictícia foi colocado em `CODEOWNERS`. Até a configuração remota ser confirmada, o contrato local documenta e testa a política, mas não alega enforcement no GitHub.
+
+## Revisão de governança — 07/11/2026
+
+O inventário de paths sensíveis foi ampliado para incluir rotinas de incidentes, notificações, workers, banco, contratos, pré-validação do piloto, matriz de requisitos e políticas de governança. O contrato rejeita caminhos de diff malformados e classifica mudanças externas a `platform/` como sensíveis, **sem** autorizar alteração do protótipo imutável.
+
+A auditoria remota está em [`github-governance-audit-2026-11-07.md`](github-governance-audit-2026-11-07.md). O repositório está público; a consulta de rulesets retornou lista vazia; a proteção tradicional de `main` não pôde ser consultada (403), e `.github/CODEOWNERS` ainda não existe. Não há prova de aplicação remota de revisões obrigatórias, nem nomeação de revisores reais. Esta rodada **não** alterou configurações do GitHub. Mesmo a aprovação do CI e o merge de uma PR não constituem homologação dos níveis humanos de revisão.
