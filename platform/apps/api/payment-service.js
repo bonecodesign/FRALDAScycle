@@ -1,5 +1,6 @@
 import { ServiceError } from "./service-error.js";
 import { saleSplit, deliverySplit, externalPartnerDeliveryCharge } from "../../packages/contracts/commercial-rules.js";
+import { projectProductProcessingCost } from "../../packages/contracts/product-processing-cost.js";
 import { verifyBillingCpf } from "../../packages/contracts/payment-billing-identity.js";
 import { requireAccessLevel } from './authorization.js';
 export class PaymentError extends ServiceError {
@@ -133,11 +134,15 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       if (!Number.isSafeInteger(totalCents)) {
         throw new PaymentError("invalid_amount", 409, "O valor total ultrapassa o limite permitido.");
       }
+      const processing = projectProductProcessingCost({ productAmountCents: productCents });
       return {
         transactionId, currency: "BRL",
         product: { amountCents: productCents, platformFeeCents: sale.platformCents, sellerCents: sale.sellerCents },
         freight, totalCents,
-        providerProcessingFeeCents: null,
+        providerProcessingFeeCents: processing.providerProcessingFeeCents,
+        sellerAfterProcessingFeeCents: processing.sellerAfterProcessingFeeCents,
+        processingFeePayer: processing.processingFeePayer,
+        processorFeeHomologated: processing.feeHomologated,
         externalChargeCreated: false,
         freightCheckoutBlocked: Boolean(freight),
       };
