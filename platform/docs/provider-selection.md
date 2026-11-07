@@ -59,3 +59,9 @@ Para pagamentos e logística, “recomendada” agora significa **escolhida pelo
 ## Próximo portão
 
 Nenhuma integração avança automaticamente. O próximo estado permitido é “diligência aprovada”, com respostas comerciais, jurídicas, de segurança e privacidade anexadas fora do repositório e sem segredos. Somente depois pode existir sandbox; produção permanece bloqueada até a homologação integral.
+
+## Portão explícito dos adaptadores genéricos de produção (07/11/2026)
+
+A configuração de endpoint e segredo **não** constitui autorização de ativação. O adaptador genérico de pagamentos requer `PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true` quando houver `PAYMENT_PROVIDER_URL` em produção; o de logística requer `LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true` quando houver `LOGISTICS_PROVIDER_URL`. Sem a confirmação correspondente, a inicialização falha de forma fechada. Uma confirmação isolada, sem URL e segredo, não habilita integração. O diagnóstico de produção exige o valor literal `true`, não aceita `false` como evidência de prontidão.
+
+Os mecanismos específicos de Asaas e Lalamove já possuem confirmações próprias, que **não são substituídas** por esses dois campos. Nenhuma dessas variáveis deve ser habilitada antes de contratação, diligência, homologação, decisão humana formal e configuração segura fora do repositório. As configurações de exemplo permanecem `false`; o projeto continua sem tráfego real e com o item 12 em standby. Esta proteção foi reaproveitada seletivamente da intenção da PR #115, **sem mesclar sua branch antiga**.

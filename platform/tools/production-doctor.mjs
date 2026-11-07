@@ -10,8 +10,8 @@ const BUNDLES = Object.freeze([
   ["notifications", ["NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"]],
   ["media", ["MEDIA_PROVIDER_URL", "MEDIA_PROVIDER_SECRET"]],
   ["geocoding", ["GEOCODING_PROVIDER_URL", "GEOCODING_PROVIDER_SECRET"]],
-  ["payments", ["PAYMENT_PROVIDER_URL", "PAYMENT_PROVIDER_SECRET", "PAYMENT_WEBHOOK_SECRET", "PAYMENT_PROVIDER_SDK_URL", "PAYMENT_PROVIDER_SDK_INTEGRITY"]],
-  ["logistics", ["LOGISTICS_PROVIDER_URL", "LOGISTICS_PROVIDER_SECRET", "LOGISTICS_WEBHOOK_SECRET"]],
+  ["payments", ["PAYMENT_PROVIDER_URL", "PAYMENT_PROVIDER_SECRET", "PAYMENT_WEBHOOK_SECRET", "PAYMENT_PROVIDER_SDK_URL", "PAYMENT_PROVIDER_SDK_INTEGRITY", "PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED"]],
+  ["logistics", ["LOGISTICS_PROVIDER_URL", "LOGISTICS_PROVIDER_SECRET", "LOGISTICS_WEBHOOK_SECRET", "LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED"]],
   ["distributedRateLimit", ["RATE_LIMIT_PROVIDER_URL", "RATE_LIMIT_PROVIDER_SECRET"]],
   ["telemetry", ["TELEMETRY_PROVIDER_URL", "TELEMETRY_PROVIDER_SECRET"]],
   ["externalSecrets", ["SECRETS_PROVIDER_URL", "SECRETS_PROVIDER_TOKEN", "SECRETS_PROVIDER_KEYS"]],
@@ -21,10 +21,14 @@ function usable(value) {
   return typeof value === "string" && value.length > 0 && !PLACEHOLDER.test(value);
 }
 
+function usableRequirement(key, value) {
+  return key.endsWith("_ACTIVATION_ACKNOWLEDGED") ? value === "true" : usable(value);
+}
+
 export function inspectProductionReadiness(env = process.env) {
   const integrations = Object.fromEntries(BUNDLES.map(([name, keys]) => [
     name,
-    { ready: keys.every((key) => usable(env[key])), missing: keys.filter((key) => !usable(env[key])) },
+    { ready: keys.every((key) => usableRequirement(key, env[key])), missing: keys.filter((key) => !usableRequirement(key, env[key])) },
   ]));
   const blockers = [];
   try {

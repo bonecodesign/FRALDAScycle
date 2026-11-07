@@ -1,10 +1,12 @@
 # Matriz dos 70 requisitos — beta
 
-Fonte: [FC-DEC-2026-10-02, PR #62](https://github.com/bonecodesign/FRALDAScycle/pull/62). Base consolidada em main: `2c14f89e59d4f219051378ace2f2b2d6af231018` (PRs #60–#81 integrados). Atualização: 12 de outubro de 2026; código-base integrada `ac99a52955def605e0aa6b95fbf6306f242de378` (PR #104); alterações do PR #105 em revisão.
+Fonte decisória original: [FC-DEC-2026-10-02, PR #62](https://github.com/bonecodesign/FRALDAScycle/pull/62). Fonte editável oficial: `requirements-matrix.json`. Conferência da `main` em 07/11/2026, após integração do PR #205 (`02b3c66`). O texto tabular abaixo preserva o histórico e os limites dos requisitos; a versão JSON é a referência para estados e evidências acumuladas.
 
 O denominador permanece 70, incluindo item 12 e requisitos bloqueados. Não há ponderação nem crédito parcial. Concluído significa que o requisito delimitado está implementado/documentado e possui evidência automatizada ou documental pertinente; não significa aprovação em PostgreSQL, navegador, usuários ou fornecedores reais. Parcial tem parte implementada, pendente não tem fluxo demonstrado, bloqueado depende de decisão/revisão/fornecedor externo. Não se excluem bloqueados para aumentar o percentual.
 
-**42/70 = 60.00% concluídos.** 17 parciais, 0 pendentes, 11 bloqueados, conforme a fonte JSON atualizada em 31 de outubro de 2026. Há 59/70 (84.29%) com implementação parcial ou concluída; essa cobertura não mede conclusão do código nem prontidão para produção. A distribuição atual por área, com os IDs de cada grupo, está em [progress-2026-10-11.md](progress-2026-10-11.md).
+**42/70 = 60.00% concluídos.** 17 parciais, 0 pendentes, 11 bloqueados, conforme a fonte JSON, cujo estado formal foi consolidado em 31 de outubro de 2026 e recebeu evidências técnicas adicionais em novembro de 2026. Há 59/70 (84.29%) com implementação parcial ou concluída; essa cobertura não mede conclusão do código nem prontidão para produção. A distribuição atual por área, com os IDs de cada grupo, está em [progress-2026-10-11.md](progress-2026-10-11.md).
+
+A evidência de retenção no item 10 refere-se à **retenção operacional dos registros de conciliação da diferença de troca**, e não deve ser confundida com uma aprovação geral de prazos de retenção de dados pessoais. O item 10 continua parcial e seus fluxos financeiros reais não estão homologados.
 
 **Prontidão para produção: bloqueada, sem percentual comprovado.** NO-GO do piloto preservado. A quantidade de testes não participa do cálculo.
 

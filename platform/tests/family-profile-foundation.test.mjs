@@ -9,6 +9,36 @@ import { createAdultDeclarationService, requireAdultDeclaration } from "../apps/
 import { createAdultDeclarationRepository } from "../database/adult-declaration-repository.js";
 import { createChildProfileService } from "../apps/api/child-profile-service.js";
 
+test("generic production payment and logistics adapters require independent explicit activation", () => {
+  const production = {
+    NODE_ENV: "production", DATABASE_URL: "postgresql://synthetic.test/db",
+    SESSION_SECRET: "s".repeat(48),
+    NOTIFICATION_WEBHOOK_URL: "https://notifications.example.test/v1",
+    NOTIFICATION_WEBHOOK_SECRET: "test-only",
+  };
+  const payment = {
+    PAYMENT_PROVIDER_URL: "https://payments.example.test/v1",
+    PAYMENT_PROVIDER_SECRET: "test-only",
+    PAYMENT_WEBHOOK_SECRET: "test-only",
+  };
+  const logistics = {
+    LOGISTICS_PROVIDER_URL: "https://logistics.example.test/v1",
+    LOGISTICS_PROVIDER_SECRET: "test-only",
+    LOGISTICS_WEBHOOK_SECRET: "test-only",
+  };
+  assert.equal(loadConfig(production).paymentProviderUrl, null);
+  assert.equal(loadConfig(production).logisticsProviderUrl, null);
+  assert.throws(() => loadConfig({ ...production, ...payment }), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.throws(() => loadConfig({ ...production, ...logistics }), /LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  assert.throws(() => loadConfig({ ...production, ...payment, PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "false" }), /PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true/);
+  const enabledPayment = loadConfig({ ...production, ...payment, PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" });
+  const enabledLogistics = loadConfig({ ...production, ...logistics, LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" });
+  assert.equal(enabledPayment.paymentProviderActivationAcknowledged, true);
+  assert.equal(enabledLogistics.logisticsProviderActivationAcknowledged, true);
+  assert.equal(loadConfig({ ...production, PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" }).paymentProviderUrl, null);
+  assert.equal(loadConfig({ ...production, LOGISTICS_PROVIDER_ACTIVATION_ACKNOWLEDGED: "true" }).logisticsProviderUrl, null);
+});
+
 test("adult declaration is explicit, versioned and accepts no injected identity", () => {
   assert.deepEqual(adultDeclaration({ confirmed: true, version: ADULT_DECLARATION_VERSION }), { confirmed: true, version: "FC-AGE-1" });
   for (const input of [null, {}, { confirmed: false, version: "FC-AGE-1" }, { confirmed: true, version: "old" }, { confirmed: true, version: "FC-AGE-1", userId: "other" }]) {

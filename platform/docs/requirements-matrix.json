@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-31",
+  "updatedAt": "2026-11-07",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -255,7 +255,7 @@
         "tests/exchange-difference-accounting.test.mjs",
         "docs/requirement-10-exchange-difference-accounting.md"
       ],
-      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida. Complemento 07/11/2026: conferência contábil administrativa somente leitura com valores declarados, duas taxas independentes de 2,5%, direção e valor da diferença; testes unitários e de HTTP/PostgreSQL sujeitos à aprovação do CI.",
+      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida. Complemento 07/11/2026: conferência contábil administrativa somente leitura com valores declarados, duas taxas independentes de 2,5%, direção e valor da diferença; testes unitários e de HTTP/PostgreSQL sujeitos à aprovação do CI. Nota de escopo 07/11/2026: as evidências de retenção são de registros de conciliação financeira da troca; prazos jurídicos gerais de dados pessoais não são considerados aprovados.",
       "reason": "Cálculo, obrigações separadas, revisão contábil, disputa, outbox, conciliação e retenção locais preparados. Cobrança, garantia/retenção e repasse externos continuam dependentes de contratação/homologação do processador."
     },
     {
@@ -862,9 +862,11 @@
         "apps/api/moderation-service.js",
         "database/communications-repository.js",
         "tools/beta-moderation-check.mjs",
-        "docs/moderation-beta.md"
+        "docs/moderation-beta.md",
+        "tests/marketplace-providers.test.mjs",
+        "docs/listing-media-confirmation.md"
       ],
-      "evidence": "Título e descrição usam a regra FC-CONTENT-1. O contrato de mídia exige OCR, detecção de QR, regra coincidente, resultado explícito sem contatos e confirmação de que o texto reconhecido não foi armazenado; respostas ausentes, antigas, pendentes ou positivas falham fechadas. Quatorze testes focados, incluindo sessão HTTP com porta local autorizada, foram aprovados em 4/11/2026.",
+      "evidence": "Título e descrição usam a regra FC-CONTENT-1. O contrato de mídia exige OCR, detecção de QR, regra coincidente, resultado explícito sem contatos e confirmação de que o texto reconhecido não foi armazenado; respostas ausentes, antigas, pendentes ou positivas falham fechadas. Quatorze testes focados, incluindo sessão HTTP com porta local autorizada, foram aprovados em 4/11/2026. Regressões adicionais de resposta de mídia com campos obrigatórios ausentes/ambíguos foram preparadas em 07/11/2026, ainda sujeitas ao CI desta PR; o provedor real não está homologado.",
       "reason": "Proteção técnica de texto e contrato fail-closed de imagem concluídos localmente; homologação do OCR/moderação visual e conferência real de mídia continuam dependentes do fornecedor."
     },
     {
