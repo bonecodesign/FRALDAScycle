@@ -900,7 +900,7 @@
         "tests/moderation-suspension-expiry-postgres.test.mjs",
         "tests/moderation-appeal-http-postgres.test.mjs"
       ],
-      "evidence": "Além da base do PR #76, provas PostgreSQL isoladas confirmam suspensão temporária, recurso independente, expiração automática e restauração idempotente apenas dos anúncios pausados pela decisão. Pausas manuais são preservadas, suspensões concorrentes impedem restauração e a manutenção declara permanentBansApplied=0.",
+      "evidence": "Além da base do PR #76, provas PostgreSQL isoladas confirmam suspensão temporária, recurso independente, expiração automática e restauração idempotente apenas dos anúncios pausados pela decisão. Pausas manuais são preservadas, suspensões concorrentes impedem restauração e a manutenção declara permanentBansApplied=0. Em 07/11/2026, o limite da rotina de expiração foi endurecido para 1–50 decisões inteiras por lote, com testes para não consultar banco em parâmetro inválido; evidência sujeita a CI.",
       "reason": "Ciclo técnico temporário completo, auditável e sem banimento definitivo. Aplicação da sanção, análise humana e capacidade real da equipe continuam externas."
     },
     {
@@ -1057,7 +1057,7 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: cliente abre e repete chamado de modo idempotente; terceiro recebe 404; somente equipe assume, concorrente não toma o protocolo; nota interna não aparece ao cliente; respostas alteram o estado e são idempotentes; criação, atribuição, nota e respostas ficam auditadas.",
+      "evidence": "Prova HTTP/PostgreSQL dedicada: cliente abre e repete chamado de modo idempotente; terceiro recebe 404; somente equipe assume, concorrente não toma o protocolo; nota interna não aparece ao cliente; respostas alteram o estado e são idempotentes; criação, atribuição, nota e respostas ficam auditadas. Em 07/11/2026, testes HTTP/PostgreSQL ampliados para impedir escrita de nota interna por cliente, vazamento de nota/identidade do atendente na paginação e leitura cruzada de ticket; evidência sujeita a CI.",
       "reason": "Fluxo interno privado, idempotente, atribuído e auditado está comprovado; capacidade efetiva da equipe e operação humana ainda precisam ser confirmadas antes do piloto."
     },
     {
