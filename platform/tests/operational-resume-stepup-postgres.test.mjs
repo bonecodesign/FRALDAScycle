@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { randomBytes } from "node:crypto";
 import { createApiServer } from "../apps/api/server.js";
 import { loadConfig } from "../apps/api/config.js";
 import { hashPassword } from "../apps/api/security.js";
@@ -155,6 +156,51 @@ test("operational resume requires independent password/email step-up and records
       const count = (await database.query(`SELECT count(*)::int AS total FROM audit_events
         WHERE entity_type='operational_control' AND entity_id='marketplace' AND action='operations.resumed'`)).rows[0];
       assert.equal(count.total, 1);
+
+      // Independent confirmed grants isolate the version-conflict branch.
+      // These fixtures are NOT evidence of email delivery; the first
+      // scenario above exercises password + outbox email code end-to-end.
+      const seedConfirmedGrant = async (userId) => {
+        const token = (await database.query(`INSERT INTO auth_tokens
+          (user_id,kind,token_hash,expires_at)
+          VALUES($1,'account_step_up',$2,now()+interval '10 minutes') RETURNING id`,
+        [userId, randomBytes(32)])).rows[0];
+        return (await database.query(`INSERT INTO account_step_up_requests
+          (user_id,auth_token_id,challenge_hash,purpose,expires_at,confirmed_at)
+          VALUES($1,$2,$3,'operational_resume',now()+interval '10 minutes',now()) RETURNING id`,
+        [userId, token.id, randomBytes(32)])).rows[0].id;
+      };
+      const pauseLogistics = await send("technician", "PUT", "/v1/admin/operational-control", {
+        domain: "logistics", action: "pause", confirmed: true,
+        reason: "Pausa sintética para prova de versão concorrente.",
+      });
+      assert.equal(pauseLogistics.status, 200);
+      const staleProposal = await send("technician", "POST", "/v1/admin/operational-resume-requests", {
+        domain: "logistics", reason: "Proposta sintética antes da mudança concorrente.",
+        grantId: await seedConfirmedGrant(ids.technician),
+      });
+      assert.equal(staleProposal.status, 201, JSON.stringify(staleProposal.body));
+      const extraPause = await send("technician", "PUT", "/v1/admin/operational-control", {
+        domain: "logistics", action: "pause", confirmed: true,
+        reason: "Nova contenção sintética invalida a versão da proposta anterior.",
+      });
+      assert.equal(extraPause.status, 200);
+      const staleDecision = await send("founder", "POST",
+        `/v1/admin/operational-resume-requests/${staleProposal.body.request.id}/decision`, {
+          approved: true, reason: "Versão antiga não pode reativar a logística.",
+          grantId: await seedConfirmedGrant(ids.founder),
+        });
+      assert.equal(staleDecision.status, 200, JSON.stringify(staleDecision.body));
+      assert.equal(staleDecision.body.request.status, "superseded");
+      assert.equal(staleDecision.body.state, null);
+      const logistics = (await database.query(
+        "SELECT paused FROM operational_controls WHERE domain='logistics'",
+      )).rows[0];
+      assert.equal(logistics.paused, true);
+      const unsafeResumes = (await database.query(`SELECT count(*)::int AS total
+        FROM audit_events WHERE entity_type='operational_control'
+          AND entity_id='logistics' AND action='operations.resumed'`)).rows[0].total;
+      assert.equal(unsafeResumes, 0);
     } finally {
       if (api?.listening) await new Promise(resolve => api.close(resolve));
       await database.close();
