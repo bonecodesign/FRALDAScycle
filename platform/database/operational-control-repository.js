@@ -77,7 +77,14 @@ export function createOperationalControlRepository(database,{stepUpRepository=nu
       const grant=await stepUpRepository.consume(client,{grantId,userId:actorUserId,purpose:'operational_resume'});if(!grant)throw fail('operational_resume_step_up_required',409,'Confirmação de segurança inválida ou expirada.');
       const request=(await client.query("SELECT * FROM operational_resume_requests WHERE id=$1 AND status='pending' FOR UPDATE",[requestId])).rows[0];if(!request)throw fail('operational_resume_request_not_found',404,'Solicitação pendente não encontrada.');
       if(request.proposed_by===actorUserId)throw fail('independent_resume_approval_required',403,'A autorização final deve ser independente da proposta.');
-      let status=approved?'approved':'rejected',state=null;if(approved){const current=(await client.query('SELECT * FROM operational_controls WHERE domain=$1 FOR UPDATE',[request.domain])).rows[0];if(!current?.paused||current.version!==request.expected_version){status='superseded';}else{state=(await client.query(`UPDATE operational_controls SET paused=false,reason=$2,changed_by=$3,changed_at=now(),version=version+1 WHERE domain=$1 RETURNING *`,[request.domain,reason,actorUserId])).rows[0];}}
+      let status=approved?'approved':'rejected',state=null;if(approved){const current=(await client.query('SELECT * FROM operational_controls WHERE domain=$1 FOR UPDATE',[request.domain])).rows[0];if(!current?.paused||current.version!==request.expected_version){status='superseded';}else{
+        state=(await client.query(`UPDATE operational_controls SET paused=false,reason=$2,changed_by=$3,changed_at=now(),version=version+1 WHERE domain=$1 RETURNING *`,[request.domain,reason,actorUserId])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'operations.resumed','operational_control',$2,$3::jsonb)`,[actorUserId,request.domain,JSON.stringify({
+          domain:request.domain,previousPaused:current.paused,newPaused:false,
+          previousVersion:current.version,newVersion:state.version,reason,resumeRequestId:request.id,
+        })]);
+      }}
       const row=(await client.query(`UPDATE operational_resume_requests SET status=$2,decided_by=$3,decision_step_up_id=$4,decision_reason=$5,decided_at=now() WHERE id=$1 RETURNING *`,[requestId,status,actorUserId,grantId,reason])).rows[0];
       await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,$2,'operational_resume_request',$3,$4::jsonb)`,[actorUserId,status==='approved'?'operations.resume.approved':status==='rejected'?'operations.resume.rejected':'operations.resume.superseded',requestId,JSON.stringify({domain:request.domain,expectedVersion:request.expected_version})]);return{request:row,state};
     });},
