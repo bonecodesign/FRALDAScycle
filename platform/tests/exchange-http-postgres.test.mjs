@@ -5,6 +5,8 @@ import {loadConfig} from '../apps/api/config.js';
 import {createExchangeService} from '../apps/api/exchange-service.js';
 import {createDatabase} from '../database/client.js';
 import {createExchangeRepository} from '../database/exchange-repository.js';
+import {createFreightSettlementService} from '../apps/api/freight-settlement-service.js';
+import {createFreightSettlementRepository} from '../database/freight-settlement-repository.js';
 import {createLogisticsService} from '../apps/api/logistics-service.js';
 import {createLogisticsRepository} from '../database/logistics-repository.js';
 import {discoverMigrations,migrate} from '../database/migrate.js';
@@ -33,10 +35,11 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
     ($5,'exchange-courier-2@example.test','fixture','Entregador fictício 2','courier',now())`,Object.values(ids));
    for(let index=0;index<listingIds.length;index++)await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,open_package_attested,size,quantity,kind,status,city,state,published_at)
     VALUES($1,$2,$3,'Pacote fictício lacrado para prova integrada.','infant','Marca fictícia','Modelo fictício','sealed',false,'M',1,'exchange','published','Belo Horizonte','MG',now())`,[listingIds[index],index%2===0?ids.owner:ids.requester,`Troca fictícia ${index+1}`]);
-   const actors={requester:{id:ids.requester,role:'customer'},owner:{id:ids.owner,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'},courier1:{id:ids.courier1,role:'courier'},courier2:{id:ids.courier2,role:'courier'}};
+   const actors={requester:{id:ids.requester,role:'customer'},owner:{id:ids.owner,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'logistics'},finance:{id:ids.admin,role:'admin',staffSector:'finance',staffAccessLevel:3},courier1:{id:ids.courier1,role:'courier'},courier2:{id:ids.courier2,role:'courier'}};
    const exchangeRepository=createExchangeRepository(database);const exchangeService=createExchangeService(exchangeRepository);
    const logisticsService=createLogisticsService(createLogisticsRepository(database));
-   api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),exchangeService,logisticsService,authService:{async session(token){return actors[token]??null;}}});
+   const freightSettlementService=createFreightSettlementService(createFreightSettlementRepository(database));
+   api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),exchangeService,logisticsService,freightSettlementService,authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
    const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'});
    async function propose(pair){const response=await fetch(`${origin}/v1/exchanges`,{method:'POST',headers:headers('requester'),body:JSON.stringify({requestedListingId:pair[0],offeredListingId:pair[1],requesterDeclaredValueCents:8000,confirmed:true})});const body=await response.json();assert.equal(response.status,201,JSON.stringify(body));return body.exchange.transaction_id;}
@@ -53,6 +56,22 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    const acceptedComplete=await fetch(`${origin}/v1/exchanges/${completedId}/accept`,{method:'POST',headers:headers('owner'),body:JSON.stringify({expectedVersion:1,ownerDeclaredValueCents:10000,confirmed:true})});assert.equal(acceptedComplete.status,201);
    const feeRows=(await database.query('SELECT declared_value_cents,fee_basis_points,fee_cents,status FROM exchange_fee_obligations WHERE transaction_id=$1 ORDER BY fee_cents',[completedId])).rows;
    assert.deepEqual(feeRows.map(row=>({value:row.declared_value_cents,basis:row.fee_basis_points,fee:row.fee_cents,status:row.status})),[{value:8000,basis:250,fee:200,status:'not_charged'},{value:10000,basis:250,fee:250,status:'not_charged'}]);
+   const accountingUrl=`${origin}/v1/admin/freight-settlement-plans/exchanges/${completedId}/difference-accounting`;
+   const accountingRequest=token=>fetch(accountingUrl,{headers:headers(token)});
+   assert.equal((await accountingRequest('requester')).status,403);
+   assert.equal((await accountingRequest('admin')).status,403);
+   const accountingResponse=await accountingRequest('finance');
+   assert.equal(accountingResponse.status,200);
+   assert.equal(accountingResponse.headers.get('cache-control'),'no-store');
+   const accounting=await accountingResponse.json();
+   assert.equal(accounting.localConsistent,true);
+   assert.equal(accounting.externalChargeCreated,false);
+   assert.equal(accounting.payoutAllowed,false);
+   assert.equal(accounting.providerReconciled,false);
+   assert.deepEqual(accounting.participants.map(x=>x.combinedLocalObligationCents),[2200,250]);
+   assert.equal(accounting.difference.payerId,ids.requester);
+   assert.equal(accounting.difference.recipientId,ids.owner);
+   assert.equal(accounting.difference.amountCents,2000);
    const difference=(await database.query('SELECT payer_id,recipient_id,amount_cents,status FROM exchange_difference_obligations WHERE transaction_id=$1',[completedId])).rows[0];assert.deepEqual(difference,{payer_id:ids.requester,recipient_id:ids.owner,amount_cents:2000,status:'not_charged'});
    assert.equal((await database.query('SELECT count(*)::int AS count FROM payment_intents WHERE transaction_id=$1',[completedId])).rows[0].count,0);
    const acceptedBody=await acceptedComplete.json();
