@@ -398,8 +398,6 @@
         "apps/api/logistics-service.js",
         "tests/receipt-records.test.mjs",
         "tests/institution-receipt-http-postgres.test.mjs",
-        "database/institution-access-repository.js",
-        "apps/api/institution-access-service.js",
         "apps/app/institution-access.html",
         "tools/beta-institution-access-check.mjs",
         "docs/institution-access-beta.md",
@@ -407,10 +405,13 @@
         "apps/api/donation-service.js",
         "apps/app/donations.html",
         "tools/beta-donation-check.mjs",
-        "docs/donation-beta.md"
+        "docs/donation-beta.md",
+        "packages/contracts/institution-receipt-readiness.js",
+        "tests/donation-service.test.mjs",
+        "docs/requirement-18-institution-receipt-order.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse.",
-      "reason": "Autorização, aprovação, validação independente e bloqueio financeiro estão comprovados. Mídia/identidade humanas e homologação operacional da retirada institucional permanecem pendentes."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse. Complemento técnico em 07/11/2026: validação do comprovante institucional condicionada à aprovação anterior pelo representante autorizado da própria instituição; bloqueio para aprovador divergente e prontidão local rejeita sequência temporal invertida; provas HTTP/PostgreSQL e contrato sujeitas ao CI.",
+      "reason": "Autorização institucional, aprovação idempotente, sequência de validação independente e bloqueio financeiro preparados localmente. Identidade, retirada, entrega e evidências humanas reais ainda exigem homologação operacional."
     },
     {
       "id": 19,
