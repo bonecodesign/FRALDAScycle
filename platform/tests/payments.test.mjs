@@ -481,3 +481,98 @@ test("refund and dispute HTTP routes require the payment owner session", async (
   assert.equal(body.paymentCase.kind, "refund");
 });
 
+
+
+test("buyer-only checkout breakdown reconciles product, external freight, and both platform shares without charging", async () => {
+  let remoteCalls = 0;
+  const service = createPaymentService({
+    async checkoutPreview({ buyerId, transactionId: requestedId }) {
+      assert.equal(buyerId, "buyer-1");
+      assert.equal(requestedId, transactionId);
+      return {
+        id: transactionId, status: "initiated", kind: "sale", amount_cents: 10000,
+        quote_id: "22222222-2222-4222-8222-222222222222",
+        quote_status: "confirmed", quote_confirmed_by: "buyer-1",
+        quote_provider: "lalamove", base_freight_cents: 2000,
+        freight_platform_fee_cents: 100, customer_total_cents: 2100,
+        quote_expires_at: new Date(Date.now() + 60000),
+      };
+    },
+  }, { async createIntent() { remoteCalls += 1; } });
+  const result = await service.checkoutPreview("buyer-1", transactionId);
+  assert.deepEqual(result.product, { amountCents: 10000, platformFeeCents: 800, sellerCents: 9200 });
+  assert.equal(result.freight.partnerOrCourierCents, 2000);
+  assert.equal(result.freight.platformFeeCents, 100);
+  assert.equal(result.freight.customerTotalCents, 2100);
+  assert.equal(result.totalCents, 12100);
+  assert.equal(result.freightCheckoutBlocked, true);
+  assert.equal(result.providerProcessingFeeCents, null);
+  assert.equal(result.externalChargeCreated, false);
+  assert.equal(result.product.sellerCents + result.product.platformFeeCents +
+    result.freight.partnerOrCourierCents + result.freight.platformFeeCents, result.totalCents);
+  assert.equal(remoteCalls, 0);
+});
+
+test("checkout breakdown rejects unconfirmed, expired, mispriced, or mismatched-owner freight", async () => {
+  const quote = {
+    id: transactionId, status: "initiated", kind: "sale", amount_cents: 10000,
+    quote_id: "22222222-2222-4222-8222-222222222222",
+    quote_status: "confirmed", quote_confirmed_by: "buyer-1",
+    quote_provider: "fraldacycle_courier", base_freight_cents: 2000,
+    freight_platform_fee_cents: 100, customer_total_cents: 2100,
+    quote_expires_at: new Date(Date.now() + 60000),
+  };
+  for (const [mutated, code] of [
+    [{ quote_status: "quoted" }, "delivery_quote_not_ready"],
+    [{ quote_expires_at: new Date(Date.now() - 1000) }, "delivery_quote_not_ready"],
+    [{ quote_confirmed_by: "other" }, "delivery_quote_not_ready"],
+    [{ freight_platform_fee_cents: 0 }, "invalid_delivery_quote_total"],
+    [{ customer_total_cents: 2099 }, "invalid_delivery_quote_total"],
+  ]) {
+    const service = createPaymentService({ checkoutPreview: async () => ({ ...quote, ...mutated }) }, {});
+    await assert.rejects(service.checkoutPreview("buyer-1", transactionId), error => error.code === code);
+  }
+});
+
+test("any active delivery quote blocks product-only intent even if client hides deliveryRequested", async () => {
+  let charged = 0;
+  const repository = paymentStore();
+  repository.context = async () => ({ existing: false, transaction: {
+    id: transactionId, buyer_id: "buyer-1", status: "initiated",
+    kind: "sale", amount_cents: 10000, active_delivery_quote: true,
+  } });
+  const service = createPaymentService(repository, {
+    async createIntent() { charged += 1; },
+  });
+  await assert.rejects(service.createIntent("buyer-1", {
+    transactionId, idempotencyKey: "freight-bypass-disabled-0001", method: "pix",
+    deliveryRequested: false,
+  }), e => e.code === "settlement_not_configured");
+  assert.equal(repository.sequence, 0);
+  assert.equal(charged, 0);
+});
+
+test("checkout breakdown route requires authentication and does not expose cacheable buyer totals", async () => {
+  const service = {
+    async checkoutPreview(userId, id) { return { userId, transactionId: id, totalCents: 12100, externalChargeCreated: false }; },
+  };
+  const server = createApiServer({
+    config: loadConfig({ NODE_ENV: "test" }),
+    authService: { async session(token) { return token === "buyer" ? { id: "buyer-1" } : null; } },
+    paymentService: service,
+  });
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/v1/transactions/${transactionId}/payment-breakdown`;
+    const unauthorized = await fetch(url);
+    assert.equal(unauthorized.status, 401);
+    const authorized = await fetch(url, { headers: { cookie: "fc_session=buyer" } });
+    assert.equal(authorized.status, 200);
+    assert.equal(authorized.headers.get("cache-control"), "no-store");
+    const body = await authorized.json();
+    assert.equal(body.totalCents, 12100);
+    assert.equal(body.userId, "buyer-1");
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+});
