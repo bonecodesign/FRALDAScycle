@@ -80,3 +80,15 @@ Depois do ensaio, `createIncidentDrillEvidence` em `apps/api/incident-drill-evid
 | Achados, responsável e prazo | Pendente |
 
 Os testes `tests/incident-drill-contract.test.mjs`, `tests/incident-drill-runner.test.mjs`, `tests/incident-drill-evidence.test.mjs`, `tests/incident-drill-signoff.test.mjs`, `tests/operational-control.test.mjs` e `tests/operational-control-postgres.test.mjs` verificam o registro, a integridade da evidência, o bloqueio de falso encerramento, a contenção, a retomada e o rollback seguro. A conclusão do requisito exige responsáveis aceitos, exercício observado e registros reais da sessão interna.
+
+## Cronologia obrigatória no aceite do exercício — 07/11/2026
+
+A avaliação local `assessIncidentDrillSignoff` passa a exigir ordem temporal coerente **com a evidência técnica cujo hash foi validado**:
+
+- Os três responsáveis devem registrar aceite **até o início** do ensaio técnico (`acceptedAt <= startedAt`).
+- O observador independente só pode registrar observação **após a recuperação** do domínio (`observedAt >= recovery.recoveredAt`).
+- A decisão formal não pode anteceder a observação (`decidedAt >= observedAt`).
+
+Qualquer violação deixa o relatório `pending`, sem autorizar lançamento. As datas devem continuar válidas e não futuras na avaliação. Regressões sintéticas verificam datas fora de ordem e os limites inclusivos.
+
+Essas regras verificam **consistência temporal**, não autenticidade de pessoas, assinatura eletrônica, presença do observador ou realização de sessão humana. Aceites efetivos, nomeação, ensaio observado e documentação real continuam obrigatórios. O requisito 56 segue **parcial**.
