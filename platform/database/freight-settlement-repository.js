@@ -128,6 +128,26 @@ export function createFreightSettlementRepository(database) {
       });
     },
 
+    async exchangeDifferenceContext(transactionId) {
+      const row=(await database.query(`SELECT e.transaction_id,e.status,e.requester_id,e.owner_id,
+        e.requested_listing_id,e.offered_listing_id,
+        e.requester_declared_value_cents,e.owner_declared_value_cents,
+        COALESCE((SELECT json_agg(json_build_object(
+          'transaction_id',f.transaction_id,'participant_id',f.participant_id,
+          'offered_listing_id',f.offered_listing_id,
+          'declared_value_cents',f.declared_value_cents,
+          'fee_basis_points',f.fee_basis_points,'fee_cents',f.fee_cents,
+          'status',f.status) ORDER BY f.participant_id)
+          FROM exchange_fee_obligations f WHERE f.transaction_id=e.transaction_id),'[]'::json) AS fee_rows,
+        (SELECT json_build_object('transaction_id',d.transaction_id,
+          'payer_id',d.payer_id,'recipient_id',d.recipient_id,
+          'lower_value_cents',d.lower_value_cents,'higher_value_cents',d.higher_value_cents,
+          'amount_cents',d.amount_cents,'status',d.status)
+          FROM exchange_difference_obligations d WHERE d.transaction_id=e.transaction_id) AS difference_row
+        FROM exchange_operations e WHERE e.transaction_id=$1`,[transactionId])).rows[0];
+      return row??null;
+    },
+
     async exchangeLegs(transactionId) {
       const rows = (await database.query(`SELECT
         t.id AS transaction_id,t.buyer_id AS transaction_buyer_id,

@@ -34,6 +34,13 @@ export async function handleAdmin(request, response, {
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
     return true;
   }
+  const exchangeDifferenceAccounting = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/exchanges\/([0-9a-f-]{36})\/difference-accounting$/i);
+  if (request.method === 'GET' && exchangeDifferenceAccounting) {
+    if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Conferência financeira indisponível.');
+    const result=await freightSettlementService.exchangeDifferenceAccounting(user,exchangeDifferenceAccounting[1]);
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
   const exchangeFreight = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/exchanges\/([0-9a-f-]{36})\/legs$/i);
   if (request.method === 'GET' && exchangeFreight) {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Análise financeira indisponível.');

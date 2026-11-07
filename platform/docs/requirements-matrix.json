@@ -247,10 +247,16 @@
         "tests/exchange-reconciliation-retention.test.mjs",
         "tests/exchange-retention-admin-status.test.mjs",
         "tests/exchange-retention-request-service.test.mjs",
-        "tests/exchange-http-postgres.test.mjs"
+        "tests/exchange-http-postgres.test.mjs",
+        "packages/contracts/exchange-difference-accounting.js",
+        "database/freight-settlement-repository.js",
+        "apps/api/freight-settlement-service.js",
+        "apps/api/admin-handler.js",
+        "tests/exchange-difference-accounting.test.mjs",
+        "docs/requirement-10-exchange-difference-accounting.md"
       ],
-      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida.",
-      "reason": "Regra, pagador, recebedor, persistência, bloqueio logístico e retenção local estão implementados; cobrança, retenção e repasse reais dependem da homologação do Asaas."
+      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida. Complemento 07/11/2026: conferência contábil administrativa somente leitura com valores declarados, duas taxas independentes de 2,5%, direção e valor da diferença; testes unitários e de HTTP/PostgreSQL sujeitos à aprovação do CI.",
+      "reason": "Cálculo, obrigações separadas, revisão contábil, disputa, outbox, conciliação e retenção locais preparados. Cobrança, garantia/retenção e repasse externos continuam dependentes de contratação/homologação do processador."
     },
     {
       "id": 11,
