@@ -259,9 +259,9 @@ export function createCourierEligibilityRepository(database) {
         if (input.decision === 'approved') {
           await client.query(`UPDATE courier_clearance_documents SET status='verified',
             validity_source='issuer_document',issuer_verification_reference=$2,
-            issued_at=$3,expires_at=$4,delete_at=$4::timestamptz + interval '30 days'
+            issued_at=$3,expires_at=$4,delete_at=$5::timestamptz + interval '30 days'
             WHERE id=$1`, [row.document_id, input.issuerVerificationReference,
-            input.issuedAt, input.expiresAt]);
+            input.issuedAt, input.expiresAt, input.decidedAt]);
         } else {
           await client.query(`UPDATE courier_clearance_documents SET status='rejected' WHERE id=$1`, [row.document_id]);
           await client.query(`UPDATE courier_profiles SET account_status='suspended',updated_at=now()
