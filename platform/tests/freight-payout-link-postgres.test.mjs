@@ -42,6 +42,7 @@ test("PostgreSQL links prepared seller and own-courier payouts to approved freig
         ($4,'link-finance@example.test','fixture','Financeiro sintético','admin',3,'finance'),
         ($5,'link-logistics@example.test','fixture','Logística sintética','admin',4,'logistics')`,
         [ids.seller,ids.buyer,ids.courier,ids.finance,ids.logistics]);
+      await database.query("INSERT INTO courier_profiles(user_id) VALUES($1)",[ids.courier]);
       await database.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,size,quantity,kind,price_cents,status)
         VALUES($1,$2,'Venda com frete interno','Simulação sem cobrança ou transferência externa.','infant','Marca','Modelo','sealed','M',1,'sale',10000,'unavailable')`,
         [ids.listing,ids.seller]);
