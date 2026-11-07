@@ -1,5 +1,5 @@
 const MOTORIZED_VEHICLES = new Set(["motorcycle", "car", "van"]);
-const CLEARANCE_COPY_RETENTION_AFTER_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
+const CLEARANCE_COPY_RETENTION_AFTER_VERIFICATION_MS = 30 * 24 * 60 * 60 * 1000;
 const CLEARANCE_RENEWAL_NOTICE_BEFORE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const CLEARANCE_PROVISIONAL_REVIEW_SLA_MS = 24 * 60 * 60 * 1000;
 export const PILOT_COURIER_VEHICLES = Object.freeze(["motorcycle", "bicycle"]);
@@ -85,11 +85,17 @@ export function courierEligibility(profile, { now = Date.now(), distanceKm = nul
     Boolean(profile?.policeClearance?.storage?.storageReference) && Boolean(profile?.policeClearance?.storage?.keyReference) &&
     profile?.policeClearance?.storage?.accessScope === "courier_clearance_reviewers" &&
     profile?.policeClearance?.storage?.accessLoggingEnabled === true &&
-    profile?.policeClearance?.storage?.retention?.status === "approved" &&
+    ["approved", "deleted"].includes(profile?.policeClearance?.storage?.retention?.status) &&
     Boolean(profile?.policeClearance?.storage?.retention?.policyVersion) &&
     Boolean(profile?.policeClearance?.storage?.retention?.legalApproverId) &&
-    Number.isFinite(clearanceRetentionDeleteAt) && clearanceRetentionDeleteAt > now &&
-    clearanceRetentionDeleteAt === clearanceExpiresAt + CLEARANCE_COPY_RETENTION_AFTER_EXPIRY_MS;
+    Number.isFinite(clearanceRetentionDeleteAt) &&
+    clearanceRetentionDeleteAt > clearanceVerifiedAt &&
+    clearanceRetentionDeleteAt <= clearanceVerifiedAt + CLEARANCE_COPY_RETENTION_AFTER_VERIFICATION_MS &&
+    (now < clearanceRetentionDeleteAt
+      ? profile?.policeClearance?.storage?.retention?.status === "approved"
+      : profile?.policeClearance?.storage?.retention?.status === "deleted" &&
+        Boolean(profile?.policeClearance?.storage?.retention?.deletedAt) &&
+        Date.parse(profile.policeClearance.storage.retention.deletedAt) <= clearanceRetentionDeleteAt);
   const renewalSubmittedAt = Date.parse(profile?.policeClearance?.renewal?.submittedAt ?? "");
   const renewalReviewDueAt = Date.parse(profile?.policeClearance?.renewal?.reviewDueAt ?? "");
   const provisionalRenewalAllowed = profile?.policeClearance?.status === "renewal_pending_review" &&
