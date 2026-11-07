@@ -15,6 +15,7 @@ O console está em `/admin/operations`, na área administrativa. A mesma tela re
 - reabertura e notas operacionais;
 - controle otimista de versão;
 - linha do tempo e auditoria persistidas;
+- retomada com proposta técnica e confirmação reforçada independente do fundador; quando aprovada, grava `operations.resumed` no histórico do domínio na mesma transação que atualiza o estado e registra `operations.resume.approved` na solicitação;
 - pausa independente de novas cobranças, criação de reembolsos e preparação de repasses;
 - contestação, consulta, suporte e compromissos existentes preservados.
 
