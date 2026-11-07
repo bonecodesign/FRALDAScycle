@@ -101,3 +101,19 @@ test('institution approval and independent proof validation never authorize cour
  const ready=institutionReceiptReadiness(row);assert.equal(ready.operationalRequirementsMet,true);assert.equal(ready.requirementsMet,false);assert.equal(ready.payoutAllowed,false);
  for(const changed of [{donation_authorized:false},{approved_at:null},{validated_at:'invalid'},{financial_case_pending:true}])assert.equal(institutionReceiptReadiness({...row,...changed}).operationalRequirementsMet,false);
 });
+
+
+test('institution validation must not precede institution receipt approval in operational status',()=>{
+ const row={kind:'donation',donation_authorized:true,shipment_status:'delivered',
+   id:'proof',transaction_status:'in_delivery',approved_at:'2026-11-07T13:00:00.000Z',
+   validated_at:'2026-11-07T12:59:59.000Z',financial_case_pending:false};
+ const inconsistent=institutionReceiptReadiness(row,Date.parse('2026-11-07T14:00:00.000Z'));
+ assert.equal(inconsistent.operationalRequirementsMet,false);
+ assert.ok(inconsistent.blockers.includes('institution_validation_precedes_approval'));
+ assert.equal(inconsistent.payoutAllowed,false);
+ const ordered=institutionReceiptReadiness({...row,
+   validated_at:'2026-11-07T13:00:01.000Z'},Date.parse('2026-11-07T14:00:00.000Z'));
+ assert.equal(ordered.operationalRequirementsMet,true);
+ assert.deepEqual(ordered.blockers,['institutional_pickup_pending']);
+ assert.equal(ordered.payoutAllowed,false);
+});
