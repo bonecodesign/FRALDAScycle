@@ -80,11 +80,14 @@ export function courierEligibility(profile, { now = Date.now(), distanceKm = nul
     profile?.policeClearance?.review?.method === "official_police_civil_channel" &&
     Boolean(profile?.policeClearance?.review?.reviewerId) && Boolean(profile?.policeClearance?.review?.auditReference) &&
     Number.isFinite(clearanceVerifiedAt) && clearanceVerifiedAt <= now && clearanceVerifiedAt >= clearanceIssuedAt &&
-    profile?.policeClearance?.storage?.mode === "encrypted_restricted" &&
-    profile?.policeClearance?.storage?.encryptionStatus === "encrypted" &&
-    Boolean(profile?.policeClearance?.storage?.storageReference) && Boolean(profile?.policeClearance?.storage?.keyReference) &&
-    profile?.policeClearance?.storage?.accessScope === "courier_clearance_reviewers" &&
     profile?.policeClearance?.storage?.accessLoggingEnabled === true &&
+    (profile?.policeClearance?.storage?.retention?.status === "deleted"
+      ? !profile?.policeClearance?.storage?.storageReference && !profile?.policeClearance?.storage?.keyReference
+      : profile?.policeClearance?.storage?.mode === "encrypted_restricted" &&
+        profile?.policeClearance?.storage?.encryptionStatus === "encrypted" &&
+        Boolean(profile?.policeClearance?.storage?.storageReference) &&
+        Boolean(profile?.policeClearance?.storage?.keyReference) &&
+        profile?.policeClearance?.storage?.accessScope === "courier_clearance_reviewers") &&
     ["approved", "deleted"].includes(profile?.policeClearance?.storage?.retention?.status) &&
     Boolean(profile?.policeClearance?.storage?.retention?.policyVersion) &&
     Boolean(profile?.policeClearance?.storage?.retention?.legalApproverId) &&
