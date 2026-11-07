@@ -65,6 +65,7 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   try {
     response = await fetchImpl(url, {
       method: "POST",
+      redirect: "error",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
