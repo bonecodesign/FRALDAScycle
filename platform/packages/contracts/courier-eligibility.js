@@ -98,7 +98,9 @@ export function courierEligibility(profile, { now = Date.now(), distanceKm = nul
       ? profile?.policeClearance?.storage?.retention?.status === "approved"
       : profile?.policeClearance?.storage?.retention?.status === "deleted" &&
         Boolean(profile?.policeClearance?.storage?.retention?.deletedAt) &&
-        Date.parse(profile.policeClearance.storage.retention.deletedAt) <= clearanceRetentionDeleteAt);
+        Date.parse(profile.policeClearance.storage.retention.deletedAt) >= clearanceVerifiedAt &&
+        Date.parse(profile.policeClearance.storage.retention.deletedAt) <= clearanceRetentionDeleteAt &&
+        Date.parse(profile.policeClearance.storage.retention.deletedAt) <= now);
   const renewalSubmittedAt = Date.parse(profile?.policeClearance?.renewal?.submittedAt ?? "");
   const renewalReviewDueAt = Date.parse(profile?.policeClearance?.renewal?.reviewDueAt ?? "");
   const provisionalRenewalAllowed = profile?.policeClearance?.status === "renewal_pending_review" &&
