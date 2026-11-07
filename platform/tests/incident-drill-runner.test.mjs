@@ -125,6 +125,7 @@ test("invalid actor, non-independent founder or missing grants fail before pausi
     { founder: { ...founder, staffAccessLevel: 4 } },
     { founder: { ...founder, staffSector: "operations" } },
     { founderGrantId: undefined },
+    { founderGrantId: technicalGrantId },
     { technicalGrantId: "not-a-grant" },
     { input: { ...base, syntheticDataOnly: false } },
     { input: { ...base, recovery: { authorized: false, criterion: "No approval." } } },
