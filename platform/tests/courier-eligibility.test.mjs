@@ -125,7 +125,7 @@ test("renewal notice is due only during the final seven days after timely copy d
   const sevenDaysBefore = Date.parse("2030-12-25T00:00:00Z");
   assert.equal(courierEligibility(complete, { now: eightDaysBefore }).policeClearanceRenewalNoticeDue, false);
 
-  const notice = courierEligibility({ ...complete, policeClearance: { ...complete.policeClearance, storage: { ...complete.policeClearance.storage, retention: { ...complete.policeClearance.storage.retention, status: "deleted", deletedAt: "2030-01-14T00:00:00Z" } } } }, { now: sevenDaysBefore });
+  const notice = courierEligibility({ ...complete, policeClearance: { ...complete.policeClearance, storage: { ...complete.policeClearance.storage, storageReference: null, keyReference: null, retention: { ...complete.policeClearance.storage.retention, status: "deleted", deletedAt: "2030-01-14T00:00:00Z" } } } }, { now: sevenDaysBefore });
   assert.equal(notice.eligible, true);
   assert.equal(notice.mayReceiveOffers, true);
   assert.equal(notice.policeClearanceRenewalNoticeDue, true);
