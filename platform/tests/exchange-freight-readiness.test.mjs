@@ -11,9 +11,9 @@ const future="2030-06-01T00:00:00.000Z";
 const now=Date.parse("2026-11-07T12:00:00.000Z");
 
 function leg(index,base,recipient,sender) {
-  const shipmentId=`aaaaaaa\${index}-aaaa-4aaa-8aaa-aaaaaaaaaaa\${index}`;
-  const quoteId=`bbbbbbb\${index}-bbbb-4bbb-8bbb-bbbbbbbbbbb\${index}`;
-  const planId=`ccccccc\${index}-cccc-4ccc-8ccc-ccccccccccc\${index}`;
+  const shipmentId=`aaaaaaa${index}-aaaa-4aaa-8aaa-aaaaaaaaaaa${index}`;
+  const quoteId=`bbbbbbb${index}-bbbb-4bbb-8bbb-bbbbbbbbbbb${index}`;
+  const planId=`ccccccc${index}-cccc-4ccc-8ccc-ccccccccccc${index}`;
   const fee=Math.floor((base*500+5000)/10000);
   return {
     exchange_leg:index,shipment_id:shipmentId,shipment_transaction_id:transaction,
