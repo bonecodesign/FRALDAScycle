@@ -15,6 +15,7 @@ O console está em `/admin/operations`, na área administrativa. A mesma tela re
 - reabertura e notas operacionais;
 - controle otimista de versão;
 - linha do tempo e auditoria persistidas;
+- retomada com proposta técnica e confirmação reforçada independente do fundador; quando aprovada, grava `operations.resumed` no histórico do domínio na mesma transação que atualiza o estado e registra `operations.resume.approved` na solicitação;
 - pausa independente de novas cobranças, criação de reembolsos e preparação de repasses;
 - contestação, consulta, suporte e compromissos existentes preservados.
 
@@ -28,11 +29,12 @@ Na hierarquia aprovada, incidentes operacionais exigem nível 2, incidentes e pa
 
 No suporte financeiro, nível 1 atende, nível 2 registra a decisão de reembolso e nível 3 executará a ação no fornecedor. O registro de decisão permanece separado da execução financeira.
 
-Ainda não implementado:
+A retomada exige autenticação na plataforma, senha e código de seis dígitos enviado ao e-mail verificado, produzindo uma confirmação de propósito específico e uso único para cada pessoa. A proposta do técnico e a autorização do fundador são transações independentes. O novo teste HTTP/PostgreSQL cobre o ciclo completo com contas e mensagens exclusivamente fictícias; ele não demonstra entrega real de e-mail.
 
-- segundo fator específico para retomada;
-- aprovação conjunta executável entre fundador e técnico;
-- tokens de ação de uso único;
+Ainda não implementado ou homologado:
+
+- autenticação multifator independente do e-mail (como aplicativo autenticador ou chave de segurança) para retomada;
+- tokens de ação externos de uso único para integração com mensageria;
 - Meta WhatsApp Cloud API e webhook;
 - identidades e contatos reais;
 - homologação humana do exercício.
