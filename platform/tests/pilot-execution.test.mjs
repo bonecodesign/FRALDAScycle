@@ -58,7 +58,7 @@ test("pilot execution rejects go decision with missing evidence", () => {
     nextActions: [],
   });
   assert.equal(report.valid, false);
-  assert.match(report.errors.join("\n"), /all gates to pass/);
+  assert.match(report.errors.join("\n"), /all seven official gates to pass/);
   assert.match(report.errors.join("\n"), /all findings to be resolved/);
   assert.match(report.errors.join("\n"), /nextActions/);
 });
