@@ -35,6 +35,14 @@ test('internal support is private, assigned, idempotent and audited over HTTP/Po
    const noteInput={body:'Contexto interno fictício que não deve aparecer para o cliente.',idempotencyKey:'55555555-5555-4555-8555-555555555555'};
    const noted=await fetch(`${root}/${ticketId}/notes`,{method:'POST',headers:headers('admin'),body:JSON.stringify(noteInput)}),notedBody=await noted.json();assert.equal(noted.status,201,JSON.stringify(notedBody));assert.equal(notedBody.note.reused,false);
    const noteReplay=await fetch(`${root}/${ticketId}/notes`,{method:'POST',headers:headers('admin'),body:JSON.stringify(noteInput)});assert.equal(noteReplay.status,200);assert.equal((await noteReplay.json()).note.reused,true);
+   const attemptedCustomerNote=await fetch(`${root}/${ticketId}/notes`,{method:'POST',headers:headers('owner'),body:JSON.stringify({...noteInput,idempotencyKey:'66666666-6666-4666-8666-666666666666'})});assert.equal(attemptedCustomerNote.status,403);
+   const customerPage=await fetch(`${root}?page=1`,{headers:headers('owner')});assert.equal(customerPage.status,200);
+   const customerPageText=JSON.stringify(await customerPage.json());
+   assert.equal(customerPageText.includes(noteInput.body),false);
+   assert.equal(customerPageText.includes(ids.admin),false);
+   const outsiderPage=await fetch(`${root}?page=1`,{headers:headers('outsider')});assert.equal(outsiderPage.status,200);
+   assert.equal(JSON.stringify(await outsiderPage.json()).includes(ticketId),false);
+
    const customerReply=await fetch(`${root}/${ticketId}/reply`,{method:'POST',headers:headers('owner'),body:JSON.stringify({body:'Tentativa do cliente responder como equipe.',status:'under_review',idempotencyKey:'customer-support-reply-denied'})});assert.equal(customerReply.status,403);
    const firstReply={body:'Atendimento fictício assumido e colocado em análise.',status:'under_review',idempotencyKey:'support-reply-under-review'};
    const replied=await fetch(`${root}/${ticketId}/reply`,{method:'POST',headers:headers('admin'),body:JSON.stringify(firstReply)}),repliedBody=await replied.json();assert.equal(replied.status,200,JSON.stringify(repliedBody));assert.equal(repliedBody.reused,false);assert.equal(repliedBody.status,'under_review');
