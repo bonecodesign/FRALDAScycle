@@ -31,3 +31,9 @@ Não são criados lembretes de pagamento/entrega nem campanhas automaticamente. 
 Sem contratação, credenciais, dados pessoais reais/infantis, repasses, cobranças, reembolsos, termos jurídicos ativos, desktop ou lançamento. Item 12 permanece em standby. Este avanço não muda a contagem geral: item 49 continua parcial, 37/70 concluídos; prontidão para produção permanece bloqueada.
 
 Atualização no PR #74: persistência, conflito concorrente de duas conexões e retry foram executados em PostgreSQL nativo do CI; a jornada das preferências foi executada em Chrome real com Espaço/Tab/Enter e viewports 320/375/768/1280. A auditoria foi corrigida após erro 42P08, e a conexão local/overflow foram corrigidos após reprodução no navegador. Ver [evidência completa](beta-validation-2026-10-05.md). A ativação de fornecedor e a homologação das categorias operacionais permanecem pendentes.
+
+## Proteção do transporte externo de avisos — 07/11/2026
+
+Antes de qualquer despacho, `deliverNotification` valida a URL do provedor: exige HTTPS e rejeita credenciais embutidas, parâmetros de consulta ou fragmento. Solicitações autenticadas usam `redirect: 'error'`, de modo que redirecionamentos não carreguem o bearer token, destinatário ou conteúdo do aviso para outro destino. Falhas de transporte geram erro genérico sem copiar credenciais/dados de contato, e a fila conserva os mecanismos existentes de elegibilidade, preferência, idempotência e retentativa.
+
+Testes adicionais usam transportes totalmente sintéticos e exercitam recusa pré-rede e erros de redirecionamento. Não houve habilitação do canal externo, envio de mensagem real, registro de dispositivo push ou declaração de capacidade operacional. O requisito 49 continua **parcial**.
