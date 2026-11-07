@@ -1041,7 +1041,7 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Preferências e lembretes opcionais permanecem comprovados. Incidente crítico agora gera automaticamente um aviso mínimo por e-mail somente ao fundador e às funções de resposta aceitas, sem copiar o resumo sensível; elegibilidade é revalidada antes do despacho.",
+      "evidence": "Preferências e lembretes opcionais permanecem comprovados. Incidente crítico agora gera automaticamente um aviso mínimo por e-mail somente ao fundador e às funções de resposta aceitas, sem copiar o resumo sensível; elegibilidade é revalidada antes do despacho. Complemento 07/11/2026: o despacho ao provedor recusa URLs sem HTTPS, com credenciais embutidas, query ou fragmento e não segue redirecionamentos autenticados; regressões de transporte simulado foram adicionadas e aguardam CI. Envio real e canal oficial permanecem não homologados.",
       "reason": "Geração automática de alerta crítico e lembretes opcionais está preparada localmente. Ativação do fornecedor, entrega real, cadastro de dispositivo push e homologação das demais categorias continuam pendentes."
     },
     {
