@@ -1201,7 +1201,7 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-recovery-validation.md"
       ],
-      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita; testes usam somente transporte sintético.",
+      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita; testes usam somente transporte sintético. Em 07/11/2026, endpoints de backup remoto passaram a recusar credenciais embutidas, query, fragmentos e prefixos de caminho ambíguos; upload não segue redirecionamentos. Regressões sintéticas e documentação adicionadas, sujeitas ao CI. Não há prova de retenção, criptografia ou restauração no provedor real.",
       "reason": "Fundação local e adaptador de armazenamento protegido estão preparados. Bucket, KMS, cofre, acesso operacional, frequência, RPO/RTO e recuperação em infraestrutura real ainda não foram homologados."
     },
     {
