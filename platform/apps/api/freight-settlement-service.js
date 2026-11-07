@@ -2,6 +2,7 @@ import { requireAccessLevel, requireSectorScope } from "./authorization.js";
 import { ServiceError } from "./service-error.js";
 import { freightSettlementReconciliation } from "../../packages/contracts/freight-settlement.js";
 import { exchangeFreightLegReadiness } from "../../packages/contracts/exchange-freight-readiness.js";
+import { exchangeDifferenceAccounting as auditExchangeDifferenceAccounting } from "../../packages/contracts/exchange-difference-accounting.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function finance(actor) {
@@ -31,6 +32,16 @@ function publicPlan(plan) {
 }
 export function createFreightSettlementService(repository) {
   return Object.freeze({
+    async exchangeDifferenceAccounting(actor,transactionId) {
+      finance(actor);
+      validId(transactionId);
+      const snapshot=await repository.exchangeDifferenceContext(transactionId);
+      if(!snapshot)throw new ServiceError("exchange_transaction_not_found",404,
+        "Troca não encontrada para análise financeira.");
+      return auditExchangeDifferenceAccounting({
+        operation:snapshot,feeRows:snapshot.fee_rows,differenceRow:snapshot.difference_row,
+      });
+    },
     async exchangeFreightSummary(actor,transactionId) {
       finance(actor);
       validId(transactionId);
