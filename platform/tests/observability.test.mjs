@@ -103,7 +103,7 @@ test("external secrets never follow bearer-authenticated redirects or expose a v
   assert.equal(calls, 1);
   assert.equal(environment.SESSION_SECRET, "previous-synthetic-secret");
 
-  const redirected = await assert.rejects(resolveRuntimeEnv(environment, {
+  await assert.rejects(resolveRuntimeEnv(environment, {
     async fetchImpl(_url, options) {
       assert.equal(options.redirect, "error");
       return Response.redirect("https://other.example.test/vault", 302);
