@@ -97,6 +97,17 @@ test("PostgreSQL links prepared seller and own-courier payouts to approved freig
         body:JSON.stringify({confirmed:true}),
       });
 
+      const status = category => fetch(`${root}/${category}-payout`,{
+        headers:{cookie:"fc_session=logistics"},
+      });
+      // The status screens must flag missing financial provenance, not promise
+      // an eligible payout while a confirmed freight quote is still unlinked.
+      const missingPlanSeller = await (await status("seller")).json();
+      const missingPlanCourier = await (await status("courier")).json();
+      assert.equal(missingPlanSeller.payout.eligible,false);
+      assert.equal(missingPlanCourier.payout.eligible,false);
+      assert.ok(missingPlanSeller.payout.blockers.includes("freight_plan_required"));
+      assert.ok(missingPlanCourier.payout.blockers.includes("freight_plan_required"));
       // A locked quote cannot be liquidated using the legacy split without
       // an immutable plan signed off by the finance sector.
       assert.equal((await prepare("seller")).status,409);
@@ -112,7 +123,19 @@ test("PostgreSQL links prepared seller and own-courier payouts to approved freig
       await database.query("UPDATE payment_intents SET amount_cents=12101,platform_fee_cents=901 WHERE id=$1",[ids.payment]);
       assert.equal((await prepare("seller")).status,409);
       assert.equal((await prepare("courier")).status,409);
+      const wrongSeller = await (await status("seller")).json();
+      const wrongCourier = await (await status("courier")).json();
+      assert.ok(wrongSeller.payout.blockers.includes("payment_split_mismatch"));
+      assert.ok(wrongCourier.payout.blockers.includes("payment_split_mismatch"));
       await database.query("UPDATE payment_intents SET amount_cents=12100,platform_fee_cents=900 WHERE id=$1",[ids.payment]);
+      const readySeller = await (await status("seller")).json();
+      const readyCourier = await (await status("courier")).json();
+      assert.equal(readySeller.payout.eligible,true);
+      assert.equal(readyCourier.payout.eligible,true);
+      assert.equal(readySeller.payout.grossProductCents,10000);
+      assert.equal(readySeller.payout.platformFeeCents,800);
+      assert.equal(readyCourier.payout.freightCents,2100);
+      assert.equal(readyCourier.payout.payoutAllowed,false);
 
       const seller = await prepare("seller");
       const courier = await prepare("courier");
