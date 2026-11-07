@@ -5,6 +5,8 @@ O adaptador de armazenamento deve atender à operação `verify-listing-media` n
 - `exists`, `processed`, `immutable` e `exifRemoved`: true;
 - `contentType`: image/webp, detectado e convertido pelo processamento do arquivo;
 - `scanStatus`: clean;
+- `contactScanStatus`: clear; `contactRuleVersion`: FC-CONTENT-1;
+- `ocrTextStored`: false, `qrCodeDetected`: false e `contactReasons`: lista vazia;
 - `sizeBytes`: inteiro entre 1 e 10000000;
 - `width` e `height`: inteiros entre 1 e 1600.
 
@@ -15,3 +17,5 @@ Criação com fotos e reenvio com fotos novas consultam esse contrato antes de p
 Anúncios novos exigem pelo menos uma foto confirmada e entram sempre em revisão. O painel aguarda o carregamento de todas as imagens para liberar aprovação, com bloqueio após expiração ou falha. O servidor exige contexto assinado vinculado à conta, sessão, conteúdo e validade das URLs; também revalida processamento e versão na decisão final.
 
 Validação local com respostas simuladas. Configuração e homologação do adaptador real permanecem pendentes. Eventos de carregamento do navegador e autorização assinada não comprovam atenção humana; o moderador precisa conferir visualmente o conteúdo antes de confirmar.
+
+Em 07/11/2026, a regressão de contrato foi ampliada para respostas com campos obrigatórios ausentes ou ambíguos (OCR, QR, regra e resultado de contato). O provedor **não está homologado**: os novos casos usam respostas sintéticas e continuam sujeitos ao CI. A resposta `verified:true` só é informada depois de validar todas as fotos, e não equivale à inspeção humana de mídia real. O requisito formal 41 permanece parcial.
