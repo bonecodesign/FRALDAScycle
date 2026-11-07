@@ -19,7 +19,7 @@ export async function runSyntheticIncidentDrill({
   if (accessLevel(actor) === 5 || !uuid.test(String(actor.id ?? "")) || !uuid.test(String(founder.id ?? "")) || actor.id === founder.id) {
     throw new ServiceError("independent_resume_approval_required", 403, "A proposta e a autorização precisam de pessoas distintas.");
   }
-  if (!uuid.test(String(technicalGrantId ?? "")) || !uuid.test(String(founderGrantId ?? ""))) {
+  if (!uuid.test(String(technicalGrantId ?? "")) || !uuid.test(String(founderGrantId ?? "")) || technicalGrantId === founderGrantId) {
     throw new ServiceError("incident_drill_step_up_required", 422, "Confirmações de segurança independentes são obrigatórias.");
   }
   if (input?.confirmed !== true || input?.environment !== "isolated-local" || input?.syntheticDataOnly !== true) {
