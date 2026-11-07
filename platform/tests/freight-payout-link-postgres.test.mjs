@@ -47,7 +47,7 @@ test("PostgreSQL links prepared seller and own-courier payouts to approved freig
         VALUES($1,$2,'Venda com frete interno','Simulação sem cobrança ou transferência externa.','infant','Marca','Modelo','sealed','M',1,'sale',10000,'unavailable')`,
         [ids.listing,ids.seller]);
       await database.query(`INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents)
-        VALUES($1,$2,$3,$4,'in_delivery',10000)`,
+        VALUES($1,$2,$3,$4,'payment_pending',10000)`,
         [ids.transaction,ids.listing,ids.buyer,ids.seller]);
       await database.query(`INSERT INTO shipments(id,transaction_id,buyer_id,seller_id,courier_id,mode,insured,idempotency_key,provider_reference,status)
         VALUES($1,$2,$3,$4,$5,'partner',false,'freight-link-synthetic-shipment','fixture-only','delivered')`,
@@ -79,6 +79,9 @@ test("PostgreSQL links prepared seller and own-courier payouts to approved freig
       await deliveryRepository.lockForPayment({
         transactionId:ids.transaction,paymentIntentId:"synthetic-fixture",
       });
+      // The sale quote is locked before moving from checkout into delivery.
+      // The test simulates the later delivery state without any external charge.
+      await database.query("UPDATE transactions SET status='in_delivery' WHERE id=$1",[ids.transaction]);
       await database.query(`INSERT INTO payment_intents
         (id,transaction_id,buyer_id,idempotency_key,method,amount_cents,
          platform_fee_cents,delivery_fee_cents,seller_amount_cents,provider_reference,status)
