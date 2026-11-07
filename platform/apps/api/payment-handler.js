@@ -17,6 +17,14 @@ export async function handlePayments(request, response, {
     sendJson(response, 200, { ...result, requestId }, headers);
     return true;
   }
+  const preview = url.pathname.match(/^\/v1\/transactions\/([0-9a-f-]{36})\/payment-breakdown$/i);
+  if (request.method === "GET" && preview) {
+    if (!paymentService) return false;
+    const user = await authenticatedUser(request, authService);
+    const result = await paymentService.checkoutPreview(user.id, preview[1]);
+    sendJson(response, 200, { ...result, requestId }, { ...headers, "cache-control": "no-store" });
+    return true;
+  }
   const paymentCase = url.pathname.match(/^\/v1\/payments\/([0-9a-f-]{36})\/(refunds|disputes)$/i);
   if (
     !paymentService || request.method !== "POST"
