@@ -80,6 +80,8 @@ import { createAsaasClient } from './asaas-client.js';
 import { createPremiumSubscriptionRepository } from '../../database/premium-subscription-repository.js';
 import { createPremiumSubscriptionService } from './premium-subscription-service.js';
 import { createDeliveryQuoteRepository } from '../../database/delivery-quote-repository.js';
+import { createFreightSettlementRepository } from '../../database/freight-settlement-repository.js';
+import { createFreightSettlementService } from './freight-settlement-service.js';
 import { createDeliveryQuoteService } from './delivery-quote-service.js';
 import {createLalamoveClient} from './lalamove-client.js';
 import {createLalamoveQuoteAdapter} from './lalamove-quote-adapter.js';
@@ -214,6 +216,7 @@ export async function startRuntime(config = null) {
       onError(error) { console.error('Courier eligibility maintenance failed', error); },
     })
     : null;
+  const freightSettlementService = createFreightSettlementService(createFreightSettlementRepository(database));
   const paymentProvider = createPaymentProvider(config);
   const paymentService = createPaymentService(createPaymentRepository(database,{stepUpRepository:accountStepUpRepository}), paymentProvider, {
     cpfHmacSecret: config.responsibleCpfHmacSecret,
@@ -238,6 +241,7 @@ export async function startRuntime(config = null) {
     marketplaceProviders,
     institutionService,
     paymentService,
+    freightSettlementService,
     paymentProvider,
     logisticsService,
     addressChangeService,

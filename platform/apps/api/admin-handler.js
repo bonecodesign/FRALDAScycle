@@ -6,6 +6,7 @@ import { sendCsv, sendJson } from "./http.js";
 
 const routeSectors=Object.freeze([
   ['/v1/admin/exchange-retention',['finance']],
+  ['/v1/admin/freight-settlement-plans',['finance']],
   ['/v1/admin/supported-cancellations',['finance']],
   ['/v1/admin/family-responsibility-disputes',['support','legal_privacy']],
   ['/v1/admin/child-data-emergency-access',['legal_privacy','security']],
@@ -21,11 +22,25 @@ const routeSectors=Object.freeze([
 export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
 export async function handleAdmin(request, response, {
-  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
+  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
   requireAdminRouteSector(user,url.pathname);
+
+  if (request.method === 'POST' && url.pathname === '/v1/admin/freight-settlement-plans') {
+    if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
+    const result = await freightSettlementService.prepare(user, await readJson(request));
+    sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
+  const freightPlan = url.pathname.match(/^\/v1\/admin\/freight-settlement-plans\/([0-9a-f-]{36})\/reconciliation$/i);
+  if (request.method === 'GET' && freightPlan) {
+    if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
+    const result = await freightSettlementService.reconcileLocal(user,freightPlan[1]);
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});
+    return true;
+  }
 
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-status'){requireAccessLevel(user,2);if(!exchangeRetentionStatusService)throw new AuthError('retention_status_unavailable',503,'Situação da retenção indisponível.');const result=await exchangeRetentionStatusService.snapshot();sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   if(request.method==='GET'&&url.pathname==='/v1/admin/exchange-retention-requests'){if(!exchangeRetentionRequestService)throw new AuthError('retention_requests_unavailable',503,'Solicitações de retenção indisponíveis.');const result=await exchangeRetentionRequestService.list(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
