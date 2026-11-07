@@ -273,10 +273,11 @@
         "tests/delivery-quote-http-postgres.test.mjs",
         "tests/delivery-quote-persistence.test.mjs",
         "tests/payments.test.mjs",
-        "docs/delivery-quote-cache-decision.md"
+        "docs/delivery-quote-cache-decision.md",
+        "docs/requirement-11-sale-freight-lock.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL local de 2026-10-27: somente o comprador confirma identificador, fingerprint e total exatos; adulteração é recusada; cotação confirmada é travada para pagamento e não pode ser substituída. Cotação externa de R$ 20,00 preservou o valor integral do parceiro e adicionou R$ 1,00 (5%) da FraldaCycle.",
-      "reason": "Contrato, persistência, confirmação auditada e trava local do frete estão implementados; a consulta real ao parceiro e a cobrança no checkout permanecem desligadas até credenciais, consentimentos e integração financeira."
+      "evidence": "Prova HTTP/PostgreSQL local de 2026-10-27: somente o comprador confirma identificador, fingerprint e total exatos; adulteração é recusada; cotação confirmada é travada para pagamento e não pode ser substituída. Cotação externa de R$ 20,00 preservou o valor integral do parceiro e adicionou R$ 1,00 (5%) da FraldaCycle. Complemento técnico 07/11/2026: trava interna de cotação restringida à venda, sem perna logística de troca, com confirmação pelo comprador e expiração válida; testes HTTP/PostgreSQL para impedir troca e confirmação indevida; validade de cotação inválida rejeitada antes da persistência (sujeitos a CI do PR).",
+      "reason": "Cotação e confirmação auditadas, composição comercial, bloqueio de pagamento incompleto e trava de venda delimitada tecnicamente. Cotações reais em parceiro, cobrança, split e repasse dependem de contratação e homologação externa."
     },
     {
       "id": 12,
