@@ -264,7 +264,8 @@ export function createCourierEligibilityRepository(database) {
             WHERE id=$1`, [row.document_id, input.issuerVerificationReference,
             input.issuedAt, input.expiresAt, input.decidedAt]);
         } else {
-          await client.query(`UPDATE courier_clearance_documents SET status='rejected' WHERE id=$1`, [row.document_id]);
+          await client.query(`UPDATE courier_clearance_documents SET status='rejected',
+            delete_at=LEAST(COALESCE(delete_at,$2::timestamptz + interval '30 days'),$2::timestamptz + interval '30 days') WHERE id=$1`, [row.document_id, input.decidedAt]);
           await client.query(`UPDATE courier_profiles SET account_status='suspended',updated_at=now()
             WHERE user_id=$1`, [row.courier_id]);
           await client.query(`INSERT INTO courier_clearance_suspensions(courier_id,rejected_review_id)
