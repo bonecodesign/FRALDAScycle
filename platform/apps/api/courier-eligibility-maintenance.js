@@ -23,9 +23,30 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
       return { outcome: "support_escalation_queued" };
     }
     if (task.task_kind === "clearance_copy_delete") {
-      if (!restrictedStorageAdapter) return { defer: "restricted_storage_adapter_not_configured" };
-      await restrictedStorageAdapter.deleteObject(context.encrypted_object_reference);
-      return { outcome: "clearance_copy_deleted" };
+      if (typeof restrictedStorageAdapter?.deleteObject !== "function") {
+        return { defer: "restricted_storage_adapter_not_configured" };
+      }
+      const objectReference = context.encrypted_object_reference;
+      if (typeof objectReference !== "string" || !objectReference.trim()) {
+        throw new Error("restricted_storage_reference_missing");
+      }
+      // A successful promise or HTTP 2xx is not proof of deletion. The
+      // storage adapter must explicitly attest to this exact opaque object.
+      const receipt = await restrictedStorageAdapter.deleteObject(objectReference);
+      if (receipt?.deleted !== true || receipt?.objectReference !== objectReference ||
+          typeof receipt?.confirmationReference !== "string" ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{7,127}$/.test(receipt.confirmationReference) ||
+          typeof receipt?.confirmedAt !== "string" ||
+          !Number.isFinite(Date.parse(receipt.confirmedAt))) {
+        throw new Error("restricted_storage_deletion_not_confirmed");
+      }
+      return {
+        outcome: "clearance_copy_deleted",
+        deletionConfirmation: {
+          reference: receipt.confirmationReference,
+          confirmedAt: receipt.confirmedAt,
+        },
+      };
     }
     throw new Error("unsupported maintenance task");
   }
@@ -45,7 +66,10 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
             });
             summary.deferred += 1;
           } else {
-            await repository.completeMaintenanceTask(task, { now, outcome: result.outcome });
+            await repository.completeMaintenanceTask(task, {
+              now, outcome: result.outcome,
+              deletionConfirmation: result.deletionConfirmation ?? null,
+            });
             summary.completed += 1;
           }
         } catch (error) {
