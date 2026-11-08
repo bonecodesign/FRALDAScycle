@@ -15,14 +15,38 @@ BEGIN
   END LOOP;
 END $$;
 
--- For existing verified documents use the review decision timestamp when available.
--- Never silently extend an earlier deletion deadline.
+-- Do not invent a verification/decision date for historical records. A
+-- missing decision requires supervised privacy remediation before migration.
+-- A failure here rolls back this whole migration, including the DO block above.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM courier_clearance_documents d
+    WHERE d.status IN ('verified','rejected','expired')
+      AND NOT EXISTS (
+        SELECT 1 FROM courier_clearance_reviews r
+        WHERE r.document_id=d.id AND r.status IN ('approved','rejected')
+          AND r.decided_at IS NOT NULL
+      )
+  ) THEN
+    RAISE EXCEPTION 'P-01 legacy clearance review decision missing: manual privacy review required';
+  END IF;
+END $$;
+
+-- A document may have multiple historical decisions. Use the earliest known
+-- decision deterministically and never extend an already-earlier deadline.
+-- Past-due dates stay past-due and are handled by the restricted deletion task.
+WITH earliest_review AS (
+  SELECT document_id, MIN(decided_at) AS first_decided_at
+  FROM courier_clearance_reviews
+  WHERE status IN ('approved','rejected') AND decided_at IS NOT NULL
+  GROUP BY document_id
+)
 UPDATE courier_clearance_documents d
-SET delete_at = LEAST(d.delete_at, r.decided_at + interval '30 days')
-FROM courier_clearance_reviews r
-WHERE r.document_id = d.id AND r.status IN ('approved','rejected')
-  AND r.decided_at IS NOT NULL
-  AND (d.delete_at IS NULL OR d.delete_at > r.decided_at + interval '30 days');
+SET delete_at = LEAST(d.delete_at, r.first_decided_at + interval '30 days')
+FROM earliest_review r
+WHERE r.document_id = d.id AND d.status <> 'deleted'
+  AND (d.delete_at IS NULL OR d.delete_at > r.first_decided_at + interval '30 days');
 
 -- A deleted record keeps only non-secret verification metadata, never storage pointers.
 ALTER TABLE courier_clearance_documents
