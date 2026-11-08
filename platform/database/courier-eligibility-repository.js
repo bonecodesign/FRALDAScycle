@@ -56,7 +56,8 @@ export function createCourierEligibilityRepository(database) {
         if (!claimed) return false;
         if (claimed.task_kind === 'clearance_copy_delete') {
           await client.query(`UPDATE courier_clearance_documents
-            SET status='deleted',deleted_at=$2 WHERE id=$1 AND status<>'deleted'`,
+            SET status='deleted',deleted_at=$2,encrypted_object_reference=NULL,encryption_key_reference=NULL
+            WHERE id=$1 AND status<>'deleted'`,
           [claimed.document_id, now]);
         }
         await client.query(`UPDATE courier_eligibility_maintenance_tasks
