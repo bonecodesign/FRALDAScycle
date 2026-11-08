@@ -117,3 +117,35 @@ test('institution validation must not precede institution receipt approval in op
  assert.deepEqual(ordered.blockers,['institutional_pickup_pending']);
  assert.equal(ordered.payoutAllowed,false);
 });
+
+
+test("P-02 institutional donation never accepts freight, courier, payment or payout fields", () => {
+ const called = [];
+ const service = createDonationService({
+  create(input) { called.push(["create",input]); return input; },
+  accept(input) { called.push(["accept",input]); return input; },
+  pickup(input) { called.push(["pickup",input]); return input; },
+ });
+ const cases = [
+  ["create", { ...consent, listingId:id, idempotencyKey:"synthetic-no-freight-create" }],
+  ["accept", { ...consent, expectedVersion:1 }],
+  ["pickup", { ...consent, idempotencyKey:"synthetic-no-freight-pickup" }],
+ ];
+ const prohibited = {
+  shippingFeeCents: 1599, freightCents: 1599, platformCommissionCents: 80,
+  deliveryProvider: "external", courierId: "courier-synthetic",
+  payoutAmountCents: 1519, paymentMethod: "pix", deliveryMode: "platform_courier",
+ };
+ for (const [name, valid] of cases) {
+  for (const [field, value] of Object.entries(prohibited)) {
+   const attempt = { ...valid, [field]: value };
+   const actor = { id: "synthetic-institution-participant" };
+   assert.throws(
+    () => name === "create" ? service.create(actor,attempt) : service[name](actor,id,attempt),
+    error => error?.status === 422,
+    `${name} must reject ${field}`,
+   );
+  }
+ }
+ assert.deepEqual(called, [], "invalid financial or delivery payloads must not reach persistence");
+});
