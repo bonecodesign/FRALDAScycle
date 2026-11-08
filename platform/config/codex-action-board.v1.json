@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-08",
+  "repo": "bonecodesign/FRALDAScycle",
+  "sourceOfTruth": "docs/requirements-matrix.json",
+  "baseline": {
+    "mainSha": "f51e99be03adee9002ea3be5390ae4cdb8e53d31",
+    "denominator": 70,
+    "concluido": 42,
+    "parcial": 17,
+    "bloqueado": 11,
+    "percentCompleted": 60
+  },
+  "planningTarget": {
+    "completedCount": 49,
+    "percentCompleted": 70,
+    "additionalCompletedRequired": 7,
+    "qualification": "Planejamento condicional; nenhum requisito promovido por este arquivo."
+  },
+  "prerequisites": [
+    {
+      "pr": 222,
+      "statusAtSnapshot": "draft",
+      "action": "Verificar a consolidação FC-JUR-50 frente à main atual, atualizar textos antigos sobre PR #215, CI e revisão humana; não supor merge."
+    },
+    {
+      "pr": 224,
+      "statusAtSnapshot": "draft",
+      "action": "Conciliar a passagem documental para Codex com este quadro, sem duplicar tarefas; não supor merge."
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "family-privacy",
+      "order": 1,
+      "requirementIds": [
+        26,
+        27,
+        28,
+        31,
+        32,
+        33
+      ],
+      "name": "Dados infantis e perfis",
+      "codexNow": "Preparar dossiê por requisito com cobertura HTTP/PostgreSQL, fluxo desligado por padrão, inventário de dados coletados e lacunas LGPD; identificar testes de não regressão sem habilitar coleta.",
+      "testPaths": [
+        "tests/child-profile-http-postgres.test.mjs",
+        "tests/family-profile-foundation.test.mjs",
+        "tests/responsible-registration-http-postgres.test.mjs"
+      ],
+      "humanBlockers": [
+        "Parecer jurídico e de privacidade",
+        "Base legal e versão aprovada dos documentos",
+        "Autorização humana explícita de ativação"
+      ],
+      "nextEvidence": "Tabela de base legal, dado, finalidade, ciclo de vida, risco residual e parecer assinado; comprovação técnica mantendo feature desligada."
+    },
+    {
+      "id": "payment-and-freight",
+      "order": 2,
+      "requirementIds": [
+        2,
+        3,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "name": "Pagamento, frete e troca",
+      "codexNow": "Consolidar tabelas de conservação financeira, split e rollback por operação; rodar provas PostgreSQL sintéticas sem executar provedores, preservando item 12 como standby.",
+      "testPaths": [
+        "tests/logistics-commission-conservation.test.mjs",
+        "tests/delivery-quote-http-postgres.test.mjs",
+        "tests/exchange-http-postgres.test.mjs"
+      ],
+      "humanBlockers": [
+        "Tarifas e contrato real de gateway",
+        "Homologação de cobrança, repasse e reconciliação externa",
+        "Item 12 permanece bloqueado/standby até decisão explícita"
+      ],
+      "nextEvidence": "Contrato do provedor aprovado, tarifas verificadas, teste de sandbox/real autorizado e extratos de reconciliação; jamais inferir tarifa zero."
+    },
+    {
+      "id": "institutions-and-ops",
+      "order": 3,
+      "requirementIds": [
+        18,
+        42,
+        50,
+        62
+      ],
+      "name": "Operação, suporte e instituições",
+      "codexNow": "Consolidar cobertura de idempotência, RBAC, trilhas de auditoria e prontidão operacional da equipe; listar pessoas/aceites como PENDENTE, sem criar identidades.",
+      "testPaths": [
+        "tests/institution-receipt-http-postgres.test.mjs",
+        "tests/support-operations-http-postgres.test.mjs",
+        "tests/moderation-suspension-expiry-postgres.test.mjs"
+      ],
+      "humanBlockers": [
+        "Representante institucional verificado e capacidade real",
+        "Equipe/escala de suporte e moderação",
+        "Execução física/humana e evidências de aceite"
+      ],
+      "nextEvidence": "Checklist de papéis, disponibilidade, escalonamento e execução humana real, com registro de auditoria."
+    },
+    {
+      "id": "infrastructure-and-vendors",
+      "order": 4,
+      "requirementIds": [
+        57,
+        59,
+        60,
+        61
+      ],
+      "name": "Backup, credenciais, fornecedores e seguro",
+      "codexNow": "Executar ensaios locais de restauração, checksum, fail-closed de cofre e inventário de saída de fornecedor; preparar plano de RPO/RTO e diligência contratual sem prover recursos pagos.",
+      "testPaths": [
+        "tests/database-recovery.test.mjs",
+        "tests/backup-storage.test.mjs",
+        "tests/secret-governance.test.mjs"
+      ],
+      "humanBlockers": [
+        "Bucket/KMS/cofre/identidades reais e responsável operacional",
+        "Ensaio autorizado de restauração em infraestrutura homologada",
+        "Contrato de fornecedor/seguro e exclusões validados"
+      ],
+      "nextEvidence": "Relatório de restauração real em ambiente autorizado, métricas RPO/RTO e política de acesso/rotação assinada."
+    },
+    {
+      "id": "notifications-and-incidents",
+      "order": 5,
+      "requirementIds": [
+        49,
+        51,
+        56
+      ],
+      "name": "Comunicação, suporte externo e incidentes",
+      "codexNow": "Revisar notificações mínimas, replay/idempotência, caminhos de falha de e-mail e gates do ensaio de incidente; não disparar mensagens reais.",
+      "testPaths": [
+        "tests/notifications.test.mjs",
+        "tests/operational-notices-http-postgres.test.mjs",
+        "tests/operational-incident-http-postgres.test.mjs"
+      ],
+      "humanBlockers": [
+        "Canal/e-mail oficial aprovado",
+        "Conta/provedor de mensagem e templates homologados",
+        "Exercício com pessoas reais designadas"
+      ],
+      "nextEvidence": "Canal oficial, rastros de entrega autorizada, ensaio humano com papéis independentes, observação e aceite."
+    },
+    {
+      "id": "account-and-terms",
+      "order": 6,
+      "requirementIds": [
+        45,
+        46
+      ],
+      "name": "Exclusão da conta e mudanças de termos",
+      "codexNow": "Verificar inventário de retenção, purga e concorrência no PostgreSQL; preparar checklist de mudança relevante de termos sem publicar minuta como política aprovada.",
+      "testPaths": [
+        "tests/account-closure-retention-postgres.test.mjs",
+        "tests/account-closure-http-postgres.test.mjs",
+        "tests/account-consents.test.mjs"
+      ],
+      "humanBlockers": [
+        "Parecer jurídico sobre categorias de retenção",
+        "Políticas e termos versionados com aceite profissional",
+        "Homologação de purga e comunicação efetivas"
+      ],
+      "nextEvidence": "Tabela por dado e fundamento de retenção, teste de purga autorizada e termo efetivamente aprovado."
+    },
+    {
+      "id": "visual-moderation",
+      "order": 7,
+      "requirementIds": [
+        41
+      ],
+      "name": "Detecção de contatos em imagens",
+      "codexNow": "Auditar contrato fail-closed de OCR/QR e testes de texto e mídia; criar casos sintéticos para fornecedor ausente, timeout, falso retorno e retenção de OCR.",
+      "testPaths": [
+        "tests/approved-business-rules.test.mjs",
+        "tests/marketplace-providers.test.mjs"
+      ],
+      "humanBlockers": [
+        "Prestador OCR/moderação visual homologado",
+        "Teste controlado com imagens de validação permitidas",
+        "Política de privacidade e moderação revisadas"
+      ],
+      "nextEvidence": "Resultados de OCR/QR reais autorizados, medidas de qualidade, logs mínimos e reação aos falsos negativos."
+    },
+    {
+      "id": "pilot-accessibility",
+      "order": 8,
+      "requirementIds": [
+        67
+      ],
+      "name": "Piloto BH e acessibilidade",
+      "codexNow": "Revisar preflight das 21 evidências e automação de teclado/contraste; produzir roteiro para leitor de tela sem alegar teste humano feito.",
+      "testPaths": [
+        "tests/pilot-bh-http-postgres.test.mjs",
+        "tests/pilot-technical-preflight.test.mjs",
+        "tests/pilot-execution.test.mjs"
+      ],
+      "humanBlockers": [
+        "Teste real com leitor de tela",
+        "Responsável pelo rollback designado e aceite",
+        "Gates humanos e autorização explícita de GO"
+      ],
+      "nextEvidence": "Relatório acessibilidade real, aprovação do rollback e ata de GO/NO-GO; até lá NO-GO."
+    }
+  ],
+  "globalGates": {
+    "prototypeImmutable": true,
+    "changesOnlyWithin": "platform/",
+    "noPaidServices": true,
+    "noExternalPublication": true,
+    "noRealCredentials": true,
+    "pilotBH": "NO-GO",
+    "autonomousOrchestration": "planned-not-authorized",
+    "requireHumanApprovalForPromotion": true,
+    "requiredCiJobs": [
+      "foundation",
+      "listing-postgres",
+      "containers",
+      "browser-postgres"
+    ]
+  }
+}
