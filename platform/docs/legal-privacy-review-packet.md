@@ -37,6 +37,15 @@ Este documento organiza os pontos que precisam de análise profissional antes de
 - Revisar banner de cookies e precedência entre preferência local e da conta.
 - Aprovar mascaramento, acesso emergencial, marca-d’água e retenção de chamados.
 
+## 6. Certidões de entregadores e doações institucionais (P-01/P-02)
+
+Registro técnico de 08/11/2026: [P-01/P-02 — prontidão e gates](p01-p02-technical-readiness-2026-11-08.md). A [PR #215](https://github.com/bonecodesign/FRALDAScycle/pull/215) continua em rascunho mesmo após 4/4 jobs de CI verdes; os testes PostgreSQL são sintéticos.
+
+- **P-01:** deliberar fundamento e minimização de retenção de cópia de certidão; confirmar prazo de até 30 dias a partir da verificação, independência em relação à validade do emissor e tratamento de documentos legados sem decisão histórica datada. A migração técnica recusa esses legados, sem presumir datas.
+- **P-01:** aprovar conservação mínima de comprovação opaca sem dados da certidão, proteção da auditoria, exclusão do objeto e referências criptográficas, prova independente, correção de falhas do provedor e retenção nas cópias de segurança. Não confundir recibo de teste com prova de purga em armazenamento real.
+- **P-02:** revisar responsabilidades de doador/instituição, retirada direta combinada sem comissão ou frete da plataforma, ausência de entregador e de cobrança/repasse logístico, e isolamento em relação a vendas e trocas com frete.
+- **Governança:** exige responsáveis profissionais identificados, pareceres, versão aprovada e autorização expressa; nenhuma indicação de responsável ou aceite é inferida do CI.
+
 ## Evidências técnicas anexadas
 
 - `docs/family-profile-foundation-beta.md`

@@ -13,6 +13,14 @@ PR [#215](https://github.com/bonecodesign/FRALDAScycle/pull/215) permanece em **
 
 **Decisão de engenharia:** não fazer merge da PR #215 até resolver os itens, revisar código, migrações, testes e obter os pareceres humanos aplicáveis.
 
+## Atualização posterior — estado verificado em 08/11/2026
+
+O diagnóstico acima documenta **a versão anterior** da PR #215, quando havia colisão da migração 133. **A colisão foi corrigida no draft**: a migração passou a ser `150_courier_clearance_verification_retention.sql`, sem reutilização de prefixo da `main` verificada. As [PRs auxiliares #219](https://github.com/bonecodesign/FRALDAScycle/pull/219) e [#220](https://github.com/bonecodesign/FRALDAScycle/pull/220) foram integradas **à branch da #215**, não à `main`.
+
+A branch draft #215 foi sincronizada com a `main` `aa00998cdf7da431b9f065f3b7a60fa21ee2eeaa` e testada no head `c37509f4bf184b4bb0f153964a819fbebc4a596f`: [CI 42498979044](https://github.com/bonecodesign/FRALDAScycle/actions/runs/42498979044), 4/4 jobs verdes, 1.221 testes aprovados, zero falhas e 16 pulados. Os documentos [P-01/P-02 — prontidão técnica](p01-p02-technical-readiness-2026-11-08.md) e [pacote jurídico/privacidade](legal-privacy-review-packet.md) registram as evidências e os portões humanos restantes.
+
+**O que mudou desde o diagnóstico original:** agora existem purga transacional sintética com atestação opaca e limpeza de ponteiros, validação dos legados sem inventar datas e testes PostgreSQL. **O que não mudou:** a PR #215 está em rascunho, sem merge na `main`; a exclusão externa real, a política de legados, a validação operacional P-02 e os pareceres jurídicos/de privacidade seguem pendentes. Piloto BH **NO-GO**.
+
 ## PRs históricos
 
 | PR | Escopo original | Tratamento nesta rodada |
