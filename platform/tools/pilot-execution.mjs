@@ -1,4 +1,4 @@
-import { PILOT_ID as ID, isDateString } from "./pilot-contract.mjs";
+import { PILOT_ID as ID, PILOT_GATES, isDateString } from "./pilot-contract.mjs";
 import { readFile } from "node:fs/promises";
 import { isMainModule } from "../packages/contracts/main-module.js";
 
@@ -21,9 +21,22 @@ export function validatePilotExecutionRecord(value) {
     if (policy[key] !== false) errors.push("policy." + key + " must be false");
   }
 
+  const gates = Array.isArray(value.gateResults) ? value.gateResults : [];
+  const findings = Array.isArray(value.findings) ? value.findings : [];
+  const nextActions = Array.isArray(value.nextActions) ? value.nextActions : [];
   if (!Array.isArray(value.gateResults)) errors.push("gateResults must be an array");
   if (!Array.isArray(value.findings)) errors.push("findings must be an array");
   if (!Array.isArray(value.nextActions)) errors.push("nextActions must be an array");
+
+  const seenGateIds = new Set();
+  for (const gate of gates) {
+    if (!PILOT_GATES.includes(gate?.id) || seenGateIds.has(gate.id) ||
+        !["passed", "failed", "skipped", "pending"].includes(gate.result)) {
+      errors.push("gateResults must use distinct official gates with valid results");
+    } else {
+      seenGateIds.add(gate.id);
+    }
+  }
 
   const decision = value.decision ?? {};
   if (!OUTCOMES.has(decision.outcome)) errors.push("decision.outcome is invalid");
@@ -42,13 +55,18 @@ export function validatePilotExecutionRecord(value) {
   }
 
   if (decision.outcome === "go") {
-    if (value.gateResults.length === 0 || value.gateResults.some((gate) => gate?.result !== "passed")) {
-      errors.push("go decision requires all gates to pass");
+    if (gates.length !== PILOT_GATES.length ||
+        seenGateIds.size !== PILOT_GATES.length ||
+        PILOT_GATES.some(id => !seenGateIds.has(id)) ||
+        gates.some(gate => gate?.result !== "passed")) {
+      errors.push("go decision requires all seven official gates to pass");
     }
-    if (value.findings.some((finding) => finding?.status !== "resolved")) {
+    if (!Array.isArray(value.findings) || findings.some((finding) => finding?.status !== "resolved")) {
       errors.push("go decision requires all findings to be resolved");
     }
-    if (value.nextActions.length === 0) errors.push("go decision requires nextActions");
+    if (!Array.isArray(value.nextActions) || nextActions.length === 0) {
+      errors.push("go decision requires nextActions");
+    }
   }
 
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });

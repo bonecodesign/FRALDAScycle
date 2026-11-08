@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checksum, migrate } from "../database/migrate.js";
+import { checksum, migrate, discoverMigrations, assertUniqueMigrationVersions } from "../database/migrate.js";
 
 function fakeDatabase(applied = []) {
   const events = [];
@@ -56,4 +56,39 @@ test("migration runner skips already applied immutable files", async () => {
   const database = fakeDatabase([{ name: "001_first.sql", checksum: checksum(sql) }]);
   await migrate(database, [{ name: "001_first.sql", sql, checksum: checksum(sql) }]);
   assert.equal(database.events.filter(([type]) => type === "transaction").length, 1);
+});
+
+test("historical migration files remain valid with only the two explicit legacy version pairs", async () => {
+  const migrations = await discoverMigrations();
+  const names = migrations.map(({ name }) => name);
+  assert.equal(assertUniqueMigrationVersions(names), true);
+  assert.ok(names.includes("044_monthly_pricing_listing_lifecycle.sql"));
+  assert.ok(names.includes("044_notification_auth_token_binding.sql"));
+  assert.ok(names.includes("061_child_profile_active_only_retention.sql"));
+  assert.ok(names.includes("061_pilot_invitations.sql"));
+  assert.ok(names.includes("133_account_closure_retention_classification.sql"));
+});
+
+test("new migration 133 collisions are blocked before any SQL transaction", async () => {
+  const database = fakeDatabase();
+  const migrations = [
+    { name: "133_account_closure_retention_classification.sql", sql: "SELECT 1", checksum: checksum("SELECT 1") },
+    { name: "133_courier_clearance_verification_retention.sql", sql: "SELECT 2", checksum: checksum("SELECT 2") },
+  ];
+  await assert.rejects(migrate(database, migrations), /Migration version collision 133/);
+  assert.deepEqual(database.events, []);
+});
+
+test("new version collisions cannot reuse legacy numbers or alternative number formatting", () => {
+  for (const names of [
+    ["044_monthly_pricing_listing_lifecycle.sql", "044_notification_auth_token_binding.sql", "044_injected.sql"],
+    ["061_child_profile_active_only_retention.sql", "061_pilot_invitations.sql", "061_unrelated.sql"],
+    ["143_alpha.sql", "143_beta.sql"],
+    ["001_first.sql", "1_second.sql"],
+    ["143_repeat.sql", "143_repeat.sql"],
+  ]) {
+    assert.throws(() => assertUniqueMigrationVersions(names), /Migration version collision/, JSON.stringify(names));
+  }
+  assert.equal(assertUniqueMigrationVersions(["143_new.sql", "144_other.sql"]), true);
+  assert.throws(() => assertUniqueMigrationVersions(["../133_bad.sql"]), /Invalid migration filename list/);
 });
