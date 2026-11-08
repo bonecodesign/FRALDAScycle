@@ -7,7 +7,7 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
 } = {}) {
   async function process(task, now) {
     const context = await repository.maintenanceTaskContext(task);
-    if (!context) return { outcome: "stale_claim" };
+    if (!context) return task.task_kind === "clearance_copy_delete" ? { defer: "maintenance_claim_missing" } : { outcome: "stale_claim" };
     if (task.task_kind === "support_sla_close") {
       const result = await repository.closeSupportSlaTask(task, now);
       return { outcome: result.closed ? "support_case_closed" : "support_case_already_resolved" };
@@ -23,9 +23,31 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
       return { outcome: "support_escalation_queued" };
     }
     if (task.task_kind === "clearance_copy_delete") {
-      if (!restrictedStorageAdapter) return { defer: "restricted_storage_adapter_not_configured" };
-      await restrictedStorageAdapter.deleteObject(context.encrypted_object_reference);
-      return { outcome: "clearance_copy_deleted" };
+      if (typeof restrictedStorageAdapter?.deleteObject !== "function") {
+        return { defer: "restricted_storage_adapter_not_configured" };
+      }
+      const objectReference = context.encrypted_object_reference;
+      if (typeof objectReference !== "string" || !objectReference.trim()) {
+        throw new Error("restricted_storage_reference_missing");
+      }
+      // A successful promise or HTTP 2xx is not proof of deletion. The
+      // storage adapter must explicitly attest to this exact opaque object.
+      const receipt = await restrictedStorageAdapter.deleteObject(objectReference);
+      if (receipt?.deleted !== true || receipt?.objectReference !== objectReference ||
+          typeof receipt?.confirmationReference !== "string" ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{7,127}$/.test(receipt.confirmationReference) ||
+          typeof receipt?.confirmedAt !== "string" ||
+          !Number.isFinite(Date.parse(receipt.confirmedAt))) {
+        throw new Error("restricted_storage_deletion_not_confirmed");
+      }
+      return {
+        outcome: "clearance_copy_deleted",
+        deletionConfirmation: {
+          reference: receipt.confirmationReference,
+          confirmedAt: receipt.confirmedAt,
+        },
+        expectedObjectReference: objectReference,
+      };
     }
     throw new Error("unsupported maintenance task");
   }
@@ -45,7 +67,14 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
             });
             summary.deferred += 1;
           } else {
-            await repository.completeMaintenanceTask(task, { now, outcome: result.outcome });
+            const completed = await repository.completeMaintenanceTask(task, {
+              now, outcome: result.outcome,
+              deletionConfirmation: result.deletionConfirmation ?? null,
+              expectedObjectReference: result.expectedObjectReference ?? null,
+            });
+            if (task.task_kind === "clearance_copy_delete" && completed !== true) {
+              throw new Error("restricted_storage_deletion_commit_not_confirmed");
+            }
             summary.completed += 1;
           }
         } catch (error) {
