@@ -18,7 +18,7 @@ END $$;
 -- Do not invent a verification/decision date for historical records. A
 -- missing decision requires supervised privacy remediation before migration.
 -- A failure here rolls back this whole migration, including the DO block above.
-DO $
+DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM courier_clearance_documents d
@@ -31,7 +31,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'P-01 legacy clearance review decision missing: manual privacy review required';
   END IF;
-END $;
+END $$;
 
 -- A document may have multiple historical decisions. Use the earliest known
 -- decision deterministically and never extend an already-earlier deadline.
