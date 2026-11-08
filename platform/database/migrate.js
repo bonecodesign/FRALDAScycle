@@ -13,7 +13,7 @@ const LEGACY_VERSION_PAIRS = Object.freeze({
   "44": Object.freeze(["044_monthly_pricing_listing_lifecycle.sql", "044_notification_auth_token_binding.sql"]),
   "61": Object.freeze(["061_child_profile_active_only_retention.sql", "061_pilot_invitations.sql"]),
 });
-const MIGRATION_NAME = /^(\\d+)_[a-z0-9_-]+\\.sql$/i;
+const MIGRATION_NAME = /^([0-9]+)_[a-z0-9_-]+[.]sql$/i;
 
 export function assertUniqueMigrationVersions(names) {
   if (!Array.isArray(names) || names.some(name => typeof name !== "string" || !MIGRATION_NAME.test(name))) {
