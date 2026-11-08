@@ -6,6 +6,35 @@ import { isMainModule } from "../packages/contracts/main-module.js";
 
 const migrationsRoot = resolve(import.meta.dirname, "migrations");
 
+// These two pairs predate the version-uniqueness rule. Keep their exact
+// historical filenames and checksums intact; they are not a precedent for
+// introducing any new collision.
+const LEGACY_VERSION_PAIRS = Object.freeze({
+  "44": Object.freeze(["044_monthly_pricing_listing_lifecycle.sql", "044_notification_auth_token_binding.sql"]),
+  "61": Object.freeze(["061_child_profile_active_only_retention.sql", "061_pilot_invitations.sql"]),
+});
+const MIGRATION_NAME = /^([0-9]+)_[a-z0-9_-]+[.]sql$/i;
+
+export function assertUniqueMigrationVersions(names) {
+  if (!Array.isArray(names) || names.some(name => typeof name !== "string" || !MIGRATION_NAME.test(name))) {
+    throw new Error("Invalid migration filename list");
+  }
+  const byVersion = new Map();
+  for (const name of names) {
+    const version = BigInt(name.match(MIGRATION_NAME)[1]).toString();
+    const previous = byVersion.get(version) ?? [];
+    previous.push(name);
+    byVersion.set(version, previous);
+  }
+  for (const [version, group] of byVersion) {
+    if (group.length < 2) continue;
+    const legacy = LEGACY_VERSION_PAIRS[version];
+    if (legacy && group.length === legacy.length && legacy.every(name => group.includes(name))) continue;
+    throw new Error(`Migration version collision ${version}: ${group.join(", ")}. Use a unique unused numeric prefix.`);
+  }
+  return true;
+}
+
 export function checksum(content) {
   return createHash("sha256").update(content).digest("hex");
 }
@@ -14,6 +43,7 @@ export async function discoverMigrations(root = migrationsRoot) {
   const names = (await readdir(root))
     .filter((name) => /^\d+_[a-z0-9_-]+\.sql$/i.test(name))
     .sort((left, right) => left.localeCompare(right, "en"));
+  assertUniqueMigrationVersions(names);
   return Promise.all(names.map(async (name) => {
     const path = resolve(root, name);
     const sql = await readFile(path, "utf8");
@@ -23,6 +53,7 @@ export async function discoverMigrations(root = migrationsRoot) {
 
 export async function migrate(database, migrations = null) {
   const migrationList = migrations ?? await discoverMigrations();
+  assertUniqueMigrationVersions(migrationList.map(({ name }) => name));
   for (const migration of migrationList) {
     await database.transaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock($1)", [1_180_162_025]);
