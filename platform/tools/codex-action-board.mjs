@@ -66,7 +66,7 @@ export async function validateCodexActionBoard(board, matrix, root = resolve(imp
       ids.add(id);
     }
     for (const path of w.testPaths) {
-      if (!/^tests\\/[a-z0-9-]+\\.test\\.mjs$/.test(path) || path.includes('..')) {
+      if (!path.startsWith('tests/') || !/^[a-z0-9-]+[.]test[.]mjs$/.test(path.slice(6)) || path.includes('..')) {
         throw new Error('Codex board test path must stay in platform/tests/.');
       }
       await access(resolve(root, path));
