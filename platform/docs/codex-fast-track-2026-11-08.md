@@ -58,3 +58,26 @@ node --test tests/codex-action-board.test.mjs
 O validador `tools/codex-action-board.mjs` exige cobertura exata das pendências listadas pela matriz. Se um requisito for legitimamente concluído e o JSON oficial mudar, será necessário **reclassificar e atualizar explicitamente a fila** na mesma PR — nunca corrigir o validador para esconder divergência.
 
 O próximo ganho percentual virá de requisitos com evidência técnica **e** portões externos resolvidos. O ganho imediato desta preparação é velocidade, rastreabilidade e menos retrabalho; nenhuma promoção de requisito ocorre apenas pela criação deste quadro.
+
+## 7. Primeiro ciclo prioritário — três pacotes de decisão transversais (08/11/2026)
+
+**Executar antes de iniciar novas implementações nessas frentes:**
+
+1. [Privacidade dos dados infantis](approval-packets/01-privacidade-dados-infantis.md): direitos, minimização, melhor interesse, base legal, consentimentos, perfis, retenção e incidentes; exige revisão de privacidade/jurídico. Não ligar `CHILD_PROFILES_ENABLED`.
+2. [Gateway, split e logística](approval-packets/02-financeiro-gateway-logistica.md): Asaas/Lalamove apenas **selecionados para futura homologação**, taxas e responsabilidades contratuais pendentes, item 12 segue standby. Não criar conta, cobrança ou cotação externa real.
+3. [Suporte, instituições e incidentes](approval-packets/03-operacao-suporte-instituicoes.md): autoridade de representantes, doação institucional com retirada direta, SLA a definir, identidades reais e rollback humano do piloto. Não abrir canal externo nem pilotar clientes.
+
+O arquivo [`config/cross-functional-decision-gates.v1.json`](../config/cross-functional-decision-gates.v1.json) contém **21 decisões ainda sujeitas a avaliação humana** e associa **22 dos 28 requisitos pendentes** a essas três frentes. Os outros seis IDs (41, 49, 57, 59, 60 e 61) permanecem na [fila original](../config/codex-action-board.v1.json), sem serem perdidos ou promovidos.
+
+Na raiz do repositório, executar:
+
+```bash
+node platform/tools/requirements-matrix.mjs
+node platform/tools/codex-action-board.mjs
+node platform/tools/cross-functional-decision-gates.mjs
+node --test platform/tests/cross-functional-decision-gates.test.mjs
+```
+
+A ferramenta **falha por segurança** se faltar algum requisito, aparecer uma aprovação fictícia, a matriz oficial mudar sem atualização explícita, ou qualquer pacote pretender liberar fornecedores, pagamento, dados pessoais reais ou piloto. Ela não assina pareceres: **zero aprovações foram registradas**.
+
+**Sequência Codex recomendada:** gerar evidência técnica sintética para PRIV, FIN e OPS em PRs separadas; produzir checklist de dúvidas para revisores, manter nomes/assinaturas/CNPJ e contatos não comprovados em branco, e não promover requisito até pareceres verdadeiros e homologação apropriada. Reavaliar a meta de sete conclusões adicionais **apenas após** evidências individuais.
