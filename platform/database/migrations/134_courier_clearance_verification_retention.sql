@@ -20,10 +20,20 @@ END $$;
 UPDATE courier_clearance_documents d
 SET delete_at = LEAST(d.delete_at, r.decided_at + interval '30 days')
 FROM courier_clearance_reviews r
-WHERE r.document_id = d.id AND r.status = 'approved'
-  AND r.decided_at IS NOT NULL AND d.delete_at IS NOT NULL
-  AND d.delete_at > r.decided_at + interval '30 days';
+WHERE r.document_id = d.id AND r.status IN ('approved','rejected')
+  AND r.decided_at IS NOT NULL
+  AND (d.delete_at IS NULL OR d.delete_at > r.decided_at + interval '30 days');
+
+-- A deleted record keeps only non-secret verification metadata, never storage pointers.
+ALTER TABLE courier_clearance_documents
+  ALTER COLUMN encrypted_object_reference DROP NOT NULL,
+  ALTER COLUMN encryption_key_reference DROP NOT NULL;
 
 ALTER TABLE courier_clearance_documents
-  ADD CONSTRAINT courier_clearance_delete_after_review_check
-  CHECK (delete_at IS NULL OR expires_at IS NULL OR delete_at <= expires_at + interval '30 days');
+  ADD CONSTRAINT courier_clearance_deleted_references_check
+  CHECK (status <> 'deleted' OR (encrypted_object_reference IS NULL AND encryption_key_reference IS NULL));
+
+-- No expiry-derived retention bound: the decision timestamp is the reference.
+ALTER TABLE courier_clearance_documents
+  ADD CONSTRAINT courier_clearance_review_retention_check
+  CHECK (delete_at IS NULL OR delete_at > created_at);
