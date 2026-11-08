@@ -44,7 +44,15 @@ test("configured adapters execute notices and restricted deletion by opaque refe
       async supportEscalation(context) { effects.push(["escalation", context.id]); },
     },
     restrictedStorageAdapter: {
-      async deleteObject(reference) { effects.push(["delete", reference]); },
+      async deleteObject(reference) {
+        effects.push(["delete", reference]);
+        return {
+          deleted: true,
+          objectReference: reference,
+          confirmationReference: "receipt_2030_fixture_01",
+          confirmedAt: "2030-01-01T12:00:00.000Z",
+        };
+      },
     },
     clock: () => Date.parse("2030-01-01T12:00:00Z"),
   });
@@ -67,4 +75,98 @@ test("adapter failure is retried later and never marked completed", async () => 
   });
   assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
   assert.equal(failures[0][1].error, "provider timeout");
+});
+
+test("deletion requires a matching, auditable explicit storage receipt", async () => {
+  const reference = "restricted/object/synthetic";
+  const good = {
+    deleted: true,
+    objectReference: reference,
+    confirmationReference: "synthetic_receipt_123456",
+    confirmedAt: "2030-01-01T12:00:00Z",
+  };
+  for (const response of [
+    undefined, false, true, {}, { deleted: true },
+    { ...good, deleted: false },
+    { ...good, objectReference: "restricted/object/other" },
+    { ...good, confirmationReference: "" },
+    { ...good, confirmationReference: "https://public.example/receipt" },
+    { ...good, confirmedAt: "invalid" },
+  ]) {
+    const completed = [], failed = [];
+    const worker = createCourierEligibilityMaintenanceWorker({
+      async claimMaintenanceTasks() { return [tasks[3]]; },
+      async maintenanceTaskContext() { return { encrypted_object_reference: reference }; },
+      async completeMaintenanceTask(_task, value) { completed.push(value); },
+      async failMaintenanceTask(_task, value) { failed.push(value); },
+    }, {
+      restrictedStorageAdapter: { async deleteObject() { return response; } },
+      clock: () => Date.parse("2030-01-01T12:00:00Z"),
+    });
+    assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
+    assert.deepEqual(completed, []);
+    assert.equal(failed[0].error, "restricted_storage_deletion_not_confirmed");
+  }
+});
+
+test("deletion receipt is forwarded without disclosing the object reference in completion metadata", async () => {
+  const reference = "restricted/object/synthetic";
+  const completed = [];
+  const worker = createCourierEligibilityMaintenanceWorker({
+    async claimMaintenanceTasks() { return [tasks[3]]; },
+    async maintenanceTaskContext() { return { encrypted_object_reference: reference }; },
+    async completeMaintenanceTask(_task, value) { completed.push(value); return true; },
+    async failMaintenanceTask() { throw new Error("must not fail"); },
+  }, {
+    restrictedStorageAdapter: {
+      async deleteObject(objectReference) {
+        assert.equal(objectReference, reference);
+        return {
+          deleted: true, objectReference, confirmationReference: "synthetic_receipt_123456",
+          confirmedAt: "2030-01-01T12:00:00Z",
+        };
+      },
+    },
+    clock: () => Date.parse("2030-01-01T12:00:00Z"),
+  });
+  assert.deepEqual(await worker.run(), { claimed: 1, completed: 1, deferred: 0, failed: 0 });
+  assert.deepEqual(completed, [{
+    now: "2030-01-01T12:00:00.000Z", outcome: "clearance_copy_deleted",
+    deletionConfirmation: { reference: "synthetic_receipt_123456", confirmedAt: "2030-01-01T12:00:00Z" },
+  }]);
+  assert.equal(JSON.stringify(completed).includes(reference), false);
+});
+
+test("deletion with a missing object reference fails without calling storage", async () => {
+  let calls = 0;
+  const completed = [], failures = [];
+  const worker = createCourierEligibilityMaintenanceWorker({
+    async claimMaintenanceTasks() { return [tasks[3]]; },
+    async maintenanceTaskContext() { return { encrypted_object_reference: null }; },
+    async completeMaintenanceTask(_task, value) { completed.push(value); },
+    async failMaintenanceTask(_task, value) { failures.push(value); },
+  }, {
+    restrictedStorageAdapter: { async deleteObject() { calls++; return { deleted: true }; } },
+    clock: () => Date.parse("2030-01-01T12:00:00Z"),
+  });
+  assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
+  assert.equal(calls, 0);
+  assert.deepEqual(completed, []);
+  assert.equal(failures[0].error, "restricted_storage_reference_missing");
+});
+
+test("storage deletion adapter errors never complete a clearance task", async () => {
+  const completed = [], failures = [];
+  const worker = createCourierEligibilityMaintenanceWorker({
+    async claimMaintenanceTasks() { return [tasks[3]]; },
+    async maintenanceTaskContext() { return { encrypted_object_reference: "restricted/object/synthetic" }; },
+    async completeMaintenanceTask(_task, value) { completed.push(value); },
+    async failMaintenanceTask(_task, value) { failures.push(value); },
+  }, {
+    restrictedStorageAdapter: { async deleteObject() { throw new Error("synthetic provider failure"); } },
+    clock: () => Date.parse("2030-01-01T12:00:00Z"),
+  });
+  assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
+  assert.deepEqual(completed, []);
+  assert.equal(failures[0].error, "synthetic provider failure");
 });
