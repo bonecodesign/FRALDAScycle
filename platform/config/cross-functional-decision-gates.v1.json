@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-08",
+  "sourceMatrix": "docs/requirements-matrix.json",
+  "sourceCodexBoard": "config/codex-action-board.v1.json",
+  "state": "preparation_only",
+  "mainBaseline": "d81fb3c3067fc3fbc9ea061189028b67a6bdd02b",
+  "countsAtCreation": {
+    "denominator": 70,
+    "completed": 42,
+    "partial": 17,
+    "blocked": 11
+  },
+  "noGo": true,
+  "allowsRealData": false,
+  "allowsExternalProviderAccess": false,
+  "allowsRealPayments": false,
+  "allowsPromotion": false,
+  "allowsFeatureActivation": false,
+  "tracks": [
+    {
+      "id": "PRIV",
+      "title": "Privacidade dos dados infantis e direitos do titular",
+      "priority": 1,
+      "requirementIds": [
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        45,
+        46
+      ],
+      "doc": "docs/approval-packets/01-privacidade-dados-infantis.md",
+      "testPaths": [
+        "tests/family-profile-foundation.test.mjs",
+        "tests/child-profile-http-postgres.test.mjs",
+        "tests/child-data-emergency-access-postgres.test.mjs",
+        "tests/account-closure-retention-postgres.test.mjs"
+      ],
+      "gates": [
+        {
+          "id": "PRIV-01",
+          "decision": "Melhor interesse, minimização e necessidade do dado infantil",
+          "requiredRoles": [
+            "juridico",
+            "privacidade",
+            "produto"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-02",
+          "decision": "Hipóteses legais documentadas por finalidade",
+          "requiredRoles": [
+            "juridico",
+            "privacidade"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-03",
+          "decision": "Responsabilidade legal e acesso excepcional",
+          "requiredRoles": [
+            "juridico",
+            "privacidade",
+            "seguranca"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-04",
+          "decision": "Retenção, eliminação e backup",
+          "requiredRoles": [
+            "juridico",
+            "privacidade",
+            "seguranca"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-05",
+          "decision": "Termos, avisos, consentimentos e direitos",
+          "requiredRoles": [
+            "juridico",
+            "produto",
+            "privacidade"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-06",
+          "decision": "Parceiros, perfis por faixa etária e marketing",
+          "requiredRoles": [
+            "juridico",
+            "privacidade",
+            "produto"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "PRIV-07",
+          "decision": "Incidentes de dados infantis e comunicação",
+          "requiredRoles": [
+            "privacidade",
+            "seguranca",
+            "juridico"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        }
+      ]
+    },
+    {
+      "id": "FIN",
+      "title": "Contratação, liquidação e homologação financeira",
+      "priority": 2,
+      "requirementIds": [
+        2,
+        3,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "doc": "docs/approval-packets/02-financeiro-gateway-logistica.md",
+      "testPaths": [
+        "tests/logistics-commission-conservation.test.mjs",
+        "tests/delivery-quote-http-postgres.test.mjs",
+        "tests/exchange-http-postgres.test.mjs",
+        "tests/product-processing-cost.test.mjs"
+      ],
+      "gates": [
+        {
+          "id": "FIN-01",
+          "decision": "Arranjo contratual e regulatório dos participantes",
+          "requiredRoles": [
+            "juridico",
+            "financeiro"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-02",
+          "decision": "Tabela contratual de tarifas, split e repasse",
+          "requiredRoles": [
+            "financeiro",
+            "contabilidade"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-03",
+          "decision": "Antifraude, Pix, cartão, tokenização e integridade de webhooks",
+          "requiredRoles": [
+            "seguranca",
+            "financeiro"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-04",
+          "decision": "Estornos, chargebacks, garantia e disputas",
+          "requiredRoles": [
+            "financeiro",
+            "juridico",
+            "suporte"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-05",
+          "decision": "Frete de vendas/trocas, comissão e regra standby do item 12",
+          "requiredRoles": [
+            "produto",
+            "financeiro"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-06",
+          "decision": "Identidade fiscal do CNPJ próprio e tributação",
+          "requiredRoles": [
+            "contabilidade",
+            "juridico"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "FIN-07",
+          "decision": "Conciliação, continuidade operacional e saída de fornecedor",
+          "requiredRoles": [
+            "financeiro",
+            "seguranca",
+            "operacao"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        }
+      ]
+    },
+    {
+      "id": "OPS",
+      "title": "Operação de instituições, suporte, incidentes e piloto",
+      "priority": 3,
+      "requirementIds": [
+        18,
+        42,
+        50,
+        51,
+        56,
+        62,
+        67
+      ],
+      "doc": "docs/approval-packets/03-operacao-suporte-instituicoes.md",
+      "testPaths": [
+        "tests/institution-receipt-http-postgres.test.mjs",
+        "tests/support-operations-http-postgres.test.mjs",
+        "tests/moderation-suspension-expiry-postgres.test.mjs",
+        "tests/pilot-technical-preflight.test.mjs"
+      ],
+      "gates": [
+        {
+          "id": "OPS-01",
+          "decision": "Papéis responsáveis com suplentes e segregação",
+          "requiredRoles": [
+            "governanca",
+            "operacao"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-02",
+          "decision": "Autoridade e capacidade institucional humana",
+          "requiredRoles": [
+            "produto",
+            "juridico",
+            "operacao"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-03",
+          "decision": "Retirada direta e exceções de doação sem frete",
+          "requiredRoles": [
+            "produto",
+            "juridico",
+            "operacao"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-04",
+          "decision": "Canal, escala e critérios de atendimento",
+          "requiredRoles": [
+            "suporte",
+            "operacao"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-05",
+          "decision": "Sanções, incidentes, pausas e retomada humana",
+          "requiredRoles": [
+            "seguranca",
+            "governanca",
+            "suporte"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-06",
+          "decision": "Leitor de tela, rollback e aprovação do piloto",
+          "requiredRoles": [
+            "acessibilidade",
+            "operacao",
+            "governanca"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        },
+        {
+          "id": "OPS-07",
+          "decision": "Capacidade, limites e escalonamento do modelo enxuto",
+          "requiredRoles": [
+            "operacao",
+            "financeiro",
+            "governanca"
+          ],
+          "status": "pending_human_review",
+          "evidenceReference": null,
+          "approvalReference": null
+        }
+      ]
+    }
+  ],
+  "otherPendingRequirementIds": [
+    41,
+    49,
+    57,
+    59,
+    60,
+    61
+  ],
+  "reviewProtocol": "Human approvals are never inferred from CI. Signed decisions and external evidence stay in approved private system; only non-sensitive opaque references may be recorded after authorization. Changes to this snapshot require independent review."
+}
