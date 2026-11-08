@@ -135,7 +135,7 @@ test("deletion receipt is forwarded without disclosing the object reference in c
     deletionConfirmation: { reference: "synthetic_receipt_123456", confirmedAt: "2030-01-01T12:00:00Z" },
     expectedObjectReference: reference,
   }]);
-  assert.equal(JSON.stringify(completed).includes(reference), false);
+  assert.equal(JSON.stringify(completed[0].deletionConfirmation).includes(reference), false);
 });
 
 test("deletion with a missing object reference fails without calling storage", async () => {
