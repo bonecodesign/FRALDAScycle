@@ -47,24 +47,49 @@ export function createCourierEligibilityRepository(database) {
       });
     },
 
-    async completeMaintenanceTask(task, { now, outcome }) {
+    async completeMaintenanceTask(task, { now, outcome, deletionConfirmation = null, expectedObjectReference = null }) {
       return database.transaction(async client => {
         const claimed = (await client.query(`SELECT id,task_kind,document_id
           FROM courier_eligibility_maintenance_tasks
           WHERE id=$1 AND status='processing' AND claim_token=$2 FOR UPDATE`,
         [task.id, task.claim_token])).rows[0];
         if (!claimed) return false;
+        const metadata = { taskKind: claimed.task_kind, outcome };
         if (claimed.task_kind === 'clearance_copy_delete') {
-          await client.query(`UPDATE courier_clearance_documents
-            SET status='deleted',deleted_at=$2 WHERE id=$1 AND status<>'deleted'`,
-          [claimed.document_id, now]);
+          const confirmedAt = Date.parse(deletionConfirmation?.confirmedAt ?? '');
+          const completedAt = Date.parse(now);
+          if (outcome !== 'clearance_copy_deleted' ||
+              typeof expectedObjectReference !== 'string' || !expectedObjectReference.trim() ||
+              typeof deletionConfirmation?.reference !== 'string' ||
+              !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{7,127}$/.test(deletionConfirmation.reference) ||
+              !Number.isFinite(confirmedAt) || !Number.isFinite(completedAt) ||
+              confirmedAt > completedAt) {
+            throw fail('clearance_deletion_receipt_required', 409,
+              'A exclusão da certidão precisa de confirmação válida do armazenamento.');
+          }
+          const deleted = await client.query(`UPDATE courier_clearance_documents
+            SET status='deleted',deleted_at=$2,encrypted_object_reference=NULL,encryption_key_reference=NULL
+            WHERE id=$1 AND status<>'deleted' AND encrypted_object_reference=$3
+              AND encryption_key_reference IS NOT NULL AND delete_at<=$2::timestamptz
+            RETURNING id`,
+          [claimed.document_id, now, expectedObjectReference]);
+          if (deleted.rowCount !== 1) {
+            throw fail('clearance_deletion_context_mismatch', 409,
+              'A certidão mudou ou não está pronta para confirmar a exclusão.');
+          }
+          metadata.deletionConfirmation = {
+            reference: deletionConfirmation.reference,
+            confirmedAt: new Date(confirmedAt).toISOString(),
+          };
         }
-        await client.query(`UPDATE courier_eligibility_maintenance_tasks
+        const completed = await client.query(`UPDATE courier_eligibility_maintenance_tasks
           SET status='completed',completed_at=$2,locked_at=NULL,claim_token=NULL,last_error=NULL
-          WHERE id=$1`, [task.id, now]);
+          WHERE id=$1 AND status='processing' AND claim_token=$3 RETURNING id`,
+        [task.id, now, task.claim_token]);
+        if (completed.rowCount !== 1) throw fail('maintenance_claim_lost', 409, 'A tarefa não está mais sob controle do worker.');
         await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata)
           VALUES('courier.eligibility.maintenance_completed','courier_eligibility_maintenance_task',$1,$2::jsonb)`,
-        [task.id, JSON.stringify({ taskKind: claimed.task_kind, outcome })]);
+        [task.id, JSON.stringify(metadata)]);
         return true;
       });
     },
@@ -259,11 +284,12 @@ export function createCourierEligibilityRepository(database) {
         if (input.decision === 'approved') {
           await client.query(`UPDATE courier_clearance_documents SET status='verified',
             validity_source='issuer_document',issuer_verification_reference=$2,
-            issued_at=$3,expires_at=$4,delete_at=$4::timestamptz + interval '30 days'
+            issued_at=$3,expires_at=$4,delete_at=$5::timestamptz + interval '30 days'
             WHERE id=$1`, [row.document_id, input.issuerVerificationReference,
-            input.issuedAt, input.expiresAt]);
+            input.issuedAt, input.expiresAt, input.decidedAt]);
         } else {
-          await client.query(`UPDATE courier_clearance_documents SET status='rejected' WHERE id=$1`, [row.document_id]);
+          await client.query(`UPDATE courier_clearance_documents SET status='rejected',
+            delete_at=LEAST(COALESCE(delete_at,$2::timestamptz + interval '30 days'),$2::timestamptz + interval '30 days') WHERE id=$1`, [row.document_id, input.decidedAt]);
           await client.query(`UPDATE courier_profiles SET account_status='suspended',updated_at=now()
             WHERE user_id=$1`, [row.courier_id]);
           await client.query(`INSERT INTO courier_clearance_suspensions(courier_id,rejected_review_id)

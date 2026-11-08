@@ -34,7 +34,7 @@ test("configured adapters execute notices and restricted deletion by opaque refe
   const repository = {
     async claimMaintenanceTasks() { return tasks.filter(task => task.id !== "close"); },
     async maintenanceTaskContext(task) { return { id: task.id, encrypted_object_reference: "restricted/object/1" }; },
-    async completeMaintenanceTask(task, result) { completed.push([task.id, result.outcome]); },
+    async completeMaintenanceTask(task, result) { completed.push([task.id, result.outcome]); return true; },
     async deferMaintenanceTask() { throw new Error("unexpected defer"); },
     async failMaintenanceTask() { throw new Error("unexpected failure"); },
   };
@@ -133,8 +133,9 @@ test("deletion receipt is forwarded without disclosing the object reference in c
   assert.deepEqual(completed, [{
     now: "2030-01-01T12:00:00.000Z", outcome: "clearance_copy_deleted",
     deletionConfirmation: { reference: "synthetic_receipt_123456", confirmedAt: "2030-01-01T12:00:00Z" },
+    expectedObjectReference: reference,
   }]);
-  assert.equal(JSON.stringify(completed).includes(reference), false);
+  assert.equal(JSON.stringify(completed[0].deletionConfirmation).includes(reference), false);
 });
 
 test("deletion with a missing object reference fails without calling storage", async () => {
@@ -169,4 +170,39 @@ test("storage deletion adapter errors never complete a clearance task", async ()
   assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
   assert.deepEqual(completed, []);
   assert.equal(failures[0].error, "synthetic provider failure");
+});
+
+test("P-01 never counts a failed database completion as a successful copy deletion", async () => {
+  const failed = [];
+  const worker = createCourierEligibilityMaintenanceWorker({
+    async claimMaintenanceTasks() { return [tasks[3]]; },
+    async maintenanceTaskContext() { return { encrypted_object_reference: "restricted/object/1" }; },
+    async completeMaintenanceTask() { return false; },
+    async failMaintenanceTask(_task, input) { failed.push(input.error); },
+  }, {
+    restrictedStorageAdapter: { async deleteObject(objectReference) {
+      return { deleted: true, objectReference, confirmationReference: "synthetic_receipt_123456",
+        confirmedAt: "2030-01-01T12:00:00Z" };
+    } },
+    clock: () => Date.parse("2030-01-01T12:00:00Z"),
+  });
+  assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 0, failed: 1 });
+  assert.deepEqual(failed, ["restricted_storage_deletion_commit_not_confirmed"]);
+});
+
+test("P-01 missing task context never invokes deletion or marks a document as deleted", async () => {
+  let invoked = 0;
+  const deferred = [];
+  const worker = createCourierEligibilityMaintenanceWorker({
+    async claimMaintenanceTasks() { return [tasks[3]]; },
+    async maintenanceTaskContext() { return null; },
+    async completeMaintenanceTask() { assert.fail("stale claim must not be completed"); },
+    async deferMaintenanceTask(_task, request) { deferred.push(request.reason); return true; },
+  }, {
+    restrictedStorageAdapter: { async deleteObject() { invoked++; return { deleted: true }; } },
+    clock: () => Date.parse("2030-01-01T12:00:00Z"),
+  });
+  assert.deepEqual(await worker.run(), { claimed: 1, completed: 0, deferred: 1, failed: 0 });
+  assert.equal(invoked, 0);
+  assert.deepEqual(deferred, ["maintenance_claim_missing"]);
 });

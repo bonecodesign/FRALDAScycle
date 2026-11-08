@@ -19,7 +19,7 @@ const complete = {
     verificationReference: "clearance-1", issuedAt: "2029-12-01T00:00:00Z", expiresAt: "2031-01-01T00:00:00Z",
     review: {
       method: "official_police_civil_channel", reviewerId: "admin-clearance-1",
-      verifiedAt: "2029-12-02T00:00:00Z", auditReference: "audit-clearance-1",
+      verifiedAt: "2029-12-15T00:00:00Z", auditReference: "audit-clearance-1",
     },
     storage: {
       mode: "encrypted_restricted", encryptionStatus: "encrypted",
@@ -27,7 +27,7 @@ const complete = {
       accessScope: "courier_clearance_reviewers", accessLoggingEnabled: true,
       retention: {
         status: "approved", policyVersion: "FC-PRIVACY-1", legalApproverId: "legal-1",
-        deleteAt: "2031-01-31T00:00:00Z",
+        deleteAt: "2030-01-14T00:00:00Z",
       },
     },
   },
@@ -111,21 +111,21 @@ test("retained police clearance copy requires encrypted restricted storage and a
   }
 });
 
-test("the retained copy is scheduled for deletion exactly thirty days after issuer expiry", () => {
+test("the retained copy is scheduled for deletion within thirty days after verification", () => {
   const result = courierEligibility(complete, { now });
   assert.equal(result.eligible, true);
   assert.equal(
     Date.parse(complete.policeClearance.storage.retention.deleteAt),
-    Date.parse(complete.policeClearance.expiresAt) + (30 * 24 * 60 * 60 * 1000),
+    Date.parse(complete.policeClearance.review.verifiedAt) + (30 * 24 * 60 * 60 * 1000),
   );
 });
 
-test("renewal notice is due only during the final seven days without blocking an otherwise eligible courier", () => {
+test("renewal notice is due only during the final seven days after timely copy deletion", () => {
   const eightDaysBefore = Date.parse("2030-12-24T00:00:00Z");
   const sevenDaysBefore = Date.parse("2030-12-25T00:00:00Z");
   assert.equal(courierEligibility(complete, { now: eightDaysBefore }).policeClearanceRenewalNoticeDue, false);
 
-  const notice = courierEligibility(complete, { now: sevenDaysBefore });
+  const notice = courierEligibility({ ...complete, policeClearance: { ...complete.policeClearance, storage: { ...complete.policeClearance.storage, storageReference: null, keyReference: null, retention: { ...complete.policeClearance.storage.retention, status: "deleted", deletedAt: "2030-01-14T00:00:00Z" } } } }, { now: sevenDaysBefore });
   assert.equal(notice.eligible, true);
   assert.equal(notice.mayReceiveOffers, true);
   assert.equal(notice.policeClearanceRenewalNoticeDue, true);

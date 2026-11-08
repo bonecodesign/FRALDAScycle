@@ -7,7 +7,7 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
 } = {}) {
   async function process(task, now) {
     const context = await repository.maintenanceTaskContext(task);
-    if (!context) return { outcome: "stale_claim" };
+    if (!context) return task.task_kind === "clearance_copy_delete" ? { defer: "maintenance_claim_missing" } : { outcome: "stale_claim" };
     if (task.task_kind === "support_sla_close") {
       const result = await repository.closeSupportSlaTask(task, now);
       return { outcome: result.closed ? "support_case_closed" : "support_case_already_resolved" };
@@ -46,6 +46,7 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
           reference: receipt.confirmationReference,
           confirmedAt: receipt.confirmedAt,
         },
+        expectedObjectReference: objectReference,
       };
     }
     throw new Error("unsupported maintenance task");
@@ -66,10 +67,14 @@ export function createCourierEligibilityMaintenanceWorker(repository, {
             });
             summary.deferred += 1;
           } else {
-            await repository.completeMaintenanceTask(task, {
+            const completed = await repository.completeMaintenanceTask(task, {
               now, outcome: result.outcome,
               deletionConfirmation: result.deletionConfirmation ?? null,
+              expectedObjectReference: result.expectedObjectReference ?? null,
             });
+            if (task.task_kind === "clearance_copy_delete" && completed !== true) {
+              throw new Error("restricted_storage_deletion_commit_not_confirmed");
+            }
             summary.completed += 1;
           }
         } catch (error) {
