@@ -10,6 +10,8 @@ A evidência de retenção no item 10 refere-se à **retenção operacional dos 
 
 **Prontidão para produção: bloqueada, sem percentual comprovado.** NO-GO do piloto preservado. A quantidade de testes não participa do cálculo.
 
+**Atualização de evidências de 08/11/2026 (sem alteração de estado):** o pacote [P-01/P-02 — prontidão técnica e bloqueios](p01-p02-technical-readiness-2026-11-08.md) registra os testes PostgreSQL e o CI 4/4 verde da [PR #215](https://github.com/bonecodesign/FRALDAScycle/pull/215), que **continua draft e não integrada à `main`**. Não confundir testes sintéticos de eliminação de certidões e retirada institucional com homologação jurídica/privacidade, prova de armazenamento real, cobrança/entrega reais ou liberação do piloto. A distribuição oficial de **42/70, 17 parciais e 11 bloqueados permanece inalterada**.
+
 Fonte editável: [requirements-matrix.json](requirements-matrix.json). `node tools/requirements-matrix.mjs` valida 70 itens únicos, referências, estados e standby. Evidências/limites locais: [beta-inspection-2026-10-05.md](beta-inspection-2026-10-05.md).
 
 | Item | Requisito | Estado | Código/documento e teste existente | Limite / próximo trabalho |
