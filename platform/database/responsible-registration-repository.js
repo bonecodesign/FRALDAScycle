@@ -84,7 +84,7 @@ export async function persistResponsibleRegistration(client, userId, input) {
   )).rows[0];await client.query(
     `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
      VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
-    [userId,familyProfile.id,JSON.stringify({consentVersion:input.familyProfile.consentVersion,emoji:input.familyProfile.emoji,personalizationEnabled:true,registrationFlow:true})],
+    [userId,familyProfile.id,JSON.stringify({consentVersion:input.familyProfile.consentVersion,personalizationEnabled:true,registrationFlow:true})],
   );}
   if(familyProfile)await client.query(`INSERT INTO child_profile_consent_evidence(account_id,child_profile_id,consent_version,content_hash,accepted_at) VALUES($1,$2,$3,$4,$5)`,[userId,familyProfile.id,input.familyProfile.consentVersion,CHILD_PROFILE_CONSENT_CONTENT_HASH,familyProfile.consented_at]);
   if(familyProfile)await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES($1,'child_profile_change','Um perfil da família foi criado.',$2,now()+interval '12 months') ON CONFLICT(dedupe_key) DO NOTHING`,[userId,`child-profile:${familyProfile.id}:created:v${familyProfile.version}`]);
