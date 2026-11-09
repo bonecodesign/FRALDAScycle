@@ -10,7 +10,7 @@ export function createChildProfileRepository(database) {
       const result = await database.query(
         `SELECT id,message,created_at FROM account_notices
          WHERE user_id=$1 AND read_at IS NULL
-           AND kind IN ('child_profile_change','child_profile_age_limit')
+           AND kind IN ('child_profile_change','child_profile_age_limit','child_profile_responsibility')
            AND (expires_at IS NULL OR expires_at>now())
          ORDER BY created_at DESC,id DESC LIMIT 20`,
         [accountId],
