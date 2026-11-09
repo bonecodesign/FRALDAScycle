@@ -22,3 +22,7 @@ Estabelecer disponibilidade, suporte, escalonamento, indicadores, penalidades pr
 
 ## 7. Gates
 [FORNECEDORES — A DEFINIR]; [TARIFAS E SPLIT — A NEGOCIAR]; [SLA — A NEGOCIAR]; [SEGUROS — A CONFERIR]; [DPA — A ASSINAR]; [PARECER REGULATÓRIO/TRIBUTÁRIO — PENDENTE]. Nenhuma contratação ou ativação autorizada por esta minuta.
+
+
+## Fornecedores preferenciais, ainda não contratados
+A decisão de produto identifica **Asaas como verificador financeiro principal planejado**, sem presumir contrato, cobertura, serviço ativo, habilitação de split ou aprovação regulatória. Na logística, a primeira opção prevista é **Lalamove**, condicionada a contrato e disponibilidade; depois outros parceiros homologados e entregador elegível. Confirmar contratualmente escopo, titularidade dos dados, SLA, repasses, seguros e encargos antes de divulgar nomes ou ativar fluxos.
