@@ -41,6 +41,8 @@ test("unexpected child lifecycle events and delivery channels fail closed, witho
   for (const payload of [
     { channel: "sms", event: "child_profile_age_limit_closed", emoji: "⭐" },
     { channel: "email", event: "child_profile_unknown", emoji: "🧸" },
+    { channel: "email", emoji: "🍼", birthDate: "2013-10-23" },
+    null,
   ]) {
     assert.throws(
       () => notificationPayloadForDispatch({ kind: "account_lifecycle_notice", payload }),
