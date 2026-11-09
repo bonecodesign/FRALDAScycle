@@ -108,7 +108,7 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal(expiredStillStored.total,1,'Reading notices must never delete account data');
 
       const childAudit=(await database.query(`SELECT action,metadata FROM audit_events
-        WHERE actor_user_id=$1 AND entity_type='child_profile' ORDER BY created_at`,[owner])).rows;
+        WHERE actor_user_id=$1 AND entity_type='child_profile'`,[owner])).rows;
       assert.equal(childAudit.filter(row=>row.action==='child_profile.created').length,2);
       for(const event of childAudit) {
         const metadata=JSON.stringify(event.metadata);
