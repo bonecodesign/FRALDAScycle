@@ -57,6 +57,19 @@ test("age limit warning and closure are atomic, private and idempotent in Postgr
       const jobs = (await database.query(`SELECT payload::text AS payload FROM notification_outbox WHERE recipient_user_id=$1 AND kind='account_lifecycle_notice'`, [account])).rows;
       assert.equal(jobs.length, 2);
       assert.ok(jobs.every(row => !/2013|birth/i.test(row.payload)));
+      for (const job of jobs) {
+        const payload = JSON.parse(job.payload);
+        assert.deepEqual(Object.keys(payload).sort(), ["channel","event"],
+          "new age notifications must store no emoji, birth date or profile identifier");
+        assert.equal(payload.channel, "email");
+        assert.ok(["child_profile_age_limit_warning","child_profile_age_limit_closed"].includes(payload.event));
+      }
+      // Simulate a legacy queued notification written by an older release:
+      // its historical payload may contain child details. The final dispatcher
+      // must not send them to the external provider.
+      await database.query(`UPDATE notification_outbox
+        SET payload=payload || '{"emoji":"🍼","birthDate":"2013-10-23","childProfileId":"synthetic-profile"}'::jsonb
+        WHERE recipient_user_id=$1 AND kind='account_lifecycle_notice'`,[account]);
       const deliveries = [];
       assert.equal(await runNotificationBatch(
         createNotificationRepository(database),
@@ -65,6 +78,13 @@ test("age limit warning and closure are atomic, private and idempotent in Postgr
       ), 3);
       assert.equal(deliveries.length, 2);
       assert.ok(deliveries.every(delivery => delivery.kind === "account_lifecycle_notice"));
+      assert.deepEqual(new Set(deliveries.map(delivery => delivery.payload.event)),
+        new Set(["child_profile_age_limit_warning","child_profile_age_limit_closed"]));
+      for (const delivery of deliveries) {
+        assert.deepEqual(Object.keys(delivery.payload).sort(), ["channel","event"]);
+        assert.equal(delivery.payload.channel, "email");
+        assert.doesNotMatch(JSON.stringify(delivery), /emoji|birthDate|childProfileId|2013-10-23|🍼/i);
+      }
       const audit = (await database.query(`SELECT metadata::text AS metadata FROM audit_events WHERE actor_user_id=$1 AND action='child_profile.age_limit_closed'`, [account])).rows;
       assert.equal(audit.length, 1);
       assert.doesNotMatch(audit[0].metadata, /2013|birth/i);
