@@ -19,3 +19,7 @@ Antes de publicar, auditar bibliotecas, imagens, fontes, marcas, software de ter
 
 ## 6. Gates
 [INVENTÁRIO DE ATIVOS E LICENÇAS — PENDENTE]; [TITULARIDADE/REGISTRO DE MARCA — A AVALIAR]; [CANAL DE DENÚNCIAS — A PREENCHER]; [REVISÃO JURÍDICA — PENDENTE].
+
+
+## Territorialidade, acesso pós-operação e retenção excepcional
+A licença operacional de conteúdo é **sem limitação territorial**, restrita às finalidades de intermediação autorizadas e ao período necessário. Após conclusão da operação, as partes mantêm **acesso restrito ao conteúdo relacionado por sete dias corridos**; disputa formal aberta nesse período preserva acesso restrito até decisão. Depois, eventual consulta será apenas de equipe interna autorizada quando juridicamente necessária. Remoção bloqueia acesso público imediatamente, com cache/CDN até 24 horas e backups até 30 dias, sem prejudicar retenção legal proporcional. Retenção excepcional de conteúdo exige pedido fundamentado do nível 3, aprovação do nível 4 e autorização final do nível 5, com prazo, registro e auditoria; renovação repete o procedimento. Ordem judicial válida prevalece nos limites de seu escopo.
