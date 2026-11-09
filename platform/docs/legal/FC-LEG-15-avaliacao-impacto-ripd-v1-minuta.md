@@ -28,3 +28,5 @@ Mapear transparência, solicitações, correção, exclusão, revogação, incid
 
 ## 6. Decisão e revisão
 Decisão documentada: [GO/NO-GO — PENDENTE], risco residual, condições, responsável, parecer e data. **Até revisão e testes, permanece NO-GO.** Revisar após mudança de finalidade, operador, arquitetura ou incidente relevante.
+## Marcos de liberação alinhados à decisão de governança
+**Fase 1:** piloto fechado com dados sintéticos e avaliação preliminar; não implica tratamento de dados infantis reais. **Fase 2:** eventual tratamento infantil real em piloto restrito somente após avaliação preliminar documentada, base legal por finalidade, demonstração do melhor interesse, medidas efetivas e aprovação jurídica/privacidade/segurança. A decisão do fundador prevê concluir RIPD integral durante o piloto fechado e exige RIPD concluído e aprovado antes de abrir a funcionalidade infantil ao público geral. A avaliação de risco pode exigir antecipação do RIPD integral; se houver risco elevado sem mitigação demonstrada, manter NO-GO. Registrar o fundamento e a decisão de cada fase.
