@@ -77,6 +77,42 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
         const retentionMs=new Date(notice.expires_at).getTime()-new Date(notice.created_at).getTime();
         assert.ok(retentionMs>=365*24*60*60*1000&&retentionMs<=366*24*60*60*1000);
       }
+      // The family-specific endpoint must not disclose payments/disputes,
+      // another account's notices, or expired child-profile notices.
+      await database.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key,expires_at) VALUES
+        ($1,'child_profile_change','family-synthetic-active','scope-family-active',now()+interval '1 day'),
+        ($1,'child_profile_change','family-synthetic-expired','scope-family-expired',now()-interval '1 day'),
+        ($1,'child_profile_age_limit','family-synthetic-age-limit','scope-family-age-limit',NULL),
+        ($1,'exchange_difference_payment','payment-synthetic-private','scope-payment-private',NULL),
+        ($2,'child_profile_change','other-account-synthetic-private','scope-other-account',now()+interval '1 day')`,
+        [owner,outsider]);
+      const noticeUrl=root.replace('/child-profiles','/child-profile-notices');
+      const familyResponse=await fetch(noticeUrl,{headers:headers('owner')});
+      assert.equal(familyResponse.status,200);
+      assert.equal(familyResponse.headers.get('cache-control'),'no-store');
+      const familyResult=await familyResponse.json();
+      const visible=familyResult.items.map(item=>item.message);
+      assert.equal(visible.length,7);
+      assert.ok(visible.includes('family-synthetic-active'));
+      assert.ok(visible.includes('family-synthetic-age-limit'));
+      for(const privateMessage of [
+        'family-synthetic-expired','payment-synthetic-private','other-account-synthetic-private'
+      ]) assert.equal(visible.includes(privateMessage),false);
+      const otherNoticeResult=await (await fetch(noticeUrl,{headers:headers('outsider')})).json();
+      assert.deepEqual(otherNoticeResult.items.map(item=>item.message),['other-account-synthetic-private']);
+      assert.equal((await fetch(noticeUrl,{headers:headers('courier')})).status,403);
+      const expiredStillStored=(await database.query(`SELECT count(*)::integer AS total
+        FROM account_notices WHERE user_id=$1 AND message='family-synthetic-expired'`,[owner])).rows[0];
+      assert.equal(expiredStillStored.total,1,'Reading notices must never delete account data');
+
+      const childAudit=(await database.query(`SELECT action,metadata FROM audit_events
+        WHERE actor_user_id=$1 AND entity_type='child_profile' ORDER BY created_at`,[owner])).rows;
+      assert.equal(childAudit.filter(row=>row.action==='child_profile.created').length,2);
+      for(const event of childAudit) {
+        const metadata=JSON.stringify(event.metadata);
+        assert.doesNotMatch(metadata,/2025-04-16|2026-04-16|2026-05-16|birthDate|birth_date|emoji|🍼|🧸|⭐/i);
+      }
+
     }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
   });
 });
