@@ -16,3 +16,6 @@ Privilégio mínimo, criptografia, auditoria de consulta e eliminação, segrega
 
 ## Gates
 [BASE LEGAL E TESTE DE NECESSIDADE — PENDENTES]; [FORNECEDOR DE ARMAZENAMENTO — A HOMOLOGAR]; [PROVA DE PURGA REAL — PENDENTE]; [REVISÃO TRABALHISTA — PENDENTE]. Testes PostgreSQL sintéticos não substituem prova externa.
+
+## Decisões de elegibilidade e recurso
+A regra de produto prevê certidão válida; a legitimidade de sua exigência depende de análise jurídica específica, sem presunção de que toda anotação impede a atividade. Registrar resultado, órgão, data de verificação, validade e referência opaca, nunca teor do documento após o prazo de descarte. Avisar vencimento sete dias antes; vencimento suspende novas ofertas, mas não repasses de serviços concluídos. Nova análise em até 24 horas é meta operacional sujeita a homologação. Recurso deve ser decidido por pessoa distinta em até cinco dias úteis, com motivação e acesso proporcional a informações; evitar discriminação.
