@@ -19,10 +19,10 @@ const CHILD_AGE_EVENTS = new Set(["child_profile_age_limit_warning", "child_prof
  * fields at the final dispatch boundary without mutating or inventing evidence.
  */
 export function notificationPayloadForDispatch(job) {
-  if (job?.kind !== "account_lifecycle_notice" ||
-      typeof job.payload?.event !== "string" ||
-      !job.payload.event.startsWith("child_profile_")) return job?.payload;
-  if (!CHILD_AGE_EVENTS.has(job.payload.event) || job.payload.channel !== "email") {
+  if (job?.kind !== "account_lifecycle_notice") return job?.payload;
+  // This notification kind is exclusive to child age lifecycle messages.
+  // Missing events or unexpected payloads must never bypass minimization.
+  if (!CHILD_AGE_EVENTS.has(job.payload?.event) || job.payload?.channel !== "email") {
     throw new Error("Child profile lifecycle notification payload is not supported");
   }
   return { channel: "email", event: job.payload.event };
