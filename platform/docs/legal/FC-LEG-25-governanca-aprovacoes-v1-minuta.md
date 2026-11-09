@@ -19,3 +19,6 @@ Protótipo imutável; alterações em `platform/`. Sem contratação, pagamento 
 
 ## Pendências
 [RESPONSÁVEIS — A DESIGNAR]; [PARECERES — PENDENTES]; [CALENDÁRIO DE REVISÃO — A APROVAR]; [CRITÉRIOS GO — A VALIDAR].
+
+## Matriz de aprovação e exceções
+Ordem obrigatória de liberação: **Jurídico** verifica legalidade; **Encarregado/Privacidade** revisa tratamento de dados; **Segurança** valida controles; **Financeiro/Contabilidade** valida cobranças, contratos e tributos; **fundador (nível 5)** autoriza por último. Bloqueio crítico de qualquer área impede GO, mesmo com aprovação do fundador. Segurança ou Jurídico pode suspender imediatamente funcionalidade por risco crítico; reativação exige correção, validações e autorização final do nível 5. Registrar decisão, versão, escopo, evidência, pendências e responsável; aprovação interna não equivale a parecer externo.
