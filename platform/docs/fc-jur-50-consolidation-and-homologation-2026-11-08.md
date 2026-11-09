@@ -2,6 +2,8 @@
 
 > **Status: APROVAÇÕES INTERNAS CONDICIONAIS.** Esta nota registra a conclusão da fase de elaboração e **não** certifica revisão profissional, conformidade LGPD, contratação, prontidão de produção ou autorização de lançamento. Piloto BH: **NO-GO**.
 
+> **Errata de atualização — 09/11/2026:** este documento é uma **fotografia histórica de 08/11**, anterior à integração da PR [#215](https://github.com/bonecodesign/FRALDAScycle/pull/215) na `main` (merge confirmado `f51e99be03adee9002ea3be5390ae4cdb8e53d31`). As instruções abaixo sobre **sincronizar/avaliar integração da #215 não são tarefas ainda pendentes** e não devem ser repetidas. Para trabalho atual, consultar o [roteiro de consolidação da PR #224](https://github.com/bonecodesign/FRALDAScycle/blob/docs/codex-handoff-post-p01-p02-20261108/platform/docs/codex-consolidacao-prs-e-trilha-codex-2026-11-09.md). O programa de 30 minutas/7 anexos da [#227](https://github.com/bonecodesign/FRALDAScycle/pull/227) e as decisões de produto [#235](https://github.com/bonecodesign/FRALDAScycle/pull/235) precisam de conciliação. Os 28 requisitos, as homologações e o NO-GO continuam intactos.
+
 ## Controle documental
 
 - A sequência FC-JUR-01 a FC-JUR-50 foi declarada concluída para **elaboração** pelo fundador em conversa de governança. Esta declaração **não** prova que cada minuta esteja versionada individualmente neste repositório.
