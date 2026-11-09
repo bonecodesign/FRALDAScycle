@@ -20,3 +20,5 @@ Permitir correção e exclusão de qualquer perfil, inclusive último, com expur
 
 ## Evidência e métricas
 Registrar protocolo, datas, tipo, sistemas acionados, resposta, exceção, recurso e eliminação. Monitorar pendências e falhas; não afirmar automação existente sem teste. [CANAL E SLA — A DEFINIR]; [FLUXOS TÉCNICOS — A TESTAR].
+## Exportação de perfis familiares e limites de segurança
+Para exportação de datas de perfis ativos, a regra planejada é autenticação com **senha e código enviado por e-mail**, arquivo criptografado, preparação operacional em até 24 horas e link disponível por sete dias. A decisão interna prevê uma solicitação a cada 30 dias; **essa limitação é apenas controle antifraude sujeito a parecer LGPD e não poderá impedir exercício de direitos legais**. Pedidos adicionais legítimos, correção, acesso e portabilidade quando cabível devem ter canal alternativo, análise humana proporcional e atendimento dentro dos prazos legais. Nunca informar que prazo técnico de 24 horas substitui prazo legal.
