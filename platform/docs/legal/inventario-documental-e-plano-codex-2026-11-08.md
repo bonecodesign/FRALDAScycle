@@ -2,6 +2,8 @@
 
 **Estado: levantamento preliminar, pré-operacional; não é parecer jurídico.** Piloto BH NO-GO. Fonte: arquivos consultados na `main` em 08/11/2026. Este inventário não afirma que as 50 minutas FC-JUR estejam presentes individualmente.
 
+> **Atualização de inventário — 09/11/2026:** este levantamento foi produzido em 08/11, **antes** da expansão jurídica na [PR #227](https://github.com/bonecodesign/FRALDAScycle/pull/227), que agora contém **30 instrumentos LEG-01..30 e 7 peças auxiliares de auditoria/governança**, todos em rascunho, não vigentes. A ausência dessas peças na lista histórica abaixo **não significa que ainda não tenham sido criadas**. Também não comprova que as 50 entregas FC-JUR estão integralmente versionadas. Fazer mapeamento individual, versão canônica e confronto com as decisões [#235](https://github.com/bonecodesign/FRALDAScycle/pull/235). Roteiro atual: [consolidação na PR #224](https://github.com/bonecodesign/FRALDAScycle/blob/docs/codex-handoff-post-p01-p02-20261108/platform/docs/codex-consolidacao-prs-e-trilha-codex-2026-11-09.md).
+
 ## Documentos efetivamente localizados
 
 | Artefato | Arquivo | Estado documental |
