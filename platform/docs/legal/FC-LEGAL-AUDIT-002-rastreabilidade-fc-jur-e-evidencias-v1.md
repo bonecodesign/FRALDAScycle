@@ -49,3 +49,30 @@ Os itens E-01 a E-10 têm **mapeamento documental inicial**; status de implement
 5. Obter pareceres e assinaturas de responsáveis antes de GO.
 
 **Restrições:** sem merge, alteração do protótipo, contratação, ativação financeira, credenciais ou publicação.
+
+
+## 7. Conferência individual com a matriz oficial em `main` (09/11/2026)
+
+**Fonte consultada:** `platform/docs/requirements-matrix.json`, campo `updatedAt: 2026-11-07`, denominador 70. Esta é uma leitura do estado registrado, não execução de testes. A divisão dos 28 IDs confirma **17 parciais e 11 bloqueados**:
+
+| Grupo | Parciais | Bloqueados |
+|---|---|---|
+| Financeiro/logística | 2, 9, 10, 11, 17, 18 | 3, 12 |
+| Infantil/perfis | nenhum | 26, 27, 28, 31, 32, 33 |
+| Anúncios/termos | 41, 42, 45 | 46 |
+| Comunicação/infra | 49, 50, 56, 57, 59 | 51, 60 |
+| Garantias/instituições/piloto | 61, 62, 67 | nenhum |
+
+**Títulos oficiais dos bloqueados:** 3 Processamento do produto; 12 Processamento do frete; 26 Dados do bebê; 27 Obrigatoriedade do dado infantil; 28 Parceiros e idade; 31 Perfis distintos; 32 Mais de um bebê; 33 Correção/remoção de datas; 46 Mudanças nos termos; 51 Suporte externo; 60 Saída de fornecedor.
+
+**Fotografia geral registrada no runbook técnico:** 42 concluídos, 17 parciais, 11 bloqueados, 70 itens (60% tecnicamente concluídos no escopo da matriz). O percentual não mede conformidade jurídica ou prontidão de produção.
+
+## 8. Confronto complementar do pacote de revisão
+`platform/docs/legal-privacy-review-packet.md` acrescenta questões específicas ainda não resolvidas:
+- Titularidade efetiva do cartão não pode ser comprovada somente por comparação de CPF (LEG-06, 08, 20).
+- Geocodificação, cache, Google Maps, ranking por distância e termos de fornecedores exigem revisão (LEG-02, 03, 19, 20).
+- Prova de vida e recuperação excepcional de conta exigem finalidade, retenção e proteção adequadas (LEG-02, 14, 16).
+- Preferências de cookies locais versus preferências de conta e medição de abertura/cliques exigem teste e fundamento (LEG-03, 23).
+- Legados de certidões sem data de decisão histórica não podem receber prazo presumido; migração P-01 falha por segurança e exige deliberação humana.
+
+**Nota de controle:** `p01-p02-technical-readiness-2026-11-08.md` comprova testes **históricos** e sintéticos na PR #215; não comprova estado atual do CI, exclusão real no provedor ou revisão profissional. Não alterar estados oficiais por causa deste relatório.
