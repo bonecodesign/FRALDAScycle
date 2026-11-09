@@ -1,0 +1,77 @@
+# FraldaCycle — pauta de deliberação humana FC-GATE (09/11/2026)
+
+> **DOCUMENTO DE RECOMENDAÇÃO, NÃO DE APROVAÇÃO.** Os 21 gates do `config/cross-functional-decision-gates.v1.json` permanecem **`pending_human_review`**. Este documento não é parecer jurídico, contábil, técnico especializado, assinatura ou comprovação contratual. A matriz continua 42/70 (60%), o piloto BH segue **NO-GO**. Não alterar o protótipo, não habilitar perfis infantis, não ativar pagamentos, fornecedores ou atendimento externo.
+>
+> **Local do registro:** propostas em GitHub; atas identificadas, assinaturas, dados privados, contratos e provas sensíveis devem ficar **fora do repositório público**, com apenas referência opaca após validação real. `CNPJ próprio`, responsável titular, suplentes e canais contratuais permanecem em branco até comprovação.
+
+## 1. Protocolo de decisão
+
+- **Deliberação de fundador/produto**: pode confirmar direção estratégica, política interna pretendida, limites de risco e prioridade de desenvolvimento. Não substitui homologação contratual, parecer jurídico/LGPD, segurança, auditoria contábil ou teste humano.
+- **Validação especializada**: cada gate deve ser avaliado por seus papéis exigidos no arquivo oficial. Identificar pessoas reais, escopo da revisão, versão, data, divergências, limites e evidências em sistema privado.
+- **Homologação técnica e operacional**: requer testes, evidências de execução com escopo autorizado, revisão independente e decisão GO/NO-GO separada.
+- **Estados deste documento**: todos são **PROPOSTA / AGUARDA DELIBERAÇÃO**. Não há aceite presumido por conversa, recomendação, CI ou merge de documentação.
+- **Atualização do quadro oficial**: só após decisão rastreável, sem inserir nomes, identificadores pessoais ou pareceres confidenciais no GitHub público; mudanças revisadas por pessoa autorizada. Nada é automaticamente marcado concluído.
+
+## 2. Pauta PRIV — privacidade e dados de crianças (7 gates)
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **PRIV-01** Necessidade e melhor interesse | Preservar perfil **opcional e desligado por padrão**; não coletar nome, foto, saúde, peso, gênero, documento ou localização de criança. Reavaliar se **data de nascimento completa** é estritamente necessária para vitrine e avisos etários; comparar mês/ano, faixa informada pelo adulto e cálculo local. Não mudar a regra de produto já aprovada sem decisão expressa. | Justificativa de finalidade por campo; análise de alternativas menos invasivas; avaliação de risco e melhor interesse; jurídico/privacidade/produto. |
+| **PRIV-02** Base legal por finalidade | Não declarar consentimento como base universal: construir tabela por tratamento (conta do adulto, perfil opcional, auditoria, mensagens, marketing, incidentes) e base aplicável. Pausar tratamentos sem hipótese justificada. | Parecer por finalidade e dado, com direitos e fundamento legal; jurídico/privacidade. |
+| **PRIV-03** Poder do responsável e acesso excepcional | Verificação proporcional e minimizada da legitimidade do responsável; sem documentos de criança em rotina. Contestação com revisão humana, acesso excepcional temporário, auditado e com dupla autorização em casos de alto risco. | Modelo de ameaça, papéis e permissões, teste de abuso/contestação; jurídico/privacidade/segurança. |
+| **PRIV-04** Retenção, descarte e backups | Retenção mínima por classe de dado; remover personalização ao excluir último perfil; impedir restauração indevida após exclusão. A janela proposta de expiração de backup em até 30 dias só é válida após teste de restauração, exceções legais e parecer. | Tabela de retenção/descarte, logs sintéticos de purge/restore, exceções justificadas; jurídico/privacidade/segurança. |
+| **PRIV-05** Avisos e direitos | Telas simples, aceite específico versionado e retirável; informar finalidade e direitos; não condicionar utilização básica à criação de perfil infantil. Aprovação de textos finais somente após revisão. | Minutas finais, UX de correção/exclusão/contestação e trilhas de aceites; jurídico/produto/privacidade. |
+| **PRIV-06** Parceiros e marketing | **Propor veto por padrão** ao uso de dados/perfis infantis para marketing, segmentação comportamental ou identificação por parceiros. Qualquer faixa etária destinada a parceiro deve ter necessidade documentada, mínimo técnico e revisão jurídica. Revisar explicitamente **Lei 15.211/2025 (ECA Digital)** e a aplicabilidade ao produto cujo cadastro é do adulto. | Parecer de alcance legal, testes de payload sem identificadores e contrato de minimização; jurídico/privacidade/produto. |
+| **PRIV-07** Incidentes | Propor detecção, registro mínimo, congelamento de exposição, classificação de risco, escalonamento humano e comunicações legais após avaliação. Não afirmar que todo incidente exige notificação automática. | Plano de resposta, simulação sem dados reais, responsável e avaliação segundo Resolução ANPD 15/2024; privacidade/segurança/jurídico. |
+
+**Referências normativas para revisão, sem dispensar parecer:** [LGPD/Enunciado CD-ANPD 1/2023](https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-divulga-enunciado-sobre-o-tratamento-de-dados-pessoais-de-criancas-e-adolescentes), [ECA Digital — ANPD](https://www.gov.br/anpd/pt-br/assuntos/noticias/eca-digital), [Lei 15.211/2025, art. 22](https://www2.camara.leg.br/legin/fed/lei/2025/lei-15211-17-setembro-2025-797997-normaatualizada-pl.html), [Comunicação de incidente ANPD](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis).
+
+## 3. Pauta FIN — financeiramente viável sem assumir capacidade de provedor (7 gates)
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **FIN-01** Arranjo e responsabilidades | Manter plataforma intermediária sem autocustódia planejada, sujeito a confirmação de elegibilidade do split, KYC/onboarding e responsabilidades do provedor. Não anunciar proteção absoluta ou exoneração geral da plataforma. | Contratos e enquadramento por jurídico/financeiro. |
+| **FIN-02** Tarifas e repasse | Manter regras internas propostas (8% venda, 2,5% por lado em troca, 5% frete, Premium R$ 14,90) como parâmetros, não margens líquidas garantidas. Tarifa desconhecida = **desconhecida**, nunca zero. | Proposta comercial vigente, calendário e regras de split, taxas/chargeback e análise contábil. |
+| **FIN-03** Antifraude e webhooks | Propor idempotência, tolerância a reentrega/fora de ordem, autenticação de callback, segregação, tokenização externa, testes de cartões e Pix negativos. Não guardar credenciais no Git nem armazenar cartão. | Testes de segurança, contrato e sandbox **só após autorização distinta**. |
+| **FIN-04** Disputas e estornos | Propor retenção/bloqueio prudente até condições contratuais de liberação; trilhas de entrega, contestação, estorno e chargeback; responsabilidades transparentes e direitos do consumidor preservados. | Parecer jurídico, contratos, fluxos por evento e simulações de conciliação. |
+| **FIN-05** Frete e trocas | Preservar 5% sobre frete nas operações elegíveis e calcular pernas distintas da troca. **Item 12 continua standby**; não atribuir tarifa de processamento do frete sem decisão/contrato. Doação institucional nunca gera frete/cobrança da plataforma. | Cotação/contrato logístico, testes de conservação, exceções e decisão do item 12. |
+| **FIN-06** CNPJ e tributos | **Manter CNPJ próprio em branco** e não presumir enquadramento, faturamento líquido, notas ou responsabilidade tributária. | Cadastro real em canal privado e parecer contábil-fiscal/jurídico. |
+| **FIN-07** Continuidade e reconciliação | Recomendar conciliação diária, razão de diferenças, separação entre autorização/captura/liquidação/repasse, alertas de perdas, reserva de estorno calibrada e plano de saída. | Teste simulado, responsável/suplente identificados, tarifa e contrato real. |
+
+**Referência:** `docs/approval-packets/02-financeiro-gateway-logistica.md`; Asaas/Lalamove são **candidatos à homologação**, não contratados.
+
+## 4. Pauta OPS — operação, instituições e responsabilidade humana (7 gates)
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **OPS-01** Papéis e suplência | Propor funções mínimas de suporte, privacidade, segurança, financeiro, instituição e incidentes; uma pessoa pode acumular funções compatíveis **somente** após avaliar conflitos e capacidade; ações críticas exigem revisão independente. | Nomes e suplentes reais, aceites individuais e matriz RACI/RBAC privada. |
+| **OPS-02** Instituições | Exigir verificação de identidade/autoridade de representantes, revalidação, revogação, capacidade efetiva e critérios verificáveis de aceite/recusa. Cadastro sozinho não autoriza recebimento. | Documentos mínimos em repositório privado, teste de permissões, jurídico/produto/operação. |
+| **OPS-03** Doação e retirada | Confirmar decisão de produto existente: instituição organiza **retirada direta**, sem comissão, cobrança, frete, entregador ou repasse da plataforma. Protocolo de confirmação, disputa, extravio e ausência de seguro contratado. | Jornada testada, registro de retirada, exceções, parecer jurídico/operacional. |
+| **OPS-04** Suporte e SLA | Não publicar canal ou promessa de 24/7 antes de capacidade humana real. Definir prioridade de risco, janela de funcionamento, tempos-alvo após teste de carga, resposta a denúncias e contingência. | Plano de atendimento, canal validado, escala e responsáveis reais. |
+| **OPS-05** Sanções e incidentes | Propor gradação documentada, direito de contestação e reversão. Casos críticos, sanções irreversíveis e retomada de produção necessitam humano com autorização; registrar auditoria mínima. | Simulado com responsáveis designados e segregação de funções. |
+| **OPS-06** Acessibilidade e piloto | Exigir ensaio humano de leitor de tela e de rollback, além de CI. Formalizar GO/NO-GO separado; as 19 de 21 evidências sintéticas citadas no pacote não bastam. | Aceite independente, testes e ata de liberação, inclusive condições jurídicas e operacionais. |
+| **OPS-07** Operação enxuta | Propor modelo enxuto **sem prometer operação integralmente autônoma**; dimensionar filas e custos, limites de casos, plantões, gatilhos de pausa e escalonamento a pessoa. IA/automação seguem possibilidade futura, sem implementação. | Exercício de saturação, orçamento, responsável e substituto com aceite. |
+
+## 5. Ordem recomendada de decisões
+
+1. **Fundador — política de privacidade do produto:** validar ou revisar PRIV-01 e PRIV-06; optar conscientemente entre armazenar data completa e alternativa minimizada. Não operar com criança real.
+2. **Fundador — modelo financeiro:** preservar comissões aprovadas sem confundi-las com tarifa contratual; decidir expressamente manter FIN-05/#12 standby.
+3. **Fundador — limites operacionais:** confirmar retirada institucional direta, ausência de promessa 24/7, e pessoas como decisoras de situações críticas; revisar OPS-03/04/05/07.
+4. **Revisores externos/reais:** colher pareceres e provas nos 21 portões; registrar objeções e mudanças; não usar modelo como signatário.
+5. **Codex:** implementar somente alterações aprovadas e não externas, rodar provas técnicas e CI; atualizar matriz por requisito com evidência e decisão, nunca por número de PRs.
+
+## 6. Registro a preencher somente após deliberação real
+
+| Campo | Valor |
+| --- | --- |
+| Gate | **PENDENTE** |
+| Versão da proposta revisada | **PENDENTE** |
+| Decisão do fundador e justificativa | **PENDENTE** |
+| Responsável técnico/jurídico/financeiro exigido | **A DESIGNAR** |
+| Referência privada do parecer ou contrato | **PENDENTE** |
+| Evidência de teste com escopo | **PENDENTE** |
+| Risco residual aceito expressamente | **PENDENTE** |
+| Autorização para produção | **NÃO CONCEDIDA** |
+| Alteração de status da matriz | **NENHUMA** |
+
+O documento foi criado para facilitar a **avaliação humana**, e não para converter a recomendação do assistente em aprovação humana fictícia.
