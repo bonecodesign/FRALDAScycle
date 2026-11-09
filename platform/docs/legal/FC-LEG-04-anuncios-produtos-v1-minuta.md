@@ -19,3 +19,7 @@ Exibir quantidade, condição, valor total, taxas, frete, responsável e regras 
 
 ## Pendências
 [CRITÉRIOS DE VALIDADE MÍNIMA — A VALIDAR]; [FONTE OFICIAL DE RECALL — A HOMOLOGAR]; [CATÁLOGO — A VALIDAR]; [REGRAS DE PROVA — A TESTAR]. Revisão consumerista e de segurança de produto.
+
+
+## Limites de anúncios aprovados como regra de produto
+No piloto, cada usuário poderá manter até **três anúncios ativos**. Cada anúncio comum terá até **três unidades idênticas**; no Premium, até **cinco unidades idênticas por anúncio**, sempre sujeitas às condições de segurança, preço e disponibilidade. Esses limites precisam ser refletidos na interface e validados em testes, sem presumir homologação técnica.
