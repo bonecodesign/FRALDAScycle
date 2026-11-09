@@ -34,3 +34,6 @@
 - [ ] Decisão expressa de GO para escopo definido, ambiente, data e plano de reversão.
 
 **Resultado atual:** NO-GO. Completar minutas não equivale a assinar contratos, testar operação, obter parecer ou liberar produção. Nenhuma publicação ou contratação é autorizada por este checklist.
+
+## Evidência por gate e assinatura final
+Cada item deve apontar para documento, tela, teste, contrato, responsável e data. Aprovação em sequência: jurídico, privacidade/encarregado, segurança, financeiro/contabilidade e fundador nível 5. Uma objeção crítica bloqueia GO. Testar separadamente: remoção manual do último perfil versus expiração aos 13 anos; exportação com autenticação reforçada e canal alternativo para direitos; retenção e purga de certidões; cancelamento Premium; confirmação de entrega em 48 horas e disputas. Nenhum gate poderá ser marcado concluído com base apenas em minuta ou CI sintético.
