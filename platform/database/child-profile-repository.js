@@ -3,10 +3,16 @@ import { CHILD_PROFILE_CONSENT_CONTENT_HASH } from "../packages/contracts/child-
 export function createChildProfileRepository(database) {
   return Object.freeze({
     async notices(accountId) {
-      await database.query(`DELETE FROM account_notices WHERE kind='child_profile_change' AND expires_at<=now()`);
+      // This endpoint is exclusively for the family profile panel. Other
+      // account notifications (payments, disputes, etc.) must stay isolated.
+      // Expired notices are hidden; global retention cleanup belongs to a
+      // separately governed maintenance job, not an account read request.
       const result = await database.query(
         `SELECT id,message,created_at FROM account_notices
-         WHERE user_id=$1 AND read_at IS NULL ORDER BY created_at DESC LIMIT 20`,
+         WHERE user_id=$1 AND read_at IS NULL
+           AND kind IN ('child_profile_change','child_profile_age_limit','child_profile_responsibility')
+           AND (expires_at IS NULL OR expires_at>now())
+         ORDER BY created_at DESC,id DESC LIMIT 20`,
         [accountId],
       );
       return result.rows;
@@ -72,7 +78,7 @@ export function createChildProfileRepository(database) {
         await client.query(
           `INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
            VALUES($1,'child_profile.created','child_profile',$2,$3::jsonb)`,
-          [accountId, row.id, JSON.stringify({ consentVersion, emoji, personalizationEnabled: true })],
+          [accountId, row.id, JSON.stringify({ consentVersion, personalizationEnabled: true })],
         );
         await client.query(
           `INSERT INTO child_profile_consent_evidence

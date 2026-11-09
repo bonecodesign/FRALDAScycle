@@ -80,6 +80,13 @@ test("cadastro completo é atômico via HTTP e minimizado no PostgreSQL", {
       assert.ok(account.responsible_registration_completed_at instanceof Date);
       const family=(await database.query(`SELECT birth_date,emoji,consent_version,personalization_enabled FROM child_profiles WHERE account_id=$1`,[account.id])).rows[0];
       const familyBirthDate=family.birth_date instanceof Date?family.birth_date.toISOString().slice(0,10):String(family.birth_date);assert.equal(familyBirthDate,'2026-04-25');assert.equal(family.emoji,'🍼');assert.equal(family.consent_version,'FC-CHILD-PROFILE-1');assert.equal(family.personalization_enabled,true);
+      const creationAudit=(await database.query(`SELECT metadata FROM audit_events
+        WHERE actor_user_id=$1 AND action='child_profile.created' AND entity_type='child_profile'`,[account.id])).rows;
+      assert.equal(creationAudit.length,1);
+      assert.deepEqual(creationAudit[0].metadata,{
+        consentVersion:'FC-CHILD-PROFILE-1',personalizationEnabled:true,registrationFlow:true,
+      });
+      assert.doesNotMatch(JSON.stringify(creationAudit[0].metadata),/2026-04-25|birthDate|birth_date|emoji|🍼/i);
       const familyNotice=(await database.query(`SELECT message,created_at,expires_at FROM account_notices WHERE user_id=$1 AND kind='child_profile_change'`,[account.id])).rows[0];
       assert.equal(familyNotice.message,'Um perfil da família foi criado.');
       assert.doesNotMatch(familyNotice.message,/2026-04-25|nascimento|birth/i);
