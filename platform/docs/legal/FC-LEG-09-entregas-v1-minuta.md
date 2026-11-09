@@ -22,3 +22,7 @@ Compartilhar somente endereço e dados necessários à entrega. Foto: até 30 di
 
 ## Gates
 [PARCEIROS — A HOMOLOGAR]; [TABELA DE FRETE — A CONFIRMAR]; [SLA E CANAIS — A DEFINIR]; [SEGUROS — A REVISAR]; [CONTRATOS E TESTES — PENDENTES].
+
+
+## Ordem planejada de contratação e modalidades excluídas no lançamento
+A preferência operacional aprovada é: **Lalamove, quando efetivamente contratada e disponível; demais parceiros homologados; entregador elegível da plataforma**. Não haverá retirada local pelo comprador nem envio pelos Correios no lançamento. A ordem não implica parceria ou disponibilidade já confirmadas; a contratação e a viabilidade são gates independentes.
