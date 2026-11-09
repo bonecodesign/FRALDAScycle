@@ -30,3 +30,6 @@ Encerramento de adesão conforme lei, obrigações pendentes, transparência e m
 
 ## Campos e homologação
 [REMUNERAÇÃO E REPASSE — A DEFINIR]; [COBERTURA E VEÍCULOS — A DEFINIR]; [DOCUMENTOS EXIGIDOS — A VALIDAR]; [SEGURO E RISCOS — A REVISAR]; [CANAL DE RECURSO — A PREENCHER]. Exigir revisão da operação real, não só do texto.
+
+## Controles de implementação e riscos trabalhistas
+A autonomia deve ser verificada no algoritmo e na prática: recusa de oferta sem punição direta ou indireta; inexistência de escala compulsória, metas coercitivas, exclusividade e supervisão equivalente a subordinação; transparência de distribuição e bloqueios; possibilidade de trabalho para terceiros. Auditoria deve examinar indicadores, comunicação com entregadores e efetivo poder de decisão. A decisão interna de **não contratar seguro específico de entregador no piloto** é risco alto a submeter a parecer trabalhista, civil e securitário, sem excluir cobertura legal eventualmente obrigatória. Exigência de certidão de antecedentes depende de teste documentado de necessidade e proporcionalidade; não ativar exigência sem validação LGPD e trabalhista.
