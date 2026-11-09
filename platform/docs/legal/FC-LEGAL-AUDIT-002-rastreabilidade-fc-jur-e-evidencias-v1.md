@@ -76,3 +76,20 @@ Os itens E-01 a E-10 têm **mapeamento documental inicial**; status de implement
 - Legados de certidões sem data de decisão histórica não podem receber prazo presumido; migração P-01 falha por segurança e exige deliberação humana.
 
 **Nota de controle:** `p01-p02-technical-readiness-2026-11-08.md` comprova testes **históricos** e sintéticos na PR #215; não comprova estado atual do CI, exclusão real no provedor ou revisão profissional. Não alterar estados oficiais por causa deste relatório.
+
+
+## 9. Retificação de estado GitHub verificada em 09/11/2026
+
+A informação de que a **PR #215 permanecia draft e não integrada** consta de registros históricos de 08/11, mas **não representa o estado atual**. A consulta direta ao GitHub nesta rodada confirmou:
+- **PR #215:** `closed`, `merged=true`, head `93ececd2c4583da27b7b6db7a4360c5689858a61`. O documento `platform/docs/codex-fast-track-2026-11-08.md` em `main` também a identifica como integrada.
+- **PR #222:** `open`, `draft=true`, não integrada; seu diff consultado apresenta apenas um arquivo consolidado FC-JUR.
+- **PR #224:** `open`, `draft=true`, não integrada.
+- **PR #227:** `open`, `draft=true`, não integrada.
+
+Consequência: P-01/P-02 não devem ser descritos como **exclusivamente** na branch draft #215. A integração de código não significa prova de purga física, homologação de fornecedores, parecer LGPD ou autorização GO. Referências históricas das seções 3, 6 e 8 acima devem ser lidas à luz desta retificação, que prevalece quanto ao estado da PR #215.
+
+## 10. Busca de versões FC-JUR individuais
+Pesquisa no índice de código do GitHub, restrita a `bonecodesign/FRALDAScycle`, pelos termos `FC-JUR-01`, `FC-JUR-37`, `FC-JUR-50` e `fc-jur` não retornou versões individuais integrais de FC-JUR-01 a FC-JUR-50; localizou referências em documentos de planejamento. **Busca negativa no índice não comprova inexistência no repositório, em branches não indexadas, arquivos externos ou histórico**. Resultado de auditoria: `NÃO LOCALIZADO NESTA BUSCA`, sem declarar `INEXISTENTE`. É necessário inventário de árvores/branches e fontes originais antes de encerrar a lacuna.
+
+## 11. Priorização executável sem fornecedor
+A documentação de `main` aponta `platform/config/codex-action-board.v1.json` como quadro para os 28 requisitos em oito trilhas. Próximo passo técnico: usar o quadro para conectar IDs oficiais aos testes existentes, sem alterar a matriz por inferência. O requisito 12 (processamento do frete) permanece standby até decisão expressa, conforme documento de planejamento. Não autorizar merge, contratação ou ativação por esta retificação.
