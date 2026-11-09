@@ -38,6 +38,9 @@ export async function deliverNotification(job, config, fetchImpl = fetch) {
   if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     throw new Error("Notification provider URL must be HTTPS without credentials or query");
   }
+  // Reject unsupported child lifecycle payloads *before* the transport
+  // handler, so privacy-policy failures cannot masquerade as provider outages.
+  const outboundPayload = notificationPayloadForDispatch(job);
   let response;
   try {
     response = await fetchImpl(config.notificationWebhookUrl, {
@@ -52,7 +55,7 @@ export async function deliverNotification(job, config, fetchImpl = fetch) {
         id: job.id,
         kind: job.kind,
         recipient: job.recipient,
-        payload: notificationPayloadForDispatch(job),
+        payload: outboundPayload,
       }),
       signal: AbortSignal.timeout(10_000),
     });
