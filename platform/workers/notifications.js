@@ -11,6 +11,23 @@ export function backoffSeconds(attempt) {
   return Math.min(3600, 15 * (2 ** Math.max(0, attempt - 1)));
 }
 
+const CHILD_AGE_EVENTS = new Set(["child_profile_age_limit_warning", "child_profile_age_limit_closed"]);
+
+/**
+ * A provider must never receive child profile attributes from historical jobs.
+ * Legacy pending outbox rows may contain emoji; whitelist the two supported
+ * fields at the final dispatch boundary without mutating or inventing evidence.
+ */
+export function notificationPayloadForDispatch(job) {
+  if (job?.kind !== "account_lifecycle_notice") return job?.payload;
+  // This notification kind is exclusive to child age lifecycle messages.
+  // Missing events or unexpected payloads must never bypass minimization.
+  if (!CHILD_AGE_EVENTS.has(job.payload?.event) || job.payload?.channel !== "email") {
+    throw new Error("Child profile lifecycle notification payload is not supported");
+  }
+  return { channel: "email", event: job.payload.event };
+}
+
 export async function deliverNotification(job, config, fetchImpl = fetch) {
   if (!config.notificationWebhookUrl || !config.notificationWebhookSecret) {
     throw new Error("Notification delivery is not configured");
@@ -21,6 +38,9 @@ export async function deliverNotification(job, config, fetchImpl = fetch) {
   if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     throw new Error("Notification provider URL must be HTTPS without credentials or query");
   }
+  // Reject unsupported child lifecycle payloads *before* the transport
+  // handler, so privacy-policy failures cannot masquerade as provider outages.
+  const outboundPayload = notificationPayloadForDispatch(job);
   let response;
   try {
     response = await fetchImpl(config.notificationWebhookUrl, {
@@ -35,7 +55,7 @@ export async function deliverNotification(job, config, fetchImpl = fetch) {
         id: job.id,
         kind: job.kind,
         recipient: job.recipient,
-        payload: job.payload,
+        payload: outboundPayload,
       }),
       signal: AbortSignal.timeout(10_000),
     });

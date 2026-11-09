@@ -12,7 +12,7 @@
 | Auditoria | `database/child-profile-repository.js`, `database/responsible-registration-repository.js`, `database/migrations/128_child_profile_consent_evidence.sql` | A criação de perfis **não passa mais emoji nem nascimento para metadados de auditoria**; prova de consentimento registra versão/hash sem copiar atributos infantis | Eventos antigos anteriores a esta correção podem conservar `emoji` e requerem inventário + retenção/eliminação aprovadas, nunca mutação indiscriminada de logs |
 | Avisos internos | `database/child-profile-repository.js`, `apps/api/child-profile-handler.js`, `apps/app/family-profile.js` | Endpoint familiar limita a leitura à própria conta, avisos de perfil, limite etário e responsabilidade; somente avisos não lidos e ainda vigentes; sem `DELETE` global disparado pela leitura | Excluir avisos expirados precisa de manutenção separada, com prazo e política revisados; observação na tela não é prova de exclusão do banco |
 | Faixas etárias e marketing | `packages/contracts/child-age-band.js`, `apps/api/child-profile-service.js`, `packages/contracts/marketing-dispatch-policy.js` | Sinais internos `ageBand` únicos não incluem nascimento exato, ID de criança ou contagem de perfis | A revisão de integrações externas com marketing/parceiros permanece **pendente**, inclusive comprovação negativa ponta a ponta |
-| Ciclo de 13 anos | `database/child-profile-lifecycle-repository.js`, `workers/child-profile-lifecycle.js` | Nascimento limpo ao encerrar por idade; aviso interno genérico | O `notification_outbox` atualmente inclui o **emoji** no payload de alerta etário; revisar necessidade, destinatário, política, proteção de canal e possibilidade de eliminá-lo antes de integração externa |
+| Ciclo de 13 anos | `database/child-profile-lifecycle-repository.js`, `workers/child-profile-lifecycle.js` | Nascimento limpo ao encerrar por idade; aviso interno genérico | Avisos etários novos guardam somente `channel` e `event`; o despachante filtra a saída de avisos legados conhecidos antes do provedor. **Mensagens antigas já persistidas podem ainda conter emoji:** inventariar/reter/eliminar sob decisão de privacidade, não presumir limpeza física do banco |
 | Contestação de responsabilidade | `database/child-profile-responsibility-repository.js`, `apps/api/child-profile-responsibility-service.js` | Contestações minimizadas com auditoria e autorização independente; notificação é incluída na leitura familiar, mas não outros tipos de aviso | Exceções e retenção de evidências precisam de responsável humano e decisão jurídica |
 | Direitos/encerramento | `database/privacy-request-repository.js`, `tests/account-closure-retention-postgres.test.mjs` | Inventário de dados e fluxo de encerramento já preparados | Eliminação operacional integral e classificação jurídica de obrigações pendentes continuam bloqueadas |
 
@@ -25,8 +25,18 @@
 ## Portões ainda não vencidos
 
 - **PRIV-01…PRIV-07:** melhor interesse, fundamentos, responsabilidades, parceiros, publicidade, prazos, backup e medidas de incidentes precisam de revisão especializada verdadeira e versão aprovada.
-- **Verificação técnica a continuar:** reduzir o payload de notificação de ciclo etário, auditar eventos históricos com `emoji`, testar ingressos e saídas para marketing/analytics e confirmar política de exclusão/backup.
+- **Verificação técnica a continuar:** auditar sob autorização e política de retenção os payloads e eventos históricos que contenham `emoji`; testar ingressos e saídas para marketing/analytics, identidade do destinatário e confirmar política de exclusão/backup. A minimização de mensagens etárias novas e o filtro no envio não apagam dados históricos armazenados.
 - **Segurança:** não habilitar `CHILD_PROFILES_ENABLED` ou criar contas/dados reais. A migração original não foi alterada e nenhuma coleta foi ativada.
 - **Matriz de 70:** IDs 26, 27, 28, 31, 32 e 33 permanecem `bloqueado`. Esta revisão não atualiza status nem aumenta os 60% oficiais.
 
 Referências de coordenação: [Issue #229](https://github.com/bonecodesign/FRALDAScycle/issues/229), [pacote PRIV](approval-packets/01-privacidade-dados-infantis.md), [quadro de decisões](../config/cross-functional-decision-gates.v1.json).
+
+## Complemento técnico — 09/11/2026: minimização dos avisos etários
+
+A camada `database/child-profile-lifecycle-repository.js` deixa de consultar/serializar o emoji da criança para os eventos `child_profile_age_limit_warning` e `child_profile_age_limit_closed`, preservando apenas os campos `channel=email` e `event`. O `notification_outbox` criado daqui em diante contém somente esses sinais operacionais.
+
+A camada `workers/notifications.js` filtra essas duas espécies de avisos antes de qualquer chamada ao provedor de notificação, inclusive em trabalhos legados pendentes que possuam `emoji`, `birthDate` ou outros campos extras. Canais inesperados, eventos desconhecidos ou ausentes nesse tipo de notificação falham por segurança e não são enviados. Outros tipos de notificação seguem seu contrato próprio.
+
+O teste `tests/child-profile-lifecycle-postgres.test.mjs` verifica os payloads novos e simula a contaminação de uma linha antiga no banco para observar sua sanitização no envio sintético; `tests/child-profile-notification-minimization.test.mjs` cobre os campos extras, eventos/canais inválidos e preservação de mensagens não infantis.
+
+**Limites:** o filtro protege a saída, não elimina automaticamente a cópia histórica no banco; nenhuma conta de provedor, credencial real ou mensagem externa foi criada. O parecer jurídico/privacidade sobre retenção de eventos históricos e integrações com marketing continua pendente.
