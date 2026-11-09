@@ -22,3 +22,6 @@ Evidência minimizada de aceite durante a conta e por cinco anos após encerrame
 
 ## Gate de ativação
 Inventário de dados, avaliação preliminar, RIPD conforme risco, parecer jurídico/encarregado, testes de remoção e backup, revisão de telas e fornecedor, aprovação formal. Sem isso, feature permanece desligada.
+
+## Conciliação de fases e estados de perfil — auditoria 09/11/2026
+A criação de nova conta familiar exige ao menos um perfil e manifestação própria do responsável. A remoção manual do último perfil preserva conta, histórico e suporte, mas bloqueia **novas operações dependentes de perfil** até que haja perfil elegível; já a expiração automática por idade aos 13 anos do último perfil mantém a conta e permite vitrine com relevância geral. Essas situações devem ter testes separados. A decisão interna prevê avaliação preliminar antes do piloto fechado e conclusão do RIPD completo durante esse piloto; como salvaguarda, **nenhum tratamento infantil real será ativado antes da avaliação preliminar, base legal e análise de melhor interesse, controles e aprovação específica**. A abertura ao público geral requer RIPD concluído e aprovado. Se a avaliação preliminar apontar alto risco não mitigado, não ativar nem no piloto fechado.
