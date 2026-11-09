@@ -16,3 +16,6 @@ Comunicar titular quando permitido e adequado, preservando sigilo legal. Ordem d
 
 ## Pendências
 [RESPONSÁVEIS E CANAL — A DESIGNAR]; [MODELOS DE RESPOSTA — A VALIDAR]; [CRITÉRIOS DE AUTENTICIDADE — A HOMOLOGAR]; [REVISÃO JURÍDICA — PENDENTE].
+
+## Fluxo específico de escalonamento
+Nível 1 protocola; nível 2 valida identidade, competência, fundamento e escopo; nível 3 autoriza divulgação mínima; nível 4 recebe ciência. A decisão interna prevê tratamento excepcional de **ordem judicial válida** com avaliação do Jurídico e aprovações dos níveis 3, 4 e 5, sem descumprir prazo ou comando legal. Em urgência, cumprir ordem vinculante no prazo e registrar justificativa, escalonamento e revisão subsequente. Evitar transformar níveis internos em obstáculo a direitos ou obrigações legais.
