@@ -47,3 +47,22 @@
 5. Obter revisão profissional, fornecedores e provas; manter **NO-GO** até conclusão.
 
 **Restrições:** somente `platform/`, sem alterar protótipo, sem contratação, credenciais, deploy, cobrança real ou merge automático.
+
+
+## Rodada 2 — harmonização textual executada em 09/11/2026
+
+**Documentos ajustados nesta rodada:** LEG-10, LEG-11, LEG-13, LEG-15, LEG-17, LEG-25, LEG-29 e LEG-30. Os achados A-05, A-06, A-07, A-08, A-12 e A-13 receberam **tratamento documental preliminar**; não estão encerrados para homologação porque exigem revisão profissional, telas, contratos ou testes.
+
+| Achado | Tratamento realizado | Evidência ainda necessária |
+|---|---|---|
+| A-05 | Diferenciados remoção manual do último perfil e encerramento automático aos 13 anos | Testes de UX, cadastro, vitrine e autorização |
+| A-06 | Exportação reforçada e limite antifraude não impeditivo de direitos legais | Parecer LGPD e testes de solicitações sucessivas |
+| A-07 | Separados piloto sintético, piloto restrito com dados reais e público geral; avaliação preliminar e RIPD conforme risco | Avaliação real, fundamento por finalidade e aprovação |
+| A-08 | Auditoria de autonomia efetiva, certidão proporcional e risco securitário | Parecer trabalhista/LGPD e operação observável |
+| A-12 | Sequência de aprovações e veto crítico documentados | Responsáveis nomeados e assinaturas |
+| A-13 | Escalonamento de autoridades e retenção excepcional documentados | Validação jurídica e workflow auditável |
+
+**Status honesto:** 30 minutas, 17 achados preliminares, correções textuais realizadas em 12 instrumentos ao longo das rodadas 1 e 2. Os achados continuam abertos até demonstração das evidências e aprovação competente. Não atualizar automaticamente a matriz geral de 70 requisitos.
+
+## Próximo confronto obrigatório
+Comparar integralmente FC-JUR-01 a FC-JUR-50 no PR #222, demais minutas v2, contratos e telas reais; validar cronogramas e requisitos da ANPD na data da publicação. Nenhuma ativação, contratação ou merge decorre desta auditoria.
