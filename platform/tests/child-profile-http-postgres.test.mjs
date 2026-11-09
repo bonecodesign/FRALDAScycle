@@ -83,6 +83,7 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
         ($1,'child_profile_change','family-synthetic-active','scope-family-active',now()+interval '1 day'),
         ($1,'child_profile_change','family-synthetic-expired','scope-family-expired',now()-interval '1 day'),
         ($1,'child_profile_age_limit','family-synthetic-age-limit','scope-family-age-limit',NULL),
+        ($1,'child_profile_responsibility','family-synthetic-responsibility','scope-family-responsibility',now()+interval '1 day'),
         ($1,'exchange_difference_payment','payment-synthetic-private','scope-payment-private',NULL),
         ($2,'child_profile_change','other-account-synthetic-private','scope-other-account',now()+interval '1 day')`,
         [owner,outsider]);
@@ -92,9 +93,10 @@ test('disabled child-profile foundation minimizes data and isolates accounts ove
       assert.equal(familyResponse.headers.get('cache-control'),'no-store');
       const familyResult=await familyResponse.json();
       const visible=familyResult.items.map(item=>item.message);
-      assert.equal(visible.length,7);
+      assert.equal(visible.length,8);
       assert.ok(visible.includes('family-synthetic-active'));
       assert.ok(visible.includes('family-synthetic-age-limit'));
+      assert.ok(visible.includes('family-synthetic-responsibility'));
       for(const privateMessage of [
         'family-synthetic-expired','payment-synthetic-private','other-account-synthetic-private'
       ]) assert.equal(visible.includes(privateMessage),false);
