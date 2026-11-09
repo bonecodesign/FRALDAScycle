@@ -1,5 +1,7 @@
 # FraldaCycle — passagem técnica para Codex após integração P-01/P-02 (2026-11-08)
 
+> **Ponto de entrada atualizado em 09/11/2026:** [Consolidação das oito PRs, 28 requisitos e trilha Codex](codex-consolidacao-prs-e-trilha-codex-2026-11-09.md) (mesma PR #224). O roteiro distingue decisões recentes da PR #235, documentos legais da #227, conflitos #115/#130 e homologações pendentes. **Esse roteiro prevalece para a ordem de trabalho atual**, preservando o texto abaixo como histórico pós P-01/P-02. Não presume autorização de merge ou ativação.
+
 ## Estado confirmado
 - PR #215 integrado na main, merge commit `f51e99be03adee9002ea3be5390ae4cdb8e53d31`. O PR #223 sincronizou a branch previamente.
 - CI no head sincronizado `93ececd2c4583da27b7b6db7a4360c5689858a61`: execução [42530649709](https://github.com/bonecodesign/FRALDAScycle/actions/runs/42530649709), sucesso nos quatro jobs `foundation`, `listing-postgres`, `containers` e `browser-postgres`.
