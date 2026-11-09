@@ -14,9 +14,18 @@
 
 ## 2. Pauta PRIV — privacidade e dados de crianças (7 gates)
 
+### Decisão do fundador registrada — escopo do perfil infantil (09/11/2026)
+
+- **Somente dois campos** no perfil infantil: `data de nascimento` e `emoji` de um conjunto de opções **predefinidas pela plataforma**, escolhido para distinguir perfis visualmente.
+- O emoji **não é livre**: sem texto digitado, nomes, apelidos, imagem própria ou foto. A seleção do emoji não é identificador para terceiros.
+- **Finalidades propostas:** a data de nascimento serve à faixa etária e à adequação da vitrine; o emoji distingue visualmente perfis **na área privada do responsável**. Não transmitir nenhum dos dois a anunciantes, entregadores, instituições ou parceiros de publicidade.
+- Este é um **aceite de direção de produto**, não uma aprovação jurídica/LGPD ou autorização de ativação. `PRIV-01` e `PRIV-06` continuam `pending_human_review` no quadro oficial. A necessidade de guardar o dia exato, prazos de retenção, controles de acesso e bases legais continuam sujeitos a pareceres.
+- Esta deliberação corrige a leitura anterior de que seria **apenas data de nascimento**: **o emoji predefinido também integra o perfil**.
+
+
 | Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
 | --- | --- | --- |
-| **PRIV-01** Necessidade e melhor interesse | Preservar perfil **opcional e desligado por padrão**; não coletar nome, foto, saúde, peso, gênero, documento ou localização de criança. Reavaliar se **data de nascimento completa** é estritamente necessária para vitrine e avisos etários; comparar mês/ano, faixa informada pelo adulto e cálculo local. Não mudar a regra de produto já aprovada sem decisão expressa. | Justificativa de finalidade por campo; análise de alternativas menos invasivas; avaliação de risco e melhor interesse; jurídico/privacidade/produto. |
+| **PRIV-01** Necessidade e melhor interesse | **Decisão de produto confirmada pelo fundador (09/11/2026):** o perfil infantil terá **somente data de nascimento e um emoji escolhido entre opções predefinidas pelo FraldaCycle** para identificação visual do perfil. Não permitir nome, apelido, texto livre, imagem, foto, saúde, peso, gênero, documento nem localização infantil. Perfil opcional e desativado por padrão. Submeter a necessidade da **data completa** à avaliação de melhor interesse e minimização, sem alterar esta decisão de produto automaticamente. | Justificativa de finalidade por campo; análise de alternativas menos invasivas; avaliação de risco e melhor interesse; jurídico/privacidade/produto. |
 | **PRIV-02** Base legal por finalidade | Não declarar consentimento como base universal: construir tabela por tratamento (conta do adulto, perfil opcional, auditoria, mensagens, marketing, incidentes) e base aplicável. Pausar tratamentos sem hipótese justificada. | Parecer por finalidade e dado, com direitos e fundamento legal; jurídico/privacidade. |
 | **PRIV-03** Poder do responsável e acesso excepcional | Verificação proporcional e minimizada da legitimidade do responsável; sem documentos de criança em rotina. Contestação com revisão humana, acesso excepcional temporário, auditado e com dupla autorização em casos de alto risco. | Modelo de ameaça, papéis e permissões, teste de abuso/contestação; jurídico/privacidade/segurança. |
 | **PRIV-04** Retenção, descarte e backups | Retenção mínima por classe de dado; remover personalização ao excluir último perfil; impedir restauração indevida após exclusão. A janela proposta de expiração de backup em até 30 dias só é válida após teste de restauração, exceções legais e parecer. | Tabela de retenção/descarte, logs sintéticos de purge/restore, exceções justificadas; jurídico/privacidade/segurança. |
@@ -54,7 +63,7 @@
 
 ## 5. Ordem recomendada de decisões
 
-1. **Fundador — política de privacidade do produto:** validar ou revisar PRIV-01 e PRIV-06; optar conscientemente entre armazenar data completa e alternativa minimizada. Não operar com criança real.
+1. **Fundador — política de privacidade do produto:** a definição interna já explicitada para PRIV-01 é **data de nascimento + um único emoji de catálogo predefinido pela plataforma**, para identificação visual do perfil; nenhum nome, apelido, texto ou imagem enviada pelo usuário. Ainda é necessário examinar a proporcionalidade da data completa e a finalidade de uso, além de deliberar PRIV-06. Não operar com criança real.
 2. **Fundador — modelo financeiro:** preservar comissões aprovadas sem confundi-las com tarifa contratual; decidir expressamente manter FIN-05/#12 standby.
 3. **Fundador — limites operacionais:** confirmar retirada institucional direta, ausência de promessa 24/7, e pessoas como decisoras de situações críticas; revisar OPS-03/04/05/07.
 4. **Revisores externos/reais:** colher pareceres e provas nos 21 portões; registrar objeções e mudanças; não usar modelo como signatário.
