@@ -35,7 +35,7 @@ Referências de coordenação: [Issue #229](https://github.com/bonecodesign/FRAL
 
 A camada `database/child-profile-lifecycle-repository.js` deixa de consultar/serializar o emoji da criança para os eventos `child_profile_age_limit_warning` e `child_profile_age_limit_closed`, preservando apenas os campos `channel=email` e `event`. O `notification_outbox` criado daqui em diante contém somente esses sinais operacionais.
 
-A camada `workers/notifications.js` filtra essas duas espécies de avisos antes de qualquer chamada ao provedor de notificação, inclusive em trabalhos legados pendentes que possuam `emoji`, `birthDate` ou outros campos extras. Canais inesperados ou eventos desconhecidos com prefixo `child_profile_` falham por segurança e não são enviados. Outros tipos de notificação seguem seu contrato próprio.
+A camada `workers/notifications.js` filtra essas duas espécies de avisos antes de qualquer chamada ao provedor de notificação, inclusive em trabalhos legados pendentes que possuam `emoji`, `birthDate` ou outros campos extras. Canais inesperados, eventos desconhecidos ou ausentes nesse tipo de notificação falham por segurança e não são enviados. Outros tipos de notificação seguem seu contrato próprio.
 
 O teste `tests/child-profile-lifecycle-postgres.test.mjs` verifica os payloads novos e simula a contaminação de uma linha antiga no banco para observar sua sanitização no envio sintético; `tests/child-profile-notification-minimization.test.mjs` cobre os campos extras, eventos/canais inválidos e preservação de mensagens não infantis.
 
