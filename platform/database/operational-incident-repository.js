@@ -45,7 +45,7 @@ export function createOperationalIncidentRepository(database) {
         return { incident, events: [], reused: false };
       });
     },
-    async change({ actorUserId, id, expectedVersion, action, note }) {
+    async change({ actorUserId, id, expectedVersion, action, note, metadata = {} }) {
       return database.transaction(async client => {
         const current = (await client.query('SELECT * FROM operational_incidents WHERE id=$1 FOR UPDATE',[id])).rows[0];
         if (!current) return null;
@@ -57,13 +57,13 @@ export function createOperationalIncidentRepository(database) {
         if(action==='monitor')status='monitoring';
         if(action==='resolve'){status='resolved';resolvedAt=new Date();}
         if(action==='reopen'){status='open';resolvedAt=null;}
-        const eventAction={claim:'claimed',release:'released',contain:'contained',monitor:'monitoring',resolve:'resolved',reopen:'reopened',note:'note'}[action];
+        const eventAction={claim:'claimed',release:'released',contain:'contained',monitor:'monitoring',resolve:'resolved',reopen:'reopened',note:'note',assess_privacy:'risk_assessed',record_communication:'communication_decision'}[action];
         const incident=(await client.query(`UPDATE operational_incidents SET status=$2,assigned_to=$3,resolved_at=$4,
           updated_at=now(),version=version+1 WHERE id=$1 RETURNING *`,[id,status,assigned,resolvedAt])).rows[0];
         await client.query(`INSERT INTO operational_incident_events(incident_id,actor_user_id,action,note,metadata)
-          VALUES($1,$2,$3,$4,$5::jsonb)`,[id,actorUserId,eventAction,note,JSON.stringify({previousStatus:current.status,status,previousVersion:current.version,version:incident.version})]);
+          VALUES($1,$2,$3,$4,$5::jsonb)`,[id,actorUserId,eventAction,note,JSON.stringify({previousStatus:current.status,status,previousVersion:current.version,version:incident.version,...metadata})]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
-          VALUES($1,$2,'operational_incident',$3,$4::jsonb)`,[actorUserId,`incident.${eventAction}`,id,JSON.stringify({status,version:incident.version})]);
+          VALUES($1,$2,'operational_incident',$3,$4::jsonb)`,[actorUserId,`incident.${eventAction}`,id,JSON.stringify({status,version:incident.version,externalDispatchAuthorized:false})]);
         return { incident, conflict:false };
       });
     },
