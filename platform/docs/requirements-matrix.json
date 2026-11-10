@@ -971,12 +971,15 @@
         "tests/account-closure-maintenance.test.mjs",
         "database/migrations/093_account_closure_data_inventory.sql",
         "database/migrations/133_account_closure_retention_classification.sql",
+        "database/migrations/152_account_closure_retention_plan.sql",
+        "packages/contracts/account-closure-retention.js",
         "tests/account-closure-inventory.test.mjs",
         "tests/account-closure-retention-postgres.test.mjs",
+        "tests/account-closure-retention-plan.test.mjs",
         "docs/privacy-deletion-beta.md"
       ],
-      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Prova PostgreSQL dedicada confirma que retenção de conteúdo e disputa de responsabilidade familiar impedem o avanço; após resolver obrigações, é criado um único inventário FC-CLOSURE-INVENTORY-2 com categorias de identidade, família, consentimentos, conteúdo e financeiro, sem excluir a conta e mantendo automaticErasureAllowed falso. Em 07/11/2026, rotina técnica reforçada para tratar toda contagem de obrigação inválida/negativa/incompleta como pendente, antes de preparar inventário, e limitar a manutenção a 50 solicitações por lote; regressões unitárias adicionadas, sujeitas à aprovação do CI.",
-      "reason": "Fluxo, gates e inventário técnico classificado estão implementados. Purga final, identidade humana, decisão jurídica de cada categoria e atendimento integral dependem de revisão jurídica, privacidade e operação."
+      "evidence": "Senha e código por e-mail, janela de sete dias, bloqueio de novas operações, interrupção transacional da renovação Premium, cancelamento e revisão de pendências estão comprovados por HTTP/PostgreSQL. Após resolver obrigações, é criado um único inventário FC-CLOSURE-INVENTORY-2. Em 10/11/2026, o sistema passou a gerar também um plano idempotente com os prazos aprovados para financeiro, aceites, suporte, segurança, marketing, navegação, logs e dados infantis. A migração força revisão profissional pendente e proíbe execução ou apagamento automático; testes garantem ausência de DELETE de conta e preservação do titular.",
+      "reason": "Fluxo, inventário e plano técnico de retenção estão implementados. Purga final, identidade humana, decisão jurídica de cada categoria, comprovantes externos e atendimento integral dependem de revisão jurídica, privacidade e operação."
     },
     {
       "id": 46,

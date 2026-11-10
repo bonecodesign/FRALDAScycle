@@ -153,6 +153,7 @@ const files = [
   "tools/preactivation-safety.mjs",
   "tools/smoke-deployment.mjs",
   "database/recovery.js",
+  "packages/contracts/account-closure-retention.js",
   "tools/beta-recovery-check.mjs",
   "tools/recovery-objectives.mjs",
   "tools/secret-operations-governance.mjs",
