@@ -640,13 +640,15 @@
       "references": [
         "docs/legal/politicas-privacidade-cookies-termos-pre-operacionais.md",
         "packages/contracts/child-age-band.js",
+        "packages/contracts/marketing-dispatch-policy.js",
         "apps/api/child-profile-service.js",
         "apps/api/child-profile-handler.js",
+        "tests/account-consent-policy.test.mjs",
         "tests/family-profile-foundation.test.mjs",
         "docs/family-profile-foundation-beta.md"
       ],
-      "evidence": "Sinais internos contêm somente faixas etárias únicas; data, identificador do perfil e quantidade de crianças são excluídos, e não existe rota de parceiros.",
-      "reason": "Minimização preparada, mas coleta, contrato de ofertas, fornecedores e revisão de privacidade permanecem bloqueados."
+      "evidence": "Sinais internos contêm somente faixas etárias únicas; contrato específico exige consentimento FC-FAMILY-MARKETING-1, marca o compartilhamento externo como proibido e bloqueia recursivamente nascimento, emoji, identificadores de perfil e a própria faixa etária no payload de entrega a fornecedor. Testes negativos sintéticos cobrem campos diretos e aninhados; não existe rota ou integração real de parceiro.",
+      "reason": "Seleção interna e fronteira externa fail-closed foram preparadas, mas coleta, validade jurídica do consentimento condicionado, contrato, fornecedor e revisão de privacidade permanecem bloqueados."
     },
     {
       "id": 29,
