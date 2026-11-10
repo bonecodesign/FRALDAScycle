@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "status": "preactivation-target",
+  "scope": "pilot-bh",
+  "objectives": {
+    "backupIntervalMinutes": 60,
+    "rpoMinutes": 60,
+    "rtoMinutes": 240,
+    "immutableRetentionDays": 30,
+    "restoreDrillIntervalDays": 30
+  },
+  "activationGates": {
+    "externalStorageProvisioned": false,
+    "kmsProvisioned": false,
+    "vaultProvisioned": false,
+    "operatorAccessApproved": false,
+    "scheduledBackupVerified": false,
+    "externalRestoreVerified": false,
+    "alertsVerified": false
+  },
+  "claims": {
+    "productionReady": false,
+    "objectivesProven": false,
+    "externalRecoveryPerformed": false
+  }
+}
