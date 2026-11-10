@@ -13,9 +13,28 @@ const clone = structuredClone;
 test('three packets are evidence-linked and track 22 pending IDs; 21 human decisions stay unapproved', async () => {
   assert.deepEqual(await validateCrossFunctionalDecisionGates(plan, matrix, board), {
     currentPercent: 60, pendingCount: 28, inThreeTracks: 22,
-    outsideThreeTracks: 6, humanDecisionsPending: 21,
+    outsideThreeTracks: 6, founderDirectionsRecorded: 21,
+    humanDecisionsPending: 21,
     approvalsRecorded: 0, pilotBH: 'NO-GO',
   });
+});
+
+test('founder directions cover all gates but never count as specialist approval', async () => {
+  const incomplete = clone(plan);
+  incomplete.founderDeliberations.gateIds.pop();
+  await assert.rejects(validateCrossFunctionalDecisionGates(incomplete, matrix, board),
+    /Founder direction/);
+
+  const promoted = clone(plan);
+  promoted.founderDeliberations.effect = 'approved_for_production';
+  promoted.founderDeliberations.doesNotAuthorizeProduction = false;
+  await assert.rejects(validateCrossFunctionalDecisionGates(promoted, matrix, board),
+    /Founder direction/);
+
+  const gateApproved = clone(plan);
+  gateApproved.tracks[0].gates[0].status = 'approved';
+  await assert.rejects(validateCrossFunctionalDecisionGates(gateApproved, matrix, board),
+    /silently approved/);
 });
 
 test('no automated test, documentation or reviewer placeholder can mark a human gate approved', async () => {

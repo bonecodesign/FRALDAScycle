@@ -46,6 +46,29 @@
 | **PRIV-06** Parceiros e marketing | **Propor veto por padrão** ao uso de dados/perfis infantis para marketing, segmentação comportamental ou identificação por parceiros. Qualquer faixa etária destinada a parceiro deve ter necessidade documentada, mínimo técnico e revisão jurídica. Revisar explicitamente **Lei 15.211/2025 (ECA Digital)** e a aplicabilidade ao produto cujo cadastro é do adulto. | Parecer de alcance legal, testes de payload sem identificadores e contrato de minimização; jurídico/privacidade/produto. |
 | **PRIV-07** Incidentes | Propor detecção, registro mínimo, congelamento de exposição, classificação de risco, escalonamento humano e comunicações legais após avaliação. Não afirmar que todo incidente exige notificação automática. | Plano de resposta, simulação sem dados reais, responsável e avaliação segundo Resolução ANPD 15/2024; privacidade/segurança/jurídico. |
 
+### Deliberação interna do fundador — PRIV-06 (10/11/2026)
+
+**Diretriz de produto aprovada:** a FraldaCycle poderá utilizar internamente apenas a **faixa etária derivada** do perfil infantil para campanhas próprias previamente autorizadas pelo responsável. A data de nascimento, o emoji, o perfil infantil e identificadores correlacionáveis não serão compartilhados com anunciantes, redes publicitárias ou outros parceiros para segmentação.
+
+- O consentimento para campanhas será separado, específico, opcional e revogável, sem condicionar o uso básico da conta ou o exercício de direitos.
+- A finalidade publicitária não autoriza acesso de terceiros ao perfil nem amplia automaticamente a retenção dos dados infantis.
+- A implementação deverá impedir payloads externos com nascimento, emoji, identificador de perfil ou faixa etária individualmente correlacionável e exigir testes negativos antes de qualquer ativação.
+- A decisão é uma orientação interna do fundador. A validade do uso da faixa derivada, os textos de consentimento, a minimização, a retenção e o alcance do ECA Digital continuam sujeitos a parecer jurídico e de privacidade.
+
+**Estado oficial inalterado:** `PRIV-06 = pending_human_review`; nenhuma campanha com dados reais, integração publicitária ou autorização de produção foi concedida.
+
+### Deliberação interna do fundador — PRIV-07 (10/11/2026)
+
+**Diretriz de produto aprovada — combinação das opções 2 e 3:** incidentes terão detecção, contenção, preservação de evidências e escalonamento humano imediatos. Segurança, Privacidade e Jurídico realizarão avaliação proporcional de risco e dano; a comunicação completa será emitida após investigação suficiente para ser correta e útil.
+
+- A investigação não poderá ser usada para ultrapassar prazo legal aplicável nem para omitir risco imediato relevante.
+- Quando a avaliação inicial indicar risco ou dano relevante, serão adotadas as comunicações preliminares legalmente necessárias, seguidas de complemento após a investigação.
+- Eventos sem obrigação de comunicação externa ainda terão registro mínimo, classificação fundamentada e encerramento auditável.
+- Não haverá notificação automática indiscriminada nem espera por certeza absoluta quando a demora aumentar o risco.
+- Critérios, responsáveis, suplentes, canais e prazos concretos ainda exigem plano de resposta, simulação e revisão especializada.
+
+**Estado oficial inalterado:** `PRIV-07 = pending_human_review`; a decisão não afirma capacidade operacional, plantão ativo ou conformidade já homologada.
+
 **Referências normativas para revisão, sem dispensar parecer:** [LGPD/Enunciado CD-ANPD 1/2023](https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-divulga-enunciado-sobre-o-tratamento-de-dados-pessoais-de-criancas-e-adolescentes), [ECA Digital — ANPD](https://www.gov.br/anpd/pt-br/assuntos/noticias/eca-digital), [Lei 15.211/2025, art. 22](https://www2.camara.leg.br/legin/fed/lei/2025/lei-15211-17-setembro-2025-797997-normaatualizada-pl.html), [Comunicação de incidente ANPD](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis).
 
 ### Deliberação de fundador — PRIV-02 (09/11/2026)
@@ -165,6 +188,90 @@
 | **FIN-06** CNPJ e tributos | **Manter CNPJ próprio em branco** e não presumir enquadramento, faturamento líquido, notas ou responsabilidade tributária. | Cadastro real em canal privado e parecer contábil-fiscal/jurídico. |
 | **FIN-07** Continuidade e reconciliação | Recomendar conciliação diária, razão de diferenças, separação entre autorização/captura/liquidação/repasse, alertas de perdas, reserva de estorno calibrada e plano de saída. | Teste simulado, responsável/suplente identificados, tarifa e contrato real. |
 
+### Deliberação interna do fundador — FIN-01 (10/11/2026)
+
+**Diretriz financeira aprovada:** adotar split direto processado pelo Asaas, sem custódia planejada de recursos de vendedores, entregadores ou demais usuários pela FraldaCycle.
+
+- A FraldaCycle define e registra as regras comerciais, mas a movimentação e a distribuição financeira serão executadas pelo provedor homologado.
+- Contato entre as partes e continuidade das etapas protegidas dependerão de confirmação reconciliada do pagamento, não apenas de redirecionamento, tentativa ou callback isolado.
+- A decisão não presume que o contrato Asaas já autorize todos os recebedores, splits, retenções, estornos ou fluxos do projeto.
+- KYC, onboarding, chargeback, estorno, tributação, responsabilidades e elegibilidade de cada recebedor ainda exigem contrato e pareceres financeiro, contábil e jurídico.
+- Se o provedor não suportar o fluxo aprovado sem custódia pela plataforma, a operação correspondente permanecerá bloqueada para reavaliação, sem migração automática para recebimento próprio.
+
+**Estado oficial inalterado:** `FIN-01 = pending_human_review`; nenhuma conta, credencial, cobrança, split ou transferência real foi ativada.
+
+### Deliberação interna do fundador — FIN-02 (10/11/2026)
+
+**Diretriz financeira aprovada:** preservar as regras internas de 8% sobre venda, 2,5% para cada participante da troca, 5% da FraldaCycle sobre frete elegível e Premium de R$ 14,90, apresentando separadamente as tarifas externas reais aplicáveis.
+
+- Tarifa desconhecida permanece `desconhecida`/`null` e nunca será presumida como zero.
+- Antes da confirmação, a interface deverá discriminar preço, comissão FraldaCycle, frete do parceiro, acréscimo logístico, processamento conhecido e total, conforme aplicável.
+- A responsabilidade por cada tarifa externa será definida por tipo de operação e contrato, sem desconto oculto ou transferência retroativa de custo.
+- Mudança de preço, percentual ou responsabilidade exige versionamento, comunicação e nova validação financeira/jurídica quando aplicável.
+- Operações sem informação suficiente para calcular e conciliar o total permanecem bloqueadas, sem estimativa apresentada como cobrança definitiva.
+
+**Estado oficial inalterado:** `FIN-02 = pending_human_review`; propostas comerciais, calendário de repasses, taxas de chargeback, tributação e homologação contábil continuam pendentes.
+
+### Deliberação interna do fundador — FIN-03 (10/11/2026)
+
+**Diretriz técnica aprovada:** usar webhooks autenticados do provedor como atualização primária e reconciliação ativa periódica como verificação complementar de operações pendentes, divergentes ou sem evento conclusivo.
+
+- Todo evento deverá ser autenticado, validado, deduplicado e processado de forma idempotente, tolerando reentrega e chegada fora de ordem.
+- Redirecionamento do navegador, resposta de criação de cobrança ou evento isolado não equivalem por si só a pagamento reconciliado.
+- Consultas ativas terão limites, backoff e rastreabilidade; divergências permanecerão bloqueadas para análise, sem liberação otimista de contato, produto ou repasse.
+- Cartões serão tokenizados exclusivamente pelo provedor. A FraldaCycle não armazenará número completo, código de segurança ou credencial de pagamento.
+- Segredos e chaves ficarão fora do Git, com rotação, menor privilégio e separação entre ambientes.
+
+**Estado oficial inalterado:** `FIN-03 = pending_human_review`; sandbox, credenciais, contrato, testes do provedor e avaliação de segurança continuam pendentes.
+
+### Deliberação interna do fundador — FIN-04 (10/11/2026)
+
+**Diretriz financeira aprovada:** após confirmação reconciliada do pagamento e liberação do contato, não haverá cancelamento automático pelo usuário. Pedidos de cancelamento, disputa ou estorno serão encaminhados ao suporte para análise humana.
+
+- A análise considerará estágio da operação, entrega, evidências, responsabilidades, fraude, falha do serviço, direitos do consumidor e regras contratuais vigentes.
+- Taxas comprovadamente não restituídas pelo provedor seguirão a regra de responsabilidade aplicável, com informação transparente; não serão descontadas quando a lei ou a responsabilidade da plataforma/fornecedor exigir restituição integral.
+- Reembolso aprovado retornará à origem do pagamento, sem conversão automática em crédito interno.
+- Chargeback, disputa ou suspeita relevante bloquearão novos repasses afetados até reconciliação, sem presumir culpa do usuário.
+- Toda decisão terá justificativa, trilha auditável, possibilidade de revisão e níveis de autorização compatíveis com o valor e o risco.
+
+**Estado oficial inalterado:** `FIN-04 = pending_human_review`; fluxos definitivos dependem dos contratos do provedor, parecer consumerista e testes de estorno/chargeback.
+
+### Deliberação interna do fundador — FIN-05 (10/11/2026)
+
+**Diretriz financeira aprovada:** manter o item 12 — tarifa de processamento do frete — em `standby` até existir contrato e valor real comprovado. Nas operações elegíveis, cobrar o preço real do parceiro logístico acrescido de 5% da FraldaCycle.
+
+- Na troca, as duas pernas serão calculadas e conciliadas separadamente, com pagadores, cotações e totais próprios.
+- Quando a entrega for feita por entregador próprio da plataforma, aplicar o modelo interno aprovado; quando for parceiro externo, preservar integralmente o preço do parceiro e adicionar os 5% da FraldaCycle.
+- A regra operacional aprovada de continuidade do mesmo entregador próprio durante o ciclo da troca será preservada, sujeita a elegibilidade e exceções de segurança.
+- Nenhuma tarifa financeira adicional será atribuída ao usuário, entregador ou plataforma enquanto seu valor e responsabilidade contratual forem desconhecidos.
+- Doação institucional permanece retirada combinada diretamente entre instituição e doador, sem frete, cobrança, comissão logística, entregador ou repasse da plataforma.
+
+**Estado oficial inalterado:** `FIN-05 = pending_human_review`; contratação logística, cotações reais, exceções operacionais e homologação financeira continuam pendentes.
+
+### Deliberação interna do fundador — FIN-06 (10/11/2026)
+
+**Diretriz empresarial aprovada:** a operação financeira e contratual será realizada por CNPJ próprio da FraldaCycle, após constituição e validação profissional.
+
+- CNPJ, razão social, representantes, endereços, certificados e dados bancários reais não serão registrados no repositório público.
+- Contratos de pagamento, logística, notificações e demais fornecedores deverão ser celebrados pela entidade formalmente responsável.
+- Contador e assessoria jurídica definirão natureza jurídica, CNAEs, regime tributário, emissão de documentos fiscais, reconhecimento de receitas e responsabilidades por valores de terceiros.
+- Nenhum CNPJ fictício, provisório, de parceiro ou do fundador será usado para simular prontidão.
+- O piloto financeiro permanece bloqueado até cadastro real privado, contratos e parecer contábil-fiscal compatíveis com os fluxos aprovados.
+
+**Estado oficial inalterado:** `FIN-06 = pending_human_review`; o CNPJ próprio continua pendente de constituição/comprovação e os campos públicos permanecem em branco.
+
+### Deliberação interna do fundador — FIN-07 (10/11/2026)
+
+**Diretriz financeira aprovada:** executar reconciliação automatizada diária de cobranças, capturas, splits, estornos, chargebacks, repasses e saldos, com revisão humana obrigatória para divergências.
+
+- Eventos críticos — incluindo possível dupla cobrança, chargeback, saldo negativo, total inconsistente ou divergência de split — gerarão alerta imediato e bloqueio proporcional das saídas afetadas.
+- A reconciliação distinguirá autorização, confirmação, captura, liquidação, estorno e repasse, sem transformar estados intermediários em conclusão financeira.
+- Itens consistentes poderão ser encerrados automaticamente conforme regras homologadas; divergências permanecerão em fila financeira com responsável, prazo, evidências e trilha de decisão.
+- Falha do processo diário gerará alerta e retomada idempotente, sem duplicar cobranças ou repasses.
+- Serão definidos plano de continuidade, exportação de razão, responsável, suplente, reserva para estornos e procedimento de saída do fornecedor.
+
+**Estado oficial inalterado:** `FIN-07 = pending_human_review`; operação, responsáveis reais, tarifas, contratos e provas de reconciliação externa ainda não foram homologados.
+
 **Referência:** `docs/approval-packets/02-financeiro-gateway-logistica.md`; Asaas/Lalamove são **candidatos à homologação**, não contratados.
 
 ## 4. Pauta OPS — operação, instituições e responsabilidade humana (7 gates)
@@ -178,6 +285,99 @@
 | **OPS-05** Sanções e incidentes | Propor gradação documentada, direito de contestação e reversão. Casos críticos, sanções irreversíveis e retomada de produção necessitam humano com autorização; registrar auditoria mínima. | Simulado com responsáveis designados e segregação de funções. |
 | **OPS-06** Acessibilidade e piloto | Exigir ensaio humano de leitor de tela e de rollback, além de CI. Formalizar GO/NO-GO separado; as 19 de 21 evidências sintéticas citadas no pacote não bastam. | Aceite independente, testes e ata de liberação, inclusive condições jurídicas e operacionais. |
 | **OPS-07** Operação enxuta | Propor modelo enxuto **sem prometer operação integralmente autônoma**; dimensionar filas e custos, limites de casos, plantões, gatilhos de pausa e escalonamento a pessoa. IA/automação seguem possibilidade futura, sem implementação. | Exercício de saturação, orçamento, responsável e substituto com aceite. |
+
+### Deliberação interna do fundador — OPS-01 (10/11/2026)
+
+**Diretriz operacional aprovada:** adotar equipe inicial enxuta, permitindo acumulação apenas de funções compatíveis, com segregação obrigatória em decisões críticas e suplência definida.
+
+- Os acessos permanecem graduais por nível e setor; cada pessoa acessa somente os dados e ações necessários à sua função.
+- Ações críticas financeiras, de privacidade, sanções graves, retomada de produção e mudanças sensíveis seguirão a cadeia aplicável, incluindo proposta no nível 3, revisão/aprovação no nível 4 e decisão final do nível 5 quando exigida.
+- A mesma pessoa não poderá solicitar e aprovar a própria ação crítica.
+- Cada função crítica terá titular e suplente reais, com aceite, treinamento e revogação de acesso documentados em sistema privado.
+- Acúmulos incompatíveis, conflitos de interesse e ausência de revisor independente bloquearão a ação, sem atalhos por conveniência operacional.
+
+**Estado oficial inalterado:** `OPS-01 = pending_human_review`; nomes, suplentes, escala, capacidade, matriz RACI/RBAC privada e testes de segregação ainda precisam ser homologados.
+
+### Deliberação interna do fundador — OPS-02 (10/11/2026)
+
+**Diretriz operacional aprovada:** instituições beneficiárias passarão por validação documental interna e revisão humana antes de serem habilitadas a receber doações.
+
+- Verificar CNPJ e situação cadastral, identidade do representante e evidência mínima de poderes ou vínculo para agir em nome da instituição.
+- Documentos e dados sensíveis permanecerão em canal e armazenamento privados, com acesso setorial, retenção definida e sem inclusão no GitHub.
+- Cadastro enviado não equivale a aprovação; recebimento fica bloqueado até decisão humana registrada.
+- A autorização será revalidada periodicamente e sempre que houver mudança de representante, indício de fraude, expiração documental ou incidente relevante.
+- Revogação, suspensão e substituição de representante terão efeito imediato sobre novas operações, preservando obrigações e investigações existentes.
+
+**Estado oficial inalterado:** `OPS-02 = pending_human_review`; documentos exatos, periodicidade, responsáveis, capacidade e parecer jurídico/operacional ainda precisam ser homologados.
+
+### Deliberação interna do fundador — OPS-03 (10/11/2026)
+
+**Diretriz operacional aprovada:** a retirada de doação institucional será confirmada de forma independente pelas duas partes: a instituição registra o recebimento e o doador registra a entrega.
+
+- O chat abre após o aceite institucional exclusivamente para combinar como a própria instituição buscará a doação.
+- A operação somente será encerrada automaticamente quando as confirmações forem compatíveis; ausência, divergência ou contestação mantém o caso aberto para suporte.
+- A confirmação não transfere à FraldaCycle responsabilidade por transporte, seguro ou custódia física que não tenha sido contratada.
+- Não haverá transportadora, Correios, entregador da plataforma, parceiro logístico, frete, cobrança, comissão ou repasse da FraldaCycle nessa modalidade.
+- Evidências e mensagens serão minimizadas, protegidas por conta e retidas conforme política homologada; disputas terão revisão humana.
+
+**Estado oficial inalterado:** `OPS-03 = pending_human_review`; jornada humana, exceções, registros, capacidade de suporte e parecer jurídico/operacional ainda precisam ser homologados.
+
+### Deliberação interna do fundador — OPS-04 (10/11/2026)
+
+**Diretriz operacional aprovada:** adotar atendimento comum em horário comercial publicado, com plantão e escalonamento somente para eventos críticos previamente classificados.
+
+- Fraude ativa relevante, incidente de segurança, risco pessoal e bloqueio financeiro grave poderão acionar o fluxo crítico.
+- WhatsApp e telefone poderão ser usados para aviso e comunicação, mas aprovação, bloqueio, liberação ou mudança financeira sensível deverão ocorrer em sessão autenticada no painel, com permissão e auditoria.
+- Não anunciar suporte 24/7 nem tempo de resolução não comprovado.
+- Tempos-alvo por prioridade serão definidos somente após teste de carga, dimensionamento de fila, responsáveis e suplentes reais.
+- Fora do horário comum, casos não críticos receberão protocolo e serão atendidos na próxima janela; risco crescente poderá ser reclassificado por pessoa habilitada.
+
+**Estado oficial inalterado:** `OPS-04 = pending_human_review`; canal, horário, escala, capacidade, tempos-alvo e testes operacionais ainda precisam ser homologados.
+
+### Deliberação interna do fundador — OPS-05 (10/11/2026)
+
+**Diretriz operacional aprovada:** aplicar sanções graduais, proporcionais, fundamentadas e revisáveis, considerando gravidade, impacto, evidências, histórico e reincidência.
+
+- A gradação poderá incluir orientação/advertência, restrição funcional, suspensão temporária e bloqueio definitivo.
+- Risco imediato relevante poderá justificar bloqueio preventivo limitado ao necessário, com prazo, justificativa e revisão humana prioritária.
+- O usuário será informado sobre motivo, alcance, duração e canal de contestação, ressalvados limites necessários à segurança e investigação.
+- Sanções irreversíveis, decisões críticas e retomada de produção seguirão os níveis de autorização aplicáveis e segregação de funções.
+- Decisões e reversões terão auditoria mínima; automação poderá sinalizar risco, mas não aplicará sanção definitiva sozinha.
+
+**Estado oficial inalterado:** `OPS-05 = pending_human_review`; tabela final de infrações, prazos, responsáveis, simulações e revisão jurídica/operacional permanecem pendentes.
+
+### Deliberação interna do fundador — OPS-06 (10/11/2026)
+
+**Diretriz operacional aprovada:** o piloto somente poderá receber decisão de GO após testes humanos de acessibilidade, simulação de rollback/incidentes e revisão formal das condições jurídicas, técnicas e operacionais.
+
+- Testar leitor de tela, navegação por teclado, foco, contraste, linguagem, formulários, erros e jornadas críticas com pessoas e tecnologias assistivas adequadas.
+- Ferramentas automatizadas e CI permanecem obrigatórios, mas não substituem ensaio humano nem aceite independente.
+- Rollback, restauração, comunicação de incidente e retomada deverão ser simulados sem dados ou transações reais antes da liberação.
+- A decisão GO/NO-GO será registrada separadamente, com escopo, versão, responsáveis, riscos residuais e condições de interrupção.
+- Falha crítica, ausência de responsável ou evidência incompleta mantém o estado NO-GO; não será usada a operação real como teste inicial.
+
+**Estado oficial inalterado:** `OPS-06 = pending_human_review`; participantes, ambiente, responsáveis, ata e evidências reais ainda não foram definidos ou executados.
+
+### Consolidação de decisão anterior do fundador — OPS-07 (10/11/2026)
+
+**Diretriz operacional já aprovada e agora consolidada:** iniciar com piloto enxuto, regional e limitado, mantendo automação ampliada e expansão de escala como bases futuras condicionadas à evidência dos ciclos anteriores.
+
+- Limitar inicialmente região, participantes, instituições, entregadores, volume simultâneo e exposição financeira conforme capacidade real homologada.
+- Definir limites de fila, perdas, incidentes e capacidade que acionem pausa automática e escalonamento humano.
+- Não anunciar operação integralmente autônoma; decisões críticas permanecem humanas e seguem níveis de acesso e segregação aprovados.
+- Expandir território, volume e automação somente após medir segurança, qualidade, custo, suporte, acessibilidade e sustentabilidade.
+- Cada expansão terá decisão GO/NO-GO própria, rollback e possibilidade de retorno ao escopo anterior.
+
+**Estado oficial inalterado:** `OPS-07 = pending_human_review`; orçamento, limites numéricos, titulares, suplentes e exercício de saturação ainda precisam ser comprovados.
+
+## 4.1. Fechamento das deliberações internas do fundador — 10/11/2026
+
+As direções internas de produto para `PRIV-01` a `PRIV-07`, `FIN-01` a `FIN-07` e `OPS-01` a `OPS-07` estão registradas. Isso conclui a etapa de **deliberação do fundador**, mas não homologa automaticamente os gates oficiais.
+
+- Os 21 gates permanecem `pending_human_review` até receberem os pareceres, contratos, responsáveis reais e evidências técnicas/operacionais exigidos.
+- Nenhuma decisão deste documento ativa feature infantil, fornecedor, cobrança, entrega, atendimento externo ou produção.
+- A matriz formal de 70 requisitos não muda por esta consolidação.
+- O próximo ciclo deve converter cada direção aprovada em pacote verificável de parecer, prova e homologação, sem repetir perguntas já respondidas.
 
 ## 5. Ordem recomendada de decisões
 
