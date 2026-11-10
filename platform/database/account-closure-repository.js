@@ -1,3 +1,4 @@
+import {buildAccountClosureRetentionPlan,ACCOUNT_CLOSURE_RETENTION_VERSION} from '../packages/contracts/account-closure-retention.js';
 const fail=(code,status,message)=>Object.assign(new Error(message),{code,status});
 
 function publicRequest(row,reused=false){return{request:{id:row.id,status:row.status,version:row.version,requestedAt:new Date(row.requested_at).toISOString(),cancelUntil:new Date(row.cancel_until).toISOString(),reused},automaticErasureAllowed:false};}
@@ -66,6 +67,12 @@ export function createAccountClosureRepository(database,{stepUpRepository}={}){r
         VALUES($1,$2,$3::jsonb,'FC-CLOSURE-INVENTORY-2') ON CONFLICT(closure_request_id) DO NOTHING RETURNING id`,[requestId,userId,JSON.stringify(inventory)])).rows[0];
       if(inserted)await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
         VALUES(NULL,'account.closure.inventory_prepared','account_closure',$1,$2::jsonb)`,[requestId,JSON.stringify({inventoryId:inserted.id,policyStatus:'awaiting_legal_review',automaticErasureAllowed:false})]);
+      const inventoryRow=inserted??(await client.query('SELECT id FROM account_closure_data_inventories WHERE closure_request_id=$1',[requestId])).rows[0];
+      const plan=buildAccountClosureRetentionPlan(inventory);
+      const planned=(await client.query(`INSERT INTO account_closure_retention_plans(closure_request_id,inventory_id,user_id,policy_version,plan)
+        VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(closure_request_id) DO NOTHING RETURNING id`,[requestId,inventoryRow.id,userId,ACCOUNT_CLOSURE_RETENTION_VERSION,JSON.stringify(plan)])).rows[0];
+      if(planned)await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+        VALUES(NULL,'account.closure.retention_plan_prepared','account_closure',$1,$2::jsonb)`,[requestId,JSON.stringify({planId:planned.id,policyVersion:ACCOUNT_CLOSURE_RETENTION_VERSION,policyStatus:'pending_professional_review',executionAllowed:false,automaticErasureAllowed:false})]);
     }
     return{changed:request.status!==status,status,obligations};});},
 });}

@@ -32,10 +32,18 @@ test('account closure waits for content retention and then prepares a classified
   assert.equal(inventory.inventory.marketplaceContent.listings,1);
   assert.equal(inventory.inventory.marketplaceContent.holds,1);
   assert.equal(inventory.inventory.marketplaceContent.classification,'operation_dispute_or_legal_hold');
+  const plan=(await database.query('SELECT policy_version,policy_status,plan,execution_allowed,automatic_erasure_allowed FROM account_closure_retention_plans WHERE closure_request_id=$1',[closure.id])).rows[0];
+  assert.equal(plan.policy_version,'FC-CLOSURE-RETENTION-1');
+  assert.equal(plan.policy_status,'pending_professional_review');
+  assert.equal(plan.execution_allowed,false);
+  assert.equal(plan.automatic_erasure_allowed,false);
+  assert.equal(plan.plan.categories.find(item=>item.category==='transactions').retentionDays,1825);
+  assert.equal(plan.plan.categories.find(item=>item.category==='child_profiles').backupExpiryDays,30);
   assert.equal((await database.query('SELECT count(*)::int AS n FROM users WHERE id=$1',[userId])).rows[0].n,1);
 
   const repeated=await repository.reviewDue({requestId:closure.id,userId});
   assert.equal(repeated.changed,false);
   assert.equal((await database.query('SELECT count(*)::int AS n FROM account_closure_data_inventories WHERE closure_request_id=$1',[closure.id])).rows[0].n,1);
+  assert.equal((await database.query('SELECT count(*)::int AS n FROM account_closure_retention_plans WHERE closure_request_id=$1',[closure.id])).rows[0].n,1);
  }finally{await database.close();}});
 });
