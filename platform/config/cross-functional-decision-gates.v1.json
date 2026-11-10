@@ -341,5 +341,36 @@
     60,
     61
   ],
+  "founderDeliberations": {
+    "status": "completed_internal_direction",
+    "completedAt": "2026-11-10",
+    "gateIds": [
+      "PRIV-01",
+      "PRIV-02",
+      "PRIV-03",
+      "PRIV-04",
+      "PRIV-05",
+      "PRIV-06",
+      "PRIV-07",
+      "FIN-01",
+      "FIN-02",
+      "FIN-03",
+      "FIN-04",
+      "FIN-05",
+      "FIN-06",
+      "FIN-07",
+      "OPS-01",
+      "OPS-02",
+      "OPS-03",
+      "OPS-04",
+      "OPS-05",
+      "OPS-06",
+      "OPS-07"
+    ],
+    "publicReference": "docs/human-review/FC-GATE-2026-11-09-human-deliberation-board.md",
+    "effect": "product_direction_only",
+    "doesNotApproveGates": true,
+    "doesNotAuthorizeProduction": true
+  },
   "reviewProtocol": "Human approvals are never inferred from CI. Signed decisions and external evidence stay in approved private system; only non-sensitive opaque references may be recorded after authorization. Changes to this snapshot require independent review."
 }

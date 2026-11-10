@@ -85,6 +85,18 @@ export async function validateCrossFunctionalDecisionGates(
       !equalMembers(remaining, plan.otherPendingRequirementIds)) {
     throw new Error('The three tracks must cover their assigned IDs and preserve the rest.');
   }
+  const founder = plan.founderDeliberations;
+  if (founder?.status !== 'completed_internal_direction' ||
+      founder.completedAt !== '2026-11-10' ||
+      !equalMembers(founder.gateIds, [...gateIds]) ||
+      founder.publicReference !==
+        'docs/human-review/FC-GATE-2026-11-09-human-deliberation-board.md' ||
+      founder.effect !== 'product_direction_only' ||
+      founder.doesNotApproveGates !== true ||
+      founder.doesNotAuthorizeProduction !== true) {
+    throw new Error('Founder direction must cover all gates without approving operation.');
+  }
+  await access(resolve(root, founder.publicReference));
   if (gateIds.size !== 21 || plan.reviewProtocol?.length < 40 ||
       matrix.requirements.find(x => x.id === 12)?.status !== 'bloqueado') {
     throw new Error('Missing manual review gates or standby safeguard.');
@@ -94,6 +106,7 @@ export async function validateCrossFunctionalDecisionGates(
     pendingCount: pendingIds.length,
     inThreeTracks: touched.length,
     outsideThreeTracks: remaining.length,
+    founderDirectionsRecorded: founder.gateIds.length,
     humanDecisionsPending: gateIds.size,
     approvalsRecorded: 0,
     pilotBH: 'NO-GO',
