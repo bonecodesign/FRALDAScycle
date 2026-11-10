@@ -1,0 +1,204 @@
+# FraldaCycle — pauta de deliberação humana FC-GATE (09/11/2026)
+
+> **DOCUMENTO DE RECOMENDAÇÃO, NÃO DE APROVAÇÃO.** Os 21 gates do `config/cross-functional-decision-gates.v1.json` permanecem **`pending_human_review`**. Este documento não é parecer jurídico, contábil, técnico especializado, assinatura ou comprovação contratual. A matriz continua 42/70 (60%), o piloto BH segue **NO-GO**. Não alterar o protótipo, não habilitar perfis infantis, não ativar pagamentos, fornecedores ou atendimento externo.
+>
+> **Local do registro:** propostas em GitHub; atas identificadas, assinaturas, dados privados, contratos e provas sensíveis devem ficar **fora do repositório público**, com apenas referência opaca após validação real. `CNPJ próprio`, responsável titular, suplentes e canais contratuais permanecem em branco até comprovação.
+
+## 1. Protocolo de decisão
+
+- **Deliberação de fundador/produto**: pode confirmar direção estratégica, política interna pretendida, limites de risco e prioridade de desenvolvimento. Não substitui homologação contratual, parecer jurídico/LGPD, segurança, auditoria contábil ou teste humano.
+- **Validação especializada**: cada gate deve ser avaliado por seus papéis exigidos no arquivo oficial. Identificar pessoas reais, escopo da revisão, versão, data, divergências, limites e evidências em sistema privado.
+- **Homologação técnica e operacional**: requer testes, evidências de execução com escopo autorizado, revisão independente e decisão GO/NO-GO separada.
+- **Estados deste documento**: todos são **PROPOSTA / AGUARDA DELIBERAÇÃO**. Não há aceite presumido por conversa, recomendação, CI ou merge de documentação.
+- **Atualização do quadro oficial**: só após decisão rastreável, sem inserir nomes, identificadores pessoais ou pareceres confidenciais no GitHub público; mudanças revisadas por pessoa autorizada. Nada é automaticamente marcado concluído.
+
+## 2. Pauta PRIV — privacidade e dados de crianças (7 gates)
+
+### Retificação expressa do fundador — perfil infantil obrigatório para o marketplace (09/11/2026)
+
+**Diretriz interna atualizada, prevalente sobre qualquer referência anterior a “perfil opcional” para utilizar o marketplace:**
+- O **responsável precisa manter pelo menos um perfil infantil elegível** para acessar ofertas relevantes à faixa etária e iniciar novas operações dependentes de perfil no marketplace. O perfil contém **somente data de nascimento e emoji escolhido de catálogo predefinido**; múltiplos perfis são possíveis.
+- Criar uma conta principal não autoriza a coletar dados infantis antes do devido fluxo e homologação. Se o último perfil for excluído ou o consentimento for retirado, **a exclusão permanece permitida** e a conta principal, histórico, direitos e suporte ficam preservados, mas a personalização e as novas operações que exigem perfil ficam bloqueadas até outro perfil elegível. O sistema não deverá recriar o perfil contra a vontade do responsável.
+- A tela de PRIV-05 deve explicar expressamente essa condição de uso e a consequência da recusa/retirada. A regra anteriormente registrada como “cadastro opcional sem prejuízo do uso básico do marketplace” fica **superada**. Essa retificação é **decisão de produto**, não aceitação jurídica da validade do consentimento condicionado.
+- **Conflito adicional a analisar antes de código:** a decisão anterior em `docs/decisions/FC-DEC-2026-11-03-governanca-juridica-produto.md` distinguia exclusão manual do último perfil, que bloqueava novas operações, de encerramento automático aos 13 anos, que permitia relevância geral sem perfil. A nova exigência deve ser comparada com essa exceção etária, os papéis de vendedor/instituição/entregador e os testes existentes. **Não substituir silenciosamente comportamentos legais ou já aprovados**.
+- **Portões jurídicos em aberto:** avaliar necessidade da data completa versus faixa etária derivada/alternativa menos invasiva; fundamentar a obrigatoriedade pelo melhor interesse da criança e pela minimização conforme LGPD art. 6º e art. 14, inclusive §4º; e avaliar se o consentimento é uma hipótese válida quando o perfil é condição funcional de uso. Revisar ECA Digital e políticas/termos. O recurso permanece `CHILD_PROFILES_ENABLED=false` até homologação; **não habilitar dados infantis reais nem promover PRIV-01/02/05**, mantendo matriz 42/70 e piloto NO-GO.
+
+**Fontes normativas para avaliação especializada:** [LGPD atualizada](https://www2.camara.leg.br/legin/fed/lei/2018/lei-13709-14-agosto-2018-787077-normaatualizada-pl.html); [Lei 15.211/2025](https://www2.camara.leg.br/legin/fed/lei/2025/lei-15211-17-setembro-2025-797997-normaatualizada-pl.html).
+
+
+
+### Decisão do fundador registrada — escopo do perfil infantil (09/11/2026)
+
+- **Somente dois campos** no perfil infantil: `data de nascimento` e `emoji` de um conjunto de opções **predefinidas pela plataforma**, escolhido para distinguir perfis visualmente.
+- O emoji **não é livre**: sem texto digitado, nomes, apelidos, imagem própria ou foto. A seleção do emoji não é identificador para terceiros.
+- **Finalidades propostas:** a data de nascimento serve à faixa etária e à adequação da vitrine; o emoji distingue visualmente perfis **na área privada do responsável**. Não transmitir nenhum dos dois a anunciantes, entregadores, instituições ou parceiros de publicidade.
+- Este é um **aceite de direção de produto**, não uma aprovação jurídica/LGPD ou autorização de ativação. `PRIV-01` e `PRIV-06` continuam `pending_human_review` no quadro oficial. A necessidade de guardar o dia exato, prazos de retenção, controles de acesso e bases legais continuam sujeitos a pareceres.
+- Esta deliberação corrige a leitura anterior de que seria **apenas data de nascimento**: **o emoji predefinido também integra o perfil**.
+
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **PRIV-01** Necessidade e melhor interesse | **Decisão de produto confirmada pelo fundador (09/11/2026):** o perfil infantil terá **somente data de nascimento e um emoji escolhido entre opções predefinidas pelo FraldaCycle** para identificação visual do perfil. Não permitir nome, apelido, texto livre, imagem, foto, saúde, peso, gênero, documento nem localização infantil. Pelo menos um perfil infantil é obrigatório para ofertas e novas operações dependentes do perfil no marketplace do responsável; a funcionalidade técnica permanece desativada até homologação. Submeter a necessidade da **data completa** à avaliação de melhor interesse e minimização, sem alterar esta decisão de produto automaticamente. | Justificativa de finalidade por campo; análise de alternativas menos invasivas; avaliação de risco e melhor interesse; jurídico/privacidade/produto. |
+| **PRIV-02** Base legal por finalidade | **Decisão interna do fundador (09/11/2026):** exigir consentimento **específico, informado, verificável, versionado e revogável** do responsável legal antes da criação de perfil infantil (data de nascimento + emoji predefinido), obrigatório para ofertas e novas operações dependentes do perfil no marketplace do responsável, sem impedir manutenção da conta, suporte, histórico e direitos quando não houver perfil; a validade da base legal ainda exige parecer. Registrar prova mínima do aceite e oferecer retirada e exclusão do perfil. **A definição não substitui a análise jurídica das hipóteses legais de cada finalidade** (conta do adulto, perfil, auditoria, notificações, marketing e incidentes); consentimento não deve ser presumido como base universal. Não iniciar tratamentos sem justificativa e controles revisados. | Parecer por finalidade e dado, com direitos e fundamento legal; jurídico/privacidade. |
+| **PRIV-03** Poder do responsável e acesso excepcional | **Item 1 aprovado como diretriz interna pelo fundador em 09/11/2026:** somente o responsável autenticado pela própria conta poderá criar, modificar ou excluir perfis infantis vinculados àquela conta. **Item 2 aprovado como diretriz interna pelo fundador em 09/11/2026:** terceiros — incluindo outros usuários, anunciantes, entregadores e instituições — não terão acesso à data de nascimento nem ao emoji dos perfis infantis; o perfil é visível apenas no contexto privado da própria conta responsável. **Item 3 aprovado como diretriz interna:** acesso excepcional de suporte aos dados infantis somente com autorização humana, justificativa documentada, acesso mínimo necessário, duração limitada e auditoria; preferir resolver sem visualizar os dados. **Item 4 aprovado como diretriz interna pelo fundador em 09/11/2026:** contestações de responsabilidade legal serão examinadas por pessoa habilitada; qualquer restrição temporária dependerá de risco fundamentado e será proporcional e revisável; verificação com dados/documentos mínimos necessários, por canal seguro; decisão registrada e sujeita a revisão. **Item 5 aprovado como diretriz interna pelo fundador em 09/11/2026:** não exigir certidão de nascimento, CPF, RG, fotografia nem outros documentos infantis no cadastro habitual; somente data de nascimento e emoji predefinido. Eventuais verificações excepcionais de responsabilidade legal serão tratadas em procedimento separado, seguro e proporcional, sujeito a revisão jurídica/privacidade/segurança. A verificação proporcional de legitimidade, controles RBAC, auditoria e segurança continuam sujeitos a parecer humano. | Modelo de ameaça, papéis e permissões, teste de abuso/contestação; jurídico/privacidade/segurança. |
+| **PRIV-04** Retenção, descarte e backups | **Item 1 deliberado pelo fundador em 09/11/2026 (diretriz interna):** permitir ao responsável excluir o perfil infantil a qualquer momento, remover data de nascimento e emoji dos registros ativos, ressalvadas retenções legalmente justificadas e segregadas; excluir o último perfil desativa automaticamente a personalização infantil, sem encerrar a conta principal. **Item 2 deliberado pelo fundador em 09/11/2026 (diretriz interna):** excluir os dados ativos após solicitação validada, estabelecer **até 30 dias** como prazo máximo proposto para expiração de backups contendo perfis excluídos, impedir reativação ou ressurgimento de perfis excluídos após restauração e restringir exceções legais a dados necessários, segregados e protegidos. O prazo é **meta de projeto**, ainda não validada tecnicamente ou juridicamente. **Item 3 aprovado como diretriz interna em 09/11/2026:** manter somente metadados necessários de consentimento (versão, data/hora, finalidade, identificação da conta responsável) e auditoria (ações, revogações, exclusões e acessos excepcionais), **sem replicar nascimento ou emoji da criança**. Acesso restrito, prazo justificado **por categoria** e descarte seguro; prazos concretos seguem pendentes de parecer jurídico. **Item 4 aprovado como diretriz interna em 09/11/2026:** exclusão acompanhada de registro técnico mínimo, verificação de dados ativos e caches, bloqueio de reintrodução após restauração de backup, alertas internos quando a exclusão falhar e consulta do status da solicitação pelo responsável, sem exposição de logs internos. Os testes e evidências continuam pendentes; nenhum resultado técnico foi presumido. | Tabela de retenção/descarte, logs sintéticos de purge/restore, exceções justificadas; jurídico/privacidade/segurança. |
+| **PRIV-05** Avisos e direitos | **Item 1 aprovado como diretriz interna pelo fundador (09/11/2026):** antes da criação do perfil infantil, exibir tela de consentimento clara e acessível que informe os únicos dois dados coletados (data de nascimento e emoji predefinido), finalidades, acesso, proteções, correção, revogação, exclusão e acesso à Política de Privacidade completa. O aceite deve ser **afirmativo, específico, não pré-selecionado, versionado e registrável**, e a criação de pelo menos um perfil infantil é necessária para habilitar ofertas e novas operações dependentes do perfil no marketplace, mas não para manter a conta, histórico, suporte e direitos. **Item 2 aprovado como diretriz interna pelo fundador (09/11/2026):** o responsável poderá retirar o consentimento e excluir o perfil, inclusive o último, a qualquer momento. Sem perfil elegível, a personalização e as novas operações dependentes de perfil no marketplace ficam suspensas, mas conta principal, histórico, suporte e exercício de direitos continuam acessíveis. Para retomar tais operações, será necessário cadastrar outro perfil elegível e cumprir o fluxo de consentimento/base legal homologado. A plataforma informará previamente essas consequências e confirmará o pedido. **Item 3 aprovado como diretriz interna pelo fundador (09/11/2026):** manter documentos versionados e histórico de alterações; comunicar previamente mudanças relevantes; solicitar novo consentimento específico e afirmativo quando legalmente necessário; em caso de recusa, não executar o tratamento afetado e preservar a conta e os direitos do responsável; distinguir alterações editoriais, que não ampliam o tratamento, das mudanças materiais. **Item 4 aprovado como diretriz interna pelo fundador (09/11/2026):** permitir ao responsável autenticado consultar data de nascimento e emoji dos próprios perfis infantis; corrigir registros inválidos com validação; acompanhar solicitações de correção, exclusão e revisão; contestar decisões com análise humana; impedir acesso entre contas e manter auditoria mínima, sem exigir documentos infantis rotineiramente. **Item 5 aprovado como diretriz interna pelo fundador (09/11/2026):** canal acessível de privacidade mesmo sem perfil infantil ativo; protocolo individual, confirmação do recebimento, acompanhamento de status e comunicação da conclusão ou negativa fundamentada; observância dos prazos legais aplicáveis, alertas internos e revisão humana em casos complexos, sem expor dados infantis em canais inseguros. **As cinco deliberações internas de PRIV-05 estão aprovadas; revisão final dos textos e homologações especializadas continuam pendentes.** | Minutas finais, UX de correção/exclusão/contestação e trilhas de aceites; jurídico/produto/privacidade. |
+| **PRIV-06** Parceiros e marketing | **Propor veto por padrão** ao uso de dados/perfis infantis para marketing, segmentação comportamental ou identificação por parceiros. Qualquer faixa etária destinada a parceiro deve ter necessidade documentada, mínimo técnico e revisão jurídica. Revisar explicitamente **Lei 15.211/2025 (ECA Digital)** e a aplicabilidade ao produto cujo cadastro é do adulto. | Parecer de alcance legal, testes de payload sem identificadores e contrato de minimização; jurídico/privacidade/produto. |
+| **PRIV-07** Incidentes | Propor detecção, registro mínimo, congelamento de exposição, classificação de risco, escalonamento humano e comunicações legais após avaliação. Não afirmar que todo incidente exige notificação automática. | Plano de resposta, simulação sem dados reais, responsável e avaliação segundo Resolução ANPD 15/2024; privacidade/segurança/jurídico. |
+
+**Referências normativas para revisão, sem dispensar parecer:** [LGPD/Enunciado CD-ANPD 1/2023](https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-divulga-enunciado-sobre-o-tratamento-de-dados-pessoais-de-criancas-e-adolescentes), [ECA Digital — ANPD](https://www.gov.br/anpd/pt-br/assuntos/noticias/eca-digital), [Lei 15.211/2025, art. 22](https://www2.camara.leg.br/legin/fed/lei/2025/lei-15211-17-setembro-2025-797997-normaatualizada-pl.html), [Comunicação de incidente ANPD](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis).
+
+### Deliberação de fundador — PRIV-02 (09/11/2026)
+
+**Diretriz interna aprovada em conversa:** cadastro de ao menos um perfil infantil é **obrigatório para ofertas e operações dependentes do perfil no marketplace do responsável**, exige aceite específico, informado e verificável do responsável legal; a retirada desse aceite deve ser possível, com exclusão do perfil sujeito às retenções legais cabíveis. O registro de aceite deve minimizar dados e preservar versão, finalidade e momento, sem divulgar dados de crianças em logs ou notificações.
+
+**Escopo do aceite:** direção de produto para desenvolvimento e minuta, **não homologação do gate**. Jurídico e privacidade devem ainda determinar base(s) legal(is) por finalidade, forma proporcional de comprovar responsabilidade, fluxo de revogação e retenção de evidência. **PRIV-02 continua `pending_human_review` na matriz de gates; nenhum tratamento real foi autorizado.**
+
+### Deliberações internas do fundador — PRIV-03, itens 1 a 5 (09/11/2026)
+
+**Itens 1, 2, 3, 4 e 5 aprovados como diretrizes internas de produto:** o responsável autenticado poderá criar, alterar e excluir perfis infantis da própria conta. Nenhum terceiro externo — usuário, anunciante, entregador ou instituição — terá acesso à data de nascimento ou ao emoji. Excepcionalmente, membro habilitado do suporte poderá acessar somente os dados indispensáveis quando houver autorização humana prévia, justificativa, escopo e prazo limitados e registro auditável, preferindo solução sem leitura desses campos. A regra de produto não concede poderes sobre perfis de outras contas. A implementação deverá exigir autorização por conta e sessão, com testes negativos de acesso cruzado e não exposição dos dois campos em APIs, payloads, listagens, notificações e interfaces de terceiros.
+
+**Item 4 aprovado pelo fundador (09/11/2026):** contestação de responsabilidade legal deve passar por análise humana; permitir restrição temporária de acesso **somente com risco fundamentado**, limitada ao necessário, com comprovação mínima em canal privado e seguro, decisão fundamentada, registro auditável e possibilidade de revisão. Nenhuma denúncia gera exclusão automática ou transferência automática do perfil.
+
+**Item 5 aprovado pelo fundador (09/11/2026):** o cadastro habitual do perfil infantil não solicitará certidão de nascimento, CPF, RG, foto ou qualquer outro documento da criança. O perfil mantém apenas **data de nascimento + emoji escolhido entre opções predefinidas**. Eventual verificação excepcional de vínculo, quando necessária, é um fluxo separado e minimizado, sem transformar documentos infantis em campos habituais do perfil. **As cinco diretrizes internas de PRIV-03 estão deliberadas; a homologação do gate não está concedida.**
+
+**O acesso excepcional do item 3 é uma regra proposta para implementação posterior, não uma autorização de acesso atual; seus critérios concretos exigem desenho de menor privilégio, revisão por segurança/privacidade e testes de abuso. Gate PRIV-03 permanece `pending_human_review`** até finalização da deliberação, revisão jurídica/privacidade/segurança e provas específicas. Não ativar perfis reais, não mudar matriz, flags ou código do produto com este registro.
+
+### Deliberações do fundador — PRIV-04, itens 1 a 4 (09/11/2026)
+
+**Aprovada como diretriz interna de produto — não como homologação jurídica ou técnica:**
+
+1. O responsável autenticado pode solicitar a exclusão do perfil infantil vinculado à sua conta a qualquer momento.
+2. Após o processamento de exclusão, remover **data de nascimento e emoji dos registros ativos**, com eventuais retenções legalmente justificadas segregadas e restritas; nenhuma retenção genérica ou indefinida fica autorizada por esta decisão.
+3. Ao excluir o **último perfil infantil**, desativar automaticamente a personalização infantil e suspender novas operações dependentes de perfil no marketplace até cadastrar outro perfil elegível.
+4. **Preservar a conta principal** do responsável, sem obrigá-lo a realizar novo cadastro.
+
+**Item 2 aprovado pelo fundador como diretriz interna:** exclusão dos dados ativos após solicitação válida e processamento técnico necessário; expiração de backups que contenham perfis infantis excluídos em **até 30 dias**; restauração condicionada a mecanismo que mantenha tais perfis excluídos (sem reativação por cópia antiga); retenções excepcionalmente exigidas por fundamento jurídico válido serão limitadas ao estritamente necessário, segregadas e com acesso restrito.
+
+**Item 3 aprovado pelo fundador como diretriz interna (09/11/2026):**
+- Registro de consentimento limitado a **versão, data/hora, finalidade e identificação da conta responsável**, conforme necessidade demonstrada. Não usar esses logs como repositório paralelo do perfil infantil.
+- Registro mínimo de alterações, revogações, exclusões e acessos excepcionais, com justificativa e rastreabilidade proporcionais.
+- **Proibição de duplicar data de nascimento ou emoji** nos registros de consentimento e auditoria.
+- Controle de acesso restrito e segregado; prazos de retenção **específicos por categoria e legalmente justificados**, sem retenção indefinida por padrão.
+- Descarte seguro após o prazo aplicável, observadas obrigações legais efetivas e a proteção de evidências necessárias.
+
+**Item 4 aprovado pelo fundador como diretriz interna (09/11/2026):**
+- Cada pedido validado de exclusão produzirá registro técnico mínimo do processamento, sem replicar data de nascimento ou emoji.
+- O processo verificará ausência de perfil nos registros ativos, caches e cópias operacionais aplicáveis, com critérios verificáveis.
+- Restaurações de backups deverão reaplicar ou preservar exclusões anteriores, sem reativar perfis excluídos.
+- Falhas ou exclusões incompletas gerarão alertas internos e encaminhamento à avaliação humana.
+- O responsável poderá consultar o andamento e o resultado do pedido sem acesso aos detalhes de auditoria interna.
+- Testes sintéticos de idempotência, falhas, purga e recuperação, assim como pareces de segurança e jurídico, continuam necessários. Nenhuma prova de execução foi coletada por esta decisão.
+
+**As quatro deliberações internas de PRIV-04 foram registradas; isso não constitui homologação do gate.**
+
+**Pendências:** parecer jurídico/privacidade para classes, hipóteses e prazos exatos; testes técnicos de auditoria mínima, expurgo, backup/restore e controle de acesso. Esta decisão interna não constitui homologação de PRIV-04 nem autoriza tratamento de dados reais.
+
+**Condições e provas ainda pendentes:** documentar horários/efeitos da exclusão, mecanismos de rotação de backups e bloqueio de reintrodução após restore, testes sintéticos de purga/restore, inventário de retenções por classe de dado, justificativa jurídica para exceções e testes sem dados reais de criança. **O prazo de 30 dias é meta aprovada de desenho, não SLA já homologado ou afirmação de que a infraestrutura atual o cumpre.** Isolamento de conta, permissão e ausência de exibição em caches/APIs/notificações continuam exigidos.
+
+**Estado oficial inalterado:** `PRIV-04 = pending_human_review`, sem liberação de tratamento real, sem mudança na matriz de 70 requisitos, piloto BH **NO-GO**.
+
+### Deliberações internas do fundador — PRIV-05, itens 1 a 5 (09/11/2026)
+
+**Diretriz de produto aprovada:** a criação de perfil infantil necessária ao acesso às ofertas e operações dependentes do perfil exigirá apresentação anterior de uma **tela própria de consentimento**, sem campo marcado por padrão, escrita em linguagem clara e acessível ao responsável. Ela deverá informar:
+
+1. **Dados:** somente `data de nascimento` e `emoji selecionado de catálogo predefinido`, sem documentos infantis ou campo livre de identificação.
+2. **Finalidades:** adequação etária da vitrine e identificação visual do perfil na área privada do responsável; sem uso publicitário infantil presumido.
+3. **Acesso e segurança:** quem pode ver os dados (responsável; suporte apenas excepcionalmente, sob controles aprovados), medidas de proteção e não divulgação a terceiros.
+4. **Direitos e controles:** correção, retirada de consentimento, exclusão do perfil, retenções legalmente justificadas e acesso à Política de Privacidade integral.
+5. **Registro do aceite:** ação específica e afirmativa, sem pré-seleção; registrar apenas versão da informação/consentimento, momento, finalidade e conta responsável, sem replicar nascimento ou emoji em logs.
+6. **Sem perfil ativo:** conta, histórico, suporte e direitos permanecem acessíveis; ofertas personalizadas e novas operações dependentes do perfil no marketplace do responsável ficam suspensas até novo perfil elegível. Não impedir exclusão ou revogação.
+
+**Item 2 aprovado pelo fundador (09/11/2026) — retirada do consentimento, exclusão e consequências:**
+
+1. O responsável poderá retirar o consentimento infantil e solicitar exclusão de um ou todos os perfis a qualquer momento; a interface explicará claramente que são comandos distintos quando seus efeitos ou requisitos forem diferentes. O exercício do direito não pode ser impedido pelo requisito de manter um perfil para operar.
+2. Ausente qualquer perfil elegível, ficam indisponíveis as **ofertas personalizadas e as novas operações dependentes de perfil** do marketplace do responsável, até novo cadastro de perfil elegível. Não ressuscitar perfis excluídos nem criar outro automaticamente.
+3. A **conta principal**, o histórico, o suporte e os canais de exercício de direitos permanecem acessíveis. Operações já contratadas exigem encaminhamento próprio, preservando direitos, obrigações legais e necessidades de suporte.
+4. Ao desejar voltar a usar novas operações dependentes de perfil, o responsável deverá cadastrar outro perfil elegível, com dados mínimos aprovados e observância do fluxo de consentimento/base legal que venha a ser homologado.
+5. A tela deve avisar antes da confirmação os efeitos sobre personalização e novas operações, confirmar o recebimento do pedido e permitir acompanhar seu processamento e eventual retenção legal residual conforme PRIV-04.
+6. **Pendência jurídica específica:** verificar validade da hipótese legal de consentimento quando o perfil é obrigatório para o marketplace. Aprovação do fluxo de produto **não significa que o consentimento seja juridicamente livre nem que a plataforma possa condicionar qualquer direito ao novo perfil**.
+
+**Item 3 aprovado pelo fundador (09/11/2026) — atualização de políticas e termos:**
+
+1. Política de Privacidade, Termos de Uso e textos de consentimento deverão ser **versionados**, com histórico de alterações e identificação de vigência.
+2. **Mudanças materiais** de finalidade, categorias de dados, compartilhamento ou retenção serão comunicadas previamente aos responsáveis por canal e antecedência adequados, definidos em revisão jurídica.
+3. Quando a hipótese legal exigir consentimento, um **novo aceite específico, afirmativo e não pré-selecionado** deverá anteceder o tratamento afetado. Não substituir esse aceite por silêncio ou uso continuado.
+4. Se não houver novo consentimento exigível, **não executar o tratamento afetado**; preservar conta, histórico, suporte, obrigações existentes e o exercício de direitos, com restrições apenas às funcionalidades efetivamente dependentes desse tratamento.
+5. **Mudanças meramente editoriais** poderão ser comunicadas sem novo aceite, somente se não expandirem finalidade, coleta, compartilhamento, retenção, obrigações ou cobrança.
+6. Garantir testes de versão, negativa, reconsentimento e bloqueio do tratamento não autorizado, sem dados reais de crianças.
+
+**Pendências especializadas:** definir prazos e meios de comunicação, critérios verificáveis de materialidade, bases legais por finalidade, versões finais de termos/política e validação de acessibilidade. **Esta deliberação não autoriza tratamento real nem homologação jurídica do PRIV-05.**
+
+**Item 4 aprovado pelo fundador (09/11/2026) — consulta, correção e acompanhamento de direitos:**
+
+1. Área privada autenticada mostrará ao responsável a **data de nascimento e o emoji predefinido** somente dos perfis infantis da própria conta.
+2. O responsável poderá **corrigir** dados incorretos, com validação contra datas inválidas ou inconsistentes e controles de autorização por perfil/conta.
+3. Pedidos de correção, exclusão, revogação ou revisão terão **protocolo e acompanhamento de status** na própria conta; confirmação de recebimento e conclusão, sem exposição de dados infantis em notificações.
+4. O responsável poderá **contestar negativa ou divergência** e obter análise por pessoa habilitada, preservando a trilha mínima da decisão e o direito de revisão.
+5. Provas técnicas devem cobrir autenticação, isolamento entre contas e papéis, tentativas indevidas de leitura/alteração, concorrência, auditoria mínima, minimização de eventos e resposta a falhas. **Não pedir documentos da criança no cadastro habitual**; eventuais verificações excepcionais de responsabilidade seguem PRIV-03.
+6. A conta principal e seus direitos continuarão acessíveis mesmo sem perfil infantil elegível; as restrições de novas operações dependentes de perfil permanecem conforme decisão retificada.
+
+**Escopo:** aprovação interna do desenho funcional, não implementação comprovada, parecer jurídico ou liberação de tratamento real. Portão PRIV-05 segue `pending_human_review`; versões finais, prazos e canais de resposta exigem revisão jurídica, privacidade e produto.
+
+**Item 5 aprovado pelo fundador (09/11/2026) — canais e resposta a direitos de privacidade:**
+
+1. Oferecer **canal de privacidade identificado, acessível e seguro** ao responsável, inclusive na conta que não possua perfil infantil ativo.
+2. Cada pedido receberá **protocolo individual, confirmação do recebimento** e informação sobre próximos passos; nenhum dado infantil sensível deve aparecer no protocolo ou na mensagem de notificação.
+3. A área privada permitirá **consultar o andamento** e receber comunicação de conclusão ou de eventual negativa fundamentada, com caminho de contestação e revisão.
+4. Os prazos de resposta observarão as **normas aplicáveis**, com monitoramento de vencimentos e **alertas internos**. A diretriz não cria prazos operacionais ou SLAs fictícios.
+5. Pedidos complexos, conflitantes ou com suspeita de abuso devem ser **escalados a pessoa habilitada**, com verificação proporcional, tratamento restrito e prevenção de exposição de nascimento ou emoji por canal inseguro.
+6. Antes de produção, homologar fluxo de atendimento, controles de acesso, testes sintéticos de protocolo/alerta/status, acessibilidade, responsáveis designados e procedimentos seguros de resposta. Nenhum canal real ou plantão foi aqui criado, designado ou ativado.
+
+**Conclusão da deliberação interna:** itens 1 a 5 de PRIV-05 aprovados como **requisitos propostos de produto**, sem parecer profissional ou declaração de conformidade. O portão oficial **permanece `pending_human_review`** até validação de jurídico, privacidade e produto, finalização dos textos e provas de homologação.
+
+**Limite da decisão:** aprovação interna da direção de produto. O texto final, a hipótese legal por finalidade, a UX acessível, as evidências técnicas de aceite e revogação e a conformidade com LGPD/ECA Digital continuam sujeitos à revisão jurídico/privacidade/produto. `PRIV-05` permanece `pending_human_review`; não habilitar coleta ou fluxo real, não alterar matriz oficial, piloto BH **NO-GO**.
+
+## 3. Pauta FIN — financeiramente viável sem assumir capacidade de provedor (7 gates)
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **FIN-01** Arranjo e responsabilidades | Manter plataforma intermediária sem autocustódia planejada, sujeito a confirmação de elegibilidade do split, KYC/onboarding e responsabilidades do provedor. Não anunciar proteção absoluta ou exoneração geral da plataforma. | Contratos e enquadramento por jurídico/financeiro. |
+| **FIN-02** Tarifas e repasse | Manter regras internas propostas (8% venda, 2,5% por lado em troca, 5% frete, Premium R$ 14,90) como parâmetros, não margens líquidas garantidas. Tarifa desconhecida = **desconhecida**, nunca zero. | Proposta comercial vigente, calendário e regras de split, taxas/chargeback e análise contábil. |
+| **FIN-03** Antifraude e webhooks | Propor idempotência, tolerância a reentrega/fora de ordem, autenticação de callback, segregação, tokenização externa, testes de cartões e Pix negativos. Não guardar credenciais no Git nem armazenar cartão. | Testes de segurança, contrato e sandbox **só após autorização distinta**. |
+| **FIN-04** Disputas e estornos | Propor retenção/bloqueio prudente até condições contratuais de liberação; trilhas de entrega, contestação, estorno e chargeback; responsabilidades transparentes e direitos do consumidor preservados. | Parecer jurídico, contratos, fluxos por evento e simulações de conciliação. |
+| **FIN-05** Frete e trocas | Preservar 5% sobre frete nas operações elegíveis e calcular pernas distintas da troca. **Item 12 continua standby**; não atribuir tarifa de processamento do frete sem decisão/contrato. Doação institucional nunca gera frete/cobrança da plataforma. | Cotação/contrato logístico, testes de conservação, exceções e decisão do item 12. |
+| **FIN-06** CNPJ e tributos | **Manter CNPJ próprio em branco** e não presumir enquadramento, faturamento líquido, notas ou responsabilidade tributária. | Cadastro real em canal privado e parecer contábil-fiscal/jurídico. |
+| **FIN-07** Continuidade e reconciliação | Recomendar conciliação diária, razão de diferenças, separação entre autorização/captura/liquidação/repasse, alertas de perdas, reserva de estorno calibrada e plano de saída. | Teste simulado, responsável/suplente identificados, tarifa e contrato real. |
+
+**Referência:** `docs/approval-packets/02-financeiro-gateway-logistica.md`; Asaas/Lalamove são **candidatos à homologação**, não contratados.
+
+## 4. Pauta OPS — operação, instituições e responsabilidade humana (7 gates)
+
+| Gate | Encaminhamento recomendado à deliberação | Prova/parecer indispensável |
+| --- | --- | --- |
+| **OPS-01** Papéis e suplência | Propor funções mínimas de suporte, privacidade, segurança, financeiro, instituição e incidentes; uma pessoa pode acumular funções compatíveis **somente** após avaliar conflitos e capacidade; ações críticas exigem revisão independente. | Nomes e suplentes reais, aceites individuais e matriz RACI/RBAC privada. |
+| **OPS-02** Instituições | Exigir verificação de identidade/autoridade de representantes, revalidação, revogação, capacidade efetiva e critérios verificáveis de aceite/recusa. Cadastro sozinho não autoriza recebimento. | Documentos mínimos em repositório privado, teste de permissões, jurídico/produto/operação. |
+| **OPS-03** Doação e retirada | Confirmar decisão de produto existente: instituição organiza **retirada direta**, sem comissão, cobrança, frete, entregador ou repasse da plataforma. Protocolo de confirmação, disputa, extravio e ausência de seguro contratado. | Jornada testada, registro de retirada, exceções, parecer jurídico/operacional. |
+| **OPS-04** Suporte e SLA | Não publicar canal ou promessa de 24/7 antes de capacidade humana real. Definir prioridade de risco, janela de funcionamento, tempos-alvo após teste de carga, resposta a denúncias e contingência. | Plano de atendimento, canal validado, escala e responsáveis reais. |
+| **OPS-05** Sanções e incidentes | Propor gradação documentada, direito de contestação e reversão. Casos críticos, sanções irreversíveis e retomada de produção necessitam humano com autorização; registrar auditoria mínima. | Simulado com responsáveis designados e segregação de funções. |
+| **OPS-06** Acessibilidade e piloto | Exigir ensaio humano de leitor de tela e de rollback, além de CI. Formalizar GO/NO-GO separado; as 19 de 21 evidências sintéticas citadas no pacote não bastam. | Aceite independente, testes e ata de liberação, inclusive condições jurídicas e operacionais. |
+| **OPS-07** Operação enxuta | Propor modelo enxuto **sem prometer operação integralmente autônoma**; dimensionar filas e custos, limites de casos, plantões, gatilhos de pausa e escalonamento a pessoa. IA/automação seguem possibilidade futura, sem implementação. | Exercício de saturação, orçamento, responsável e substituto com aceite. |
+
+## 5. Ordem recomendada de decisões
+
+1. **Fundador — política de privacidade do produto:** exige-se pelo menos um perfil infantil para ofertas e operações dependentes do perfil no marketplace do responsável; a definição interna já explicitada para PRIV-01 é **data de nascimento + um único emoji de catálogo predefinido pela plataforma**, para identificação visual do perfil; nenhum nome, apelido, texto ou imagem enviada pelo usuário. Ainda é necessário examinar a proporcionalidade da data completa e a finalidade de uso, além de deliberar PRIV-06. Não operar com criança real.
+2. **Fundador — modelo financeiro:** preservar comissões aprovadas sem confundi-las com tarifa contratual; decidir expressamente manter FIN-05/#12 standby.
+3. **Fundador — limites operacionais:** confirmar retirada institucional direta, ausência de promessa 24/7, e pessoas como decisoras de situações críticas; revisar OPS-03/04/05/07.
+4. **Revisores externos/reais:** colher pareceres e provas nos 21 portões; registrar objeções e mudanças; não usar modelo como signatário.
+5. **Codex:** implementar somente alterações aprovadas e não externas, rodar provas técnicas e CI; atualizar matriz por requisito com evidência e decisão, nunca por número de PRs.
+
+## 6. Registro a preencher somente após deliberação real
+
+| Campo | Valor |
+| --- | --- |
+| Gate | **PENDENTE** |
+| Versão da proposta revisada | **PENDENTE** |
+| Decisão do fundador e justificativa | **PENDENTE** |
+| Responsável técnico/jurídico/financeiro exigido | **A DESIGNAR** |
+| Referência privada do parecer ou contrato | **PENDENTE** |
+| Evidência de teste com escopo | **PENDENTE** |
+| Risco residual aceito expressamente | **PENDENTE** |
+| Autorização para produção | **NÃO CONCEDIDA** |
+| Alteração de status da matriz | **NENHUMA** |
+
+O documento foi criado para facilitar a **avaliação humana**, e não para converter a recomendação do assistente em aprovação humana fictícia.
