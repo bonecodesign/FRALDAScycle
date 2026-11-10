@@ -8,7 +8,7 @@ O console está em `/admin/operations`, na área administrativa. A mesma tela re
 
 - abertura idempotente de incidente com referência opaca;
 - severidades baixa, média, alta e crítica;
-- domínios global, marketplace, cobranças, reembolsos, repasses, logística, doações e Premium;
+- domínios global, marketplace, cobranças, reembolsos, repasses, logística, doações, Premium e privacidade;
 - fila priorizada por severidade e atualização;
 - atribuição e liberação sem tomada concorrente;
 - estados aberto, contido, monitoramento e resolvido;
@@ -18,6 +18,15 @@ O console está em `/admin/operations`, na área administrativa. A mesma tela re
 - retomada com proposta técnica e confirmação reforçada independente do fundador; quando aprovada, grava `operations.resumed` no histórico do domínio na mesma transação que atualiza o estado e registra `operations.resume.approved` na solicitação;
 - pausa independente de novas cobranças, criação de reembolsos e preparação de repasses;
 - contestação, consulta, suporte e compromissos existentes preservados.
+
+### Incidentes de privacidade
+
+- nível 3 registra a avaliação classificada de probabilidade, impacto, alcance, presença de dados infantis e risco imediato;
+- nível 4 registra a decisão de comunicação depois da investigação;
+- incidentes críticos também exigem nível 5 para a decisão;
+- a resolução é bloqueada enquanto não houver avaliação de risco e decisão de comunicação;
+- os registros aceitam apenas metadados classificados e recusam campos livres com dados pessoais, datas de nascimento ou identificadores de perfis infantis;
+- o painel prepara a governança, mas mantém `externalDispatchAuthorized=false`: nenhuma comunicação à pessoa afetada, e-mail ou ANPD é enviada por este pacote.
 
 O painel nunca edita saldo, altera valor financeiro nem declara transferência. Preparar obrigação de repasse continua diferente de enviar dinheiro ao provedor.
 
@@ -36,6 +45,7 @@ Ainda não implementado ou homologado:
 - autenticação multifator independente do e-mail (como aplicativo autenticador ou chave de segurança) para retomada;
 - tokens de ação externos de uso único para integração com mensageria;
 - Meta WhatsApp Cloud API e webhook;
+- integração externa de comunicação de incidentes e protocolo com a ANPD;
 - identidades e contatos reais;
 - homologação humana do exercício.
 

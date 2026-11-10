@@ -14,7 +14,7 @@ const routeSectors=Object.freeze([
   ['/v1/admin/content-retention-holds',['legal_privacy','moderation']],
   ['/v1/admin/operational-control',['operations','finance']],
   ['/v1/admin/operational-resume-requests',['operations','finance']],
-  ['/v1/admin/incidents',['operations','finance','security']],
+  ['/v1/admin/incidents',['operations','finance','security','legal_privacy']],
   ['/v1/admin/incident-roles',['operations','security']],
   ['/v1/admin/access-level-changes',['operations']],
   ['/v1/admin/staff-sector-changes',['operations']],
@@ -126,7 +126,7 @@ export async function handleAdmin(request, response, {
   }
   if (request.method === "POST" && url.pathname === "/v1/admin/incidents") {
     if (!operationalIncidentService) throw new AuthError("incident_console_unavailable", 503, "Console de incidentes indisponível.");
-    const input=await readJson(request);requireAccessLevel(user,["payments","refunds","payouts"].includes(input?.domain)?3:2);
+    const input=await readJson(request);requireAccessLevel(user,["payments","refunds","payouts","privacy"].includes(input?.domain)?3:2);
     const result=await operationalIncidentService.create(user,input);
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
   }
