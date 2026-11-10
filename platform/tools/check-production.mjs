@@ -154,6 +154,7 @@ const files = [
   "tools/smoke-deployment.mjs",
   "database/recovery.js",
   "tools/beta-recovery-check.mjs",
+  "tools/recovery-objectives.mjs",
   "apps/api/realtime-service.js",
   "database/realtime-repository.js",
   "tools/provider-contract.mjs",
