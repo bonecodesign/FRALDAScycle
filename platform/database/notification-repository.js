@@ -93,7 +93,10 @@ export function createNotificationRepository(database) {
                  AND ((n.payload->>'channel'='email' AND recipient_owner.email_verified_at IS NOT NULL
                        AND n.recipient=recipient_owner.email)
                    OR (n.payload->>'channel'='sms' AND n.kind NOT IN ('account_lifecycle_notice','incident_critical_notice') AND recipient_owner.phone_verified_at IS NOT NULL
-                       AND n.recipient=recipient_owner.phone)))))
+                       AND n.recipient=recipient_owner.phone)
+                   OR (n.payload->>'channel'='push' AND n.kind IN ('payment_reminder','delivery_reminder','general_reminder')
+                       AND EXISTS (SELECT 1 FROM notification_push_devices d WHERE d.user_id=recipient_owner.id
+                         AND d.provider_reference=n.recipient AND d.status='active'))))))
          AND ((n.auth_token_id IS NULL AND n.kind NOT IN ('password_recovery','responsible_profile_change')) OR EXISTS (
            SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id
            WHERE t.id=n.auth_token_id AND t.kind=n.kind AND t.consumed_at IS NULL

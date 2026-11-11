@@ -239,6 +239,8 @@ test('optional reminders are queued only with an approved kind, account, and cha
   await assert.rejects(service.reminder({ kind: 'payment_reminder', email: 'synthetic@example.test', channel: 'email' }), /account and an explicit channel/);
   await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', email: 'synthetic@example.test', channel: 'sms' }), /recipient must match/);
   await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', phone: '31999000000', channel: 'email' }), /recipient must match/);
-  await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', email: 'synthetic@example.test', channel: 'push' }), /recipient must match/);
+  assert.deepEqual(await service.reminder({ kind: 'payment_reminder', userId: 'user-3', pushReference: 'push-reference-synthetic-0001', channel: 'push' }), { queued: true, id: 'reminder-1' });
+  assert.equal(queued.at(-1).recipient,'push-reference-synthetic-0001');
+  await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', channel: 'push' }), /recipient must match/);
   await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', email: 'synthetic@example.test', channel: 'email', payload: null }), /payload must be an object/);
 });
