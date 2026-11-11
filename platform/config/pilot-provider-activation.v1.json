@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "not-ready",
+  "scope": "belo-horizonte-pilot",
+  "policy": {
+    "productionActivationAllowed": false,
+    "realTransactionsAllowed": false,
+    "credentialsAllowedInRepository": false
+  },
+  "providers": [
+    {
+      "id": "payments",
+      "candidate": "asaas",
+      "checks": {
+        "contractApproved": false,
+        "legalApproved": false,
+        "privacyApproved": false,
+        "securityApproved": false,
+        "commercialFeesApproved": false,
+        "sandboxPassed": false,
+        "webhooksPassed": false,
+        "reconciliationPassed": false,
+        "refundsAndDisputesPassed": false,
+        "rollbackPassed": false
+      },
+      "evidenceReferences": []
+    },
+    {
+      "id": "logistics",
+      "candidate": "lalamove",
+      "checks": {
+        "contractApproved": false,
+        "legalApproved": false,
+        "privacyApproved": false,
+        "securityApproved": false,
+        "commercialFeesApproved": false,
+        "sandboxPassed": false,
+        "beloHorizonteCoveragePassed": false,
+        "webhooksPassed": false,
+        "proofOfDeliveryPassed": false,
+        "cancellationAndFailurePassed": false,
+        "rollbackPassed": false
+      },
+      "evidenceReferences": []
+    }
+  ]
+}
