@@ -182,6 +182,9 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
           `UPDATE shipments s SET courier_id=$2,status='assigned',updated_at=now()
            WHERE s.id=$1 AND s.courier_id IS NULL AND s.status IN ('awaiting_pickup','assigned')
              AND EXISTS (SELECT 1 FROM users u WHERE u.id=$2 AND u.role='courier' AND u.disabled_at IS NULL)
+             AND (s.exchange_leg IS NULL OR NOT EXISTS (SELECT 1 FROM shipments sibling
+               WHERE sibling.transaction_id=s.transaction_id AND sibling.exchange_leg IS NOT NULL
+                 AND sibling.id<>s.id AND sibling.courier_id IS NOT NULL AND sibling.courier_id<>$2))
              AND EXISTS (SELECT 1 FROM transactions t JOIN listings l ON l.id=t.listing_id
                LEFT JOIN exchange_operations e ON e.transaction_id=t.id
                WHERE t.id=s.transaction_id AND (
@@ -220,6 +223,9 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
           AND EXISTS(SELECT 1 FROM courier_vehicles v WHERE v.courier_id=$2 AND v.status='approved' AND (v.vehicle_type='bicycle' OR (v.driver_license_status='verified' AND v.driver_license_expires_at>now())))
           AND EXISTS(SELECT 1 FROM courier_clearance_documents d WHERE d.courier_id=$2 AND d.status='verified' AND d.expires_at>now())
           AND NOT EXISTS(SELECT 1 FROM courier_clearance_suspensions cs WHERE cs.courier_id=$2 AND cs.status='suspended')
+           AND (s.exchange_leg IS NULL OR NOT EXISTS (SELECT 1 FROM shipments sibling
+             WHERE sibling.transaction_id=s.transaction_id AND sibling.exchange_leg IS NOT NULL
+               AND sibling.id<>s.id AND sibling.courier_id IS NOT NULL AND sibling.courier_id<>$2))
            AND EXISTS (SELECT 1 FROM transactions t
              JOIN listings l ON l.id=t.listing_id
              LEFT JOIN exchange_operations e ON e.transaction_id=t.id

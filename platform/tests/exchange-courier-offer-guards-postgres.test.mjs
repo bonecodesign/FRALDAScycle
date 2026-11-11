@@ -17,7 +17,7 @@ const ids={
   offered:"77777777-7777-4777-8777-777777777777",
 };
 
-test("exchange courier offers respect payment, dispute and independent-leg guards with PostgreSQL", {
+test("exchange courier offers preserve one courier across both guarded legs with PostgreSQL", {
   skip:!native&&!process.env.CI?"PostgreSQL local indisponível.":false,
   timeout:90_000,
 },async()=>{
@@ -76,18 +76,18 @@ test("exchange courier offers respect payment, dispute and independent-leg guard
             `synthetic/key/${index}`,ids.admin]);
       }
       const offers=[];
-      for(const [index,shipment] of shipments.entries()){
+      for(const shipment of shipments){
         const row=(await db.query(`INSERT INTO courier_delivery_offers
           (shipment_id,courier_id,priority,distance_to_recipient_km,offered_at,expires_at)
           VALUES($1,$2,1,1.2,now(),now()+interval '3 minutes') RETURNING id`,
-          [shipment.id,index===0?ids.courier1:ids.courier2])).rows[0];
+          [shipment.id,ids.courier1])).rows[0];
         offers.push(row.id);
       }
 
       const logistics=createLogisticsRepository(db);
       const tryAccept=(index)=>logistics.acceptCourierOffer({
         shipmentId:shipments[index].id,
-        courierId:index===0?ids.courier1:ids.courier2,
+        courierId:ids.courier1,
         offerId:offers[index],
       });
 
@@ -110,6 +110,15 @@ test("exchange courier offers respect payment, dispute and independent-leg guard
         "SELECT status FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg",
         [transactionId])).rows.map(x=>x.status),["awaiting_pickup","awaiting_pickup"]);
 
+      const concurrent=await Promise.allSettled([
+        db.query("UPDATE shipments SET courier_id=$2 WHERE id=$1",[shipments[0].id,ids.courier1]),
+        db.query("UPDATE shipments SET courier_id=$2 WHERE id=$1",[shipments[1].id,ids.courier2]),
+      ]);
+      assert.equal(concurrent.filter(result=>result.status==="fulfilled").length,1);
+      assert.equal(concurrent.filter(result=>result.status==="rejected"&&result.reason.code==="23514"&&result.reason.constraint==="exchange_single_courier_cycle").length,1);
+      await db.query("UPDATE shipments SET courier_id=NULL WHERE transaction_id=$1",[transactionId]);
+      await db.query("DELETE FROM exchange_courier_cycles WHERE transaction_id=$1",[transactionId]);
+
       await db.query("UPDATE transactions SET status='disputed' WHERE id=$1",[transactionId]);
       assert.equal(await tryAccept(0),null);
       await db.query("UPDATE transactions SET status='in_delivery' WHERE id=$1",[transactionId]);
@@ -120,16 +129,29 @@ test("exchange courier offers respect payment, dispute and independent-leg guard
       assert.equal(await tryAccept(0),null);
       await db.query("UPDATE courier_profiles SET account_status='active' WHERE user_id=$1",[ids.courier1]);
       const first=await tryAccept(0);
+      await db.query("UPDATE courier_delivery_offers SET status='expired',responded_at=now() WHERE id=$1",[offers[1]]);
+      const conflicting=(await db.query(`INSERT INTO courier_delivery_offers
+        (shipment_id,courier_id,priority,distance_to_recipient_km,offered_at,expires_at)
+        VALUES($1,$2,1,1.0,now(),now()+interval '3 minutes') RETURNING id`,
+        [shipments[1].id,ids.courier2])).rows[0];
+      assert.equal(await logistics.acceptCourierOffer({shipmentId:shipments[1].id,
+        courierId:ids.courier2,offerId:conflicting.id}),null);
+      await db.query("UPDATE courier_delivery_offers SET status='expired',responded_at=now() WHERE id=$1",[conflicting.id]);
+      await db.query(`UPDATE courier_delivery_offers
+        SET status='pending',responded_at=NULL,offered_at=now(),expires_at=now()+interval '3 minutes'
+        WHERE id=$1`,[offers[1]]);
       const second=await tryAccept(1);
       assert.equal(first.courier_id,ids.courier1);
-      assert.equal(second.courier_id,ids.courier2);
+      assert.equal(second.courier_id,ids.courier1);
       assert.equal(await tryAccept(0),null);
       assert.deepEqual((await db.query(
         "SELECT exchange_leg,courier_id,status FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg",
         [transactionId])).rows,[
         {exchange_leg:1,courier_id:ids.courier1,status:"assigned"},
-        {exchange_leg:2,courier_id:ids.courier2,status:"assigned"},
+        {exchange_leg:2,courier_id:ids.courier1,status:"assigned"},
       ]);
+      await assert.rejects(db.query("UPDATE shipments SET courier_id=$2 WHERE id=$1",
+        [shipments[1].id,ids.courier2]),error=>error.code==="23514"&&error.constraint==="exchange_single_courier_cycle");
       assert.equal((await db.query(`SELECT count(*)::int AS n FROM audit_events
         WHERE action='shipment.courier.offer_accepted'`)).rows[0].n,2);
       assert.equal((await db.query(`SELECT count(*)::int AS n FROM payment_intents
