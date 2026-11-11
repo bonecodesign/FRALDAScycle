@@ -13,11 +13,13 @@ Referências: item 49 do FC-DEC-2026-10-02 e tarefa autorizada de preferências 
 - `optionalReminderIsQuiet` decide se um instante está na janela silenciosa. `notificationDispatchDecision` mantém avisos de autenticação/segurança e operacionais necessários fora do adiamento; somente lembretes opcionais são elegíveis.
 - A migração 059 associa lembretes opcionais ao titular (`recipient_user_id`) e permite os tipos `payment_reminder`, `delivery_reminder` e `general_reminder`. O serviço de notificações só enfileira esses tipos com conta e canal explícitos.
 - No worker, cada lembrete consulta a preferência corrente da conta antes de despachar. Canal sem aceite explícito é cancelado; janela silenciosa adia por 15 minutos sem consumir tentativa; fora da janela, segue o fluxo existente. A política não altera jobs de autenticação.
-- Antes do envio opcional, o destinatário deve corresponder ao e-mail ou telefone verificado da conta ativa vinculada ao job. Destino divergente ou conta suspensa cancela o job. Push permanece sem despacho porque ainda não há registro de dispositivo vinculado; o serviço recusa sua criação por enquanto.
+- Antes do envio opcional, o destinatário deve corresponder ao e-mail ou telefone verificado da conta ativa vinculada ao job. Destino divergente ou conta suspensa cancela o job. A fundação `FC-PUSH-DEVICE-1` aceita somente referência opaca de um futuro fornecedor, hash da instalação e prova recente originada no servidor; não guarda token push bruto nem oferece rota pública. Um lembrete push só é elegível quando a preferência atual permite o canal, a conta está ativa e a referência corresponde a dispositivo ativo. Revogação cancela novos envios antes do transporte.
 
 ## Limites preservados
 
 Não houve ativação de fornecedor nem envio real. O worker está conectado ao outbox para os três tipos opcionais acima; os testes usam provedor simulado e comprovam adiamento/cancelamento sem entrega externa. Não foram criadas campanhas nem rotinas que gerem lembretes automaticamente. Uma preferência com todos os canais falsos não elimina avisos necessários ou acesso à plataforma.
+
+O registro verificado de dispositivo é uma entrada interna para o futuro adaptador do fornecedor e permanece desabilitado. Sem atestação do fornecedor emitida há no máximo cinco minutos, o serviço falha antes da persistência. As respostas não devolvem a referência opaca. A ativação real ainda precisa de fornecedor, SDK, permissão do sistema operacional, vínculo de instalação, credenciais e testes em dispositivo físico.
 
 Não são criados lembretes de pagamento/entrega nem campanhas automaticamente. A integração atual limita-se aos três tipos opcionais e mantém o contrato de entrega idempotente do worker. Não definir SLA, e-mail oficial ou política de retenção por este lote.
 

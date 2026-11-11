@@ -1041,13 +1041,17 @@
         "database/migrations/092_incident_critical_notification_kind.sql",
         "database/operational-incident-repository.js",
         "database/notification-repository.js",
+        "database/notification-device-repository.js",
+        "database/migrations/153_notification_push_devices.sql",
+        "apps/api/notification-device-service.js",
+        "tests/notification-device-service.test.mjs",
         "tests/incident-critical-notification.test.mjs",
         "docs/operational-preferences-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Preferências e lembretes opcionais permanecem comprovados. Incidente crítico agora gera automaticamente um aviso mínimo por e-mail somente ao fundador e às funções de resposta aceitas, sem copiar o resumo sensível; elegibilidade é revalidada antes do despacho. Complemento 07/11/2026: o despacho ao provedor recusa URLs sem HTTPS, com credenciais embutidas, query ou fragmento e não segue redirecionamentos autenticados; regressões de transporte simulado foram adicionadas e aguardam CI. Envio real e canal oficial permanecem não homologados.",
-      "reason": "Geração automática de alerta crítico e lembretes opcionais está preparada localmente. Ativação do fornecedor, entrega real, cadastro de dispositivo push e homologação das demais categorias continuam pendentes."
+      "evidence": "Preferências, lembretes opcionais e alerta crítico permanecem comprovados. Em 10/11/2026, a fundação push passou a aceitar somente referência opaca, hash da instalação e prova recente originada no servidor, sem token bruto ou rota pública. A elegibilidade exige conta ativa, preferência atual e dispositivo ativo; referência inexistente ou revogada é cancelada antes do transporte. Testes unitários e PostgreSQL cobrem registro, falsificação, envio sintético e revogação. Envio real e canal oficial permanecem não homologados.",
+      "reason": "Geração automática, transporte protegido e vínculo técnico de push estão preparados localmente. Fornecedor, SDK, credenciais, permissão do sistema operacional, dispositivo físico e homologação das categorias continuam pendentes."
     },
     {
       "id": 50,
