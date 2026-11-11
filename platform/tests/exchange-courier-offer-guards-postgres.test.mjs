@@ -137,10 +137,9 @@ test("exchange courier offers preserve one courier across both guarded legs with
       assert.equal(await logistics.acceptCourierOffer({shipmentId:shipments[1].id,
         courierId:ids.courier2,offerId:conflicting.id}),null);
       await db.query("UPDATE courier_delivery_offers SET status='expired',responded_at=now() WHERE id=$1",[conflicting.id]);
-      offers[1]=(await db.query(`INSERT INTO courier_delivery_offers
-        (shipment_id,courier_id,priority,distance_to_recipient_km,offered_at,expires_at)
-        VALUES($1,$2,1,1.2,now(),now()+interval '3 minutes') RETURNING id`,
-        [shipments[1].id,ids.courier1])).rows[0].id;
+      await db.query(`UPDATE courier_delivery_offers
+        SET status='pending',responded_at=NULL,offered_at=now(),expires_at=now()+interval '3 minutes'
+        WHERE id=$1`,[offers[1]]);
       const second=await tryAccept(1);
       assert.equal(first.courier_id,ids.courier1);
       assert.equal(second.courier_id,ids.courier1);
