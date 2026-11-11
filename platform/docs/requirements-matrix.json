@@ -378,7 +378,7 @@
         "tests/exchange-courier-offer-guards-postgres.test.mjs",
         "docs/requirement-17-exchange-courier-safety.md"
       ],
-      "evidence": "Cada perna possui shipment, remetente, recebedor, entregador, comprovante e decisões próprios. HTTP/PostgreSQL local comprovou atribuição independente a dois entregadores ativos distintos e consulta de repasse isolada, sem inventar frete nem permitir repasse. Administrador, entregador suspenso, transação em disputa e segunda atribuição são recusados. Complemento técnico 07/11/2026: aceite de oferta exige estado correto da troca e diferença quitada localmente, bloqueio de disputas e revalidação da habilitação do entregador; prova PostgreSQL sintética das duas pernas e auditoria (sujeita a CI).",
+      "evidence": "Cada perna possui shipment, remetente, recebedor, comprovante e decisões próprios, mas ambas preservam o mesmo entregador durante o ciclo A → B → A. Serviço e restrição PostgreSQL recusam entregador divergente, inclusive por acesso direto ou concorrência, mantendo consulta de repasse isolada sem inventar frete nem permitir repasse. Administrador, entregador suspenso, transação em disputa e segunda atribuição incompatível são recusados. A prova PostgreSQL sintética cobre as duas pernas, diferença quitada localmente, revalidação da habilitação e auditoria; homologação operacional real continua pendente.",
       "reason": "Atribuição por perna, cadastro, suspensão e travas de aceitação de oferta reforçadas; disponibilidade operacional real, remuneração, fornecedor, coleta e entrega física permanecem dependentes de homologação."
     },
     {

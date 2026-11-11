@@ -90,7 +90,7 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
    await exchangeRepository.reserveDifferenceCheckout({actorId:ids.requester,transactionId:completedId,method:'pix'});await exchangeRepository.recordDifferenceProviderPending({transactionId:completedId,providerReference:'asaas-synthetic-exchange-difference'});await exchangeRepository.recordDifferencePaid({transactionId:completedId,providerReference:'asaas-synthetic-exchange-difference',amountCents:2000});const paidDifference=(await database.query('SELECT status,payment_method,installments FROM exchange_difference_obligations WHERE transaction_id=$1',[completedId])).rows[0];assert.deepEqual(paidDifference,{status:'paid',payment_method:'pix',installments:1});
    const legs=(await database.query('SELECT id,exchange_leg,buyer_id FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg',[completedId])).rows;
    for(const [index,leg] of legs.entries()){
-    const courier=index===0?ids.courier1:ids.courier2;
+    const courier=ids.courier1;
     const assignmentUrl=`${origin}/v1/shipments/${leg.id}/assign`;
     assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('admin')})).status,403);
     if(index===0){
@@ -101,18 +101,18 @@ test('exchange refusal, bilateral cancellation and completion cross HTTP and Pos
      assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('courier1'),body:'{}'})).status,409);
      await database.query('UPDATE users SET disabled_at=NULL WHERE id=$1',[courier]);
     }
-    const assigned=await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier1':'courier2'),body:'{}'});
+    const assigned=await fetch(assignmentUrl,{method:'POST',headers:headers('courier1'),body:'{}'});
     assert.equal(assigned.status,200,JSON.stringify(await assigned.clone().json()));
-    assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers(index===0?'courier2':'courier1'),body:'{}'})).status,409);
+    assert.equal((await fetch(assignmentUrl,{method:'POST',headers:headers('courier2'),body:'{}'})).status,409);
     await database.query("UPDATE shipments SET status='delivered' WHERE id=$1 AND courier_id=$2",[leg.id,courier]);
     const proof=(await database.query("INSERT INTO delivery_proofs(shipment_id,courier_id,media_key,recipient_name,latitude,longitude) VALUES($1,$2,$3,'Recebedor fictício',-19.9167,-43.9345) RETURNING id",[leg.id,courier,`private/exchange-proof-${index+1}`])).rows[0];
     await database.query('INSERT INTO delivery_receipt_approvals(proof_id,approver_id) VALUES($1,$2)',[proof.id,leg.buyer_id]);
     await database.query('INSERT INTO delivery_proof_validations(proof_id,validator_id,reason) VALUES($1,$2,$3)',[proof.id,ids.admin,'Comprovante fictício validado independentemente.']);
    }
    const assignedLegs=(await database.query('SELECT exchange_leg,courier_id FROM shipments WHERE transaction_id=$1 ORDER BY exchange_leg',[completedId])).rows;
-   assert.deepEqual(assignedLegs.map(leg=>leg.courier_id),[ids.courier1,ids.courier2]);
+   assert.deepEqual(assignedLegs.map(leg=>leg.courier_id),[ids.courier1,ids.courier1]);
    for(const [index,leg] of legs.entries()){
-    const payoutUrl=`${origin}/v1/shipments/${leg.id}/courier-payout`,owner=index===0?'courier1':'courier2',otherCourier=index===0?'courier2':'courier1';
+    const payoutUrl=`${origin}/v1/shipments/${leg.id}/courier-payout`,owner='courier1',otherCourier='courier2';
     assert.equal((await fetch(payoutUrl,{headers:headers(otherCourier)})).status,404);
     const response=await fetch(payoutUrl,{headers:headers(owner)}),body=await response.json();
     assert.equal(response.status,200,JSON.stringify(body));

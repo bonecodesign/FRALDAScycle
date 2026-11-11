@@ -16,7 +16,7 @@ Todos os bloqueios recusam a atribuição e não geram evento `shipment.courier.
 
 ## Evidências de validação
 
-`tests/exchange-courier-offer-guards-postgres.test.mjs`: cria troca e duas pernas fictícias com dois entregadores sintéticos aptos. Tenta aceitar ofertas antes do pagamento da diferença, com estado de remessa artificialmente alterado, com transação disputada, operação cancelada e cadastro suspenso. Somente depois da liberação local da diferença admite as duas atribuições independentes; verifica que os eventos de auditoria não se duplicam e que não existe `payment_intent`.
+`tests/exchange-courier-offer-guards-postgres.test.mjs`: cria troca e duas pernas fictícias com dois entregadores sintéticos aptos. Tenta aceitar ofertas antes do pagamento da diferença, com estado de remessa artificialmente alterado, com transação disputada, operação cancelada e cadastro suspenso. Somente depois da liberação local da diferença admite a atribuição das duas pernas ao mesmo entregador; uma oferta conflitante para o segundo entregador falha fechada. A migração `154_exchange_single_courier_cycle.sql` também impede divergência por acesso direto ou concorrência no banco. Os eventos de auditoria não se duplicam e não existe `payment_intent`.
 
 ## Bloqueios de produção
 
