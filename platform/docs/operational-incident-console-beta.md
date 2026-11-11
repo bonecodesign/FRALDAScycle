@@ -52,3 +52,5 @@ Ainda não implementado ou homologado:
 Colaboradores técnicos de nível 2 não acessam este painel por terem acesso ao repositório. A permissão de código é separada da identidade operacional e utiliza somente dados sintéticos.
 
 Essas ausências impedem afirmar que o requisito de incidentes está concluído ou que o console está autorizado para produção financeira.
+
+O adaptador inativo do WhatsApp aceita exclusivamente `https://graph.facebook.com/v22.0` e uma origem HTTPS limpa do painel, sem credenciais, query, fragmento ou subcaminho. Solicitações autenticadas não seguem redirecionamentos e falhas de transporte não reproduzem token, telefone ou referência do incidente. Mensagens de texto recebidas nunca aplicam ação operacional; o alerta contém apenas link para autenticação e decisão dentro do painel.

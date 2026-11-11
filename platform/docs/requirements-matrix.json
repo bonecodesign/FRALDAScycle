@@ -1198,7 +1198,7 @@
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5 com nova autenticação reforçada. Complemento PRIV-07 de 10/11/2026 adiciona domínio de privacidade, avaliação classificada sem copiar dados pessoais, decisão preliminar/completa de comunicação, nível 4 para decisão e nível 5 em caso crítico, além de bloquear resolução sem avaliação e decisão. O contrato declara despacho externo não autorizado e possui testes negativos; não comprova identidades ou exercício humano real.",
+      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5. PRIV-07 adiciona avaliação classificada e decisão de comunicação sem despacho externo. Em 11/11/2026, o adaptador WhatsApp inativo passou a restringir origem Meta e painel, proibir redirecionamento autenticado, sanitizar falhas e manter comandos de texto incapazes de aplicar ações. Não comprova conta Meta, template ou exercício humano real.",
       "reason": "Console, avaliação de privacidade, decisão de comunicação, aprovação conjunta, nomeação/aceite e adaptador Meta inativo estão implementados; parecer jurídico, canais reais, conta Meta, número, template aprovado, pessoas reais e exercício humano permanecem pendentes."
     },
     {
