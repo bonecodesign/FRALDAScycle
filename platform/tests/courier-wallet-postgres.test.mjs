@@ -7,11 +7,11 @@ const ids={courier:'11111111-1111-4111-8111-111111111111',l3:'33333333-3333-4333
 test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 with PostgreSQL',{skip:!native&&!process.env.CI?'PostgreSQL local indisponível.':false,timeout:90_000},async()=>{
  await withNativeTestPostgres(async databaseUrl=>{const db=createDatabase({databaseUrl,databaseSsl:false});try{
   await migrate(db,await discoverMigrations());
-  await db.query(`INSERT INTO users(id,email,password_hash,display_name,role) VALUES
-   ($1,'wallet-courier@example.test','fixture','Entregador','courier'),
-   ($2,'wallet-l3@example.test','fixture','Financeiro','admin'),
-   ($3,'wallet-l4@example.test','fixture','Administrador','admin'),
-   ($4,'wallet-l5@example.test','fixture','Fundador','admin')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
+  await db.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES
+   ($1,'wallet-courier@example.test','fixture','Entregador','courier',NULL,NULL),
+   ($2,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
+   ($3,'wallet-l4@example.test','fixture','Administrador','admin',4,'operations'),
+   ($4,'wallet-l5@example.test','fixture','Fundador','admin',5,'founder')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
   await db.query(`INSERT INTO courier_profiles(user_id,account_status,payout_status,payout_provider_reference)
    VALUES($1,'suspended','verified','provider-destination-synthetic')`,[ids.courier]);
   const repository=createCourierWalletRepository(db),hash='a'.repeat(64),evidence='b'.repeat(64);
@@ -21,12 +21,29 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   const requested=await repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0001',now:new Date('2030-01-01T12:00:00Z')});
   assert.equal(requested.withdrawal.status,'requested');const summary=await repository.summary(ids.courier);assert.deepEqual({available:summary.available_cents,reserved:summary.reserved_cents,version:summary.version},{available:3000,reserved:2000,version:3});
   await assert.rejects(repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0002',now:new Date('2030-01-08T11:59:59Z')}),error=>error.code==='withdrawal_weekly_limit');
+  await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:3,note:'Tentativa com nível declarado diferente do cadastro.'}),error=>error.code==='withdrawal_stage_forbidden');
   await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Tentativa fora da ordem aprovada.'}),error=>error.code==='withdrawal_stage_forbidden');
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Análise financeira sintética concluída.'})).status,'level3_proposed');
+  await db.query("UPDATE users SET staff_access_level=4,staff_sector='operations' WHERE id=$1",[ids.l3]);
   await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l3,accessLevel:4,note:'Tentativa sem independência entre as etapas.'}),error=>error.code==='withdrawal_independent_reviewer_required');
+  await db.query("UPDATE users SET staff_access_level=3,staff_sector='finance' WHERE id=$1",[ids.l3]);
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Aprovação administrativa sintética concluída.'})).status,'level4_approved');
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Autorização final sintética concluída.'})).status,'level5_authorized');
   const stored=(await db.query('SELECT payout_destination_reference,provider_reference_hash,status FROM courier_wallet_withdrawals WHERE id=$1',[requested.withdrawal.id])).rows[0];assert.deepEqual(stored,{payout_destination_reference:'provider-destination-synthetic',provider_reference_hash:null,status:'level5_authorized'});
+  let commands=await repository.claimProviderCommands();assert.equal(commands.length,1);assert.equal(commands[0].attempts,1);
+  assert.equal((await repository.rescheduleProviderCommand({commandId:commands[0].id,claimToken:commands[0].claim_token,failureCode:'provider_unavailable',retryAfterSeconds:30})).status,'failed');
+  await db.query('UPDATE courier_wallet_provider_commands SET available_at=now()-interval \'1 second\' WHERE id=$1',[commands[0].id]);
+  commands=await repository.claimProviderCommands();assert.equal(commands.length,1);assert.equal(commands[0].attempts,2);
+  const providerHash='c'.repeat(64);assert.equal((await repository.markProviderPending({commandId:commands[0].id,claimToken:commands[0].claim_token,providerReferenceHash:providerHash})).status,'provider_pending');
+  const completed=await repository.completeProviderWithdrawal({withdrawalId:requested.withdrawal.id,providerReferenceHash:providerHash,evidenceSha256:'d'.repeat(64),idempotencyKey:'wallet-release-synthetic-0001'});
+  assert.equal(completed.withdrawal.status,'completed');assert.equal(completed.reused,false);
+  let balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents,version:balance.version},{available:3000,reserved:0,version:4});
+  const second=await repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0003',now:new Date('2030-01-09T12:00:00Z')});
+  await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Segunda análise financeira sintética.'});
+  await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Segunda aprovação administrativa sintética.'});
+  await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Segunda autorização final sintética.'});
+  const returned=await repository.returnProviderWithdrawal({withdrawalId:second.withdrawal.id,failureCode:'destination_rejected',idempotencyKey:'wallet-return-synthetic-0001'});
+  assert.equal(returned.withdrawal.status,'returned');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:3000,reserved:0});
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);
  }finally{await db.close();}});
 });
