@@ -24,7 +24,9 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:3,note:'Tentativa com nível declarado diferente do cadastro.'}),error=>error.code==='withdrawal_stage_forbidden');
   await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Tentativa fora da ordem aprovada.'}),error=>error.code==='withdrawal_stage_forbidden');
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Análise financeira sintética concluída.'})).status,'level3_proposed');
+  await db.query("UPDATE users SET staff_access_level=4,staff_sector='operations' WHERE id=$1",[ids.l3]);
   await assert.rejects(repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l3,accessLevel:4,note:'Tentativa sem independência entre as etapas.'}),error=>error.code==='withdrawal_independent_reviewer_required');
+  await db.query("UPDATE users SET staff_access_level=3,staff_sector='finance' WHERE id=$1",[ids.l3]);
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Aprovação administrativa sintética concluída.'})).status,'level4_approved');
   assert.equal((await repository.advanceWithdrawal({withdrawalId:requested.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Autorização final sintética concluída.'})).status,'level5_authorized');
   const stored=(await db.query('SELECT payout_destination_reference,provider_reference_hash,status FROM courier_wallet_withdrawals WHERE id=$1',[requested.withdrawal.id])).rows[0];assert.deepEqual(stored,{payout_destination_reference:'provider-destination-synthetic',provider_reference_hash:null,status:'level5_authorized'});
