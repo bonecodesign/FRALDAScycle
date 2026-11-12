@@ -266,7 +266,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         );
         if (!inserted.rows[0]) return { duplicate: true };
         const found = await client.query(
-          `SELECT p.id,p.transaction_id,p.amount_cents,p.provider_charge_cents,p.wallet_amount_cents,p.status,
+          `SELECT p.id, p.transaction_id, p.amount_cents, p.provider_charge_cents, p.wallet_amount_cents, p.status,
              a.id AS allocation_id,a.status AS allocation_status
            FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
            WHERE p.provider_reference = $1 FOR UPDATE OF p`,
