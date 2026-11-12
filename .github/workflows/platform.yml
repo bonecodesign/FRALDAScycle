@@ -100,6 +100,25 @@ jobs:
       - name: Validate listing migrations and concurrent creation in PostgreSQL
         run: npm run test:listing-postgres
 
+  wallet-postgres:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate courier wallet lifecycle in PostgreSQL
+        run: npm run test:wallet-postgres
+
   containers:
     runs-on: ubuntu-latest
     timeout-minutes: 20
