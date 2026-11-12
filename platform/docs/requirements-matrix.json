@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-07",
+  "updatedAt": "2026-11-12",
   "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
   "denominator": 70,
   "requirements": [
@@ -35,6 +35,7 @@
       "database/migrations/155_courier_wallet_foundation.sql",
       "database/migrations/156_courier_wallet_provider_outbox.sql",
       "database/migrations/157_wallet_marketplace_payment_allocation.sql",
+      "database/migrations/158_wallet_marketplace_refunds.sql",
       "database/courier-wallet-repository.js",
       "apps/api/courier-wallet-service.js",
       "packages/contracts/wallet-payment-allocation.js",
@@ -46,7 +47,7 @@
       "docs/courier-wallet-preactivation.md",
         "docs/requirement-02-logistics-commission.md"
       ],
-    "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha; integração financeira real continua ausente.",
+    "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha. O reembolso preserva a proporção das origens: carteira integral conclui localmente sem fornecedor; composição mista solicita ao provedor somente sua parcela e credita a carteira apenas após confirmação exata por webhook ou reconciliação; integração financeira real continua ausente.",
       "reason": "Comissão de 5% calculada, persistida e vinculada ao repasse local, com divergências e supervisão; cobrança, tarifa financeira, split homologado, reconciliação externa e repasse real permanecem pendentes."
     },
     {
