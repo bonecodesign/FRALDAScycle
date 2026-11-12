@@ -1,0 +1,65 @@
+function fail(code,status,message){return Object.assign(new Error(message),{code,status});}
+
+async function account(client,courierId){
+  await client.query(`INSERT INTO courier_wallet_accounts(courier_id)
+    SELECT id FROM users WHERE id=$1 AND role='courier' ON CONFLICT DO NOTHING`,[courierId]);
+  return (await client.query('SELECT * FROM courier_wallet_accounts WHERE courier_id=$1 FOR UPDATE',[courierId])).rows[0];
+}
+
+async function ledger(client,{courierId,kind,amountCents,sourceType,sourceId,providerReferenceHash=null,evidenceSha256=null,idempotencyKey}){
+  const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[courierId])).rows[0];
+  return (await client.query(`INSERT INTO courier_wallet_entries
+    (courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,provider_reference_hash,evidence_sha256,idempotency_key)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [courierId,kind,amountCents,balance.available_cents,balance.reserved_cents,sourceType,sourceId,providerReferenceHash,evidenceSha256,idempotencyKey])).rows[0];
+}
+
+export function createCourierWalletRepository(database){return Object.freeze({
+  async creditConfirmedPayout({courierId,payoutId,amountCents,providerReferenceHash,evidenceSha256,idempotencyKey}){
+    if(!Number.isInteger(amountCents)||amountCents<=0||typeof idempotencyKey!=='string'||idempotencyKey.length<16||idempotencyKey.length>128||!/^([0-9a-f]{64})$/.test(providerReferenceHash)||!/^([0-9a-f]{64})$/.test(evidenceSha256))throw fail('invalid_wallet_credit',422,'Crédito confirmado inválido.');
+    return database.transaction(async client=>{
+      const current=await account(client,courierId);if(!current)throw fail('courier_not_found',404,'Entregador não encontrado.');
+      const existing=(await client.query('SELECT * FROM courier_wallet_entries WHERE idempotency_key=$1',[idempotencyKey])).rows[0];
+      if(existing){if(existing.courier_id!==courierId||existing.source_id!==payoutId||existing.amount_cents!==amountCents)throw fail('wallet_idempotency_conflict',409,'Chave já utilizada em outro lançamento.');return{entry:existing,reused:true};}
+      await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents+$2,version=version+1,updated_at=now() WHERE courier_id=$1',[courierId,amountCents]);
+      const entry=await ledger(client,{courierId,kind:'delivery_credit',amountCents,sourceType:'courier_payout',sourceId:payoutId,providerReferenceHash,evidenceSha256,idempotencyKey});
+      await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata) VALUES('courier.wallet.credited','courier_wallet_entry',$1,$2::jsonb)`,[entry.id,JSON.stringify({amountCents,providerReconciled:true})]);
+      return{entry,reused:false};
+    });
+  },
+  async requestWithdrawal({courierId,amountCents,idempotencyKey,now=new Date()}){
+    if(!Number.isInteger(amountCents)||amountCents<2000||typeof idempotencyKey!=='string'||idempotencyKey.length<16||idempotencyKey.length>128||!(now instanceof Date)||Number.isNaN(now.getTime()))throw fail('withdrawal_minimum',422,'O saque mínimo é R$ 20,00.');
+    return database.transaction(async client=>{
+      const current=await account(client,courierId);if(!current)throw fail('courier_not_found',404,'Entregador não encontrado.');
+      const existing=(await client.query('SELECT * FROM courier_wallet_withdrawals WHERE idempotency_key=$1',[idempotencyKey])).rows[0];
+      if(existing){if(existing.courier_id!==courierId||existing.amount_cents!==amountCents)throw fail('wallet_idempotency_conflict',409,'Chave já utilizada em outra solicitação.');return{withdrawal:existing,reused:true};}
+      const profile=(await client.query(`SELECT payout_provider_reference,payout_status FROM courier_profiles WHERE user_id=$1 FOR SHARE`,[courierId])).rows[0];
+      if(profile?.payout_status!=='verified'||!profile.payout_provider_reference)throw fail('payout_destination_unverified',409,'Confirme uma conta PIX do mesmo CPF antes do saque.');
+      const recent=(await client.query(`SELECT id FROM courier_wallet_withdrawals WHERE courier_id=$1 AND requested_at>$2::timestamptz-interval '7 days' LIMIT 1`,[courierId,now.toISOString()])).rows[0];
+      if(recent)throw fail('withdrawal_weekly_limit',409,'Já existe uma solicitação de saque nos últimos sete dias.');
+      if(current.available_cents<amountCents)throw fail('wallet_insufficient_balance',409,'Saldo disponível insuficiente.');
+      const withdrawal=(await client.query(`INSERT INTO courier_wallet_withdrawals(courier_id,amount_cents,payout_destination_reference,idempotency_key,requested_at)
+        VALUES($1,$2,$3,$4,$5) RETURNING *`,[courierId,amountCents,profile.payout_provider_reference,idempotencyKey,now.toISOString()])).rows[0];
+      await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents-$2,reserved_cents=reserved_cents+$2,version=version+1,updated_at=now() WHERE courier_id=$1',[courierId,amountCents]);
+      const reserveKey=createHash('sha256').update(`reserve:${idempotencyKey}`).digest('hex');
+      await ledger(client,{courierId,kind:'withdrawal_reserve',amountCents,sourceType:'pix_withdrawal',sourceId:withdrawal.id,idempotencyKey:reserveKey});
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'courier.wallet.withdrawal_requested','courier_wallet_withdrawal',$2,$3::jsonb)`,[courierId,withdrawal.id,JSON.stringify({amountCents,providerCalled:false})]);
+      return{withdrawal,reused:false};
+    });
+  },
+  async advanceWithdrawal({withdrawalId,actorId,accessLevel,note}){
+    const stages={requested:{level:3,next:'level3_proposed',column:'proposed'},level3_proposed:{level:4,next:'level4_approved',column:'approved'},level4_approved:{level:5,next:'level5_authorized',column:'authorized'}};
+    return database.transaction(async client=>{
+      const row=(await client.query('SELECT * FROM courier_wallet_withdrawals WHERE id=$1 FOR UPDATE',[withdrawalId])).rows[0];if(!row)throw fail('withdrawal_not_found',404,'Solicitação não encontrada.');
+      const stage=stages[row.status];if(!stage||accessLevel!==stage.level)throw fail('withdrawal_stage_forbidden',403,'Esta etapa exige o nível de acesso correspondente.');
+      if([row.proposed_by,row.approved_by,row.authorized_by].includes(actorId))throw fail('withdrawal_independent_reviewer_required',403,'Cada etapa exige uma pessoa diferente.');
+      if(typeof note!=='string'||note.trim().length<10||note.trim().length>1000)throw fail('withdrawal_note_required',422,'Registre uma justificativa auditável.');
+      const updated=(await client.query(`UPDATE courier_wallet_withdrawals SET status=$2,${stage.column}_by=$3,${stage.column}_at=now(),updated_at=now() WHERE id=$1 RETURNING *`,[withdrawalId,stage.next,actorId])).rows[0];
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'courier.wallet.withdrawal_advanced','courier_wallet_withdrawal',$2,$3::jsonb)`,[actorId,withdrawalId,JSON.stringify({from:row.status,to:stage.next,note:note.trim(),providerCalled:false})]);
+      return updated;
+    });
+  },
+  async summary(courierId){const a=(await database.query('SELECT available_cents,reserved_cents,version,updated_at FROM courier_wallet_accounts WHERE courier_id=$1',[courierId])).rows[0];return a??{available_cents:0,reserved_cents:0,version:0,updated_at:null};},
+});}
+import {createHash} from 'node:crypto';
+

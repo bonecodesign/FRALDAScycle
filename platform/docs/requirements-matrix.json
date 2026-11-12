@@ -32,10 +32,16 @@
         "database/migrations/140_freight_payout_obligation_links.sql",
         "database/migrations/141_freight_reconciliation_incidents.sql",
         "database/migrations/142_freight_incident_supervision.sql",
+      "database/migrations/155_courier_wallet_foundation.sql",
+      "database/courier-wallet-repository.js",
+      "apps/api/courier-wallet-service.js",
         "tests/logistics-commission-conservation.test.mjs",
+      "tests/courier-wallet-foundation.test.mjs",
+      "tests/courier-wallet-postgres.test.mjs",
+      "docs/courier-wallet-preactivation.md",
         "docs/requirement-02-logistics-commission.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa.",
+    "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5; chamada PIX continua ausente.",
       "reason": "Comissão de 5% calculada, persistida e vinculada ao repasse local, com divergências e supervisão; cobrança, tarifa financeira, split homologado, reconciliação externa e repasse real permanecem pendentes."
     },
     {
