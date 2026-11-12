@@ -269,7 +269,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           `SELECT p.id,p.transaction_id,p.amount_cents,p.provider_charge_cents,p.wallet_amount_cents,p.status,
              a.id AS allocation_id,a.status AS allocation_status
            FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
-           WHERE p.provider_reference = $1 FOR UPDATE OF p,a`,
+           WHERE p.provider_reference = $1 FOR UPDATE OF p`,
           [event.providerReference],
         );
         const intent = found.rows[0];
@@ -346,7 +346,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     },
 
     async markProviderFailure({ intentId, failureCode }) {
-      await database.transaction(async client=>{const intent=(await client.query(`SELECT p.id,p.buyer_id,p.wallet_amount_cents,a.id AS allocation_id,a.status AS allocation_status FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id WHERE p.id=$1 FOR UPDATE OF p,a`,[intentId])).rows[0];if(!intent)return;
+      await database.transaction(async client=>{const intent=(await client.query(`SELECT p.id,p.buyer_id,p.wallet_amount_cents,a.id AS allocation_id,a.status AS allocation_status FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id WHERE p.id=$1 FOR UPDATE OF p`,[intentId])).rows[0];if(!intent)return;
         await client.query(`UPDATE payment_intents SET status='failed',failure_code=$2,updated_at=now() WHERE id=$1 AND status='provider_pending'`,[intentId,failureCode]);
         if(intent.wallet_amount_cents>0&&intent.allocation_status==='reserved')await releaseWalletPurchase(client,intent,failureCode);
       });
