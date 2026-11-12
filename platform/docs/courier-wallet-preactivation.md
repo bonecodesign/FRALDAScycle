@@ -6,4 +6,6 @@ O saque comum exige mínimo de R$ 20 e uma única solicitação em janela móvel
 
 O nível 5 cria um comando em fila neutra, sem copiar chave PIX. O processamento usa posse temporária, recupera travas antigas e separa aceite, confirmação final e retorno terminal. Confirmação baixa o valor reservado; falha terminal devolve o valor ao saldo disponível. Ambos são idempotentes e guardam somente hashes de referência/evidência ou código normalizado de falha.
 
-Uso em compras, devolução proporcional, exceção de encerramento abaixo do mínimo, rotas HTTP, interface, adaptador e integração real continuam em pacotes posteriores. Produção exige parecer jurídico/contábil, homologação do provedor e feature flag explícita.
+A carteira pode financiar compras de venda do próprio entregador. O valor é reservado atomicamente, a compra integral não cria cobrança externa e a compra mista envia ao provedor somente o restante. O chat permanece fechado até a liquidação; falha externa devolve a reserva ao saldo disponível. A origem financeira fica registrada sem alterar o split comercial calculado sobre o valor total do produto.
+
+Devolução proporcional, exceção de encerramento abaixo do mínimo, interface da carteira, adaptador e integração real continuam em pacotes posteriores. Produção exige parecer jurídico/contábil, homologação do provedor e feature flag explícita.

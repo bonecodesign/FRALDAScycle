@@ -2,6 +2,7 @@ import { ServiceError } from "./service-error.js";
 import { saleSplit, deliverySplit, externalPartnerDeliveryCharge } from "../../packages/contracts/commercial-rules.js";
 import { projectProductProcessingCost } from "../../packages/contracts/product-processing-cost.js";
 import { verifyBillingCpf } from "../../packages/contracts/payment-billing-identity.js";
+import { walletCommercialAllocation, walletPurchaseAllocation } from "../../packages/contracts/wallet-payment-allocation.js";
 import { requireAccessLevel } from './authorization.js';
 export class PaymentError extends ServiceError {
   constructor(code, status, message) {
@@ -9,9 +10,9 @@ export class PaymentError extends ServiceError {
   }
 }
 
-const METHODS = new Set(["pix", "credit"]);
+const METHODS = new Set(["pix", "credit", "wallet"]);
 const PAYABLE_STATUSES = new Set(["initiated", "payment_pending"]);
-const INTENT_FIELDS = new Set(["transactionId", "idempotencyKey", "method", "paymentMethodToken", "billingCpf", "deliveryRequested"]);
+const INTENT_FIELDS = new Set(["transactionId", "idempotencyKey", "method", "paymentMethodToken", "billingCpf", "deliveryRequested", "walletAmountCents"]);
 const RAW_CARD_FIELDS = new Set(["cardNumber", "cvv", "pan", "securityCode", "expiry", "expires"]);
 
 function publicIntent(intent) {
@@ -23,6 +24,8 @@ function publicIntent(intent) {
     platformFeeCents: intent.platform_fee_cents,
     deliveryFeeCents: intent.delivery_fee_cents,
     sellerAmountCents: intent.seller_amount_cents,
+    walletAmountCents: intent.wallet_amount_cents ?? 0,
+    providerChargeCents: intent.provider_charge_cents ?? intent.amount_cents,
     status: intent.status,
     checkout: intent.checkout_payload ?? {},
   };
@@ -145,6 +148,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
         processorFeeHomologated: processing.feeHomologated,
         externalChargeCreated: false,
         freightCheckoutBlocked: Boolean(freight),
+        wallet: { availableCents: Number(context.wallet_available_cents ?? 0), usableByThisAccount: context.buyer_role === "courier" },
       };
     },
 
@@ -200,21 +204,27 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       }
       const amountCents = Number(transaction.amount_cents ?? 0);
       if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new PaymentError("invalid_amount", 409, "Valor da transação inválido.");
+      const walletAmountCents=Number(input?.walletAmountCents??0);
+      if(transaction.buyer_role!=="courier"&&walletAmountCents!==0)throw new PaymentError("wallet_not_available",403,"A carteira está disponível somente para a conta de entregador titular.");
+      let funding;try{funding=walletPurchaseAllocation({grossCents:amountCents,walletCents:walletAmountCents,walletAvailableCents:Number(transaction.wallet_available_cents??0)});}catch{throw new PaymentError("wallet_amount_unavailable",409,"O saldo selecionado não está disponível.");}
+      if((method==="wallet")!==funding.fullyCoveredByWallet)throw new PaymentError("invalid_payment_method",422,"Use carteira somente quando ela cobrir todo o valor; no pagamento misto escolha PIX ou cartão.");
       const split = saleSplit(amountCents);
       const platformFeeCents = split.platformCents;
       const deliveryFeeCents = 0;
       const sellerAmountCents = split.sellerCents;
       if (sellerAmountCents < 0) throw new PaymentError("invalid_split", 409, "Divisão financeira inválida.");
+      const providerFunding=walletCommercialAllocation({grossCents:amountCents,walletCents:funding.walletCents,platformFeeCents,sellerCents:sellerAmountCents});
 
       const created = await repository.createIntent({
         buyerId, transactionId, idempotencyKey, method, amountCents,
-        platformFeeCents, deliveryFeeCents, sellerAmountCents,
+        platformFeeCents, deliveryFeeCents, sellerAmountCents,walletAmountCents:funding.walletCents,providerChargeCents:funding.externalCents,
       });
+      if(funding.fullyCoveredByWallet){const paid=await repository.completeWalletPayment({intentId:created.id,buyerId,idempotencyKey});return{intent:publicIntent(paid),reused:false};}
       try {
         const remote = await provider.createIntent({
-          id: created.id, idempotencyKey, method, paymentMethodToken, amountCents,
+          id: created.id, idempotencyKey, method, paymentMethodToken, amountCents:funding.externalCents,
           billingCpf,
-          platformFeeCents, deliveryFeeCents, sellerAmountCents,
+          platformFeeCents:providerFunding.externalPlatformCents,deliveryFeeCents,sellerAmountCents:providerFunding.externalSellerCents,
         });
         const attached = await repository.attachProvider({
           intentId: created.id, providerReference: remote.providerReference,
