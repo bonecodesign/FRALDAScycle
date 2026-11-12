@@ -1,3 +1,16 @@
+import {createHash} from 'node:crypto';
+
+async function releaseWalletPurchase(client,intent,reason){
+  const allocation=(await client.query('SELECT courier_id,wallet_cents,status FROM courier_wallet_purchase_allocations WHERE id=$1 FOR UPDATE',[intent.allocation_id])).rows[0];
+  if(!allocation||allocation.status!=='reserved')return false;
+  const restored=await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents+$2,reserved_cents=reserved_cents-$2,version=version+1,updated_at=now() WHERE courier_id=$1 AND reserved_cents>=$2',[allocation.courier_id,allocation.wallet_cents]);
+  if(restored.rowCount!==1)throw Object.assign(new Error('Saldo reservado inconsistente.'),{code:'wallet_balance_conflict',status:409});
+  const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[allocation.courier_id])).rows[0];
+  await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_release',$2,$3,$4,'marketplace_purchase',$5,$6) ON CONFLICT(idempotency_key) DO NOTHING`,[allocation.courier_id,allocation.wallet_cents,balance.available_cents,balance.reserved_cents,intent.allocation_id,createHash('sha256').update(`purchase-release:${intent.id}`).digest('hex')]);
+  await client.query("UPDATE courier_wallet_purchase_allocations SET status='released',updated_at=now() WHERE id=$1",[intent.allocation_id]);
+  await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata) VALUES('payment.wallet.released','payment_intent',$1,$2::jsonb)`,[intent.id,JSON.stringify({walletAmountCents:allocation.wallet_cents,reason})]);return true;
+}
+
 export function createPaymentRepository(database,{stepUpRepository=null}={}) {
   return Object.freeze({
     async billingIdentity(userId) {
@@ -73,13 +86,16 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
 
     async checkoutPreview({ buyerId, transactionId }) {
       const result = await database.query(`
-        SELECT t.id, t.status, t.amount_cents, l.kind,
+        SELECT t.id, t.status, t.amount_cents, l.kind,u.role AS buyer_role,
+          COALESCE(w.available_cents,0) AS wallet_available_cents,
           q.id AS quote_id, q.status AS quote_status, q.provider AS quote_provider,
           q.base_freight_cents, q.platform_fee_cents AS freight_platform_fee_cents,
           q.customer_total_cents, q.expires_at AS quote_expires_at,
           q.confirmed_by AS quote_confirmed_by
         FROM transactions t
         JOIN listings l ON l.id = t.listing_id
+        JOIN users u ON u.id=t.buyer_id
+        LEFT JOIN courier_wallet_accounts w ON w.courier_id=t.buyer_id
         LEFT JOIN LATERAL (
           SELECT id,status,provider,base_freight_cents,platform_fee_cents,
             customer_total_cents,expires_at,confirmed_by
@@ -97,17 +113,19 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
       return database.transaction(async (client) => {
         const existing = await client.query(
           `SELECT id, transaction_id, method, amount_cents, platform_fee_cents,
-                  delivery_fee_cents, seller_amount_cents, provider_reference, status, checkout_payload
+                  delivery_fee_cents, seller_amount_cents,wallet_amount_cents,provider_charge_cents,provider_reference,status,checkout_payload
            FROM payment_intents WHERE idempotency_key = $1`,
           [idempotencyKey],
         );
         if (existing.rows[0]) return { existing: true, intent: existing.rows[0] };
         const transaction = await client.query(
-          `SELECT t.id, t.buyer_id, t.seller_id, t.status, t.amount_cents, l.kind,
+          `SELECT t.id, t.buyer_id, t.seller_id, t.status, t.amount_cents, l.kind,u.role AS buyer_role,
+             COALESCE(w.available_cents,0) AS wallet_available_cents,
              EXISTS (SELECT 1 FROM delivery_quotes q
                WHERE q.transaction_id=t.id AND q.shipment_id IS NULL
                  AND q.status IN ('quoted','confirmed','locked')) AS active_delivery_quote
-           FROM transactions t JOIN listings l ON l.id = t.listing_id
+           FROM transactions t JOIN listings l ON l.id = t.listing_id JOIN users u ON u.id=t.buyer_id
+           LEFT JOIN courier_wallet_accounts w ON w.courier_id=t.buyer_id
            WHERE t.id = $1 AND t.buyer_id = $2 FOR UPDATE OF t`,
           [transactionId, buyerId],
         );
@@ -124,16 +142,23 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           FOR UPDATE`,
           [input.transactionId,input.buyerId]);
         if (!eligibility.rows[0]) throw Object.assign(new Error("Transação indisponível ou frete ainda sem liquidação homologada."), {code:"transaction_not_payable",status:409});
+        if(input.walletAmountCents>0){const wallet=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1 FOR UPDATE',[input.buyerId])).rows[0];if(!wallet||wallet.available_cents<input.walletAmountCents)throw Object.assign(new Error('Saldo da carteira insuficiente.'),{code:'wallet_insufficient_balance',status:409});}
         const created = await client.query(
           `INSERT INTO payment_intents
              (transaction_id, buyer_id, idempotency_key, method, amount_cents,
-              platform_fee_cents, delivery_fee_cents, seller_amount_cents)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+              platform_fee_cents, delivery_fee_cents, seller_amount_cents,wallet_amount_cents)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
            ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
            RETURNING *`,
           [input.transactionId, input.buyerId, input.idempotencyKey, input.method,
-           input.amountCents, input.platformFeeCents, input.deliveryFeeCents, input.sellerAmountCents],
+           input.amountCents, input.platformFeeCents, input.deliveryFeeCents, input.sellerAmountCents,input.walletAmountCents],
         );
+        if(input.walletAmountCents>0){
+          await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents-$2,reserved_cents=reserved_cents+$2,version=version+1,updated_at=now() WHERE courier_id=$1',[input.buyerId,input.walletAmountCents]);
+          const allocation=(await client.query(`INSERT INTO courier_wallet_purchase_allocations(transaction_id,payment_intent_id,courier_id,gross_cents,wallet_cents,external_cents,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[input.transactionId,created.rows[0].id,input.buyerId,input.amountCents,input.walletAmountCents,input.providerChargeCents,`wallet-purchase:${input.idempotencyKey}`])).rows[0];
+          const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[input.buyerId])).rows[0];
+          await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_reserve',$2,$3,$4,'marketplace_purchase',$5,$6)`,[input.buyerId,input.walletAmountCents,balance.available_cents,balance.reserved_cents,allocation.id,createHash('sha256').update(`purchase-reserve:${input.idempotencyKey}`).digest('hex')]);
+        }
         await client.query(
           `UPDATE transactions SET status = 'payment_pending', updated_at = now()
            WHERE id = $1 AND status IN ('initiated', 'payment_pending')`,
@@ -150,6 +175,20 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         return created.rows[0];
       });
     },
+
+    async completeWalletPayment({intentId,buyerId,idempotencyKey}){return database.transaction(async client=>{
+      const intent=(await client.query(`SELECT p.*,a.id AS allocation_id,a.wallet_cents,a.status AS allocation_status FROM payment_intents p JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id WHERE p.id=$1 AND p.buyer_id=$2 FOR UPDATE OF p,a`,[intentId,buyerId])).rows[0];
+      if(!intent||intent.method!=='wallet'||intent.provider_charge_cents!==0)throw Object.assign(new Error('Pagamento integral pela carteira inválido.'),{code:'wallet_payment_invalid',status:409});
+      if(intent.status==='paid')return intent;if(intent.status!=='provider_pending'||intent.allocation_status!=='reserved')throw Object.assign(new Error('Pagamento não pode ser concluído.'),{code:'wallet_payment_state_conflict',status:409});
+      await client.query('UPDATE courier_wallet_accounts SET reserved_cents=reserved_cents-$2,version=version+1,updated_at=now() WHERE courier_id=$1 AND reserved_cents>=$2',[buyerId,intent.wallet_cents]);
+      const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[buyerId])).rows[0];
+      await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_debit',$2,$3,$4,'marketplace_purchase',$5,$6)`,[buyerId,intent.wallet_cents,balance.available_cents,balance.reserved_cents,intent.allocation_id,createHash('sha256').update(`purchase-paid:${idempotencyKey}`).digest('hex')]);
+      await client.query("UPDATE courier_wallet_purchase_allocations SET status='paid',updated_at=now() WHERE id=$1",[intent.allocation_id]);
+      const paid=(await client.query("UPDATE payment_intents SET status='paid',updated_at=now() WHERE id=$1 RETURNING *",[intent.id])).rows[0];
+      await client.query("UPDATE transactions SET status='paid',updated_at=now() WHERE id=$1 AND status='payment_pending'",[intent.transaction_id]);
+      await client.query(`INSERT INTO transaction_contact_access(transaction_id,payment_intent_id,wallet_purchase_allocation_id) VALUES($1,$2,$3) ON CONFLICT(transaction_id) DO UPDATE SET payment_intent_id=EXCLUDED.payment_intent_id,wallet_purchase_allocation_id=EXCLUDED.wallet_purchase_allocation_id,unlocked_at=now(),revoked_at=NULL,revoked_by=NULL,revocation_reason=NULL`,[intent.transaction_id,intent.id,intent.allocation_id]);
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'payment.wallet.completed','payment_intent',$2,$3::jsonb)`,[buyerId,intent.id,JSON.stringify({walletAmountCents:intent.wallet_cents,externalChargeCreated:false})]);return paid;
+    });},
 
     async attachProvider({ intentId, providerReference, status, checkoutPayload }) {
       const result = await database.query(
@@ -227,15 +266,17 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         );
         if (!inserted.rows[0]) return { duplicate: true };
         const found = await client.query(
-          `SELECT p.id, p.transaction_id, p.amount_cents, p.status
-           FROM payment_intents p WHERE p.provider_reference = $1 FOR UPDATE`,
+          `SELECT p.id, p.transaction_id, p.amount_cents, p.provider_charge_cents, p.wallet_amount_cents, p.status,
+             a.id AS allocation_id,a.status AS allocation_status
+           FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
+           WHERE p.provider_reference = $1 FOR UPDATE OF p`,
           [event.providerReference],
         );
         const intent = found.rows[0];
         if (!intent) return { missing: true };
         const supportedRefund=event.type==='payment.refunded'?(await client.query(`SELECT id,refund_amount_cents,status FROM supported_cancellations
           WHERE payment_intent_id=$1 AND status='submitted' FOR UPDATE`,[intent.id])).rows[0]:null;
-        const expectedAmount=supportedRefund?.refund_amount_cents??intent.amount_cents;
+        const expectedAmount=supportedRefund?.refund_amount_cents??intent.provider_charge_cents??intent.amount_cents;
         if (expectedAmount !== event.amountCents) return { amountMismatch: true };
 
         const intentStatus = {
@@ -266,6 +307,14 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
            )`,
           [intent.transaction_id, transactionStatus],
         );
+        if(event.type==='payment.paid'&&intent.wallet_amount_cents>0&&intent.allocation_status==='reserved'){
+          await client.query('UPDATE courier_wallet_accounts SET reserved_cents=reserved_cents-$2,version=version+1,updated_at=now() WHERE courier_id=(SELECT courier_id FROM courier_wallet_purchase_allocations WHERE id=$1) AND reserved_cents>=$2',[intent.allocation_id,intent.wallet_amount_cents]);
+          const allocation=(await client.query('SELECT courier_id FROM courier_wallet_purchase_allocations WHERE id=$1',[intent.allocation_id])).rows[0];
+          const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[allocation.courier_id])).rows[0];
+          await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_debit',$2,$3,$4,'marketplace_purchase',$5,$6)`,[allocation.courier_id,intent.wallet_amount_cents,balance.available_cents,balance.reserved_cents,intent.allocation_id,createHash('sha256').update(`purchase-paid:${intent.id}`).digest('hex')]);
+          await client.query("UPDATE courier_wallet_purchase_allocations SET status='paid',updated_at=now() WHERE id=$1",[intent.allocation_id]);
+        }
+        if(event.type==='payment.failed'&&intent.wallet_amount_cents>0&&intent.allocation_status==='reserved')await releaseWalletPurchase(client,intent,'provider_failed');
         if(supportedRefund){
           await client.query(`UPDATE supported_cancellations SET status='completed',completed_at=$2,completion_source='webhook',
             completion_webhook_event_id=$3,execution_failure_code=NULL,updated_at=now() WHERE id=$1 AND status='submitted'`,
@@ -297,11 +346,10 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     },
 
     async markProviderFailure({ intentId, failureCode }) {
-      await database.query(
-        `UPDATE payment_intents SET status = 'failed', failure_code = $2, updated_at = now()
-         WHERE id = $1 AND status = 'provider_pending'`,
-        [intentId, failureCode],
-      );
+      await database.transaction(async client=>{const intent=(await client.query(`SELECT p.id,p.buyer_id,p.wallet_amount_cents,a.id AS allocation_id,a.status AS allocation_status FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id WHERE p.id=$1 FOR UPDATE OF p`,[intentId])).rows[0];if(!intent)return;
+        await client.query(`UPDATE payment_intents SET status='failed',failure_code=$2,updated_at=now() WHERE id=$1 AND status='provider_pending'`,[intentId,failureCode]);
+        if(intent.wallet_amount_cents>0&&intent.allocation_status==='reserved')await releaseWalletPurchase(client,intent,failureCode);
+      });
     },
 
     async pendingSupportedRefunds(limit=20){const result=await database.query(`SELECT id,provider_case_reference,refund_amount_cents
