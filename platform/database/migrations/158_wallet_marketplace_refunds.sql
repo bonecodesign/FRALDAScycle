@@ -5,7 +5,7 @@ ALTER TABLE supported_cancellations
 UPDATE supported_cancellations SET provider_refund_cents=refund_amount_cents;
 
 ALTER TABLE supported_cancellations ADD CONSTRAINT supported_cancellation_refund_origin_total
-  CHECK(wallet_refund_cents+provider_refund_cents=refund_amount_cents);
+  CHECK(status='provider_pending' OR wallet_refund_cents+provider_refund_cents=refund_amount_cents);
 
 ALTER TABLE supported_cancellations DROP CONSTRAINT supported_cancellations_completion_source_check;
 ALTER TABLE supported_cancellations ADD CONSTRAINT supported_cancellations_completion_source_check
