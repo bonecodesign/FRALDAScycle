@@ -84,6 +84,7 @@ A implementação de produção não pode alterar o protótipo para acomodar lim
 - [x] telas aprovadas de reembolso e disputa conectadas ao backend;
 - [ ] credenciais, SDK e formato final de webhooks do provedor financeiro;
 - [x] reconciliação de reembolsos preparada com conferência de referência, estado e valor, desligada por padrão;
+- [x] reembolso proporcional entre carteira e origem externa, idempotente e sem chamada externa para compra integralmente paga com carteira;
 - [ ] homologar endpoint de consulta de reembolso e ativar `REFUND_RECONCILIATION_ENABLED` somente após validação do provedor;
 
 

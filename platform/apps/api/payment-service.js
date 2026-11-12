@@ -33,7 +33,7 @@ function publicIntent(intent) {
 
 export function createPaymentService(repository, provider, { cpfHmacSecret = null } = {}) {
   return Object.freeze({
-    async supportedRefundQueue(actor){requireAccessLevel(actor,3);const rows=await repository.supportedRefundQueue(50);return{items:rows.map(row=>({id:row.id,supportTicketId:row.support_ticket_id,refundAmountCents:row.refund_amount_cents,status:row.status,submittedAt:row.submitted_at??null,completedAt:row.completed_at??null,failureCode:row.execution_failure_code??null,alert:row.alert_id?{id:row.alert_id,kind:'provider_confirmation_overdue',createdAt:row.alert_created_at}:null}))};},
+    async supportedRefundQueue(actor){requireAccessLevel(actor,3);const rows=await repository.supportedRefundQueue(50);return{items:rows.map(row=>({id:row.id,supportTicketId:row.support_ticket_id,refundAmountCents:row.refund_amount_cents,walletRefundCents:row.wallet_refund_cents??0,providerRefundCents:row.provider_refund_cents??row.refund_amount_cents,status:row.status,submittedAt:row.submitted_at??null,completedAt:row.completed_at??null,failureCode:row.execution_failure_code??null,alert:row.alert_id?{id:row.alert_id,kind:'provider_confirmation_overdue',createdAt:row.alert_created_at}:null}))};},
     async supportedRefundHistory(actor,cancellationId){requireAccessLevel(actor,3);if(!/^[0-9a-f-]{36}$/i.test(cancellationId))throw new PaymentError('invalid_supported_refund',422,'Decisão de reembolso inválida.');const history=await repository.supportedRefundHistory(cancellationId);return{checks:history.checks.map(row=>({status:row.observed_status,amountCents:row.observed_amount_cents,matched:row.matched,failureCode:row.failure_code??null,checkedAt:row.checked_at})),reviews:history.reviews.map(row=>({id:row.id,action:row.action,note:row.note,actorName:row.actor_name,createdAt:row.created_at}))};},
     async reviewBlockedSupportedRefund(actor,cancellationId,input){requireAccessLevel(actor,3);const action=String(input?.action??''),note=String(input?.note??'').trim();if(!/^[0-9a-f-]{36}$/i.test(cancellationId)||!['provider_follow_up','support_reanalysis'].includes(action)||note.length<10||note.length>1000||Object.keys(input??{}).some(key=>!['action','note'].includes(key)))throw new PaymentError('invalid_supported_refund_review',422,'Informe encaminhamento e justificativa válidos.');return{review:await repository.addSupportedRefundReview({actorId:actor.id,cancellationId,action,note})};},
     async supportedRefundStatus(actor,cancellationId){
@@ -44,6 +44,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       return{refund:{id:row.id,transactionId:row.transaction_id,supportTicketId:row.support_ticket_id,phase:row.cancellation_phase,
         grossAmountCents:row.gross_amount_cents,retainedPlatformFeeCents:row.retained_platform_fee_cents,
         retainedDeliveryFeeCents:row.retained_delivery_fee_cents,refundAmountCents:row.refund_amount_cents,
+        walletRefundCents:row.wallet_refund_cents??0,providerRefundCents:row.provider_refund_cents??row.refund_amount_cents,
         reason:row.reason,status:row.status,providerCaseReference:row.provider_case_reference??null,
         failureCode:row.execution_failure_code??null,submittedAt:row.submitted_at??null,completedAt:row.completed_at??null,
         createdAt:row.created_at,updatedAt:row.updated_at,executable:row.status==='provider_pending'}};
@@ -52,7 +53,8 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       requireAccessLevel(actor,3);const idempotencyKey=String(input?.idempotencyKey??''),grantId=String(input?.grantId??'');
       if(input?.confirmed!==true||!/^[0-9a-f-]{36}$/i.test(cancellationId)||!/^[0-9a-f-]{36}$/i.test(idempotencyKey)||!/^[0-9a-f-]{36}$/i.test(grantId))throw new PaymentError('invalid_refund_execution',422,'Confirme a execução com chaves válidas.');
       const reserved=await repository.reserveSupportedRefund({actorId:actor.id,cancellationId,idempotencyKey,grantId});if(reserved.reused)return reserved;
-      try{const remote=await provider.createCase({caseId:cancellationId,kind:'refund',idempotencyKey,reason:reserved.refund.reason,details:'Reembolso assistido aprovado pelo suporte.',providerReference:reserved.refund.payment_provider_reference,amountCents:reserved.refund.refund_amount_cents});
+      if(reserved.refund.provider_refund_cents===0){const refund=await repository.completeWalletSupportedRefund({actorId:actor.id,cancellationId});return{refund,reused:false};}
+      try{const remote=await provider.createCase({caseId:cancellationId,kind:'refund',idempotencyKey,reason:reserved.refund.reason,details:'Reembolso assistido aprovado pelo suporte.',providerReference:reserved.refund.payment_provider_reference,amountCents:reserved.refund.provider_refund_cents??reserved.refund.refund_amount_cents});
         const refund=await repository.finishSupportedRefund({actorId:actor.id,cancellationId,providerCaseReference:remote.providerReference});return{refund,reused:false};
       }catch(error){await repository.failSupportedRefund({actorId:actor.id,cancellationId,failureCode:error.code??'provider_error'});throw error;}
     },

@@ -18,6 +18,7 @@
 - O painel financeiro expõe apenas os identificadores operacionais, valores, retenções, justificativa e estado necessários. Ele não expõe credenciais do provedor nem dados pessoais das partes.
 - Depois do envio, o estado permanece `submitted`; a interface informa que a conclusão depende do webhook do provedor.
 - O webhook financeiro assinado só conclui uma decisão enviada quando encontra a cobrança local e o valor recebido coincide exatamente com o valor de reembolso aprovado. O evento é idempotente e a conclusão ganha data, vínculo ao evento e auditoria sem dados pessoais.
+- Quando a compra usou carteira do entregador, o reembolso conserva matematicamente a proporção das origens em centavos. Uma compra integralmente paga com carteira é devolvida localmente, sem chamada ao provedor. Em pagamento misto, somente a parcela externa é solicitada ao provedor e a parcela da carteira só é creditada depois da confirmação exata por webhook ou reconciliação; repetições não duplicam saldo.
 - Uma rotina de reconciliação pode consultar envios pendentes pelo identificador opaco do caso. Ela registra cada conferência e só conclui quando referência, estado `completed` e valor exato coincidem; indisponibilidade ou divergência bloqueiam a evolução sem inventar sucesso.
 - A execução periódica permanece desligada e exige `NODE_ENV=production` e `REFUND_RECONCILIATION_ENABLED=true`; intervalo aceito entre 5 minutos e 24 horas. Credenciais e homologação continuam externas.
 - O monitor local pode criar um único alerta interno quando uma confirmação permanece ausente além do prazo configurado (referência inicial: 120 minutos). A fila é exclusiva do nível 3, não expõe dados pessoais e o alerta é encerrado automaticamente após webhook ou reconciliação válidos.
@@ -25,7 +26,7 @@
 
 ## Limite desta etapa
 
-O código local não afirma que o dinheiro foi devolvido. O caminho de envio está preparado, mas a execução real e a confirmação do estorno dependem do provedor financeiro homologado e das credenciais. Sem provedor, a operação falha fechada. Uma falha terminal não é repetida automaticamente com a mesma decisão: o caso volta para análise humana. O webhook/reconciliador continua sendo a fonte da conclusão financeira.
+O código local só conclui autonomamente a parcela que já existe na carteira interna. Para qualquer parcela externa, não afirma que o dinheiro foi devolvido: o caminho de envio está preparado, mas a execução real e a confirmação do estorno dependem do provedor financeiro homologado e das credenciais. Sem provedor, a operação falha fechada. Uma falha terminal não é repetida automaticamente com a mesma decisão: o caso volta para análise humana. O webhook/reconciliador continua sendo a fonte da conclusão financeira externa.
 
 A exceção logística de contato possui prova HTTP/PostgreSQL dedicada: cliente e administrador são recusados, outro entregador não acessa, o entregador atribuído vê somente o telefone verificado do vendedor na coleta e do comprador durante a entrega, e perde o acesso após a conclusão. A auditoria registra apenas canal e finalidade, nunca o telefone. Nenhuma chamada ou operação logística real foi executada.
 

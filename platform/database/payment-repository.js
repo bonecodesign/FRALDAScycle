@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {proportionalWalletRefund} from '../packages/contracts/wallet-payment-allocation.js';
 
 async function releaseWalletPurchase(client,intent,reason){
   const allocation=(await client.query('SELECT courier_id,wallet_cents,status FROM courier_wallet_purchase_allocations WHERE id=$1 FOR UPDATE',[intent.allocation_id])).rows[0];
@@ -9,6 +10,27 @@ async function releaseWalletPurchase(client,intent,reason){
   await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_release',$2,$3,$4,'marketplace_purchase',$5,$6) ON CONFLICT(idempotency_key) DO NOTHING`,[allocation.courier_id,allocation.wallet_cents,balance.available_cents,balance.reserved_cents,intent.allocation_id,createHash('sha256').update(`purchase-release:${intent.id}`).digest('hex')]);
   await client.query("UPDATE courier_wallet_purchase_allocations SET status='released',updated_at=now() WHERE id=$1",[intent.allocation_id]);
   await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata) VALUES('payment.wallet.released','payment_intent',$1,$2::jsonb)`,[intent.id,JSON.stringify({walletAmountCents:allocation.wallet_cents,reason})]);return true;
+}
+
+async function applyWalletPurchaseRefund(client,refund,{externalConfirmedCents=0}={}){
+  if(!refund.allocation_id)return false;
+  const allocation=(await client.query(`SELECT id,courier_id,wallet_cents,external_cents,wallet_refunded_cents,external_refunded_cents,status
+    FROM courier_wallet_purchase_allocations WHERE id=$1 FOR UPDATE`,[refund.allocation_id])).rows[0];
+  if(!allocation)throw Object.assign(new Error('Composição da carteira não encontrada.'),{code:'wallet_refund_allocation_missing',status:409});
+  const walletRefund=Number(refund.wallet_refund_cents??0),externalRefund=Number(externalConfirmedCents??0);
+  if(Number(allocation.wallet_refunded_cents)===walletRefund&&Number(allocation.external_refunded_cents)===externalRefund)return false;
+  if(Number(allocation.wallet_refunded_cents)!==0||Number(allocation.external_refunded_cents)!==0)throw Object.assign(new Error('Composição de reembolso da carteira divergente.'),{code:'wallet_refund_conflict',status:409});
+  if(walletRefund>0){
+    const account=(await client.query(`UPDATE courier_wallet_accounts SET available_cents=available_cents+$2,version=version+1,updated_at=now()
+      WHERE courier_id=$1 RETURNING available_cents,reserved_cents`,[allocation.courier_id,walletRefund])).rows[0];
+    if(!account)throw Object.assign(new Error('Carteira do comprador não encontrada.'),{code:'wallet_account_missing',status:409});
+    await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key)
+      VALUES($1,'purchase_refund',$2,$3,$4,'marketplace_purchase',$5,$6) ON CONFLICT(idempotency_key) DO NOTHING`,[allocation.courier_id,walletRefund,account.available_cents,account.reserved_cents,allocation.id,createHash('sha256').update(`purchase-refund:${refund.id}`).digest('hex')]);
+  }
+  const totalRefunded=walletRefund+externalRefund,total=Number(allocation.wallet_cents)+Number(allocation.external_cents);
+  await client.query(`UPDATE courier_wallet_purchase_allocations SET wallet_refunded_cents=$2,external_refunded_cents=$3,
+    status=CASE WHEN $4>=gross_cents THEN 'refunded' ELSE 'partially_refunded' END,updated_at=now() WHERE id=$1`,[allocation.id,walletRefund,externalRefund,totalRefunded]);
+  return totalRefunded<=total;
 }
 
 export function createPaymentRepository(database,{stepUpRepository=null}={}) {
@@ -22,12 +44,13 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     async supportedRefundStatus(cancellationId) {
       const result=await database.query(`SELECT c.id,c.transaction_id,c.support_ticket_id,c.cancellation_phase,
         c.gross_amount_cents,c.retained_platform_fee_cents,c.retained_delivery_fee_cents,c.refund_amount_cents,
+        c.wallet_refund_cents,c.provider_refund_cents,
         c.reason,c.status,c.provider_case_reference,c.execution_failure_code,c.submitted_at,c.completed_at,c.created_at,c.updated_at
         FROM supported_cancellations c WHERE c.id=$1`,[cancellationId]);
       return result.rows[0]??null;
     },
 
-    async supportedRefundQueue(limit=50){const result=await database.query(`SELECT c.id,c.support_ticket_id,c.refund_amount_cents,c.status,
+    async supportedRefundQueue(limit=50){const result=await database.query(`SELECT c.id,c.support_ticket_id,c.refund_amount_cents,c.wallet_refund_cents,c.provider_refund_cents,c.status,
       c.submitted_at,c.completed_at,c.execution_failure_code,a.id AS alert_id,a.created_at AS alert_created_at
       FROM supported_cancellations c LEFT JOIN supported_refund_alerts a ON a.supported_cancellation_id=c.id AND a.resolved_at IS NULL
       WHERE c.status IN ('provider_pending','submitted','failed') OR (c.status='completed' AND c.completed_at>now()-interval '7 days')
@@ -64,18 +87,34 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
 
     reserveSupportedRefund({actorId,cancellationId,idempotencyKey,grantId}){return database.transaction(async client=>{
       if(!stepUpRepository)throw Object.assign(new Error('Confirmação financeira indisponível.'),{code:'refund_step_up_unavailable',status:503});
-      const row=(await client.query(`SELECT c.*,p.provider_reference AS payment_provider_reference
+      const row=(await client.query(`SELECT c.*,p.provider_reference AS payment_provider_reference,
+          a.id AS allocation_id,a.gross_cents AS allocation_gross_cents,a.wallet_cents AS allocation_wallet_cents
         FROM supported_cancellations c JOIN payment_intents p ON p.id=c.payment_intent_id
+        LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
         WHERE c.id=$1 FOR UPDATE OF c,p`,[cancellationId])).rows[0];
       if(!row)throw Object.assign(new Error('Decisão de reembolso não encontrada.'),{code:'supported_refund_not_found',status:404});
       if(row.execution_idempotency_key){if(row.execution_idempotency_key!==idempotencyKey)throw Object.assign(new Error('A execução já possui outra chave.'),{code:'refund_execution_conflict',status:409});return{refund:row,reused:true};}
-      if(row.status!=='provider_pending'||!row.payment_provider_reference||row.refund_amount_cents<0)throw Object.assign(new Error('Reembolso não está pronto para execução.'),{code:'supported_refund_not_ready',status:409});
+      const composition=row.allocation_id?proportionalWalletRefund({grossCents:Number(row.allocation_gross_cents),walletCents:Number(row.allocation_wallet_cents),refundCents:Number(row.refund_amount_cents)}):{walletRefundCents:0,externalRefundCents:Number(row.refund_amount_cents)};
+      if(row.status!=='provider_pending'||(composition.externalRefundCents>0&&!row.payment_provider_reference)||row.refund_amount_cents<0)throw Object.assign(new Error('Reembolso não está pronto para execução.'),{code:'supported_refund_not_ready',status:409});
       const grant=await stepUpRepository.consume(client,{grantId,userId:actorId,purpose:'refund_execution'});if(!grant)throw Object.assign(new Error('Confirmação financeira inválida ou expirada.'),{code:'refund_step_up_required',status:409});
       const refund=(await client.query(`UPDATE supported_cancellations SET status='submitted',execution_idempotency_key=$2,
-        executed_by=$3,submitted_at=now(),execution_failure_code=NULL,updated_at=now() WHERE id=$1 RETURNING *`,[cancellationId,idempotencyKey,actorId])).rows[0];
+        executed_by=$3,submitted_at=now(),execution_failure_code=NULL,wallet_refund_cents=$4,provider_refund_cents=$5,updated_at=now() WHERE id=$1 RETURNING *`,[cancellationId,idempotencyKey,actorId,composition.walletRefundCents,composition.externalRefundCents])).rows[0];
       await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
         VALUES($1,'refund.execution.reserved','supported_cancellation',$2,$3::jsonb)`,[actorId,cancellationId,JSON.stringify({refundAmountCents:refund.refund_amount_cents,idempotencyKey})]);
-      return{refund:{...refund,payment_provider_reference:row.payment_provider_reference},reused:false};
+      return{refund:{...refund,payment_provider_reference:row.payment_provider_reference,allocation_id:row.allocation_id},reused:false};
+    });},
+    completeWalletSupportedRefund({actorId,cancellationId}){return database.transaction(async client=>{
+      const refund=(await client.query(`SELECT c.*,a.id AS allocation_id FROM supported_cancellations c
+        LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=c.payment_intent_id
+        WHERE c.id=$1 FOR UPDATE OF c`,[cancellationId])).rows[0];
+      if(!refund||refund.status!=='submitted'||Number(refund.provider_refund_cents)!==0)throw Object.assign(new Error('Reembolso local não está pronto.'),{code:'wallet_refund_not_ready',status:409});
+      await applyWalletPurchaseRefund(client,refund);
+      const completed=(await client.query(`UPDATE supported_cancellations SET status='completed',completed_at=now(),completion_source='local_wallet',
+        execution_failure_code=NULL,updated_at=now() WHERE id=$1 RETURNING *`,[cancellationId])).rows[0];
+      await client.query("UPDATE payment_intents SET status='refunded',updated_at=now() WHERE id=$1",[refund.payment_intent_id]);
+      await client.query("UPDATE transactions SET status='refunded',updated_at=now() WHERE id=$1 AND status<>'refunded'",[refund.transaction_id]);
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'refund.execution.completed','supported_cancellation',$2,$3::jsonb)`,[actorId,cancellationId,JSON.stringify({completionSource:'local_wallet',refundAmountCents:refund.refund_amount_cents})]);
+      return completed;
     });},
     finishSupportedRefund({actorId,cancellationId,providerCaseReference}){return database.transaction(async client=>{const refund=(await client.query(`UPDATE supported_cancellations SET provider_case_reference=$2,execution_failure_code=NULL,updated_at=now()
       WHERE id=$1 AND status='submitted' RETURNING *`,[cancellationId,providerCaseReference])).rows[0];if(!refund)return null;await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
@@ -274,9 +313,11 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         );
         const intent = found.rows[0];
         if (!intent) return { missing: true };
-        const supportedRefund=event.type==='payment.refunded'?(await client.query(`SELECT id,refund_amount_cents,status FROM supported_cancellations
+        const supportedRefund=event.type==='payment.refunded'?(await client.query(`SELECT id,refund_amount_cents,wallet_refund_cents,provider_refund_cents,status
+          FROM supported_cancellations
           WHERE payment_intent_id=$1 AND status='submitted' FOR UPDATE`,[intent.id])).rows[0]:null;
-        const expectedAmount=supportedRefund?.refund_amount_cents??intent.provider_charge_cents??intent.amount_cents;
+        if(supportedRefund)supportedRefund.allocation_id=intent.allocation_id;
+        const expectedAmount=supportedRefund?(supportedRefund.provider_refund_cents??supportedRefund.refund_amount_cents):(intent.provider_charge_cents??intent.amount_cents);
         if (expectedAmount !== event.amountCents) return { amountMismatch: true };
 
         const intentStatus = {
@@ -316,12 +357,13 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         }
         if(event.type==='payment.failed'&&intent.wallet_amount_cents>0&&intent.allocation_status==='reserved')await releaseWalletPurchase(client,intent,'provider_failed');
         if(supportedRefund){
+          await applyWalletPurchaseRefund(client,supportedRefund,{externalConfirmedCents:Number(supportedRefund.provider_refund_cents)});
           await client.query(`UPDATE supported_cancellations SET status='completed',completed_at=$2,completion_source='webhook',
             completion_webhook_event_id=$3,execution_failure_code=NULL,updated_at=now() WHERE id=$1 AND status='submitted'`,
           [supportedRefund.id,event.occurredAt,event.id]);
           await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata)
             VALUES('refund.execution.completed','supported_cancellation',$1,$2::jsonb)`,
-          [supportedRefund.id,JSON.stringify({eventId:event.id,refundAmountCents:event.amountCents})]);
+          [supportedRefund.id,JSON.stringify({eventId:event.id,providerRefundCents:event.amountCents,walletRefundCents:supportedRefund.wallet_refund_cents})]);
           await client.query(`UPDATE supported_refund_alerts SET resolved_at=now(),resolution='Confirmação recebida por webhook financeiro.'
             WHERE supported_cancellation_id=$1 AND resolved_at IS NULL`,[supportedRefund.id]);
         }
@@ -352,16 +394,19 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
       });
     },
 
-    async pendingSupportedRefunds(limit=20){const result=await database.query(`SELECT id,provider_case_reference,refund_amount_cents
+    async pendingSupportedRefunds(limit=20){const result=await database.query(`SELECT id,provider_case_reference,provider_refund_cents AS refund_amount_cents
       FROM supported_cancellations WHERE status='submitted' AND provider_case_reference IS NOT NULL
       ORDER BY submitted_at LIMIT $1`,[limit]);return result.rows;},
 
     reconcileSupportedRefund({cancellationId,providerCaseReference,status,amountCents}){return database.transaction(async client=>{
-      const row=(await client.query(`SELECT id,transaction_id,payment_intent_id,provider_case_reference,refund_amount_cents,status FROM supported_cancellations
-        WHERE id=$1 FOR UPDATE`,[cancellationId])).rows[0];
+      const row=(await client.query(`SELECT c.id,c.transaction_id,c.payment_intent_id,c.provider_case_reference,c.refund_amount_cents,
+          c.wallet_refund_cents,c.provider_refund_cents,c.status,a.id AS allocation_id FROM supported_cancellations c
+        LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=c.payment_intent_id
+        WHERE c.id=$1 FOR UPDATE OF c`,[cancellationId])).rows[0];
       if(!row)return{missing:true,completed:false};
-      if(row.status==='completed'&&row.provider_case_reference===providerCaseReference&&row.refund_amount_cents===amountCents)return{missing:false,matched:true,completed:true,reused:true};
-      const matched=row.status==='submitted'&&row.provider_case_reference===providerCaseReference&&row.refund_amount_cents===amountCents;
+      const expectedProviderRefund=Number(row.provider_refund_cents??row.refund_amount_cents);
+      if(row.status==='completed'&&row.provider_case_reference===providerCaseReference&&expectedProviderRefund===amountCents)return{missing:false,matched:true,completed:true,reused:true};
+      const matched=row.status==='submitted'&&row.provider_case_reference===providerCaseReference&&expectedProviderRefund===amountCents;
       const failureCode=!matched?'refund_reconciliation_mismatch':status==='failed'?'provider_refund_failed':null;
       await client.query(`INSERT INTO supported_refund_reconciliation_checks
         (supported_cancellation_id,provider_case_reference,observed_status,observed_amount_cents,matched,failure_code)
@@ -377,6 +422,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         return{missing:false,matched:true,completed:false,blocked:true};
       }
       if(status!=='completed')return{missing:false,matched:true,completed:false,blocked:false};
+      await applyWalletPurchaseRefund(client,row,{externalConfirmedCents:Number(row.provider_refund_cents)});
       await client.query(`UPDATE supported_cancellations SET status='completed',completed_at=now(),completion_source='reconciliation',
         execution_failure_code=NULL,updated_at=now() WHERE id=$1 AND status='submitted'`,[cancellationId]);
       await client.query(`UPDATE payment_intents SET status='refunded',updated_at=now() WHERE id=$1`,[row.payment_intent_id]);
@@ -385,7 +431,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         WHERE supported_cancellation_id=$1 AND resolved_at IS NULL`,[cancellationId]);
       await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata)
         VALUES('refund.execution.reconciled','supported_cancellation',$1,$2::jsonb)`,
-      [cancellationId,JSON.stringify({providerCaseReference,refundAmountCents:amountCents})]);
+      [cancellationId,JSON.stringify({providerCaseReference,providerRefundCents:amountCents,walletRefundCents:row.wallet_refund_cents})]);
       return{missing:false,matched:true,completed:true};
     });},
   });
