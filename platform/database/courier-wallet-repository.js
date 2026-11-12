@@ -128,4 +128,13 @@ export function createCourierWalletRepository(database){return Object.freeze({
     });
   },
   async summary(courierId){const a=(await database.query('SELECT available_cents,reserved_cents,version,updated_at FROM courier_wallet_accounts WHERE courier_id=$1',[courierId])).rows[0];return a??{available_cents:0,reserved_cents:0,version:0,updated_at:null};},
+  async activity(courierId,{limit=50}={}){
+    const [entries,withdrawals]=await Promise.all([
+      database.query(`SELECT id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,created_at
+        FROM courier_wallet_entries WHERE courier_id=$1 ORDER BY created_at DESC,id DESC LIMIT $2`,[courierId,limit]),
+      database.query(`SELECT id,amount_cents,status,requested_at,completed_at,updated_at
+        FROM courier_wallet_withdrawals WHERE courier_id=$1 ORDER BY requested_at DESC,id DESC LIMIT $2`,[courierId,limit]),
+    ]);
+    return{entries:entries.rows,withdrawals:withdrawals.rows};
+  },
 });}

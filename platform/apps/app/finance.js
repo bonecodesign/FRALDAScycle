@@ -9,11 +9,14 @@ function setupPaymentFlow(){
   const receipt=document.getElementById('receipt-submit');
   receipt?.addEventListener('click',()=>notify('O comprovante estará disponível quando esta tela carregar uma transação real.'))
 }
-function setupWallet(){
+async function setupWallet(){
   const content=document.getElementById('wallet-content');if(!content)return;
-  const open=document.getElementById('wallet-add-submit');const panel=document.getElementById('wallet-add-panel');const filter=document.getElementById('wallet-filter');
+  const open=document.getElementById('wallet-add-submit'),panel=document.getElementById('wallet-add-panel'),filter=document.getElementById('wallet-filter'),balance=document.getElementById('wallet-balance-value'),reserved=document.getElementById('wallet-reserved-value'),transactions=document.getElementById('wallet-transactions');
+  const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value??0)/100);
+  const creditKinds=new Set(['delivery_credit','purchase_refund','withdrawal_return']);
   filter?.addEventListener('change',()=>{content.querySelectorAll('[data-kind]').forEach(row=>row.hidden=filter.value!=='all'&&row.dataset.kind!==filter.value)});
-  open?.addEventListener('click',()=>{panel.innerHTML='<div class="wallet-add-card"><h2>Adicionar saldo</h2><p>Recarga de carteira ainda não está disponível. Nenhum valor foi cobrado ou creditado.</p></div>';open.hidden=true});
+  try{const [summary,result]=await Promise.all([apiRequest('/v1/courier/wallet'),apiRequest('/v1/courier/wallet/activity')]);balance.textContent=money(summary.wallet.availableCents);reserved.textContent=`Saldo reservado: ${money(summary.wallet.reservedCents)}`;open.hidden=summary.wallet.availableCents<2000;transactions.replaceChildren();for(const entry of result.activity.entries){const incoming=creditKinds.has(entry.kind),row=document.createElement('article');row.className='phone-card';row.dataset.kind=incoming?'credit':'debit';row.innerHTML=`<div><strong>${incoming?'Entrada':'Saída'}</strong><small>${new Date(entry.createdAt).toLocaleDateString('pt-BR')}</small></div><strong>${incoming?'+':'−'} ${money(entry.amountCents)}</strong>`;transactions.append(row)}if(!result.activity.entries.length)transactions.innerHTML='<div class="ui-state empty-state"><div class="state-icon">○</div><h2>Nenhuma movimentação</h2><p>Os lançamentos confirmados aparecerão aqui.</p></div>'}catch(cause){balance.textContent='Indisponível';reserved.textContent='Não foi possível consultar a carteira.';transactions.innerHTML=`<div class="ui-state error-state"><h2>Carteira indisponível</h2><p>${cause.message||'Tente novamente em instantes.'}</p></div>`}
+  open?.addEventListener('click',()=>{panel.innerHTML='<form class="wallet-add-card" id="wallet-withdraw-form"><h2>Solicitar PIX</h2><p>Valor mínimo de R$ 20,00. Uma solicitação a cada sete dias.</p><label>Valor em reais<input class="input" name="amount" inputmode="decimal" required></label><label class="checkbox-row"><input type="checkbox" name="confirmed" required> Confirmo a solicitação</label><button class="button primary" type="submit">Solicitar</button><small class="field-error" role="alert"></small></form>';open.hidden=true;panel.querySelector('form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,error=form.querySelector('[role="alert"]'),amountCents=Math.round(Number(form.elements.amount.value.replace(',','.'))*100),key=sessionStorage.getItem('fc.walletWithdrawalKey')||crypto.randomUUID();sessionStorage.setItem('fc.walletWithdrawalKey',key);try{await apiRequest('/v1/courier/wallet/withdrawals',{method:'POST',body:{amountCents,idempotencyKey:key,confirmed:form.elements.confirmed.checked}});form.innerHTML='<h2>Solicitação registrada</h2><p>O pedido seguirá as aprovações internas antes do envio ao provedor.</p>';notify('Solicitação de PIX registrada')}catch(cause){error.textContent=cause.message||'Não foi possível solicitar o PIX.'}})});
   document.querySelectorAll('[data-action="edit-ad"]').forEach(button=>button.addEventListener('click',()=>notify('Edição do anúncio aberta')));
 }
 
@@ -75,7 +78,7 @@ if (document.getElementById("payment-success-content")) sessionStorage.setItem("
 
 setupPaymentFlow();
 setupRealPayments();
-setupWallet();
+void setupWallet();
 setupRealPaymentCases();
 setupWalletLogisticsExtras();
 
