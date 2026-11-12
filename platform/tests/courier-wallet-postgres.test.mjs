@@ -7,11 +7,11 @@ const ids={courier:'11111111-1111-4111-8111-111111111111',l3:'33333333-3333-4333
 test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 with PostgreSQL',{skip:!native&&!process.env.CI?'PostgreSQL local indisponível.':false,timeout:90_000},async()=>{
  await withNativeTestPostgres(async databaseUrl=>{const db=createDatabase({databaseUrl,databaseSsl:false});try{
   await migrate(db,await discoverMigrations());
-  await db.query(`INSERT INTO users(id,email,password_hash,display_name,role) VALUES
-   ($1,'wallet-courier@example.test','fixture','Entregador','courier'),
-   ($2,'wallet-l3@example.test','fixture','Financeiro','admin'),
-   ($3,'wallet-l4@example.test','fixture','Administrador','admin'),
-   ($4,'wallet-l5@example.test','fixture','Fundador','admin')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
+  await db.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES
+   ($1,'wallet-courier@example.test','fixture','Entregador','courier',NULL,NULL),
+   ($2,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
+   ($3,'wallet-l4@example.test','fixture','Administrador','admin',4,'operations'),
+   ($4,'wallet-l5@example.test','fixture','Fundador','admin',5,'founder')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
   await db.query(`INSERT INTO courier_profiles(user_id,account_status,payout_status,payout_provider_reference)
    VALUES($1,'suspended','verified','provider-destination-synthetic')`,[ids.courier]);
   const repository=createCourierWalletRepository(db),hash='a'.repeat(64),evidence='b'.repeat(64);
