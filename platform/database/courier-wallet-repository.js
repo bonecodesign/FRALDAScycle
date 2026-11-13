@@ -159,8 +159,22 @@ export function createCourierWalletRepository(database){return Object.freeze({
   },
   async blockedProviderCommands({limit=50}={}){
     if(!Number.isInteger(limit)||limit<1||limit>100)throw fail('invalid_provider_query',422,'Consulta de saques inválida.');
-    return (await database.query(`SELECT c.id AS command_id,c.withdrawal_id,c.attempts,c.last_error_code,c.updated_at,w.amount_cents,w.status AS withdrawal_status,w.requested_at
+    return (await database.query(`SELECT c.id AS command_id,c.withdrawal_id,c.attempts,c.last_error_code,c.updated_at,w.amount_cents,w.status AS withdrawal_status,w.requested_at,
+      r.id AS resolution_id,r.proposed_action,r.status AS resolution_status,r.proposed_at
       FROM courier_wallet_provider_commands c JOIN courier_wallet_withdrawals w ON w.id=c.withdrawal_id
+      LEFT JOIN LATERAL (SELECT id,proposed_action,status,proposed_at FROM courier_wallet_blocked_resolutions WHERE command_id=c.id ORDER BY proposed_at DESC,id DESC LIMIT 1) r ON true
       WHERE c.status='blocked' ORDER BY c.updated_at,c.id LIMIT $1`,[limit])).rows;
+  },
+  async proposeBlockedResolution({commandId,actorId,action,note}){
+    if(!['retry','return_to_wallet'].includes(action)||typeof note!=='string'||note.trim().length<10||note.trim().length>1000)throw fail('invalid_blocked_resolution',422,'A proposta exige ação e justificativa auditável.');
+    return database.transaction(async client=>{
+      const actor=(await client.query("SELECT role,staff_access_level,staff_sector FROM users WHERE id=$1 AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];
+      if(actor?.role!=='admin'||Number(actor.staff_access_level)!==3||actor.staff_sector!=='finance')throw fail('forbidden',403,'Somente o financeiro nível 3 pode propor a resolução.');
+      const command=(await client.query("SELECT id,withdrawal_id FROM courier_wallet_provider_commands WHERE id=$1 AND status='blocked' FOR UPDATE",[commandId])).rows[0];
+      if(!command)throw fail('blocked_command_not_found',404,'Comando bloqueado não encontrado.');
+      let resolution;try{resolution=(await client.query(`INSERT INTO courier_wallet_blocked_resolutions(command_id,proposed_action,proposed_by,proposal_note) VALUES($1,$2,$3,$4) RETURNING *`,[commandId,action,actorId,note.trim()])).rows[0];}catch(error){if(error?.code==='23505')throw fail('blocked_resolution_already_open',409,'Já existe uma proposta ativa para este saque.');throw error;}
+      await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'courier.wallet.blocked_resolution_proposed','courier_wallet_withdrawal',$2,$3::jsonb)`,[actorId,command.withdrawal_id,JSON.stringify({resolutionId:resolution.id,proposedAction:action,fundsMoved:false,providerCalled:false})]);
+      return resolution;
+    });
   },
 });}
