@@ -96,6 +96,9 @@ import {createGoogleMapsClient} from './google-maps-client.js';
 import {createIncidentRoleRepository} from '../../database/incident-role-repository.js';
 import {createIncidentRoleService} from './incident-role-service.js';
 import {createExchangeSettlementWebhookService} from './exchange-settlement-webhook-service.js';
+import {createWalletPayoutWebhookService} from './wallet-payout-webhook-service.js';
+import {createCourierWalletRepository} from '../../database/courier-wallet-repository.js';
+import {createCourierWalletService} from './courier-wallet-service.js';
 import {createExchangeReconciliationRetentionRepository} from '../../database/exchange-reconciliation-retention-repository.js';
 import {createExchangeRetentionStatusService} from './exchange-retention-status-service.js';
 import {createExchangeRetentionRequestService} from './exchange-retention-request-service.js';
@@ -197,6 +200,9 @@ export async function startRuntime(config = null) {
   const exchangeRepository=createExchangeRepository(database,{pilotBh:config.pilotBh});
   const exchangeService = createExchangeService(exchangeRepository);
   const exchangeSettlementWebhookService=config.exchangeDisputeSettlementEnabled&&config.paymentWebhookSecret?createExchangeSettlementWebhookService(exchangeRepository,{secret:config.paymentWebhookSecret}):null;
+  const courierWalletRepository=createCourierWalletRepository(database);
+  const courierWalletService=createCourierWalletService(courierWalletRepository);
+  const walletPayoutWebhookService=config.courierWalletPayoutsEnabled&&config.walletPayoutWebhookSecret?createWalletPayoutWebhookService(courierWalletRepository,{secret:config.walletPayoutWebhookSecret}):null;
   const courierEligibilityRepository = createCourierEligibilityRepository(database);
   const courierEligibilityService = createCourierEligibilityService(
     courierEligibilityRepository, {
@@ -271,6 +277,8 @@ export async function startRuntime(config = null) {
     asaasWebhookService,
     deliveryQuoteService,
     exchangeSettlementWebhookService,
+    walletPayoutWebhookService,
+    courierWalletService,
     exchangeRetentionStatusService,
     exchangeRetentionRequestService,
     childProfileResponsibilityService,

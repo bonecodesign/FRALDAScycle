@@ -107,6 +107,13 @@ export function createCourierWalletRepository(database){return Object.freeze({
       return command;
     });
   },
+  async reconcileProviderEvent({providerReferenceHash,status,failureCode=null,evidenceSha256,idempotencyKey}){
+    if(!/^([0-9a-f]{64})$/.test(providerReferenceHash)||!['completed','failed'].includes(status))throw fail('invalid_provider_evidence',422,'Evento do provedor inválido.');
+    const row=(await database.query('SELECT id FROM courier_wallet_withdrawals WHERE provider_reference_hash=$1',[providerReferenceHash])).rows[0];
+    if(!row)throw fail('withdrawal_not_found',404,'Saque não encontrado para a referência informada.');
+    if(status==='completed')return this.completeProviderWithdrawal({withdrawalId:row.id,providerReferenceHash,evidenceSha256,idempotencyKey});
+    return this.returnProviderWithdrawal({withdrawalId:row.id,failureCode,idempotencyKey});
+  },
   async completeProviderWithdrawal({withdrawalId,providerReferenceHash,evidenceSha256,idempotencyKey}){
     if(!/^([0-9a-f]{64})$/.test(providerReferenceHash)||!/^([0-9a-f]{64})$/.test(evidenceSha256)||typeof idempotencyKey!=='string'||idempotencyKey.length<16||idempotencyKey.length>128)throw fail('invalid_provider_evidence',422,'Comprovação do provedor inválida.');
     return database.transaction(async client=>{

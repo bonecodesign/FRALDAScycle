@@ -12,4 +12,6 @@ O reembolso retorna proporcionalmente à carteira e à origem externa, sem chama
 
 Após a autorização independente dos níveis 3, 4 e 5, o worker de saques reivindica o comando da outbox e chama um gateway financeiro normalizado com valor exato, referência opaca do destino e chave de idempotência. Somente o hash da referência externa retorna ao banco. Falhas são reagendadas com espera crescente e não liberam o saldo reservado. A oitava falha bloqueia o comando para resolução humana, sem afirmar transferência nem devolver saldo automaticamente. O worker permanece bloqueado fora de produção e exige simultaneamente `COURIER_WALLET_PAYOUTS_ENABLED=true` e `COURIER_WALLET_PAYOUTS_ACTIVATION_ACKNOWLEDGED=true`.
 
+A confirmação terminal chega por webhook HMAC com janela antirreplay de cinco minutos. O evento nunca informa um valor confiável: a plataforma usa o valor previamente reservado, localiza o saque pelo hash da referência do provedor e aplica uma chave idempotente derivada do identificador do evento. Confirmação libera a reserva como saque concluído; rejeição terminal devolve exatamente a reserva à carteira. Referência desconhecida falha fechada e não movimenta saldo.
+
 Confirmação terminal do PIX, exceção de encerramento abaixo do mínimo e integração real continuam em pacotes posteriores. Produção exige parecer jurídico/contábil e homologação do provedor.
