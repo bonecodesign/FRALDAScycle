@@ -35,14 +35,16 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   await db.query('UPDATE courier_wallet_provider_commands SET available_at=now()-interval \'1 second\' WHERE id=$1',[commands[0].id]);
   commands=await repository.claimProviderCommands();assert.equal(commands.length,1);assert.equal(commands[0].attempts,2);
   const providerHash='c'.repeat(64);assert.equal((await repository.markProviderPending({commandId:commands[0].id,claimToken:commands[0].claim_token,providerReferenceHash:providerHash})).status,'provider_pending');
-  const completed=await repository.completeProviderWithdrawal({withdrawalId:requested.withdrawal.id,providerReferenceHash:providerHash,evidenceSha256:'d'.repeat(64),idempotencyKey:'wallet-release-synthetic-0001'});
+  const completed=await repository.reconcileProviderEvent({providerReferenceHash:providerHash,status:'completed',evidenceSha256:'d'.repeat(64),idempotencyKey:'wallet-release-synthetic-0001'});
   assert.equal(completed.withdrawal.status,'completed');assert.equal(completed.reused,false);
+  assert.equal((await repository.reconcileProviderEvent({providerReferenceHash:providerHash,status:'completed',evidenceSha256:'d'.repeat(64),idempotencyKey:'wallet-release-synthetic-0001'})).reused,true);
   let balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents,version:balance.version},{available:3000,reserved:0,version:4});
   const second=await repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0003',now:new Date('2030-01-09T12:00:00Z')});
   await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Segunda análise financeira sintética.'});
   await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Segunda aprovação administrativa sintética.'});
   await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Segunda autorização final sintética.'});
-  const returned=await repository.returnProviderWithdrawal({withdrawalId:second.withdrawal.id,failureCode:'destination_rejected',idempotencyKey:'wallet-return-synthetic-0001'});
+  commands=await repository.claimProviderCommands();const secondProviderHash='e'.repeat(64);await repository.markProviderPending({commandId:commands[0].id,claimToken:commands[0].claim_token,providerReferenceHash:secondProviderHash});
+  const returned=await repository.reconcileProviderEvent({providerReferenceHash:secondProviderHash,status:'failed',failureCode:'destination_rejected',evidenceSha256:'f'.repeat(64),idempotencyKey:'wallet-return-synthetic-0001'});
   assert.equal(returned.withdrawal.status,'returned');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:3000,reserved:0});
   const third=await repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0004',now:new Date('2030-01-17T12:00:00Z')});
   await repository.advanceWithdrawal({withdrawalId:third.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Terceira análise financeira sintética.'});
@@ -51,6 +53,7 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   commands=await repository.claimProviderCommands();assert.equal(commands.length,1);
   const blocked=await repository.blockProviderCommand({commandId:commands[0].id,claimToken:commands[0].claim_token,failureCode:'retry_exhausted'});
   assert.equal(blocked.status,'blocked');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:1000,reserved:2000});
+  await assert.rejects(repository.reconcileProviderEvent({providerReferenceHash:'9'.repeat(64),status:'completed',evidenceSha256:'8'.repeat(64),idempotencyKey:'wallet-unknown-synthetic-0001'}),error=>error.code==='withdrawal_not_found');
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.provider_blocked' AND metadata->>'fundsRemainReserved'='true'",[third.withdrawal.id])).rows[0].n,1);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);
  }finally{await db.close();}});

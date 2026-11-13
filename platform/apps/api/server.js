@@ -36,6 +36,7 @@ import { handleDeliveryQuotes } from './delivery-quote-handler.js';
 import { handleExchangeSettlementWebhook } from './exchange-settlement-webhook-handler.js';
 import { handleAdminWorkItems } from './admin-work-item-handler.js';
 import { handleCourierWallet } from './courier-wallet-handler.js';
+import {handleWalletPayoutWebhook} from './wallet-payout-webhook-handler.js';
 
 function unavailable(response, headers) {
   sendJson(response, 503, {
@@ -94,6 +95,7 @@ export function createApiServer({
   registrationDraftService = null,
   adminWorkItemService = null,
   courierWalletService = null,
+  walletPayoutWebhookService = null,
   rateLimiter = createConfiguredRateLimiter(config),
   telemetry = createTelemetry(config),
 } = {}) {
@@ -309,6 +311,7 @@ export function createApiServer({
       })) return;
       if (await handleAsaasWebhook(request,response,{url,headers,requestId:id,asaasWebhookService})) return;
       if (await handleExchangeSettlementWebhook(request,response,{url,headers,requestId:id,service:exchangeSettlementWebhookService})) return;
+      if (await handleWalletPayoutWebhook(request,response,{url,headers,requestId:id,service:walletPayoutWebhookService})) return;
 
       if (await handleDonations(request,response,{url,headers,requestId:id,authService,donationService})) return;
       if (await handleInstitutionAccess(request,response,{url,headers,requestId:id,authService,institutionAccessService})) return;

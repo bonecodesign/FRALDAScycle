@@ -102,6 +102,10 @@ export function loadConfig(env = process.env) {
   if (nodeEnv === "production" && paymentProviderUrl && !paymentProviderActivationAcknowledged) {
     throw new Error("PAYMENT_PROVIDER_ACTIVATION_ACKNOWLEDGED=true is required with a production payment provider");
   }
+  const courierWalletPayoutsRequested=env.COURIER_WALLET_PAYOUTS_ENABLED==='true';
+  const courierWalletPayoutsAcknowledged=env.COURIER_WALLET_PAYOUTS_ACTIVATION_ACKNOWLEDGED==='true';
+  const walletPayoutWebhookSecret=env.WALLET_PAYOUT_WEBHOOK_SECRET??null;
+  if(nodeEnv==='production'&&courierWalletPayoutsRequested&&(!courierWalletPayoutsAcknowledged||String(walletPayoutWebhookSecret).length<16))throw new Error('Courier wallet payouts require activation acknowledgement and webhook secret in production');
   const telemetryProviderUrl = env.TELEMETRY_PROVIDER_URL ?? null;
   const telemetryProviderSecret = env.TELEMETRY_PROVIDER_SECRET ?? null;
   if (Boolean(telemetryProviderUrl) !== Boolean(telemetryProviderSecret)) {
@@ -246,6 +250,8 @@ export function loadConfig(env = process.env) {
     paymentProviderUrl,
     paymentProviderSecret,
     paymentWebhookSecret,
+    courierWalletPayoutsEnabled:courierWalletPayoutsRequested&&(nodeEnv!=='production'||courierWalletPayoutsAcknowledged),
+    walletPayoutWebhookSecret,
     paymentProviderActivationAcknowledged,
     paymentProviderSdkUrl,
     paymentProviderSdkIntegrity,
