@@ -34,6 +34,7 @@
     "providers:selection:validate": "node tools/provider-selection.mjs",
     "providers:diligence:validate": "node tools/provider-due-diligence.mjs",
     "providers:activation:validate": "node tools/pilot-provider-activation.mjs",
+    "supabase:readiness": "node tools/supabase-readiness.mjs",
     "release:check-local": "npm run check:production && npm test && npm run preactivation:safety && npm run governance:recovery && npm run governance:secret-operations && npm run providers:validate && npm run providers:selection:validate && npm run providers:diligence:validate && npm run providers:activation:validate && npm run pilot:validate && npm run pilot:execution:validate && npm run pilot:evidence:validate && npm run pilot:session:validate && npm run pilot:technical-preflight:validate && node ../qa-regression.mjs",
     "pilot:validate": "node tools/pilot-readiness.mjs",
     "pilot:execution:validate": "node tools/pilot-execution.mjs",
