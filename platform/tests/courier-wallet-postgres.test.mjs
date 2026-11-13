@@ -7,6 +7,7 @@ const ids={courier:'11111111-1111-4111-8111-111111111111',l3:'33333333-3333-4333
 test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 with PostgreSQL',{skip:!native&&!process.env.CI?'PostgreSQL local indisponível.':false,timeout:90_000},async()=>{
  await withNativeTestPostgres(async databaseUrl=>{const db=createDatabase({databaseUrl,databaseSsl:false});try{
   await migrate(db,await discoverMigrations());
+  assert.deepEqual((await db.query("SELECT column_name FROM information_schema.columns WHERE table_name='courier_wallet_blocked_resolutions' AND column_name LIKE 'level4_%' ORDER BY column_name")).rows.map(row=>row.column_name),['level4_action','level4_at','level4_by','level4_note']);
   await db.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES
    ($1,'wallet-courier@example.test','fixture','Entregador','courier',NULL,NULL),
    ($2,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
