@@ -53,6 +53,7 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   commands=await repository.claimProviderCommands();assert.equal(commands.length,1);
   const blocked=await repository.blockProviderCommand({commandId:commands[0].id,claimToken:commands[0].claim_token,failureCode:'retry_exhausted'});
   assert.equal(blocked.status,'blocked');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:1000,reserved:2000});
+  const queue=await repository.blockedProviderCommands();assert.equal(queue.length,1);assert.equal(queue[0].withdrawal_id,third.withdrawal.id);assert.equal(Object.hasOwn(queue[0],'payout_destination_reference'),false);
   await assert.rejects(repository.reconcileProviderEvent({providerReferenceHash:'9'.repeat(64),status:'completed',evidenceSha256:'8'.repeat(64),idempotencyKey:'wallet-unknown-synthetic-0001'}),error=>error.code==='withdrawal_not_found');
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.provider_blocked' AND metadata->>'fundsRemainReserved'='true'",[third.withdrawal.id])).rows[0].n,1);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);

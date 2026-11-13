@@ -157,4 +157,10 @@ export function createCourierWalletRepository(database){return Object.freeze({
     ]);
     return{entries:entries.rows,withdrawals:withdrawals.rows};
   },
+  async blockedProviderCommands({limit=50}={}){
+    if(!Number.isInteger(limit)||limit<1||limit>100)throw fail('invalid_provider_query',422,'Consulta de saques inválida.');
+    return (await database.query(`SELECT c.id AS command_id,c.withdrawal_id,c.attempts,c.last_error_code,c.updated_at,w.amount_cents,w.status AS withdrawal_status,w.requested_at
+      FROM courier_wallet_provider_commands c JOIN courier_wallet_withdrawals w ON w.id=c.withdrawal_id
+      WHERE c.status='blocked' ORDER BY c.updated_at,c.id LIMIT $1`,[limit])).rows;
+  },
 });}

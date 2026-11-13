@@ -349,7 +349,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
       })) return;
 
       if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
