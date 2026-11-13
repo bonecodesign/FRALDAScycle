@@ -16,9 +16,5 @@ export async function handleCourierWallet(request,response,{url,headers,requestI
     const result=await courierWalletService.request(user,await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},responseHeaders);return true;
   }
-  if(request.method==='POST'&&url.pathname==='/v1/courier/wallet/withdrawals'){
-    const result=await courierWalletService.request(user,await readJson(request));
-    sendJson(response,result.reused?200:201,{...result,requestId},responseHeaders);return true;
-  }
   return false;
 }
