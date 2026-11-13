@@ -33,6 +33,8 @@ export async function handleAdmin(request, response, {
     if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');
     const result=await courierWalletService.blocked(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const blockedWalletProposal=url.pathname.match(/^\/v1\/admin\/courier-wallet-blocked\/([0-9a-f-]{36})\/proposals$/i);
+  if(request.method==='POST'&&blockedWalletProposal){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.proposeBlocked(user,blockedWalletProposal[1],await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
 
   if (request.method === 'POST' && url.pathname === '/v1/admin/freight-settlement-plans') {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
