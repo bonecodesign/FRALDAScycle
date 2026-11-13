@@ -162,7 +162,7 @@ export function createCourierWalletRepository(database){return Object.freeze({
     return (await database.query(`SELECT c.id AS command_id,c.withdrawal_id,c.attempts,c.last_error_code,c.updated_at,w.amount_cents,w.status AS withdrawal_status,w.requested_at,
       r.id AS resolution_id,r.proposed_action,r.status AS resolution_status,r.proposed_at,r.level4_action,r.level4_at
       FROM courier_wallet_provider_commands c JOIN courier_wallet_withdrawals w ON w.id=c.withdrawal_id
-      LEFT JOIN LATERAL (SELECT id,proposed_action,status,proposed_at FROM courier_wallet_blocked_resolutions WHERE command_id=c.id ORDER BY proposed_at DESC,id DESC LIMIT 1) r ON true
+      LEFT JOIN LATERAL (SELECT id,proposed_action,status,proposed_at,level4_action,level4_at FROM courier_wallet_blocked_resolutions WHERE command_id=c.id ORDER BY proposed_at DESC,id DESC LIMIT 1) r ON true
       WHERE c.status='blocked' ORDER BY c.updated_at,c.id LIMIT $1`,[limit])).rows;
   },
   async proposeBlockedResolution({commandId,actorId,action,note}){
