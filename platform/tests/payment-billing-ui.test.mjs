@@ -7,7 +7,7 @@ const source = await readFile(new URL("../apps/app/finance.js", import.meta.url)
 test("checkout separa CPF de cobrança dos campos enviados à tokenização", () => {
   assert.match(source, /name=\"billingCpf\"/);
   assert.match(source, /não comprova a titularidade do cartão/);
-  assert.match(source, /input:not\(\[name=\"billingCpf\"\]\)/);
+  assert.match(source, /querySelectorAll\('\[data-card-field\]'\)/);
   assert.match(source, /billingCpf=cpfField\.value/);
   assert.match(source, /body:\{transactionId,idempotencyKey,method,paymentMethodToken,billingCpf,/);
   assert.doesNotMatch(source, /localStorage.*billingCpf|sessionStorage.*billingCpf/);

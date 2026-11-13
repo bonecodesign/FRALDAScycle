@@ -327,6 +327,10 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.match(behavior, /\/v1\/payments\/intents/);
   assert.match(behavior, /FraldaCyclePaymentProvider/);
   assert.match(behavior, /sdkIntegrity/);
+  assert.match(behavior, /payment-breakdown/);
+  assert.match(behavior, /walletAmountCents/);
+  assert.match(behavior, /Selecione Saldo FraldaCycle para pagar integralmente com a carteira/);
+  assert.match(behavior, /data-card-field/);
   assert.match(behavior, /'refunds'/);
   assert.match(behavior, /'disputes'/);
   assert.match(behavior, /setupRealPaymentCases/);

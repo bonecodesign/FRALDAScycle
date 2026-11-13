@@ -3,9 +3,12 @@ import { notify } from "/packages/ui/notify.js";
 import "/packages/ui/iconography.js";
 import { apiRequest } from "/packages/contracts/api-client.js";
 
+let activePaymentPreview=null;
+const paymentMoney=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value??0)/100);
+
 function setupPaymentFlow(){
   const content=document.getElementById('payment-content');
-  if(content){const options=[...content.querySelectorAll('input[name="pay"]')];const detail=document.getElementById('payment-method-detail');const error=document.getElementById('payment-error');const submit=document.getElementById('payment-submit');const draw=method=>{const views={pix:'<div class="payment-method-panel"><span class="feedback-icon success">◇</span><div><strong>Pix</strong><p>O provedor gerará a cobrança após a confirmação.</p></div></div>',credit:'<div class="payment-method-panel payment-fields"><div class="form-group"><label>Número do cartão</label><input class="input" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000"></div><div class="form-row"><div class="form-group"><label>Validade</label><input class="input" maxlength="5" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input class="input" inputmode="numeric" maxlength="3" placeholder="000"></div></div></div>',wallet:'<div class="payment-method-panel warning-panel"><span class="feedback-icon warning">!</span><div><strong>Carteira indisponível</strong><p>O saldo da conta ainda não pode ser consultado ou utilizado.</p></div></div>'};detail.innerHTML=views[method];error.textContent='';submit.dataset.method=method;submit.dataset.invalid=method==='wallet'?'true':'false';submit.disabled=method==='wallet';submit.textContent='Confirmar pagamento'};options.forEach(option=>option.addEventListener('change',()=>draw(option.value)));draw(options.find(option=>option.checked)?.value||'pix');submit.addEventListener('click',event=>{const method=submit.dataset.method;if(method==='wallet'){event.preventDefault();event.stopImmediatePropagation();error.textContent='A carteira ainda não está disponível para pagamentos.';return}if(method==='credit'){const fields=[...detail.querySelectorAll('input')];if(fields.some(field=>!field.value.trim())){event.preventDefault();event.stopImmediatePropagation();error.textContent='Preencha todos os dados do cartão.';fields.forEach(field=>field.classList.toggle('invalid',!field.value.trim()))}}},true)}
+  if(content){const options=[...content.querySelectorAll('input[name="pay"]')],detail=document.getElementById('payment-method-detail'),error=document.getElementById('payment-error'),submit=document.getElementById('payment-submit');const contribution=()=>{const wallet=activePaymentPreview?.wallet;if(!wallet?.usableByThisAccount||wallet.availableCents<=0)return'';const maximum=Math.min(wallet.availableCents,activePaymentPreview.totalCents);return `<div class="form-group wallet-contribution"><label>Usar saldo da carteira</label><input class="input" name="walletAmount" type="number" min="0" max="${maximum}" step="1" value="${maximum}"><small>Valor em centavos, até ${paymentMoney(maximum)}. O restante seguirá no método escolhido.</small></div>`};const draw=method=>{const wallet=activePaymentPreview?.wallet,full=wallet?.usableByThisAccount&&wallet.availableCents>=activePaymentPreview.totalCents;const views={pix:`<div class="payment-method-panel"><span class="feedback-icon success">◇</span><div><strong>Pix</strong><p>O provedor gerará somente o valor restante.</p></div></div>${contribution()}`,credit:`<div class="payment-method-panel payment-fields"><div class="form-group"><label>Número do cartão</label><input class="input" data-card-field inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000"></div><div class="form-row"><div class="form-group"><label>Validade</label><input class="input" data-card-field maxlength="5" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input class="input" data-card-field inputmode="numeric" maxlength="4" placeholder="000"></div></div></div>${contribution()}`,wallet:full?`<div class="payment-method-panel"><span class="feedback-icon success">▤</span><div><strong>Pagamento integral com carteira</strong><p>${paymentMoney(activePaymentPreview.totalCents)} será debitado após a confirmação.</p></div></div>`:'<div class="payment-method-panel warning-panel"><span class="feedback-icon warning">!</span><div><strong>Saldo insuficiente</strong><p>Combine o saldo disponível com PIX ou cartão.</p></div></div>'};detail.innerHTML=views[method];error.textContent='';submit.dataset.method=method;submit.disabled=method==='wallet'&&!full;submit.textContent='Confirmar pagamento'};options.forEach(option=>option.addEventListener('change',()=>draw(option.value)));window.addEventListener('fc:payment-preview',()=>draw(options.find(option=>option.checked)?.value||'pix'));draw(options.find(option=>option.checked)?.value||'pix')}
   const receipt=document.getElementById('receipt-submit');
   receipt?.addEventListener('click',()=>notify('O comprovante estará disponível quando esta tela carregar uma transação real.'))
 }
@@ -35,11 +38,12 @@ async function loadPaymentSdk(tokenization){
   await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=tokenization.sdkUrl;script.integrity=tokenization.sdkIntegrity;script.crossOrigin='anonymous';script.dataset.paymentProviderSdk='true';script.addEventListener('load',()=>{script.dataset.ready='true';resolve()},{once:true});script.addEventListener('error',()=>reject(new Error('SDK de pagamento indisponível.')),{once:true});document.head.append(script)})
 }
 
-function setupRealPayments(){
+async function setupRealPayments(){
   const submit=document.getElementById('payment-submit');
   const detail=document.getElementById('payment-method-detail');
   const error=document.getElementById('payment-error');
   if(!submit||!detail||!error)return;
+  const transactionId=sessionStorage.getItem('fc.activeTransactionId');
   const ensureBillingCpf=()=>{
     if(submit.dataset.method!=='credit'||detail.querySelector('[name="billingCpf"]'))return;
     const wrapper=document.createElement('div');wrapper.className='form-group billing-identity';
@@ -47,18 +51,18 @@ function setupRealPayments(){
     detail.append(wrapper);
   };
   document.querySelectorAll('input[name="pay"]').forEach(option=>option.addEventListener('change',ensureBillingCpf));
+  if(transactionId){try{activePaymentPreview=await apiRequest(`/v1/transactions/${transactionId}/payment-breakdown`);document.getElementById('payment-product-value').textContent=paymentMoney(activePaymentPreview.product.amountCents);document.getElementById('payment-freight-row').textContent=activePaymentPreview.freight?`Frete ${paymentMoney(activePaymentPreview.freight.customerTotalCents)}`:'Sem frete cobrado nesta etapa';document.getElementById('payment-total-value').textContent=`Total ${paymentMoney(activePaymentPreview.totalCents)}`;const walletOption=document.querySelector('input[name="pay"][value="wallet"]'),label=document.getElementById('payment-wallet-label'),usable=activePaymentPreview.wallet.usableByThisAccount;label.textContent=usable?`${paymentMoney(activePaymentPreview.wallet.availableCents)} disponível`:'Disponível somente para entregador titular';walletOption.disabled=!usable||activePaymentPreview.wallet.availableCents<activePaymentPreview.totalCents;window.dispatchEvent(new Event('fc:payment-preview'));ensureBillingCpf()}catch(cause){error.textContent=cause.message||'Não foi possível carregar o pedido.';submit.disabled=true}}
   ensureBillingCpf();
   submit.addEventListener('click',async event=>{
-    const method=submit.dataset.method;if(method==='wallet')return;
+    const method=submit.dataset.method;
     event.preventDefault();event.stopImmediatePropagation();
-    const transactionId=sessionStorage.getItem('fc.activeTransactionId');
     if(!transactionId){error.textContent='Retorne à negociação e selecione o pedido que deseja pagar.';return}
     const original=submit.textContent;submit.disabled=true;submit.innerHTML='<span class="inline-spinner"></span> Preparando pagamento...';error.textContent='';
     try{
       let paymentMethodToken,billingCpf;
       if(method==='credit'){
         ensureBillingCpf();
-        const fields=[...detail.querySelectorAll('input:not([name="billingCpf"])')];
+        const fields=[...detail.querySelectorAll('[data-card-field]')];
         const cpfField=detail.querySelector('[name="billingCpf"]');
         if(fields.length!==3||fields.some(field=>!field.value.trim())||!cpfField?.value.trim())throw new Error('Preencha os dados do cartão e o CPF da cobrança.');
         const session=await apiRequest('/v1/payments/tokenization-sessions',{method:'POST'});await loadPaymentSdk(session.tokenization);
@@ -68,7 +72,12 @@ function setupRealPayments(){
         paymentMethodToken=tokenized.token;billingCpf=cpfField.value;
       }
       const keyName='fc.paymentIdempotency.'+transactionId;const idempotencyKey=sessionStorage.getItem(keyName)||crypto.randomUUID();sessionStorage.setItem(keyName,idempotencyKey);
-      const result=await apiRequest('/v1/payments/intents',{method:'POST',body:{transactionId,idempotencyKey,method,paymentMethodToken,billingCpf,deliveryRequested:sessionStorage.getItem('fc.deliveryRequested')==='true'}});
+      const selectedWallet=method==='wallet'?activePaymentPreview?.totalCents:Number(detail.querySelector('[name="walletAmount"]')?.value??0);
+      const maximumWallet=Math.min(activePaymentPreview?.wallet?.availableCents??0,activePaymentPreview?.totalCents??0);
+      if(!Number.isSafeInteger(selectedWallet)||selectedWallet<0||selectedWallet>maximumWallet)throw new Error('Informe um valor válido do saldo da carteira.');
+      if(method!=='wallet'&&selectedWallet===activePaymentPreview.totalCents)throw new Error('Selecione Saldo FraldaCycle para pagar integralmente com a carteira.');
+      const walletAmountCents=selectedWallet;
+      const result=await apiRequest('/v1/payments/intents',{method:'POST',body:{transactionId,idempotencyKey,method,paymentMethodToken,billingCpf,walletAmountCents,deliveryRequested:sessionStorage.getItem('fc.deliveryRequested')==='true'}});
       sessionStorage.setItem('fc.paymentIntentId',result.intent.id);window.location.assign('/app/payment-success');
     }catch(cause){error.textContent=cause.message||'Não foi possível concluir o pagamento.';submit.disabled=false;submit.textContent=original}
   },true)
@@ -77,7 +86,7 @@ function setupRealPayments(){
 if (document.getElementById("payment-success-content")) sessionStorage.setItem("fc.paymentConfirmed", "true");
 
 setupPaymentFlow();
-setupRealPayments();
+void setupRealPayments();
 void setupWallet();
 setupRealPaymentCases();
 setupWalletLogisticsExtras();
