@@ -44,6 +44,14 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   await repository.advanceWithdrawal({withdrawalId:second.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Segunda autorização final sintética.'});
   const returned=await repository.returnProviderWithdrawal({withdrawalId:second.withdrawal.id,failureCode:'destination_rejected',idempotencyKey:'wallet-return-synthetic-0001'});
   assert.equal(returned.withdrawal.status,'returned');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:3000,reserved:0});
+  const third=await repository.requestWithdrawal({courierId:ids.courier,amountCents:2000,idempotencyKey:'wallet-withdraw-synthetic-0004',now:new Date('2030-01-17T12:00:00Z')});
+  await repository.advanceWithdrawal({withdrawalId:third.withdrawal.id,actorId:ids.l3,accessLevel:3,note:'Terceira análise financeira sintética.'});
+  await repository.advanceWithdrawal({withdrawalId:third.withdrawal.id,actorId:ids.l4,accessLevel:4,note:'Terceira aprovação administrativa sintética.'});
+  await repository.advanceWithdrawal({withdrawalId:third.withdrawal.id,actorId:ids.l5,accessLevel:5,note:'Terceira autorização final sintética.'});
+  commands=await repository.claimProviderCommands();assert.equal(commands.length,1);
+  const blocked=await repository.blockProviderCommand({commandId:commands[0].id,claimToken:commands[0].claim_token,failureCode:'retry_exhausted'});
+  assert.equal(blocked.status,'blocked');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:1000,reserved:2000});
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.provider_blocked' AND metadata->>'fundsRemainReserved'='true'",[third.withdrawal.id])).rows[0].n,1);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);
  }finally{await db.close();}});
 });

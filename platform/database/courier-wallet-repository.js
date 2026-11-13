@@ -71,8 +71,11 @@ export function createCourierWalletRepository(database){return Object.freeze({
       SELECT c.id FROM courier_wallet_provider_commands c JOIN courier_wallet_withdrawals w ON w.id=c.withdrawal_id
       WHERE w.status='level5_authorized' AND ((c.status IN ('pending','failed') AND c.available_at<=now()) OR (c.status='processing' AND c.locked_at<now()-($2::int*interval '1 minute')))
       ORDER BY c.available_at,c.id FOR UPDATE OF c SKIP LOCKED LIMIT $1
-    ) UPDATE courier_wallet_provider_commands c SET status='processing',claim_token=gen_random_uuid(),locked_at=now(),attempts=attempts+1,updated_at=now()
-      FROM candidates x WHERE c.id=x.id RETURNING c.*`,[limit,staleAfterMinutes])).rows);
+    ), claimed AS (
+      UPDATE courier_wallet_provider_commands c SET status='processing',claim_token=gen_random_uuid(),locked_at=now(),attempts=attempts+1,updated_at=now()
+      FROM candidates x WHERE c.id=x.id RETURNING c.*
+    ) SELECT claimed.*,w.amount_cents,w.payout_destination_reference
+      FROM claimed JOIN courier_wallet_withdrawals w ON w.id=claimed.withdrawal_id`,[limit,staleAfterMinutes])).rows);
   },
   async markProviderPending({commandId,claimToken,providerReferenceHash}){
     if(!/^([0-9a-f]{64})$/.test(providerReferenceHash))throw fail('invalid_provider_evidence',422,'Referência do provedor inválida.');
@@ -93,6 +96,16 @@ export function createCourierWalletRepository(database){return Object.freeze({
       WHERE id=$1 AND status='processing' AND claim_token=$2 AND attempts<8 RETURNING *`,[commandId,claimToken,retryAfterSeconds,failureCode])).rows[0];
     if(!command)throw fail('provider_claim_lost',409,'O comando não pode ser reagendado ou atingiu o limite de tentativas.');
     return command;
+  },
+  async blockProviderCommand({commandId,claimToken,failureCode}){
+    if(!/^[a-z0-9_.-]{3,100}$/i.test(failureCode))throw fail('invalid_provider_failure',422,'Falha terminal inválida.');
+    return database.transaction(async client=>{
+      const command=(await client.query(`UPDATE courier_wallet_provider_commands SET status='blocked',claim_token=NULL,locked_at=NULL,last_error_code=$3,updated_at=now()
+        WHERE id=$1 AND status='processing' AND claim_token=$2 RETURNING *`,[commandId,claimToken,failureCode])).rows[0];
+      if(!command)throw fail('provider_claim_lost',409,'O comando não pertence mais a este processamento.');
+      await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata) VALUES('courier.wallet.provider_blocked','courier_wallet_withdrawal',$1,$2::jsonb)`,[command.withdrawal_id,JSON.stringify({failureCode,fundsRemainReserved:true,humanReviewRequired:true})]);
+      return command;
+    });
   },
   async completeProviderWithdrawal({withdrawalId,providerReferenceHash,evidenceSha256,idempotencyKey}){
     if(!/^([0-9a-f]{64})$/.test(providerReferenceHash)||!/^([0-9a-f]{64})$/.test(evidenceSha256)||typeof idempotencyKey!=='string'||idempotencyKey.length<16||idempotencyKey.length>128)throw fail('invalid_provider_evidence',422,'Comprovação do provedor inválida.');

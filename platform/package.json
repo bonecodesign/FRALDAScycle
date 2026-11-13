@@ -27,6 +27,7 @@
     "governance:secret-operations": "node tools/secret-operations-governance.mjs",
     "governance:recovery": "node tools/recovery-objectives.mjs",
     "worker:notifications": "node workers/notifications.js",
+    "worker:courier-wallet-payouts": "node workers/courier-wallet-payouts.js",
     "smoke:deployment": "node tools/smoke-deployment.mjs",
     "db:backup": "node database/recovery.js backup",
     "db:restore": "node database/recovery.js restore",

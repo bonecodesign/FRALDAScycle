@@ -25,6 +25,7 @@ const RUNTIME_SECRET_KEYS = new Set([
   "GOOGLE_MAPS_API_KEY",
   "META_WHATSAPP_ACCESS_TOKEN",
   "PROTECTED_BACKUP_STORAGE_BEARER_TOKEN",
+  "WALLET_PAYOUT_PROVIDER_SECRET",
 ]);
 
 export function supportedRuntimeSecretKeys(){return Object.freeze([...RUNTIME_SECRET_KEYS].sort());}
