@@ -333,7 +333,7 @@ test("transfers protected payment wallet refund and dispute journeys", async () 
   assert.match(behavior, /Descreva a situação com pelo menos 10 caracteres/);
   const wallet = await readFile(resolve(root, "apps/app/wallet.html"), "utf8");
   const walletCards = await readFile(resolve(root, "apps/app/wallet-cards.html"), "utf8");
-  assert.match(wallet, /Nenhuma movimentação carregada/);
+  assert.match(wallet, /Carregando movimentações/);
   assert.doesNotMatch(wallet, /R\$ 32,50|#FC-8F3A2B|#FC-3AB87D/);
   assert.match(walletCards, /Nenhum cartão carregado/);
   assert.doesNotMatch(walletCards, /final 4242|final 9012/);
