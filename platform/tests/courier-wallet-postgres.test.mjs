@@ -10,7 +10,7 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   await db.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES
    ($1,'wallet-courier@example.test','fixture','Entregador','courier',NULL,NULL),
    ($2,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
-   ($3,'wallet-l4@example.test','fixture','Administrador','admin',4,'operations'),
+   ($3,'wallet-l4@example.test','fixture','Administrador','admin',4,'finance'),
    ($4,'wallet-l5@example.test','fixture','Fundador','admin',5,'founder')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
   await db.query(`INSERT INTO courier_profiles(user_id,account_status,payout_status,payout_provider_reference)
    VALUES($1,'suspended','verified','provider-destination-synthetic')`,[ids.courier]);
@@ -56,8 +56,11 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   const queue=await repository.blockedProviderCommands();assert.equal(queue.length,1);assert.equal(queue[0].withdrawal_id,third.withdrawal.id);assert.equal(Object.hasOwn(queue[0],'payout_destination_reference'),false);
   const proposal=await repository.proposeBlockedResolution({commandId:blocked.id,actorId:ids.l3,action:'retry',note:'Reenviar após conferência financeira completa.'});assert.equal(proposal.status,'proposed');assert.equal(proposal.proposed_action,'retry');
   await assert.rejects(repository.proposeBlockedResolution({commandId:blocked.id,actorId:ids.l3,action:'return_to_wallet',note:'Segunda proposta concorrente deve ser recusada.'}),error=>error.code==='blocked_resolution_already_open');
+  const review=await repository.reviewBlockedResolution({resolutionId:proposal.id,actorId:ids.l4,action:'return_to_wallet',note:'Modificar para devolução após revisão administrativa.'});assert.equal(review.status,'level4_approved');assert.equal(review.level4_action,'return_to_wallet');
+  await assert.rejects(repository.reviewBlockedResolution({resolutionId:proposal.id,actorId:ids.l4,action:'retry',note:'Revisão duplicada deve ser recusada.'}),error=>error.code==='blocked_resolution_not_reviewable');
   balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:1000,reserved:2000});
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.blocked_resolution_proposed' AND metadata->>'fundsMoved'='false' AND metadata->>'providerCalled'='false'",[third.withdrawal.id])).rows[0].n,1);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.blocked_resolution_level4_approved' AND metadata->>'modified'='true' AND metadata->>'fundsMoved'='false'",[third.withdrawal.id])).rows[0].n,1);
   await assert.rejects(repository.reconcileProviderEvent({providerReferenceHash:'9'.repeat(64),status:'completed',evidenceSha256:'8'.repeat(64),idempotencyKey:'wallet-unknown-synthetic-0001'}),error=>error.code==='withdrawal_not_found');
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.provider_blocked' AND metadata->>'fundsRemainReserved'='true'",[third.withdrawal.id])).rows[0].n,1);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);
