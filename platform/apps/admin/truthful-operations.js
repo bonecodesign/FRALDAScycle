@@ -57,6 +57,8 @@ async function loadFinance() {
   } finally { refresh.disabled = false; }
 }
 
+async function loadBlockedWalletPayouts(){const status=document.getElementById('wallet-blocked-status');if(!status)return;const body=document.getElementById('wallet-blocked-rows'),empty=document.getElementById('wallet-blocked-empty');try{const result=await apiRequest('/v1/admin/courier-wallet-blocked');body.replaceChildren();for(const item of result.items??[]){const row=document.createElement('tr');cell(row,item.withdrawalId);cell(row,currency(item.amountCents));cell(row,integer(item.attempts));cell(row,item.failureCode??'Não informado');cell(row,when(item.requestedAt));cell(row,when(item.blockedAt));body.append(row);}document.getElementById('wallet-blocked-count').textContent=integer(body.rows.length);empty.hidden=body.rows.length>0;status.textContent=body.rows.length?'Requer análise humana; nenhuma ação é executada nesta tela.':'Fila atualizada sem pendências.';}catch(error){body.replaceChildren();empty.hidden=false;status.textContent=unavailable(error);}}
+
 async function loadLogistics() {
   const status = document.getElementById("logistics-status");
   if (!status) return;
@@ -91,4 +93,4 @@ async function loadLogistics() {
 
 document.getElementById("finance-refresh")?.addEventListener("click", loadFinance);
 document.getElementById("logistics-refresh")?.addEventListener("click", loadLogistics);
-await Promise.all([loadFinance(), loadLogistics()]);
+await Promise.all([loadFinance(),loadBlockedWalletPayouts(),loadLogistics()]);

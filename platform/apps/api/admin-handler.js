@@ -8,6 +8,7 @@ const routeSectors=Object.freeze([
   ['/v1/admin/exchange-retention',['finance']],
   ['/v1/admin/freight-settlement-plans',['finance']],
   ['/v1/admin/supported-cancellations',['finance']],
+  ['/v1/admin/courier-wallet-blocked',['finance']],
   ['/v1/admin/family-responsibility-disputes',['support','legal_privacy']],
   ['/v1/admin/child-data-emergency-access',['legal_privacy','security']],
   ['/v1/admin/authority-requests',['legal_privacy']],
@@ -22,11 +23,16 @@ const routeSectors=Object.freeze([
 export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
 export async function handleAdmin(request, response, {
-  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService,
+  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
   requireAdminRouteSector(user,url.pathname);
+
+  if(request.method==='GET'&&url.pathname==='/v1/admin/courier-wallet-blocked'){
+    if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');
+    const result=await courierWalletService.blocked(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
 
   if (request.method === 'POST' && url.pathname === '/v1/admin/freight-settlement-plans') {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
