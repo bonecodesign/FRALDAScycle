@@ -5,9 +5,16 @@ function count(value) {
   return value;
 }
 
+function freezeRetentionPlan(plan) {
+  for (const category of plan.categories) Object.freeze(category);
+  Object.freeze(plan.categories);
+  Object.freeze(plan.approvedGeneralRules);
+  return Object.freeze(plan);
+}
+
 export function buildAccountClosureRetentionPlan(inventory) {
   if (inventory?.classification !== "awaiting_legal_review") throw new Error("invalid_account_closure_inventory");
-  return Object.freeze({
+  return freezeRetentionPlan({
     version: ACCOUNT_CLOSURE_RETENTION_VERSION,
     policyStatus: "pending_professional_review",
     executionAllowed: false,
