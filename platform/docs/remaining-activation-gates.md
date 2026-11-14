@@ -4,8 +4,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 ## Situação formal
 
-- 43 concluídos: 61,43%.
-- 16 parciais: 22,86%.
+- 44 concluídos: 62,86%.
+- 15 parciais: 21,43%.
 - 11 bloqueados: 15,71%.
 - Produção: bloqueada.
 
@@ -16,7 +16,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 | 2, 9, 11, 17, 18 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. | Tarifas, cobrança, entrega e confirmação reais. |
 | 10, 12 | Manter a obrigação local da diferença e o processamento de frete desligados. | Homologação financeira da diferença; decisão sobre retirada do standby do frete, fornecedor e tarifas. |
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
-| 41, 42, 45 | Fortalecer filtros, trilha de revisão, recursos, pedidos de exclusão e testes sintéticos. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
+| 41, 45 | Fortalecer filtros, pedidos de exclusão e testes sintéticos. O ciclo técnico de sanções do item 42 está concluído. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
 | 46, 61 | Revisar cópia local, versões e estados de aceite sem ativar termos ou prometer seguro. | Revisão jurídica e aprovação dos termos; condições reais de seguro e garantias. |
 | 49, 51, 56 | Testar outbox, preferências, canal externo, pausa operacional e ensaio com dados sintéticos. | Canais oficiais, capacidade da equipe, responsáveis aceitos, exercício observado e fornecedor de mensagens. O suporte interno técnico do item 50 está concluído. |
 | 57, 59 | Validar backup/restauração com banco temporário, controles de segredo e diagnóstico de configuração. | Armazenamento, identidades, cofre, rotação e recuperação homologados em infraestrutura real. |

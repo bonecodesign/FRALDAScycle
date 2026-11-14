@@ -177,5 +177,41 @@ export function createModerationRepository(database) {
         return{case:row,effect,reused:false};
       });
     },
+    appealSanction({userId,caseId,body}) {
+      return database.transaction(async client=>{
+        const current=(await client.query("SELECT c.*,e.active FROM moderation_sanction_cases c JOIN moderation_sanction_effects e ON e.case_id=c.id WHERE c.id=$1 AND c.user_id=$2 AND c.status='executed' FOR UPDATE OF c,e",[caseId,userId])).rows[0];
+        if(!current)throw fail('moderation_sanction_not_appealable',404,'Sanção disponível para contestação não encontrada.');
+        const existing=(await client.query('SELECT * FROM moderation_sanction_appeals WHERE case_id=$1',[caseId])).rows[0];
+        if(existing)return{appeal:existing,reused:true};
+        const ticket=(await client.query(`INSERT INTO support_tickets(requester_id,category,subject,details,idempotency_key) VALUES($1,'account','Contestação de sanção graduada',$2,$3) RETURNING id,protocol`,[userId,body,`moderation-sanction-appeal:${caseId}`])).rows[0];
+        const appeal=(await client.query('INSERT INTO moderation_sanction_appeals(case_id,ticket_id,requester_id) VALUES($1,$2,$3) RETURNING *',[caseId,ticket.id,userId])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.appeal_created','moderation_sanction_case',$2,$3::jsonb)`,[userId,caseId,JSON.stringify({appealId:appeal.id,effectChanged:false})]);
+        return{appeal,protocol:ticket.protocol,reused:false};
+      });
+    },
+    analyzeSanctionAppeal({actorId,appealId,outcome,note}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];if(Number(actor?.staff_access_level)!==3||actor.staff_sector!=='moderation')throw fail('forbidden',403,'Somente moderação nível 3 pode analisar o recurso.');
+        const row=(await client.query(`SELECT a.*,c.user_id,c.proposed_by,c.level4_by,c.level5_by FROM moderation_sanction_appeals a JOIN moderation_sanction_cases c ON c.id=a.case_id WHERE a.id=$1 AND a.status='pending_level3' FOR UPDATE OF a`,[appealId])).rows[0];if(!row)throw fail('moderation_sanction_appeal_not_analyzable',409,'Recurso indisponível para análise.');if([row.user_id,row.proposed_by,row.level4_by,row.level5_by].includes(actorId))throw fail('moderation_independent_reviewer_required',403,'A análise do recurso exige pessoa independente.');
+        const updated=(await client.query("UPDATE moderation_sanction_appeals SET status='pending_level4',level3_outcome=$2,level3_note=$3,level3_by=$4,level3_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[appealId,outcome,note,actorId])).rows[0];await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.appeal_level3','moderation_sanction_appeal',$2,$3::jsonb)`,[actorId,appealId,JSON.stringify({outcome,effectChanged:false})]);return updated;
+      });
+    },
+    reviewSanctionAppeal({actorId,appealId,outcome,note}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];if(Number(actor?.staff_access_level)!==4||actor.staff_sector!=='moderation')throw fail('forbidden',403,'Somente moderação nível 4 pode revisar o recurso.');
+        const row=(await client.query(`SELECT a.*,c.user_id,c.proposed_by,c.level4_by,c.level5_by FROM moderation_sanction_appeals a JOIN moderation_sanction_cases c ON c.id=a.case_id WHERE a.id=$1 AND a.status='pending_level4' FOR UPDATE OF a`,[appealId])).rows[0];if(!row)throw fail('moderation_sanction_appeal_not_reviewable',409,'Recurso indisponível para revisão.');if([row.user_id,row.proposed_by,row.level4_by,row.level5_by,row.level3_by].includes(actorId))throw fail('moderation_independent_reviewer_required',403,'A revisão do recurso exige pessoa independente.');
+        const updated=(await client.query("UPDATE moderation_sanction_appeals SET status='pending_level5',level4_outcome=$2,level4_note=$3,level4_by=$4,level4_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[appealId,outcome,note,actorId])).rows[0];await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.appeal_level4','moderation_sanction_appeal',$2,$3::jsonb)`,[actorId,appealId,JSON.stringify({outcome,modified:outcome!==row.level3_outcome,effectChanged:false})]);return updated;
+      });
+    },
+    decideSanctionAppeal({actorId,appealId,note}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];if(Number(actor?.staff_access_level)!==5||actor.staff_sector!=='founder')throw fail('forbidden',403,'Somente o fundador nível 5 pode decidir o recurso.');
+        const row=(await client.query(`SELECT a.*,c.user_id,c.proposed_by,c.level4_by AS sanction_level4_by,c.level5_by AS sanction_level5_by FROM moderation_sanction_appeals a JOIN moderation_sanction_cases c ON c.id=a.case_id WHERE a.id=$1 AND a.status='pending_level5' FOR UPDATE OF a,c`,[appealId])).rows[0];if(!row)throw fail('moderation_sanction_appeal_not_decidable',409,'Recurso indisponível para decisão final.');if([row.user_id,row.proposed_by,row.sanction_level4_by,row.level3_by,row.level4_by].includes(actorId))throw fail('moderation_independent_authorizer_required',403,'A decisão final exige separação dos analistas níveis 3 e 4. O fundador único pode decidir o recurso.');
+        const reversed=row.level4_outcome==='reverse',status=reversed?'reversed':'upheld';
+        if(reversed){await client.query("UPDATE moderation_sanction_effects SET active=false,reversed_at=now(),reversed_by=$2,reversal_reason=$3 WHERE case_id=$1 AND active",[row.case_id,actorId,note]);await client.query("UPDATE moderation_sanction_cases SET status='reversed',updated_at=now() WHERE id=$1",[row.case_id]);}
+        const updated=(await client.query("UPDATE moderation_sanction_appeals SET status=$2,level5_note=$3,level5_by=$4,level5_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[appealId,status,note,actorId])).rows[0];await client.query("UPDATE support_tickets SET status='resolved',updated_at=now() WHERE id=$1",[row.ticket_id]);await client.query('INSERT INTO support_ticket_messages(ticket_id,author_id,body) VALUES($1,$2,$3)',[row.ticket_id,actorId,note]);
+        const message=reversed?'Sua contestação foi aceita e a sanção foi revertida.':'Sua contestação foi analisada e a sanção foi mantida.';await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key) VALUES($1,'moderation_sanction',$2,$3) ON CONFLICT(dedupe_key) DO NOTHING`,[row.user_id,message,`moderation-sanction:${row.case_id}:appeal-final`]);await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.appeal_decided','moderation_sanction_appeal',$2,$3::jsonb)`,[actorId,appealId,JSON.stringify({outcome:row.level4_outcome,effectReversed:reversed,historyPreserved:true})]);return updated;
+      });
+    },
   });
 }

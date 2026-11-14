@@ -10,9 +10,9 @@ const [plan, matrix, board] = await Promise.all([
 ]);
 const clone = structuredClone;
 
-test('three packets are evidence-linked and track 21 pending IDs; 21 human decisions stay unapproved', async () => {
+test('three packets are evidence-linked and track 20 pending IDs; 21 human decisions stay unapproved', async () => {
   assert.deepEqual(await validateCrossFunctionalDecisionGates(plan, matrix, board), {
-    currentPercent: 61.43, pendingCount: 27, inThreeTracks: 21,
+    currentPercent: 62.86, pendingCount: 26, inThreeTracks: 20,
     outsideThreeTracks: 6, founderDirectionsRecorded: 21,
     humanDecisionsPending: 21,
     approvalsRecorded: 0, pilotBH: 'NO-GO',

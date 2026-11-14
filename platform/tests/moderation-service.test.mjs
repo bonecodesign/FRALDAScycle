@@ -53,3 +53,8 @@ test('level 5 authorization and execution remain separate confirmations',async()
   assert.throws(()=>service.authorizeSanction({...founder,staffAccessLevel:4},id,{note:'Nível insuficiente para autorização final.',confirmed:true}),error=>error.code==='forbidden');
   assert.throws(()=>service.executeSanction(founder,id,{confirmed:false}),error=>error.code==='invalid_moderation_sanction_execution');
 });
+
+test('sanction appeal follows exact independent levels 3 then 4 then 5',async()=>{
+  const calls=[],repository={appealSanction:async x=>(calls.push(['appeal',x]),{appeal:{id},protocol:'42'}),analyzeSanctionAppeal:async x=>(calls.push(['l3',x]),{id,status:'pending_level4'}),reviewSanctionAppeal:async x=>(calls.push(['l4',x]),{id,status:'pending_level5'}),decideSanctionAppeal:async x=>(calls.push(['l5',x]),{id,status:'reversed'})},service=createModerationService(repository),customer={id:'customer',role:'customer'},l3={id:'l3',role:'admin',staffSector:'moderation',staffAccessLevel:3},l4={id:'l4',role:'admin',staffSector:'moderation',staffAccessLevel:4},l5={id:'l5',role:'admin',staffSector:'founder',staffAccessLevel:5};
+  await service.appealSanction(customer,id,{body:'Contesto a sanção e solicito revisão independente.'});await service.analyzeSanctionAppeal(l3,id,{outcome:'reverse',note:'Análise recomenda reversão diante da evidência apresentada.',confirmed:true});await service.reviewSanctionAppeal(l4,id,{outcome:'reverse',note:'Revisão independente confirma a recomendação de reversão.',confirmed:true});await service.decideSanctionAppeal(l5,id,{note:'Decisão final autoriza reversão com histórico preservado.',confirmed:true});assert.deepEqual(calls.map(x=>x[0]),['appeal','l3','l4','l5']);
+});
