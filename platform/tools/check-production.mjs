@@ -150,6 +150,7 @@ const files = [
   "database/payment-repository.js",
   "workers/notifications.js",
   "workers/courier-wallet-payouts.js",
+  "workers/courier-wallet-resolutions.js",
   "workers/child-profile-responsibility-retention.js",
   "workers/moderation-suspensions.js",
   "apps/api/marketplace-handler.js",

@@ -203,4 +203,31 @@ export function createCourierWalletRepository(database){return Object.freeze({
       return resolution;
     });
   },
+  async authorizedBlockedResolutions({limit=20}={}){if(!Number.isInteger(limit)||limit<1||limit>100)throw fail('invalid_resolution_execution_query',422,'Consulta de execução inválida.');return (await database.query(`SELECT id FROM courier_wallet_blocked_resolutions WHERE status='level5_authorized' ORDER BY level5_at,id LIMIT $1`,[limit])).rows;},
+  async executeAuthorizedResolution({resolutionId}){
+    return database.transaction(async client=>{
+      const current=(await client.query(`SELECT r.*,c.withdrawal_id,c.status AS command_status,w.courier_id,w.amount_cents,w.status AS withdrawal_status
+        FROM courier_wallet_blocked_resolutions r JOIN courier_wallet_provider_commands c ON c.id=r.command_id JOIN courier_wallet_withdrawals w ON w.id=c.withdrawal_id
+        WHERE r.id=$1 FOR UPDATE OF r,c,w`,[resolutionId])).rows[0];
+      if(!current)throw fail('blocked_resolution_not_found',404,'Resolução não encontrada.');
+      if(current.status==='executed')return{resolutionId:current.id,result:current.execution_result,reused:true};
+      if(current.status!=='level5_authorized'||current.command_status!=='blocked'||current.withdrawal_status!=='level5_authorized')throw fail('blocked_resolution_not_executable',409,'A resolução não está pronta para execução.');
+      let result;
+      if(current.level4_action==='retry'){
+        await client.query(`UPDATE courier_wallet_provider_commands SET status='pending',idempotency_key=$2,attempts=0,available_at=now(),claim_token=NULL,locked_at=NULL,provider_reference_hash=NULL,last_error_code=NULL,updated_at=now() WHERE id=$1`,[current.command_id,`wallet-resolution-retry:${current.id}`]);
+        result='retry_queued';
+      }else{
+        await account(client,current.courier_id);
+        const balance=await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents+$2,reserved_cents=reserved_cents-$2,version=version+1,updated_at=now() WHERE courier_id=$1 AND reserved_cents>=$2',[current.courier_id,current.amount_cents]);
+        if(balance.rowCount!==1)throw fail('wallet_balance_conflict',409,'Saldo reservado inconsistente.');
+        await ledger(client,{courierId:current.courier_id,kind:'withdrawal_return',amountCents:current.amount_cents,sourceType:'pix_withdrawal',sourceId:current.withdrawal_id,idempotencyKey:createHash('sha256').update(`blocked-return:${current.id}`).digest('hex')});
+        await client.query("UPDATE courier_wallet_withdrawals SET status='returned',failure_code='blocked_resolution_return',updated_at=now() WHERE id=$1",[current.withdrawal_id]);
+        await client.query("UPDATE courier_wallet_provider_commands SET status='cancelled',last_error_code='blocked_resolution_return',updated_at=now() WHERE id=$1",[current.command_id]);
+        result='wallet_returned';
+      }
+      const resolution=(await client.query("UPDATE courier_wallet_blocked_resolutions SET status='executed',execution_result=$2,executed_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[current.id,result])).rows[0];
+      await client.query(`INSERT INTO audit_events(action,entity_type,entity_id,metadata) VALUES('courier.wallet.blocked_resolution_executed','courier_wallet_withdrawal',$1,$2::jsonb)`,[current.withdrawal_id,JSON.stringify({resolutionId:current.id,authorizedAction:current.level4_action,result,exactlyOnce:true})]);
+      return{resolutionId:resolution.id,result,reused:false};
+    });
+  },
 });}

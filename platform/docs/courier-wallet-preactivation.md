@@ -14,4 +14,6 @@ Após a autorização independente dos níveis 3, 4 e 5, o worker de saques reiv
 
 A confirmação terminal chega por webhook HMAC com janela antirreplay de cinco minutos. O evento nunca informa um valor confiável: a plataforma usa o valor previamente reservado, localiza o saque pelo hash da referência do provedor e aplica uma chave idempotente derivada do identificador do evento. Confirmação libera a reserva como saque concluído; rejeição terminal devolve exatamente a reserva à carteira. Referência desconhecida falha fechada e não movimenta saldo.
 
+Comando bloqueado exige três decisões independentes: nível 3 propõe, nível 4 mantém ou modifica a ação e nível 5 autoriza. Somente depois o worker técnico pode executar uma vez. `retry` reabre a outbox com nova chave idempotente, sem chamar diretamente o provedor; `return_to_wallet` devolve exatamente a reserva ao saldo interno. Produção exige duas flags próprias e desligadas por padrão.
+
 Confirmação terminal do PIX, exceção de encerramento abaixo do mínimo e integração real continuam em pacotes posteriores. Produção exige parecer jurídico/contábil e homologação do provedor.
