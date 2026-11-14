@@ -31,3 +31,17 @@ test("secret operations fail closed on missing keys, weak targets and premature 
   active.activationGates.vaultProvisioned = true;
   assert.match(validateSecretOperations(active).errors.join(" "), /must remain false/);
 });
+
+test("secret operations reject malformed policy and gates without throwing", async () => {
+  const { manifest } = await inspectSecretOperations();
+  for (const invalid of [null, 0, "invalid", [], true]) {
+    const policy = structuredClone(manifest);
+    policy.policy = invalid;
+    assert.equal(validateSecretOperations(policy).valid, false);
+    assert.match(validateSecretOperations(policy).errors.join(" "), /policy shape is invalid/);
+    const gates = structuredClone(manifest);
+    gates.activationGates = invalid;
+    assert.equal(validateSecretOperations(gates).valid, false);
+    assert.match(validateSecretOperations(gates).errors.join(" "), /external secret activation gates must remain false/);
+  }
+});

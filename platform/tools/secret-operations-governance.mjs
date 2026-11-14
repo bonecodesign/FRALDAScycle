@@ -12,7 +12,7 @@ export function validateSecretOperations(value) {
   if (value.status !== "preactivation-target") errors.push("status must remain preactivation-target");
   const expected = supportedRuntimeSecretKeys();
   if (!Array.isArray(value.coveredKeys) || new Set(value.coveredKeys).size !== value.coveredKeys.length || !same(value.coveredKeys, expected)) errors.push("coveredKeys must match every supported runtime secret exactly once");
-  const p = value.policy ?? {};
+  const p = value.policy && typeof value.policy === "object" && !Array.isArray(value.policy) ? value.policy : {};
   const exactPolicy = ["defaultMaxAgeDays", "databaseMaxAgeDays", "emergencyRevocationMinutes", "rotationOverlapMinutes", "proposalLevel", "authorizationLevel", "finalApprovalLevel"];
   if (!same(Object.keys(p), exactPolicy)) errors.push("policy shape is invalid");
   if (!Number.isInteger(p.defaultMaxAgeDays) || p.defaultMaxAgeDays < 1 || p.defaultMaxAgeDays > 90) errors.push("default secret age cannot exceed 90 days");
@@ -21,7 +21,8 @@ export function validateSecretOperations(value) {
   if (!Number.isInteger(p.rotationOverlapMinutes) || p.rotationOverlapMinutes < 5 || p.rotationOverlapMinutes > 1440) errors.push("rotation overlap must be between 5 minutes and 24 hours");
   if (p.proposalLevel !== 3 || p.authorizationLevel !== 4 || p.finalApprovalLevel !== 5) errors.push("secret operation approvals must follow levels 3, 4 and 5");
   const gateNames = ["vaultProvisioned", "serviceIdentitiesProvisioned", "auditLogVerified", "rotationPerformed", "emergencyRevocationDrilled"];
-  if (!same(Object.keys(value.activationGates ?? {}), gateNames) || gateNames.some((key) => value.activationGates[key] !== false)) errors.push("external secret activation gates must remain false");
+  const gates = value.activationGates && typeof value.activationGates === "object" && !Array.isArray(value.activationGates) ? value.activationGates : {};
+  if (!same(Object.keys(gates), gateNames) || gateNames.some((key) => gates[key] !== false)) errors.push("external secret activation gates must remain false");
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
 }
 
