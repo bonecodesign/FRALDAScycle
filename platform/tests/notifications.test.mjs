@@ -114,7 +114,7 @@ test("worker retries failures with bounded exponential backoff", async () => {
     async () => ({ ok: false, status: 503 }),
   );
   assert.equal(count, 1);
-  assert.deepEqual(events.at(-1), ["failed", "job-2", "Notification provider returned 503", 60]);
+  assert.deepEqual(events.at(-1), ["failed", "job-2", "Notification processing failed", 60]);
   assert.equal(backoffSeconds(20), 3600);
 });
 
@@ -135,7 +135,7 @@ test("worker retries transport failures without persisting sensitive error detai
     }, async () => { throw error; });
   }
   assert.deepEqual(failures, Array.from({ length: 3 }, () => [
-    job.id, "Notification provider is unavailable", 30, job.claim_token,
+    job.id, "Notification processing failed", 30, job.claim_token,
   ]));
 });
 
@@ -177,7 +177,7 @@ test('worker fails closed if authentication-code eligibility cannot be read', as
     async canDeliver() { throw new Error('database temporarily unavailable'); },
     async failed(id, error, delay) { failures.push([id, error, delay]); },
   }, {}, async () => { assert.fail('must not contact provider'); });
-  assert.deepEqual(failures, [['unavailable', 'database temporarily unavailable', 15]]);
+  assert.deepEqual(failures, [['unavailable', 'Notification processing failed', 15]]);
 });
 
 test('notification service forwards token binding only to the queue repository', async () => {
@@ -243,4 +243,15 @@ test('optional reminders are queued only with an approved kind, account, and cha
   assert.equal(queued.at(-1).recipient,'push-reference-synthetic-0001');
   await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', channel: 'push' }), /recipient must match/);
   await assert.rejects(service.reminder({ kind: 'payment_reminder', userId: 'user-3', email: 'synthetic@example.test', channel: 'email', payload: null }), /payload must be an object/);
+});
+
+test("worker never persists sensitive errors from internal eligibility checks", async () => {
+  const stored = [];
+  await runNotificationBatch({
+    async recoverStaleLocks() {},
+    async claimBatch() { return [{ id: "sensitive-check", attempts: 1, claim_token: "claim", kind: "email_verification" }]; },
+    async canDeliver() { throw new Error("recipient@example.test Bearer secret=synthetic"); },
+    async failed(...args) { stored.push(args); },
+  }, {}, async () => { assert.fail("must not dispatch"); });
+  assert.deepEqual(stored, [["sensitive-check", "Notification processing failed", 15, "claim"]]);
 });
