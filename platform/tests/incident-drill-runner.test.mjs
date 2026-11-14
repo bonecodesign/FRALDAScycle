@@ -3,9 +3,11 @@ import test from "node:test";
 import { runSyntheticIncidentDrill } from "../apps/api/incident-drill-runner.js";
 import { createOperationalControlService } from "../apps/api/operational-control.js";
 
-const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin", staffSector: "operations", staffAccessLevel: 4 };
+const admin = { id: "11111111-1111-4111-8111-111111111111", role: "admin", staffSector: "operations", staffAccessLevel: 3 };
+const reviewer = { id: "66666666-6666-4666-8666-666666666666", role: "admin", staffSector: "operations", staffAccessLevel: 4 };
 const founder = { id: "22222222-2222-4222-8222-222222222222", role: "admin", staffSector: "founder", staffAccessLevel: 5 };
 const technicalGrantId = "33333333-3333-4333-8333-333333333333";
+const reviewerGrantId = "77777777-7777-4777-8777-777777777777";
 const founderGrantId = "44444444-4444-4444-8444-444444444444";
 const requestId = "55555555-5555-4555-8555-555555555555";
 const base = {
@@ -17,7 +19,7 @@ const base = {
   findings: ["Bloqueio de novos compromissos confirmado."],
 };
 
-function controls({ proposalError = null, decisionError = null, decisionStatus = "approved" } = {}) {
+function controls({ proposalError = null, reviewError = null, decisionError = null, decisionStatus = "approved" } = {}) {
   let paused = false, version = 1, proposal;
   const events = [];
   const repository = {
@@ -33,8 +35,15 @@ function controls({ proposalError = null, decisionError = null, decisionStatus =
       if (proposalError) throw proposalError;
       if (!paused) throw new Error("Domain is not paused");
       events.push({ action: "propose", actorUserId, domain, reason, grantId });
-      proposal = { id: requestId, domain, proposed_by: actorUserId, expected_version: version, status: "pending" };
+      proposal = { id: requestId, domain, proposed_by: actorUserId, expected_version: version, status: "pending_level4" };
       return proposal;
+    },
+    async reviewResume({ actorUserId, requestId: id, approved, reason, grantId }) {
+      if (reviewError) throw reviewError;
+      if (id !== requestId || !proposal || actorUserId === proposal.proposed_by) throw new Error("Invalid independent review");
+      events.push({ action: "review", actorUserId, approved, reason, grantId });
+      proposal = { ...proposal, reviewed_by: actorUserId, status: approved ? "pending_level5" : "rejected" };
+      return { request: proposal, state: null };
     },
     async decideResume({ actorUserId, requestId: id, approved, reason, grantId }) {
       if (decisionError) throw decisionError;
@@ -56,8 +65,8 @@ function controls({ proposalError = null, decisionError = null, decisionStatus =
 
 function drill(state, overrides = {}) {
   return runSyntheticIncidentDrill({
-    actor: admin, founder, operationalControlService: state.service,
-    input: base, technicalGrantId, founderGrantId,
+    actor: admin, reviewer, founder, operationalControlService: state.service,
+    input: base, technicalGrantId, reviewerGrantId, founderGrantId,
     safeContinuationsProbe: async () => true,
     technicalRecoveryProbe: async () => true,
     postRecoveryProbe: async () => true,
@@ -71,11 +80,13 @@ test("synthetic drill uses independent approval grants before resuming", async (
     clock: () => Date.parse("2026-10-23T10:00:00Z") + tick++ * 60_000,
   });
   assert.equal(state.paused(), false);
-  assert.deepEqual(state.events.map(value => value.action), ["pause", "propose", "decide"]);
+  assert.deepEqual(state.events.map(value => value.action), ["pause", "propose", "review", "decide"]);
   assert.equal(state.events[1].actorUserId, admin.id);
   assert.equal(state.events[1].grantId, technicalGrantId);
-  assert.equal(state.events[2].actorUserId, founder.id);
-  assert.equal(state.events[2].grantId, founderGrantId);
+  assert.equal(state.events[2].actorUserId, reviewer.id);
+  assert.equal(state.events[2].grantId, reviewerGrantId);
+  assert.equal(state.events[3].actorUserId, founder.id);
+  assert.equal(state.events[3].grantId, founderGrantId);
   assert.equal(record.recovery.authorizedBy, founder.id);
   assert.equal(record.containment.auditAction, "operations.paused");
   assert.equal(record.recovery.auditAction, "operations.resumed");
@@ -100,19 +111,20 @@ test("failed post-recovery verification automatically reapplies containment", as
     postRecoveryProbe: async () => false,
   }), /rollback applied/);
   assert.equal(state.paused(), true);
-  assert.deepEqual(state.events.map(value => value.action), ["pause", "propose", "decide", "pause"]);
+  assert.deepEqual(state.events.map(value => value.action), ["pause", "propose", "review", "decide", "pause"]);
   assert.match(state.events.at(-1).reason, /pausado novamente/);
 });
 
 test("failed, rejected or superseded independent approval never resumes operations", async () => {
   for (const options of [
     { proposalError: new Error("Proposal unavailable") },
+    { reviewError: new Error("Review unavailable") },
     { decisionError: new Error("Founder verification unavailable") },
     { decisionStatus: "rejected" },
     { decisionStatus: "superseded" },
   ]) {
     const state = controls(options);
-    await assert.rejects(drill(state), /Proposal unavailable|Founder verification unavailable|remains paused/);
+    await assert.rejects(drill(state), /Proposal unavailable|Review unavailable|Founder verification unavailable|remains paused/);
     assert.equal(state.paused(), true);
     assert.equal(state.events.some(value => value.action === "direct-resume"), false);
   }
@@ -121,10 +133,12 @@ test("failed, rejected or superseded independent approval never resumes operatio
 test("invalid actor, non-independent founder or missing grants fail before pausing", async () => {
   const cases = [
     { actor: { id: "customer", role: "customer" } },
+    { reviewer: admin },
     { founder: admin },
     { founder: { ...founder, staffAccessLevel: 4 } },
     { founder: { ...founder, staffSector: "operations" } },
     { founderGrantId: undefined },
+    { reviewerGrantId: undefined },
     { founderGrantId: technicalGrantId },
     { technicalGrantId: "not-a-grant" },
     { input: { ...base, syntheticDataOnly: false } },

@@ -132,6 +132,8 @@ export async function handleAdmin(request, response, {
   if(request.method==='POST'&&url.pathname==='/v1/admin/operational-resume-requests'){
     if(!operationalControlService)throw new AuthError('operational_control_unavailable',503,'Controle operacional indisponível.');const result=await operationalControlService.proposeResume(user,await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  const resumeReview=url.pathname.match(/^\/v1\/admin\/operational-resume-requests\/([0-9a-f-]{36})\/review$/i);
+  if(request.method==='POST'&&resumeReview){if(!operationalControlService)throw new AuthError('operational_control_unavailable',503,'Controle operacional indisponível.');const result=await operationalControlService.reviewResume(user,resumeReview[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   const resumeDecision=url.pathname.match(/^\/v1\/admin\/operational-resume-requests\/([0-9a-f-]{36})\/decision$/i);
   if(request.method==='POST'&&resumeDecision){if(!operationalControlService)throw new AuthError('operational_control_unavailable',503,'Controle operacional indisponível.');const result=await operationalControlService.decideResume(user,resumeDecision[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
 

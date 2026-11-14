@@ -8,19 +8,21 @@ const rollbackReason = "Ensaio sintético: verificação pós-retomada falhou; d
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function runSyntheticIncidentDrill({
-  actor, founder, operationalControlService, input, clock = Date.now,
-  technicalGrantId, founderGrantId,
+  actor, reviewer, founder, operationalControlService, input, clock = Date.now,
+  technicalGrantId, reviewerGrantId, founderGrantId,
   safeContinuationsProbe, technicalRecoveryProbe, postRecoveryProbe,
 }) {
   requireSectorScope(actor, "admin:operations:write");
-  requireAccessLevel(actor, 2);
+  requireAccessLevel(actor, 3);
+  requireSectorScope(reviewer, "admin:operations:write");
+  requireAccessLevel(reviewer, 4);
   requireSectorScope(founder, "admin:operations:write");
   requireAccessLevel(founder, 5);
-  if (accessLevel(actor) === 5 || !uuid.test(String(actor.id ?? "")) || !uuid.test(String(founder.id ?? "")) || actor.id === founder.id) {
-    throw new ServiceError("independent_resume_approval_required", 403, "A proposta e a autorização precisam de pessoas distintas.");
+  if (accessLevel(actor) !== 3 || accessLevel(reviewer) !== 4 || !uuid.test(String(actor.id ?? "")) || !uuid.test(String(reviewer.id ?? "")) || !uuid.test(String(founder.id ?? "")) || new Set([actor.id,reviewer.id,founder.id]).size !== 3) {
+    throw new ServiceError("independent_resume_approval_required", 403, "A proposta, a revisão e a autorização precisam de pessoas distintas nos níveis 3, 4 e 5.");
   }
-  if (!uuid.test(String(technicalGrantId ?? "")) || !uuid.test(String(founderGrantId ?? "")) || technicalGrantId === founderGrantId) {
-    throw new ServiceError("incident_drill_step_up_required", 422, "Confirmações de segurança independentes são obrigatórias.");
+  if (![technicalGrantId,reviewerGrantId,founderGrantId].every(value=>uuid.test(String(value??""))) || new Set([technicalGrantId,reviewerGrantId,founderGrantId]).size !== 3) {
+    throw new ServiceError("incident_drill_step_up_required", 422, "Três confirmações de segurança independentes são obrigatórias.");
   }
   if (input?.confirmed !== true || input?.environment !== "isolated-local" || input?.syntheticDataOnly !== true) {
     throw new ServiceError("invalid_incident_drill_confirmation", 422, "Confirme o ensaio isolado com dados exclusivamente sintéticos.");
@@ -28,7 +30,7 @@ export async function runSyntheticIncidentDrill({
   for (const probe of [safeContinuationsProbe, technicalRecoveryProbe, postRecoveryProbe]) {
     if (typeof probe !== "function") throw new TypeError("Incident drill probe is required");
   }
-  for (const method of ["change", "assertAvailable", "proposeResume", "decideResume"]) {
+  for (const method of ["change", "assertAvailable", "proposeResume", "reviewResume", "decideResume"]) {
     if (typeof operationalControlService?.[method] !== "function") {
       throw new TypeError("Incident drill requires the joint resume approval service");
     }
@@ -70,6 +72,12 @@ export async function runSyntheticIncidentDrill({
   });
   if (!uuid.test(String(proposal?.request?.id ?? ""))) {
     throw new Error("Incident drill resume proposal is missing; domain remains paused");
+  }
+  const review = await operationalControlService.reviewResume(reviewer, proposal.request.id, {
+    approved: true, reason: resumeReason, grantId: reviewerGrantId,
+  });
+  if (review?.request?.status !== "pending_level5") {
+    throw new Error("Incident drill level 4 review was not granted; domain remains paused");
   }
   const decision = await operationalControlService.decideResume(founder, proposal.request.id, {
     approved: true, reason: resumeReason, grantId: founderGrantId,

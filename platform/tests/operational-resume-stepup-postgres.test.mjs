@@ -16,6 +16,7 @@ const native = await nativePostgresTools();
 const ids = {
   technician: "11111111-1111-4111-8111-111111111111",
   founder: "22222222-2222-4222-8222-222222222222",
+  reviewer: "33333333-3333-4333-8333-333333333333",
 };
 const password = "FraldaCycle synthetic test password 2030";
 
@@ -32,12 +33,14 @@ test("operational resume requires independent password/email step-up and records
       await database.query(`INSERT INTO users
         (id,email,password_hash,display_name,role,staff_access_level,staff_sector,email_verified_at)
         VALUES
-        ($1,'synthetic-incident-tech@example.test',$3,'Técnico fictício','admin',4,'operations',now()),
-        ($2,'synthetic-incident-founder@example.test',$3,'Fundador fictício','admin',5,'founder',now())`,
-      [ids.technician, ids.founder, passwordHash]);
+        ($1,'synthetic-incident-tech@example.test',$4,'Técnico fictício','admin',3,'operations',now()),
+        ($2,'synthetic-incident-founder@example.test',$4,'Fundador fictício','admin',5,'founder',now()),
+        ($3,'synthetic-incident-reviewer@example.test',$4,'Revisor fictício','admin',4,'operations',now())`,
+      [ids.technician, ids.founder, ids.reviewer, passwordHash]);
 
       const actors = {
-        technician: { id: ids.technician, role: "admin", staffSector: "operations", staffAccessLevel: 4 },
+        technician: { id: ids.technician, role: "admin", staffSector: "operations", staffAccessLevel: 3 },
+        reviewer: { id: ids.reviewer, role: "admin", staffSector: "operations", staffAccessLevel: 4 },
         founder: { id: ids.founder, role: "admin", staffSector: "founder", staffAccessLevel: 5 },
       };
       const stepUpRepository = createAccountStepUpRepository(database);
@@ -93,28 +96,37 @@ test("operational resume requires independent password/email step-up and records
         grantId: technicianGrant,
       });
       assert.equal(proposed.status, 201, JSON.stringify(proposed.body));
-      assert.equal(proposed.body.request.status, "pending");
+      assert.equal(proposed.body.request.status, "pending_level4");
       const requestId = proposed.body.request.id;
 
       const blocked = await send("technician", "POST", "/v1/listings", {});
       assert.equal(blocked.status, 503);
       assert.equal(blocked.body.error.code, "operational_paused");
 
-      // The technician cannot approve their own proposal, and a valid grant
-      // cannot be borrowed by the founder from another account.
+      // The proposer cannot perform the level 4 review, and a valid grant
+      // cannot be borrowed by another account.
       const technicianDecision = await send("technician", "POST",
-        `/v1/admin/operational-resume-requests/${requestId}/decision`, {
-          approved: true, reason: "Técnico não pode decidir pela conta do fundador.",
+        `/v1/admin/operational-resume-requests/${requestId}/review`, {
+          approved: true, reason: "Proponente não pode realizar a revisão de nível quatro.",
           grantId: technicianGrant,
         });
       assert.equal(technicianDecision.status, 403);
-      const borrowedGrant = await send("founder", "POST",
-        `/v1/admin/operational-resume-requests/${requestId}/decision`, {
-          approved: true, reason: "Confirmação do técnico não pode autorizar o fundador.",
+      const borrowedGrant = await send("reviewer", "POST",
+        `/v1/admin/operational-resume-requests/${requestId}/review`, {
+          approved: true, reason: "Confirmação do técnico não pode autorizar o revisor.",
           grantId: technicianGrant,
         });
       assert.equal(borrowedGrant.status, 409);
       assert.equal(borrowedGrant.body.error.code, "operational_resume_step_up_required");
+
+      const reviewerGrant = await requestGrant("reviewer", "synthetic-incident-reviewer@example.test");
+      const reviewed = await send("reviewer", "POST",
+        `/v1/admin/operational-resume-requests/${requestId}/review`, {
+          approved: true, reason: "Administrador confirma a recuperação e encaminha ao fundador.",
+          grantId: reviewerGrant,
+        });
+      assert.equal(reviewed.status, 200, JSON.stringify(reviewed.body));
+      assert.equal(reviewed.body.request.status, "pending_level5");
 
       const founderGrant = await requestGrant("founder", "synthetic-incident-founder@example.test");
       const decided = await send("founder", "POST",
@@ -180,6 +192,12 @@ test("operational resume requires independent password/email step-up and records
         grantId: await seedConfirmedGrant(ids.technician),
       });
       assert.equal(staleProposal.status, 201, JSON.stringify(staleProposal.body));
+      const staleReview = await send("reviewer", "POST",
+        `/v1/admin/operational-resume-requests/${staleProposal.body.request.id}/review`, {
+          approved: true, reason: "Revisão intermediária da versão sintética original.",
+          grantId: await seedConfirmedGrant(ids.reviewer),
+        });
+      assert.equal(staleReview.status, 200, JSON.stringify(staleReview.body));
       const extraPause = await send("technician", "PUT", "/v1/admin/operational-control", {
         domain: "logistics", action: "pause", confirmed: true,
         reason: "Nova contenção sintética invalida a versão da proposta anterior.",
