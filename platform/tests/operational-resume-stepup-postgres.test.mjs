@@ -77,7 +77,7 @@ test("operational resume requires independent password/email step-up and records
         return verified.body.grantId;
       };
 
-      const pause = await send("technician", "PUT", "/v1/admin/operational-control", {
+      const pause = await send("reviewer", "PUT", "/v1/admin/operational-control", {
         domain: "marketplace", action: "pause",
         reason: "Teste isolado: suspeita de comprometimento do marketplace.", confirmed: true,
       });
@@ -182,7 +182,7 @@ test("operational resume requires independent password/email step-up and records
           VALUES($1,$2,$3,'operational_resume',now()+interval '10 minutes',now()) RETURNING id`,
         [userId, token.id, randomBytes(32)])).rows[0].id;
       };
-      const pauseLogistics = await send("technician", "PUT", "/v1/admin/operational-control", {
+      const pauseLogistics = await send("reviewer", "PUT", "/v1/admin/operational-control", {
         domain: "logistics", action: "pause", confirmed: true,
         reason: "Pausa sintética para prova de versão concorrente.",
       });
@@ -198,7 +198,7 @@ test("operational resume requires independent password/email step-up and records
           grantId: await seedConfirmedGrant(ids.reviewer),
         });
       assert.equal(staleReview.status, 200, JSON.stringify(staleReview.body));
-      const extraPause = await send("technician", "PUT", "/v1/admin/operational-control", {
+      const extraPause = await send("reviewer", "PUT", "/v1/admin/operational-control", {
         domain: "logistics", action: "pause", confirmed: true,
         reason: "Nova contenção sintética invalida a versão da proposta anterior.",
       });
