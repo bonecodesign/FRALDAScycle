@@ -36,4 +36,10 @@ Matriz atualizada conserva denominador 70 e sete concluídos (10%): item 43 conc
 
 A rotina `maintainModerationSuspensions` aceita somente lote inteiro entre 1 e 50 decisões por execução (50 por padrão) e recusa valores fracionários, negativos, nulos, não numéricos ou acima do máximo **antes de consultar o repositório**. O teste unitário inclui bloqueio do acesso à base para limites inválidos. A rotina de restauração continua temporária, idempotente e sem banimento definitivo; o worker permanece desativado por padrão, sem autorização para automação decisória de sanções.
 
+## Governança graduada de sanções críticas
+
+Em 14/11/2026 foi criada a primeira etapa da cadeia humana para sanções graduadas. Uma pessoa do setor de moderação com nível exato 3 pode propor `warning`, `functional_restriction`, `temporary_suspension` ou `permanent_block`. Uma pessoa distinta, com nível exato 4 no mesmo setor, revisa e pode modificar a medida e o prazo. Suspensão temporária exige término futuro; as outras medidas não aceitam prazo de suspensão.
+
+Proposta e revisão não desativam conta, não inserem restrição operacional e não aplicam ação irreversível. A tabela e a auditoria registram explicitamente esses limites. Autorização final do nível 5, execução proporcional, comunicação, contestação e reversão da nova cadeia permanecem para os próximos pacotes. Por isso, o requisito 42 continua parcial.
+
 O requisito 42 segue **parcial**: aplicação humana, revisão, disponibilidade de equipe e supervisão no piloto não foram homologadas.

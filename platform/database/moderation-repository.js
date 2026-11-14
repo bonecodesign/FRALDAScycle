@@ -122,5 +122,30 @@ export function createModerationRepository(database) {
         return {released:due.length,restoredListings,permanentBansApplied:0};
       });
     },
+    proposeSanction({actorId,userId,action,until,reason}) {
+      return database.transaction(async client=>{
+        if(actorId===userId)throw fail('moderation_independent_actor_required',403,'Não é permitido propor sanção para a própria conta.');
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];
+        if(Number(actor?.staff_access_level)!==3||actor.staff_sector!=='moderation')throw fail('forbidden',403,'Somente moderação nível 3 pode propor sanção.');
+        const target=(await client.query('SELECT id FROM users WHERE id=$1 AND disabled_at IS NULL FOR SHARE',[userId])).rows[0];
+        if(!target)throw fail('account_not_found',404,'Conta não encontrada.');
+        const row=(await client.query(`INSERT INTO moderation_sanction_cases(user_id,proposed_action,proposed_until,proposal_reason,proposed_by)
+          VALUES($1,$2,$3,$4,$5) RETURNING *`,[userId,action,until,reason,actorId])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.proposed','moderation_sanction_case',$2,$3::jsonb)`,[actorId,row.id,JSON.stringify({proposedAction:action,accountRestricted:false,irreversibleActionApplied:false})]);
+        return row;
+      });
+    },
+    reviewSanction({actorId,caseId,action,until,reason}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];
+        if(Number(actor?.staff_access_level)!==4||actor.staff_sector!=='moderation')throw fail('forbidden',403,'Somente moderação nível 4 pode revisar a proposta.');
+        const current=(await client.query("SELECT * FROM moderation_sanction_cases WHERE id=$1 AND status='proposed' FOR UPDATE",[caseId])).rows[0];
+        if(!current)throw fail('moderation_sanction_not_reviewable',409,'A proposta não está disponível para revisão.');
+        if(current.proposed_by===actorId)throw fail('moderation_independent_reviewer_required',403,'Proponente e revisor devem ser pessoas diferentes.');
+        const row=(await client.query(`UPDATE moderation_sanction_cases SET status='level4_approved',level4_action=$2,level4_until=$3,level4_reason=$4,level4_by=$5,level4_at=now(),updated_at=now() WHERE id=$1 RETURNING *`,[caseId,action,until,reason,actorId])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.level4_reviewed','moderation_sanction_case',$2,$3::jsonb)`,[actorId,caseId,JSON.stringify({approvedAction:action,modified:action!==current.proposed_action||String(until??'')!==String(current.proposed_until??''),accountRestricted:false,irreversibleActionApplied:false})]);
+        return row;
+      });
+    },
   });
 }

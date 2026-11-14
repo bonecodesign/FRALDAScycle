@@ -7,6 +7,9 @@ export async function handleModeration(request,response,{url,headers,requestId,a
     const decision=url.pathname.match(/^\/v1\/moderation\/decisions\/([0-9a-f-]{36})(?:\/(appeal|review))?$/i);
     if(url.pathname==='/v1/moderation/decisions'&&request.method==='GET') { const actor=await authenticatedUser(request,authService);send({items:await moderationService.list(actor)});return true; }
     if(url.pathname==='/v1/moderation/suspensions'&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send(await moderationService.suspend(actor,await readJson(request)));return true; }
+    if(url.pathname==='/v1/moderation/sanctions'&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send({sanction:await moderationService.proposeSanction(actor,await readJson(request)),accountRestricted:false});return true; }
+    const sanctionReview=url.pathname.match(/^\/v1\/moderation\/sanctions\/([0-9a-f-]{36})\/level4-review$/i);
+    if(sanctionReview&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send({sanction:await moderationService.reviewSanction(actor,sanctionReview[1],await readJson(request)),accountRestricted:false});return true; }
     if(decision&&((!decision[2]&&request.method==='GET')||(decision[2]&&request.method==='POST'))) {
       const actor=await authenticatedUser(request,authService);
       send(!decision[2]?{decision:await moderationService.detail(actor,decision[1])}:await moderationService[decision[2]==='appeal'?'appeal':'reviewAppeal'](actor,decision[1],await readJson(request)));return true;
