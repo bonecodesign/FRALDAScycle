@@ -49,7 +49,7 @@ test('institutional receipt requires verified representative and independent val
    const logistics=createLogisticsService(createLogisticsRepository(database),null,null);
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),logisticsService:logistics,authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
-   const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),receiptUrl=`${origin}/v1/shipments/${shipment.id}/receipt`,validationUrl=`${origin}/v1/shipments/${shipment.id}/proof/validate`;
+   const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),receiptUrl=`${origin}/v1/shipments/${shipment.id}/receipt`,validationUrl=`${origin}/v1/shipments/${shipment.id}/proof/validate`,completionUrl=`${origin}/v1/shipments/${shipment.id}/institutional-completion`;
    for(const token of ['donor','outsider']){const response=await fetch(receiptUrl,{method:'POST',headers:headers(token),body:JSON.stringify({approved:true})});assert.equal(response.status,404);}
    const explicit=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:false})});assert.equal(explicit.status,422);
    // An independent reviewer cannot approve evidence before the
@@ -59,6 +59,7 @@ test('institutional receipt requires verified representative and independent val
    assert.equal(earlyValidation.status,409);
    assert.equal((await earlyValidation.json()).error.code,'institution_receipt_approval_pending');
    assert.equal((await database.query('SELECT count(*)::int AS n FROM delivery_proof_validations')).rows[0].n,0);
+   const earlyCompletion=await fetch(completionUrl,{method:'POST',headers:headers('admin'),body:JSON.stringify({confirmed:true})});assert.equal(earlyCompletion.status,409);assert.equal((await earlyCompletion.json()).error.code,'institution_receipt_approval_pending');
    const approved=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:true})}),approvedBody=await approved.json();assert.equal(approved.status,201,JSON.stringify(approvedBody));assert.equal(approvedBody.decision.reused,false);
    const replay=await fetch(receiptUrl,{method:'POST',headers:headers('representative'),body:JSON.stringify({approved:true})});assert.equal(replay.status,200);assert.equal((await replay.json()).decision.reused,true);
    // Tampering with the persisted approver must not allow the administrator
@@ -79,7 +80,10 @@ test('institutional receipt requires verified representative and independent val
     (SELECT count(*)::int FROM courier_payout_obligations WHERE shipment_id=$2) AS courier_payouts,
     (SELECT count(*)::int FROM seller_payout_obligations WHERE shipment_id=$2) AS seller_payouts`,[operation.transaction_id,shipment.id])).rows[0];
    assert.deepEqual(counts,{approvals:1,validations:1,payments:0,courier_payouts:0,seller_payouts:0});
-   assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[operation.transaction_id])).rows[0].status,'in_delivery');
+   const completion=await fetch(completionUrl,{method:'POST',headers:headers('admin'),body:JSON.stringify({confirmed:true})}),completionBody=await completion.json();assert.equal(completion.status,201,JSON.stringify(completionBody));assert.equal(completionBody.completion.status,'completed');assert.equal(completionBody.completion.paymentCreated,false);assert.equal(completionBody.completion.payoutCreated,false);
+   const replayCompletion=await fetch(completionUrl,{method:'POST',headers:headers('admin'),body:JSON.stringify({confirmed:true})});assert.equal(replayCompletion.status,200);assert.equal((await replayCompletion.json()).completion.reused,true);
+   assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[operation.transaction_id])).rows[0].status,'completed');
+   assert.equal((await database.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='donation.institutional_receipt.completed' AND metadata->>'paymentCreated'='false' AND metadata->>'payoutCreated'='false'",[operation.transaction_id])).rows[0].n,1);
   }finally{if(api?.listening)await new Promise(resolve=>api.close(resolve));await database.close();}
  });
 });

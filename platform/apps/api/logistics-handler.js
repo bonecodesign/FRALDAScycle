@@ -64,6 +64,12 @@ export async function handleLogistics(request,response,{url,headers,requestId,au
       : await logisticsService.validateProof(actor,receipt[1],input);
     sendJson(response,result.reused?200:201,{decision:result,requestId},headers);return true;
   }
+  const institutionalCompletion=url.pathname.match(/^\/v1\/shipments\/([0-9a-f-]{36})\/institutional-completion$/i);
+  if(institutionalCompletion&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await logisticsService.completeInstitutionalReceipt(actor,institutionalCompletion[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{completion:result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   if(request.method==="POST"&&url.pathname==="/v1/shipments"){
     const actor=await authenticatedUser(request,authService);const result=await logisticsService.create(actor.id,await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},headers);return true;

@@ -76,6 +76,10 @@ test('service requires explicit boolean approval and scoped validation with reas
   }
   await assert.rejects(service.validateProof({ id: 'admin', role: 'admin', staffSector: 'logistics' }, shipmentId, { validated: true, reason: 'ok' }),
     error => error.code === 'invalid_proof_validation');
+  for(const actor of [{id:'customer',role:'customer'},{id:'wrong-sector',role:'admin',staffSector:'finance'}]){
+    await assert.rejects(service.completeInstitutionalReceipt(actor,shipmentId,{confirmed:true}),error=>error.code==='forbidden');
+  }
+  await assert.rejects(service.completeInstitutionalReceipt({id:'admin',role:'admin',staffSector:'logistics'},shipmentId,{confirmed:true,extra:true}),error=>error.code==='explicit_institutional_completion_required');
 });
 
 test('evidence read limits access to parties or authorized reviewer and reports no configured payout', async () => {
@@ -103,6 +107,7 @@ test('HTTP routes authenticate receipt writes and enforce validation scopes', as
   const writes = [];
   const logisticsService = createLogisticsService({
     async recordReceiptDecision(input) { writes.push(input); return { reused: false, recordedAt: '2030-01-01' }; },
+    async completeInstitutionalReceipt(input) { writes.push(input); return { reused: false, status: 'completed' }; },
     async receiptEvidence() { return null; },
   }, {});
   const server = createApiServer({ config: loadConfig({ NODE_ENV: 'test' }),
@@ -117,9 +122,12 @@ test('HTTP routes authenticate receipt writes and enforce validation scopes', as
   assert.equal((await post('/receipt', 'buyer', { approved: true })).status, 201);
   assert.equal((await post('/proof/validate', 'buyer', { validated: true, reason: 'Comprovante conferido.' })).status, 403);
   assert.equal((await post('/proof/validate', 'admin', { validated: true, reason: 'Comprovante conferido.' })).status, 201);
-  assert.equal(writes.length, 2);
+  assert.equal((await post('/institutional-completion','buyer',{confirmed:true})).status,403);
+  assert.equal((await post('/institutional-completion','admin',{confirmed:true})).status,201);
+  assert.equal(writes.length, 3);
   assert.equal(writes[0].actorId, 'buyer');
   assert.equal(writes[1].validation, true);
+  assert.equal(writes[2].actorId,'admin');
   assert.equal((await fetch(root + '/proof', { headers: { cookie: 'fc_session=buyer' } })).status, 404);
 });
 
