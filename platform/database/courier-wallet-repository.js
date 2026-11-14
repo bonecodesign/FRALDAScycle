@@ -230,4 +230,11 @@ export function createCourierWalletRepository(database){return Object.freeze({
       return{resolutionId:resolution.id,result,reused:false};
     });
   },
+  async supportBlockedCommands({limit=50}={}){if(!Number.isInteger(limit)||limit<1||limit>100)throw fail('invalid_support_wallet_query',422,'Consulta de suporte inválida.');return (await database.query(`SELECT c.id AS case_id,c.updated_at,
+      COALESCE(r.status,'awaiting_finance_proposal') AS resolution_status,u.kind AS latest_update_kind,u.created_at AS latest_update_at
+      FROM courier_wallet_provider_commands c
+      LEFT JOIN LATERAL (SELECT status FROM courier_wallet_blocked_resolutions WHERE command_id=c.id ORDER BY proposed_at DESC,id DESC LIMIT 1) r ON true
+      LEFT JOIN LATERAL (SELECT kind,created_at FROM courier_wallet_support_updates WHERE command_id=c.id ORDER BY created_at DESC,id DESC LIMIT 1) u ON true
+      WHERE c.status='blocked' ORDER BY c.updated_at,c.id LIMIT $1`,[limit])).rows;},
+  async recordSupportBlockedUpdate({commandId,actorId,kind,note}){if(!['note','escalated'].includes(kind)||typeof note!=='string'||note.trim().length<10||note.trim().length>1000)throw fail('invalid_support_wallet_update',422,'Atualização de suporte inválida.');return database.transaction(async client=>{const actor=(await client.query("SELECT role,staff_access_level,staff_sector FROM users WHERE id=$1 AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];if(actor?.role!=='admin'||Number(actor.staff_access_level)!==2||actor.staff_sector!=='support')throw fail('forbidden',403,'Somente suporte nível 2 pode registrar atualizações.');const command=(await client.query("SELECT id FROM courier_wallet_provider_commands WHERE id=$1 AND status='blocked' FOR SHARE",[commandId])).rows[0];if(!command)throw fail('support_wallet_case_not_found',404,'Pendência de saque não encontrada.');const update=(await client.query(`INSERT INTO courier_wallet_support_updates(command_id,actor_user_id,kind,note) VALUES($1,$2,$3,$4) RETURNING *`,[commandId,actorId,kind,note.trim()])).rows[0];await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'courier.wallet.support_updated','courier_wallet_provider_command',$2,$3::jsonb)`,[actorId,commandId,JSON.stringify({kind,financialDataRead:false,fundsMoved:false})]);return update;});},
 });}

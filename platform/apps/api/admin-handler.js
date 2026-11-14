@@ -10,6 +10,7 @@ const routeSectors=Object.freeze([
   ['/v1/admin/supported-cancellations',['finance']],
   ['/v1/admin/courier-wallet-blocked',['finance']],
   ['/v1/admin/courier-wallet-resolutions',['finance']],
+  ['/v1/admin/courier-wallet-support',['support']],
   ['/v1/admin/family-responsibility-disputes',['support','legal_privacy']],
   ['/v1/admin/child-data-emergency-access',['legal_privacy','security']],
   ['/v1/admin/authority-requests',['legal_privacy']],
@@ -40,6 +41,9 @@ export async function handleAdmin(request, response, {
   if(request.method==='POST'&&blockedWalletReview){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.reviewBlocked(user,blockedWalletReview[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   const blockedWalletAuthorization=url.pathname.match(/^\/v1\/admin\/courier-wallet-resolutions\/([0-9a-f-]{36})\/level5-authorization$/i);
   if(request.method==='POST'&&blockedWalletAuthorization){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.authorizeBlocked(user,blockedWalletAuthorization[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  if(request.method==='GET'&&url.pathname==='/v1/admin/courier-wallet-support'){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Pendências de saque indisponíveis.');const result=await courierWalletService.supportBlocked(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  const walletSupportUpdate=url.pathname.match(/^\/v1\/admin\/courier-wallet-support\/([0-9a-f-]{36})\/updates$/i);
+  if(request.method==='POST'&&walletSupportUpdate){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Pendências de saque indisponíveis.');const result=await courierWalletService.updateSupportBlocked(user,walletSupportUpdate[1],await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
 
   if (request.method === 'POST' && url.pathname === '/v1/admin/freight-settlement-plans') {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
