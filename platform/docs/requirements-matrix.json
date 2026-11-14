@@ -1216,6 +1216,8 @@
         "tests/incident-drill-signoff.test.mjs",
         "tests/operational-control.test.mjs",
         "tests/operational-resume-approval.test.mjs",
+        "tests/operational-resume-stepup-postgres.test.mjs",
+        "database/migrations/170_operational_resume_level4_review.sql",
         "tests/incident-role-service.test.mjs",
         "tests/incident-role-ui.test.mjs",
         "tests/meta-whatsapp-incident-adapter.test.mjs",
@@ -1224,7 +1226,7 @@
         "config/pilot-session.v1.json",
         "tests/pilot-session.test.mjs"
       ],
-      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige proposta independente de nível 2–4, senha e código por e-mail, seguida de autorização final do fundador nível 5. PRIV-07 adiciona avaliação classificada e decisão de comunicação sem despacho externo. Em 11/11/2026, o adaptador WhatsApp inativo passou a restringir origem Meta e painel, proibir redirecionamento autenticado, sanitizar falhas e manter comandos de texto incapazes de aplicar ações. Não comprova conta Meta, template ou exercício humano real.",
+      "evidence": "HTTP/PostgreSQL comprova console privado com abertura idempotente, fila, atribuição, contenção, histórico, versão concorrente e auditoria. Pausa é imediata; retomada exige três contas e confirmações independentes na sequência exata: nível 3 solicita, nível 4 revisa e nível 5 autoriza por último. A senha e o código por e-mail são consumidos individualmente em cada etapa. PRIV-07 adiciona avaliação classificada e decisão de comunicação sem despacho externo. Em 11/11/2026, o adaptador WhatsApp inativo passou a restringir origem Meta e painel, proibir redirecionamento autenticado, sanitizar falhas e manter comandos de texto incapazes de aplicar ações. Não comprova conta Meta, template ou exercício humano real.",
       "reason": "Console, avaliação de privacidade, decisão de comunicação, aprovação conjunta, nomeação/aceite e adaptador Meta inativo estão implementados; parecer jurídico, canais reais, conta Meta, número, template aprovado, pessoas reais e exercício humano permanecem pendentes."
     },
     {
