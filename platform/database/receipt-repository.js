@@ -256,6 +256,32 @@ export function createReceiptRepository(database) {
         return { recordedAt: result.rows[0].recorded_at, reused: false };
       });
     },
+
+    async completeInstitutionalReceipt({actorId,shipmentId}) {
+      return database.transaction(async client=>{
+        const row=(await client.query(`SELECT s.id AS shipment_id,s.transaction_id,s.status AS shipment_status,s.buyer_id,s.seller_id,s.courier_id,
+          t.status AS transaction_status,l.kind,d.institution_id,d.representative_id,d.version AS donation_version,
+          p.id AS proof_id,a.approver_id,a.approved_at,v.validator_id,v.validated_at,
+          EXISTS(SELECT 1 FROM support_tickets st WHERE st.transaction_id=t.id AND st.status<>'resolved' AND st.category IN('cancellation','receipt_problem')) AS operational_issue_pending
+          FROM shipments s JOIN transactions t ON t.id=s.transaction_id JOIN listings l ON l.id=t.listing_id
+          LEFT JOIN donation_operations d ON d.transaction_id=t.id LEFT JOIN delivery_proofs p ON p.shipment_id=s.id
+          LEFT JOIN delivery_receipt_approvals a ON a.proof_id=p.id LEFT JOIN delivery_proof_validations v ON v.proof_id=p.id
+          WHERE s.id=$1 FOR UPDATE OF s,t`,[shipmentId])).rows[0];
+        if(!row||row.kind!=='donation')throw failure('institutional_receipt_not_found',404,'Recebimento institucional não encontrado.');
+        if(row.transaction_status==='completed')return{transactionId:row.transaction_id,status:'completed',reused:true,paymentCreated:false,payoutCreated:false};
+        const representative=await verifiedInstitutionRepresentative(client,row.institution_id);
+        if(row.donation_version!==2||representative!==row.representative_id||row.buyer_id!==row.representative_id)throw failure('institution_receipt_authority_pending',409,'A autoridade institucional precisa estar válida no momento da conclusão.');
+        if(row.shipment_status!=='delivered'||!row.proof_id||row.transaction_status!=='in_delivery')throw failure('institutional_receipt_not_ready',409,'Aguarde a retirada, a entrega e o comprovante institucional.');
+        if(!row.approved_at||row.approver_id!==row.representative_id)throw failure('institution_receipt_approval_pending',409,'A instituição precisa confirmar o recebimento.');
+        if(!row.validated_at||[row.buyer_id,row.seller_id,row.courier_id].includes(row.validator_id))throw failure('institution_proof_validation_pending',409,'A validação independente do comprovante ainda está pendente.');
+        if(new Date(row.validated_at).getTime()<new Date(row.approved_at).getTime())throw failure('institution_validation_precedes_approval',409,'A validação precisa ocorrer depois da confirmação institucional.');
+        if(row.operational_issue_pending)throw failure('institution_operational_issue_pending',409,'Resolva a ocorrência operacional antes de concluir a doação.');
+        await client.query("UPDATE transactions SET status='completed',updated_at=now() WHERE id=$1",[row.transaction_id]);
+        await client.query(`INSERT INTO shipment_events(shipment_id,status,description) VALUES($1,'delivered','Recebimento institucional concluído após confirmação e validação independente.')`,[shipmentId]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'donation.institutional_receipt.completed','transaction',$2,$3::jsonb)`,[actorId,row.transaction_id,JSON.stringify({shipmentId,paymentCreated:false,payoutCreated:false,externalAction:false})]);
+        return{transactionId:row.transaction_id,status:'completed',reused:false,paymentCreated:false,payoutCreated:false};
+      });
+    },
   });
 }
 

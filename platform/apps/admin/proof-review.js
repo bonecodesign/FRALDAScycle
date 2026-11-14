@@ -9,6 +9,7 @@ const details = document.getElementById('proof-review-details');
 const photo = document.getElementById('proof-review-photo');
 const status = document.getElementById('proof-review-status');
 const submit = document.getElementById('proof-review-submit');
+const institutionalComplete=document.getElementById('institutional-receipt-complete');
 const settlementSummary = document.getElementById('proof-settlement-summary');
 settlementSummary.insertAdjacentHTML('afterend','<p id="courier-payout-summary" role="status" aria-live="polite"></p><button class="button secondary" id="courier-payout-prepare" type="button" hidden>Preparar obrigação do entregador</button>');
 const courierPayoutSummary=document.getElementById('courier-payout-summary'),courierPayoutPrepare=document.getElementById('courier-payout-prepare');
@@ -47,6 +48,7 @@ function reset() {
   validation.hidden = false;
   settlementSummary.textContent = '';
   courierPayoutSummary.textContent='';courierPayoutPrepare.hidden=true;courierPayoutPrepare.disabled=false;
+  institutionalComplete.hidden=true;institutionalComplete.disabled=false;
 }
 async function loadCourierPayout(shipmentId){try{const result=await apiRequest(`/v1/shipments/${encodeURIComponent(shipmentId)}/courier-payout`),p=result.payout;courierPayoutSummary.textContent=p.eligible?`Entregador elegível. Estado: ${p.status}. A transferência continua bloqueada até o provedor.`:`Repasse do entregador bloqueado: ${p.blockers.map(code=>blockerLabels[code]||({freight_not_charged:'Frete não cobrado',courier_not_assigned:'Entregador não atribuído'}[code]||'Pendência operacional')).join('; ')}.`;courierPayoutPrepare.hidden=!p.eligible||p.status!=='not_prepared';}catch(error){courierPayoutSummary.textContent=error.message;courierPayoutPrepare.hidden=true;}}
 courierPayoutPrepare.addEventListener('click',async()=>{const shipment=search.elements.shipment.value.trim();courierPayoutPrepare.disabled=true;try{const result=await apiRequest(`/v1/shipments/${encodeURIComponent(shipment)}/courier-payout`,{method:'POST',body:{confirmed:true}}),p=result.payout;courierPayoutSummary.textContent=`Obrigação preparada: R$ ${(p.courier_amount_cents/100).toFixed(2).replace('.',',')} ao entregador; estado provider_pending. Nenhuma transferência executada.`;courierPayoutPrepare.hidden=true;}catch(error){courierPayoutSummary.textContent=error.message;courierPayoutPrepare.disabled=false;}});
@@ -78,6 +80,7 @@ search.addEventListener('submit', async event => {
     status.textContent = result.alreadyValidated ? 'Comprovante já validado. Nenhum repasse foi liberado.' : 'Foto carregada. Confira os registros antes de validar.';
     validation.hidden = result.alreadyValidated;
     submit.disabled = result.alreadyValidated;
+    institutionalComplete.hidden=proof.operationKind!=='donation'||!result.alreadyValidated;
   } catch (error) {
     reset();
     status.textContent = error.message || 'Não foi possível consultar o comprovante.';
@@ -85,6 +88,11 @@ search.addEventListener('submit', async event => {
     button.disabled = false;
     search.elements.shipment.disabled = false;
   }
+});
+institutionalComplete.addEventListener('click',async()=>{
+  const shipment=search.elements.shipment.value.trim();institutionalComplete.disabled=true;status.textContent='Concluindo recebimento institucional…';
+  try{const result=await apiRequest(`/v1/shipments/${encodeURIComponent(shipment)}/institutional-completion`,{method:'POST',body:{confirmed:true}});status.textContent=result.completion.reused?'Recebimento institucional já estava concluído.':'Recebimento institucional concluído sem cobrança ou repasse.';institutionalComplete.hidden=true;}
+  catch(error){status.textContent=error.message||'Não foi possível concluir o recebimento institucional.';institutionalComplete.disabled=false;}
 });
 validation.addEventListener('submit', async event => {
   event.preventDefault();

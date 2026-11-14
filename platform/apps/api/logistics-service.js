@@ -101,7 +101,7 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
       });
       if (!proof) throw new LogisticsError("receipt_not_found", 404, "Comprovante não encontrado.");
       return {
-        id: proof.id, courierId: proof.courier_id,
+        id: proof.id, courierId: proof.courier_id, operationKind: proof.kind,
         createdAt: proof.created_at, approvedAt: proof.approved_at ?? null,
         validatedAt: proof.validated_at ?? null, payoutStatus: "not_configured",
       };
@@ -117,6 +117,11 @@ export function createLogisticsService(repository,provider,mediaProvider,{pilotB
         throw new LogisticsError("invalid_proof_validation", 422, "Confirme a validação e registre sua justificativa.");
       }
       return repository.recordReceiptDecision({ actorId: actor.id, shipmentId, validation: true, reason });
+    },
+    async completeInstitutionalReceipt(actor,shipmentId,input) {
+      requireScope(actor,'admin:deliveries:validate');
+      if(input?.confirmed!==true||Object.keys(input).some(key=>key!=='confirmed'))throw new LogisticsError('explicit_institutional_completion_required',422,'Confirme explicitamente a conclusão do recebimento institucional.');
+      return repository.completeInstitutionalReceipt({actorId:actor.id,shipmentId});
     },
     async processWebhook(event){
       const result=await repository.processWebhook(event);

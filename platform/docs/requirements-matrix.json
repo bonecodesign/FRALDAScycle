@@ -424,8 +424,8 @@
         "tests/donation-service.test.mjs",
         "docs/requirement-18-institution-receipt-order.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse. Complemento técnico em 07/11/2026: validação do comprovante institucional condicionada à aprovação anterior pelo representante autorizado da própria instituição; bloqueio para aprovador divergente e prontidão local rejeita sequência temporal invertida; provas HTTP/PostgreSQL e contrato sujeitas ao CI.",
-      "reason": "Autorização institucional, aprovação idempotente, sequência de validação independente e bloqueio financeiro preparados localmente. Identidade, retirada, entrega e evidências humanas reais ainda exigem homologação operacional."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse. Em 14/11/2026, a conclusão administrativa separada passou a revalidar autoridade, comprovante, ordem temporal e ocorrências; repetição não duplica efeito e a auditoria registra explicitamente que nenhum pagamento, repasse ou ato externo foi criado.",
+      "reason": "Autorização institucional, aprovação, validação independente e conclusão idempotente estão preparadas localmente. Identidade, retirada, entrega e evidências humanas reais ainda exigem homologação operacional."
     },
     {
       "id": 19,
