@@ -28,3 +28,30 @@ test("recovery gate fails closed on optimistic claims and unsafe objectives", as
   unknown.credentials = "must-not-exist";
   assert.deepEqual(validateRecoveryObjectives(unknown).errors, ["manifest shape is invalid"]);
 });
+
+test("recovery objectives reject malformed nested sections without claiming readiness", async () => {
+  const { manifest } = await inspectRecoveryObjectives();
+  for (const key of ["objectives", "activationGates", "claims"]) {
+    for (const invalid of [null, 0, "invalid", [], true]) {
+      const candidate = structuredClone(manifest);
+      candidate[key] = invalid;
+      const report = validateRecoveryObjectives(candidate);
+      assert.equal(report.valid, false, key + " must reject " + String(invalid));
+      assert.ok(report.errors.some(error => error.includes(key === "objectives" ? "objectives shape" : key === "activationGates" ? "activation gates" : "external readiness")));
+    }
+  }
+});
+
+test("recovery objectives reject optimistic external gates and invalid time targets", async () => {
+  const { manifest } = await inspectRecoveryObjectives();
+  for (const key of Object.keys(manifest.activationGates)) {
+    const candidate = structuredClone(manifest);
+    candidate.activationGates[key] = true;
+    assert.equal(validateRecoveryObjectives(candidate).valid, false, key);
+  }
+  for (const [key, value] of [["backupIntervalMinutes", 0], ["rpoMinutes", -1], ["rtoMinutes", 1441], ["immutableRetentionDays", 29], ["restoreDrillIntervalDays", 91]]) {
+    const candidate = structuredClone(manifest);
+    candidate.objectives[key] = value;
+    assert.equal(validateRecoveryObjectives(candidate).valid, false, key);
+  }
+});
