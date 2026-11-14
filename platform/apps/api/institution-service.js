@@ -70,10 +70,18 @@ export function createInstitutionService(repository, { pilotBh = null } = {}) {
       if (pilotBh?.enabled && status === "active" && (
         !verification || verification.documentsChecked !== true ||
         verification.representativeChecked !== true || verification.capacityChecked !== true ||
+        text(verification.documentEvidenceReference).length < 12 || text(verification.documentEvidenceReference).length > 256 ||
+        text(verification.representativeEvidenceReference).length < 12 || text(verification.representativeEvidenceReference).length > 256 ||
+        text(verification.capacityEvidenceReference).length < 12 || text(verification.capacityEvidenceReference).length > 256 ||
         !Array.isArray(current.document_keys) || current.document_keys.length === 0
-      )) throw new InstitutionError("institution_verification_required", 422, "Confirme documentos, representante e capacidade antes de ativar a instituição.");
+      )) throw new InstitutionError("institution_verification_required", 422, "Confirme documentos, representante, capacidade e suas referências de evidência antes de ativar a instituição.");
       return repository.changeStatus({ actorUserId: actorId, institutionId, status, reason, expectedStatus:current.status,
-        verification: pilotBh?.enabled && status === "active" ? { documentsChecked: true, representativeChecked: true, capacityChecked: true } : null });
+        verification: pilotBh?.enabled && status === "active" ? {
+          documentsChecked:true,representativeChecked:true,capacityChecked:true,
+          documentEvidenceReference:text(verification.documentEvidenceReference),
+          representativeEvidenceReference:text(verification.representativeEvidenceReference),
+          capacityEvidenceReference:text(verification.capacityEvidenceReference),
+        } : null });
     },
   });
 }

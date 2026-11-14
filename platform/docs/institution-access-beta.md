@@ -1,5 +1,9 @@
 # Autoridade do representante institucional no beta
 
+## Evidência mínima de ativação
+
+No piloto, a mudança de `under_review` para `active` exige três conferências explícitas e três referências auditáveis distintas: documentos, representante e capacidade. As referências ficam em `institution_activation_reviews`; documentos brutos e suas chaves não são copiados para a auditoria. O evento de auditoria registra somente que as referências foram conservadas. Esse preparo não valida identidade nem capacidade reais e não autoriza ativação sem conferência humana.
+
 Somente platform/. Cadastro institucional e conta do representante são registros separados; submitted_by_user_id não concede autoridade automaticamente. Administrador autorizado indica a conta cujo e-mail verificado corresponde ao representante cadastrado. Indicação fica pendente, o titular aceita na plataforma, e administrador confere explicitamente a autoridade com justificativa. Não é permitido conferir/conceder representação a si próprio. Nenhum e-mail ou documento real é enviado/consultado neste lote.
 
 Vínculo possui versão, histórico privado, aceite e identificação da conferência. Repetição concorrente conserva o registro; versão superada conflita. Revogação remove a elegibilidade. Elegibilidade exige instituição ativa, vínculo verified e correspondência atual da conta/e-mail. Estado institucional suspenso/expirado impede autoridade mesmo se o histórico da conferência permanece. Consultas são auditadas e sem cache; outros usuários não consultam o vínculo.

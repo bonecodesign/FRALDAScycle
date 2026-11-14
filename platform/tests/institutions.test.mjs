@@ -78,13 +78,13 @@ test("individual activation requires three explicit checks and records their att
   await assert.rejects(service.changeStatus(USER_ID, INSTITUTION_ID, {
     ...input, verification: { documentsChecked: true, representativeChecked: true, capacityChecked: false },
   }), error => error.code === "institution_verification_required");
+  const verification={documentsChecked:true,representativeChecked:true,capacityChecked:true,
+    documentEvidenceReference:'document-check-001',representativeEvidenceReference:'representative-check-001',capacityEvidenceReference:'capacity-check-001'};
   assert.equal(store.calls.length, 0);
   await service.changeStatus(USER_ID, INSTITUTION_ID, {
-    ...input, verification: { documentsChecked: true, representativeChecked: true, capacityChecked: true },
+    ...input, verification,
   });
-  assert.deepEqual(store.calls[0][1].verification, {
-    documentsChecked: true, representativeChecked: true, capacityChecked: true,
-  });
+  assert.deepEqual(store.calls[0][1].verification,verification);
 });
 
 test("institution approval audit persists the individual verification attestation", async () => {
@@ -96,12 +96,15 @@ test("institution approval audit persists the individual verification attestatio
     return { rows: [] };
   } };
   const store = createInstitutionRepository({ async transaction(work) { return work(client); } });
-  const verification = { documentsChecked: true, representativeChecked: true, capacityChecked: true };
+  const verification = { documentsChecked:true,representativeChecked:true,capacityChecked:true,
+    documentEvidenceReference:'document-check-001',representativeEvidenceReference:'representative-check-001',capacityEvidenceReference:'capacity-check-001' };
   await store.changeStatus({ actorUserId: USER_ID, institutionId: INSTITUTION_ID,
     status: "active", reason: "Conferência individual concluída.", expectedStatus: "under_review", verification });
   const audit = statements.find(item => item.sql.includes("institution.status.changed"));
   assert.equal(audit.values[0], USER_ID);
-  assert.deepEqual(JSON.parse(audit.values[2]).verification, verification);
+  assert.deepEqual(JSON.parse(audit.values[2]).verification, {documentsChecked:true,representativeChecked:true,capacityChecked:true,evidenceReferencesRecorded:true});
+  const review=statements.find(item=>item.sql.includes('INSERT INTO institution_activation_reviews'));
+  assert.deepEqual(review.values,[INSTITUTION_ID,USER_ID,'under_review','document-check-001','representative-check-001','capacity-check-001']);
 });
 
 test("institution migration binds donations to a verified destination record", async () => {
