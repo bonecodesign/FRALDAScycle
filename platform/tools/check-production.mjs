@@ -29,6 +29,7 @@ const files = [
   "apps/admin/staff-sector.js",
   "packages/contracts/support-ui.js",
   "apps/admin/support-management.js",
+  "apps/admin/wallet-support.js",
   "tools/beta-logistics-webhook-check.mjs",
   "packages/contracts/institution-receipt-readiness.js",
   "database/institution-publication.js",

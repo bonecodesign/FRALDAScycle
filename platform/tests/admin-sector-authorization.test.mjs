@@ -36,6 +36,8 @@ test('specialized admin routes combine their service level with a bounded sector
  assert.throws(()=>requireAdminSector(actor('support',3),['finance'],3),error=>error.code==='forbidden');
  assert.doesNotThrow(()=>requireAdminRouteSector(actor('finance',3),'/v1/admin/supported-cancellations'));
  assert.throws(()=>requireAdminRouteSector(actor('operations',4),'/v1/admin/supported-cancellations'),error=>error.code==='forbidden');
+ assert.doesNotThrow(()=>requireAdminRouteSector(actor('support',1),'/v1/admin/courier-wallet-support'));
+ assert.throws(()=>requireAdminRouteSector(actor('finance',3),'/v1/admin/courier-wallet-support'),error=>error.code==='forbidden');
  assert.doesNotThrow(()=>requireAdminRouteSector(actor('security',4),'/v1/admin/child-data-emergency-access'));
  assert.doesNotThrow(()=>requireAdminRouteSector(actor('founder',5),'/v1/admin/authority-requests'));
 });

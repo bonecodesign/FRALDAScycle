@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';import test from 'node:test';
 import {createDatabase} from '../database/client.js';import {discoverMigrations,migrate} from '../database/migrate.js';
 import {createCourierWalletRepository} from '../database/courier-wallet-repository.js';import {nativePostgresTools,withNativeTestPostgres} from '../tools/native-postgres.mjs';
 const native=await nativePostgresTools();
-const ids={courier:'11111111-1111-4111-8111-111111111111',l3:'33333333-3333-4333-8333-333333333333',l4:'44444444-4444-4444-8444-444444444444',l5:'55555555-5555-4555-8555-555555555555',payout:'66666666-6666-4666-8666-666666666666'};
+const ids={courier:'11111111-1111-4111-8111-111111111111',support2:'22222222-2222-4222-8222-222222222222',l3:'33333333-3333-4333-8333-333333333333',l4:'44444444-4444-4444-8444-444444444444',l5:'55555555-5555-4555-8555-555555555555',payout:'66666666-6666-4666-8666-666666666666'};
 
 test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 with PostgreSQL',{skip:!native&&!process.env.CI?'PostgreSQL local indisponível.':false,timeout:90_000},async()=>{
  await withNativeTestPostgres(async databaseUrl=>{const db=createDatabase({databaseUrl,databaseSsl:false});try{
@@ -10,9 +10,10 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   assert.deepEqual((await db.query("SELECT column_name FROM information_schema.columns WHERE table_name='courier_wallet_blocked_resolutions' AND column_name LIKE 'level4_%' ORDER BY column_name")).rows.map(row=>row.column_name),['level4_action','level4_at','level4_by','level4_note']);
   await db.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES
    ($1,'wallet-courier@example.test','fixture','Entregador','courier',NULL,NULL),
-   ($2,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
-   ($3,'wallet-l4@example.test','fixture','Administrador','admin',4,'finance'),
-   ($4,'wallet-l5@example.test','fixture','Fundador','admin',5,'founder')`,[ids.courier,ids.l3,ids.l4,ids.l5]);
+   ($2,'wallet-support@example.test','fixture','Suporte','admin',2,'support'),
+   ($3,'wallet-l3@example.test','fixture','Financeiro','admin',3,'finance'),
+   ($4,'wallet-l4@example.test','fixture','Administrador','admin',4,'finance'),
+   ($5,'wallet-l5@example.test','fixture','Fundador','admin',5,'founder')`,[ids.courier,ids.support2,ids.l3,ids.l4,ids.l5]);
   await db.query(`INSERT INTO courier_profiles(user_id,account_status,payout_status,payout_provider_reference)
    VALUES($1,'suspended','verified','provider-destination-synthetic')`,[ids.courier]);
   const repository=createCourierWalletRepository(db),hash='a'.repeat(64),evidence='b'.repeat(64);
@@ -55,6 +56,8 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   const blocked=await repository.blockProviderCommand({commandId:commands[0].id,claimToken:commands[0].claim_token,failureCode:'retry_exhausted'});
   assert.equal(blocked.status,'blocked');balance=await repository.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:1000,reserved:2000});
   const queue=await repository.blockedProviderCommands();assert.equal(queue.length,1);assert.equal(queue[0].withdrawal_id,third.withdrawal.id);assert.equal(Object.hasOwn(queue[0],'payout_destination_reference'),false);
+  let supportQueue=await repository.supportBlockedCommands();assert.equal(supportQueue.length,1);assert.equal(supportQueue[0].case_id,blocked.id);for(const forbidden of ['amount_cents','last_error_code','payout_destination_reference'])assert.equal(Object.hasOwn(supportQueue[0],forbidden),false);
+  const supportUpdate=await repository.recordSupportBlockedUpdate({commandId:blocked.id,actorId:ids.support2,kind:'escalated',note:'Encaminhado ao financeiro para acompanhamento interno.'});assert.equal(supportUpdate.kind,'escalated');supportQueue=await repository.supportBlockedCommands();assert.equal(supportQueue[0].latest_update_kind,'escalated');
   const proposal=await repository.proposeBlockedResolution({commandId:blocked.id,actorId:ids.l3,action:'retry',note:'Reenviar após conferência financeira completa.'});assert.equal(proposal.status,'proposed');assert.equal(proposal.proposed_action,'retry');
   await assert.rejects(repository.proposeBlockedResolution({commandId:blocked.id,actorId:ids.l3,action:'return_to_wallet',note:'Segunda proposta concorrente deve ser recusada.'}),error=>error.code==='blocked_resolution_already_open');
   const review=await repository.reviewBlockedResolution({resolutionId:proposal.id,actorId:ids.l4,action:'return_to_wallet',note:'Modificar para devolução após revisão administrativa.'});assert.equal(review.status,'level4_approved');assert.equal(review.level4_action,'return_to_wallet');
@@ -75,6 +78,7 @@ test('courier wallet reserves one weekly PIX withdrawal and follows 3 to 4 to 5 
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.blocked_resolution_level5_authorized' AND metadata->>'authorizedAction'='return_to_wallet' AND metadata->>'providerCalled'='false'",[third.withdrawal.id])).rows[0].n,1);
   await assert.rejects(repository.reconcileProviderEvent({providerReferenceHash:'9'.repeat(64),status:'completed',evidenceSha256:'8'.repeat(64),idempotencyKey:'wallet-unknown-synthetic-0001'}),error=>error.code==='withdrawal_not_found');
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.provider_blocked' AND metadata->>'fundsRemainReserved'='true'",[third.withdrawal.id])).rows[0].n,1);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND action='courier.wallet.support_updated' AND metadata->>'financialDataRead'='false' AND metadata->>'fundsMoved'='false'",[blocked.id])).rows[0].n,1);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_events WHERE entity_id=$1 AND metadata->>'providerCalled'='false'",[requested.withdrawal.id])).rows[0].n,4);
  }finally{await db.close();}});
 });
