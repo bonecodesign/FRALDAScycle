@@ -25,8 +25,10 @@ export function createOperationalIncidentService(repository,{clock=Date.now}={})
       if(!severities.has(severity)||!domains.has(domain))throw fail('invalid_incident_input',422,'Severidade ou domínio inválido.');
       requireAccessLevel(actor,['payments','refunds','payouts','privacy'].includes(domain)?3:2);
       const stamp=new Date(clock()).toISOString().slice(0,10).replaceAll('-','');
-      return repository.create({actorUserId:actor.id,reference:`FC-INC-${stamp}-${randomUUID().slice(0,8).toUpperCase()}`,idempotencyKey:input.idempotencyKey,
+      const result=await repository.create({actorUserId:actor.id,reference:`FC-INC-${stamp}-${randomUUID().slice(0,8).toUpperCase()}`,idempotencyKey:input.idempotencyKey,
         title:text(input.title,10,160,'Título'),summary:text(input.summary,20,2000,'Resumo'),severity,domain});
+      if(result.idempotencyConflict)throw fail('incident_idempotency_conflict',409,'Esta chave de idempotência já foi utilizada com dados diferentes.');
+      return result;
     },
     async change(actor,id,input){
       if(!uuid.test(id))throw fail('incident_not_found',404,'Incidente não encontrado.');
