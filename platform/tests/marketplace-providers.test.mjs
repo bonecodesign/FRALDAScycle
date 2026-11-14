@@ -142,3 +142,18 @@ test("provider HTTP endpoints require a valid user session", async (context) => 
   assert.equal(allowed.status, 201);
   assert.equal((await allowed.json()).upload.storageKey, "listings/user-1/one.webp");
 });
+
+test("media provider authenticated calls forbid redirects and fail closed on redirect errors", async () => {
+  let requestOptions;
+  const providers = createMarketplaceProviders(configured, async (_url, options) => {
+    requestOptions = options;
+    throw new TypeError("redirect refused");
+  });
+  await assert.rejects(
+    providers.verifyListingMedia("user-1", ["listings/user-1/one.webp"]),
+    error => error.code === "provider_unavailable" && error.status === 503,
+  );
+  assert.equal(requestOptions.method, "POST");
+  assert.equal(requestOptions.redirect, "error");
+  assert.match(requestOptions.headers.authorization, /^Bearer /);
+});
