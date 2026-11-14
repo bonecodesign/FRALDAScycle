@@ -9,17 +9,17 @@ const [board, matrix] = await Promise.all([
 ]);
 const clone = x => structuredClone(x);
 
-test('Codex board covers each of the 28 open requirements exactly once and never promotes status', async () => {
+test('Codex board covers each of the 27 open requirements exactly once and never promotes status', async () => {
   const actual = await validateCodexActionBoard(board, matrix);
   assert.deepEqual(actual, {
-    denominator: 70, completed: 42, pending: 28, workstreams: 8,
-    currentPercent: 60, targetPercent: 70,
+    denominator: 70, completed: 43, pending: 27, workstreams: 8,
+    currentPercent: 61.43, targetPercent: 70,
     stillRequiresHumanApproval: true, pilotBH: 'NO-GO',
   });
   const ids = board.workstreams.flatMap(w => w.requirementIds);
-  assert.equal(ids.length, 28);
-  assert.equal(new Set(ids).size, 28);
-  assert.equal(matrix.requirements.filter(r => r.status === 'concluido').length, 42);
+  assert.equal(ids.length, 27);
+  assert.equal(new Set(ids).size, 27);
+  assert.equal(matrix.requirements.filter(r => r.status === 'concluido').length, 43);
 });
 
 test('Codex board rejects duplicated, removed, or auto-completed pending requirements', async () => {

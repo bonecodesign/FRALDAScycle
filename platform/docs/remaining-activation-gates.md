@@ -4,8 +4,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 ## Situação formal
 
-- 42 concluídos: 60,00%.
-- 17 parciais: 24,29%.
+- 43 concluídos: 61,43%.
+- 16 parciais: 22,86%.
 - 11 bloqueados: 15,71%.
 - Produção: bloqueada.
 
@@ -18,7 +18,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
 | 41, 42, 45 | Fortalecer filtros, trilha de revisão, recursos, pedidos de exclusão e testes sintéticos. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
 | 46, 61 | Revisar cópia local, versões e estados de aceite sem ativar termos ou prometer seguro. | Revisão jurídica e aprovação dos termos; condições reais de seguro e garantias. |
-| 49, 50, 51, 56 | Testar outbox, preferências, suporte, pausa operacional e ensaio com dados sintéticos. | Canais oficiais, capacidade da equipe, responsáveis aceitos, exercício observado e fornecedor de mensagens. |
+| 49, 51, 56 | Testar outbox, preferências, canal externo, pausa operacional e ensaio com dados sintéticos. | Canais oficiais, capacidade da equipe, responsáveis aceitos, exercício observado e fornecedor de mensagens. O suporte interno técnico do item 50 está concluído. |
 | 57, 59 | Validar backup/restauração com banco temporário, controles de segredo e diagnóstico de configuração. | Armazenamento, identidades, cofre, rotação e recuperação homologados em infraestrutura real. |
 | 60 | Preparar checklist de saída e portabilidade. | Condições contratuais e direitos de exportação/rescisão do fornecedor escolhido. |
 | 62 | Testar aceite, autoridade, capacidade e revogação com instituições fictícias. | Documentos, identidade e capacidade reais verificados por pessoas. |
