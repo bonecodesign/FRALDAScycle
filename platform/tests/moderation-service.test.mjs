@@ -26,3 +26,21 @@ test('reviewed exception is bounded by repository context, not supplied by the c
   await assertContentAllowed({async exception(input){context=input;return true;},recordBlocked:()=>assert.fail()},id,'chat','Lote 12345678',id);
   assert.equal(context.userId,id);assert.equal(context.transactionId,id);assert.equal(context.surface,'chat');
 });
+
+test('graduated sanction proposal and review require exact independent levels without applying effects',async()=>{
+  const calls=[],service=createModerationService({async proposeSanction(input){calls.push(['propose',input]);return{id};},async reviewSanction(input){calls.push(['review',input]);return{id,status:'level4_approved'};}}),level3={id:'level3',role:'admin',staffSector:'moderation',staffAccessLevel:3},level4={id:'level4',role:'admin',staffSector:'moderation',staffAccessLevel:4};
+  const proposal=await service.proposeSanction(level3,{userId:id,action:'permanent_block',until:null,reason:'Reincidência crítica documentada para análise graduada.',confirmed:true});assert.equal(proposal.id,id);
+  const review=await service.reviewSanction(level4,id,{action:'temporary_suspension',until:new Date(Date.now()+86400000).toISOString(),reason:'Revisão reduziu a medida para suspensão temporária proporcional.',confirmed:true});assert.equal(review.status,'level4_approved');
+  assert.deepEqual(calls.map(x=>x[0]),['propose','review']);
+  assert.throws(()=>service.proposeSanction(level4,{userId:id,action:'warning',until:null,reason:'Tentativa em nível incorreto.',confirmed:true}),error=>error.code==='forbidden');
+  assert.throws(()=>service.reviewSanction(level3,id,{action:'warning',until:null,reason:'Tentativa em nível incorreto.',confirmed:true}),error=>error.code==='forbidden');
+});
+
+test('temporary suspension is the only proposed sanction that accepts an expiry',async()=>{
+  const service=createModerationService({proposeSanction:()=>assert.fail()}),actor={id:'level3',role:'admin',staffSector:'moderation',staffAccessLevel:3},future=new Date(Date.now()+86400000).toISOString();
+  for(const input of [
+    {userId:id,action:'temporary_suspension',until:null,reason:'Suspensão sem prazo não deve ser aceita.',confirmed:true},
+    {userId:id,action:'warning',until:future,reason:'Advertência não recebe prazo de suspensão.',confirmed:true},
+    {userId:id,action:'permanent_block',until:null,reason:'Confirmação ausente não pode criar proposta.',confirmed:false},
+  ])assert.throws(()=>service.proposeSanction(actor,input),error=>error.code==='invalid_moderation_sanction');
+});
