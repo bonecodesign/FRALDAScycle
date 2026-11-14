@@ -38,6 +38,8 @@ export async function handleAdmin(request, response, {
   if(request.method==='POST'&&blockedWalletProposal){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.proposeBlocked(user,blockedWalletProposal[1],await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   const blockedWalletReview=url.pathname.match(/^\/v1\/admin\/courier-wallet-resolutions\/([0-9a-f-]{36})\/level4-review$/i);
   if(request.method==='POST'&&blockedWalletReview){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.reviewBlocked(user,blockedWalletReview[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
+  const blockedWalletAuthorization=url.pathname.match(/^\/v1\/admin\/courier-wallet-resolutions\/([0-9a-f-]{36})\/level5-authorization$/i);
+  if(request.method==='POST'&&blockedWalletAuthorization){if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');const result=await courierWalletService.authorizeBlocked(user,blockedWalletAuthorization[1],await readJson(request));sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
 
   if (request.method === 'POST' && url.pathname === '/v1/admin/freight-settlement-plans') {
     if (!freightSettlementService) throw new AuthError('freight_settlement_unavailable',503,'Preparação financeira indisponível.');
