@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-12",
-  "baseline": "ac99a52955def605e0aa6b95fbf6306f242de378",
+  "updatedAt": "2026-11-14",
+  "baseline": "28b5870dc7873e5874424c9ba9ee4489e578faf6",
   "denominator": 70,
   "requirements": [
     {
@@ -1070,18 +1070,24 @@
     {
       "id": 50,
       "title": "Suporte interno",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/operation-support-repository.js",
+        "database/courier-wallet-repository.js",
+        "database/migrations/165_courier_wallet_support_updates.sql",
         "apps/api/marketplace-service.js",
+        "apps/api/courier-wallet-service.js",
+        "apps/admin/wallet-support.js",
         "tests/local-cancellation-support.test.mjs",
         "tests/support-operations-http-postgres.test.mjs",
         "tests/support-pagination-postgres.test.mjs",
+        "tests/courier-wallet-foundation.test.mjs",
+        "tests/courier-wallet-postgres.test.mjs",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: cliente abre e repete chamado de modo idempotente; terceiro recebe 404; somente equipe assume, concorrente não toma o protocolo; nota interna não aparece ao cliente; respostas alteram o estado e são idempotentes; criação, atribuição, nota e respostas ficam auditadas. Em 07/11/2026, testes HTTP/PostgreSQL ampliados para impedir escrita de nota interna por cliente, vazamento de nota/identidade do atendente na paginação e leitura cruzada de ticket; evidência sujeita a CI.",
-      "reason": "Fluxo interno privado, idempotente, atribuído e auditado está comprovado; capacidade efetiva da equipe e operação humana ainda precisam ser confirmadas antes do piloto."
+      "evidence": "Provas HTTP/PostgreSQL confirmam abertura idempotente, isolamento entre clientes, atribuição exclusiva, nota interna privada, respostas com transição de estado, paginação sem vazamento e auditoria. O PR #262 acrescentou acompanhamento sanitizado de saques bloqueados: nível 1 consulta somente estado e orientação; nível 2 registra observação ou escalonamento; ambos permanecem sem valores, dados bancários, falhas do provedor ou movimentação financeira. CI remoto e provas PostgreSQL do pacote foram aprovados em 14/11/2026.",
+      "reason": "Escopo técnico do suporte interno concluído: fluxo privado, idempotente, atribuído, auditado e segregado por níveis 1/2. Escala humana e canais externos continuam portões operacionais do piloto e do requisito 51, sem reabrir o escopo técnico deste item."
     },
     {
       "id": 51,

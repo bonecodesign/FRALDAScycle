@@ -5,7 +5,7 @@ import { isMainModule } from '../packages/contracts/main-module.js';
 const EXPECTED = {
   PRIV: [26, 27, 28, 31, 32, 33, 45, 46],
   FIN: [2, 3, 9, 10, 11, 12, 17],
-  OPS: [18, 42, 50, 51, 56, 62, 67],
+  OPS: [18, 42, 51, 56, 62, 67],
 };
 const ALLOWED_ROLES = new Set([
   'juridico', 'privacidade', 'produto', 'seguranca', 'financeiro',
