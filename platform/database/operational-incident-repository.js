@@ -61,7 +61,7 @@ export function createOperationalIncidentRepository(database) {
         const incident=(await client.query(`UPDATE operational_incidents SET status=$2,assigned_to=$3,resolved_at=$4,
           updated_at=now(),version=version+1 WHERE id=$1 RETURNING *`,[id,status,assigned,resolvedAt])).rows[0];
         await client.query(`INSERT INTO operational_incident_events(incident_id,actor_user_id,action,note,metadata)
-          VALUES($1,$2,$3,$4,$5::jsonb)`,[id,actorUserId,eventAction,note,JSON.stringify({previousStatus:current.status,status,previousVersion:current.version,version:incident.version,...metadata})]);
+          VALUES($1,$2,$3,$4,$5::jsonb)`,[id,actorUserId,eventAction,note,JSON.stringify({...metadata,previousStatus:current.status,status,previousVersion:current.version,version:incident.version})]);
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
           VALUES($1,$2,'operational_incident',$3,$4::jsonb)`,[actorUserId,`incident.${eventAction}`,id,JSON.stringify({status,version:incident.version,externalDispatchAuthorized:false})]);
         return { incident, conflict:false };
