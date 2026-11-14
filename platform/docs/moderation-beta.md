@@ -40,6 +40,8 @@ A rotina `maintainModerationSuspensions` aceita somente lote inteiro entre 1 e 5
 
 Em 14/11/2026 foi criada a primeira etapa da cadeia humana para sanções graduadas. Uma pessoa do setor de moderação com nível exato 3 pode propor `warning`, `functional_restriction`, `temporary_suspension` ou `permanent_block`. Uma pessoa distinta, com nível exato 4 no mesmo setor, revisa e pode modificar a medida e o prazo. Suspensão temporária exige término futuro; as outras medidas não aceitam prazo de suspensão.
 
-Proposta e revisão não desativam conta, não inserem restrição operacional e não aplicam ação irreversível. A tabela e a auditoria registram explicitamente esses limites. Autorização final do nível 5, execução proporcional, comunicação, contestação e reversão da nova cadeia permanecem para os próximos pacotes. Por isso, o requisito 42 continua parcial.
+Proposta e revisão não desativam conta, não inserem restrição operacional e não aplicam ação irreversível. A autorização final exige o fundador no nível exato 5, distinto das duas etapas anteriores, e também não aplica efeito. Uma segunda confirmação executa somente a ação revisada e autorizada. Advertência cria aviso sem restringir; as demais medidas bloqueiam apenas novas operações. Login, histórico, suporte e obrigações existentes permanecem disponíveis. A suspensão temporária deixa de bloquear quando seu prazo termina. Execução repetida é idempotente e não duplica aviso ou efeito.
+
+Contestação e reversão específicas dessa nova cadeia permanecem para o próximo pacote. Por isso, o requisito 42 continua parcial.
 
 O requisito 42 segue **parcial**: aplicação humana, revisão, disponibilidade de equipe e supervisão no piloto não foram homologadas.

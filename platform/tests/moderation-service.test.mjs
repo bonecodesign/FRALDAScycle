@@ -44,3 +44,12 @@ test('temporary suspension is the only proposed sanction that accepts an expiry'
     {userId:id,action:'permanent_block',until:null,reason:'Confirmação ausente não pode criar proposta.',confirmed:false},
   ])assert.throws(()=>service.proposeSanction(actor,input),error=>error.code==='invalid_moderation_sanction');
 });
+
+test('level 5 authorization and execution remain separate confirmations',async()=>{
+  const calls=[],service=createModerationService({async authorizeSanction(input){calls.push(['authorize',input]);return{id,status:'level5_authorized'};},async executeSanction(input){calls.push(['execute',input]);return{case:{id,status:'executed'},reused:false};}}),founder={id:'founder',role:'admin',staffSector:'founder',staffAccessLevel:5};
+  assert.equal((await service.authorizeSanction(founder,id,{note:'Autorização final após revisão independente documentada.',confirmed:true})).status,'level5_authorized');
+  assert.equal((await service.executeSanction(founder,id,{confirmed:true})).case.status,'executed');
+  assert.deepEqual(calls.map(x=>x[0]),['authorize','execute']);
+  assert.throws(()=>service.authorizeSanction({...founder,staffAccessLevel:4},id,{note:'Nível insuficiente para autorização final.',confirmed:true}),error=>error.code==='forbidden');
+  assert.throws(()=>service.executeSanction(founder,id,{confirmed:false}),error=>error.code==='invalid_moderation_sanction_execution');
+});
