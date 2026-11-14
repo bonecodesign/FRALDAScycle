@@ -24,6 +24,7 @@ async function providerRequest(endpoint, secret, payload, fetchImpl) {
   try {
     response = await fetchImpl(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${secret}`,
