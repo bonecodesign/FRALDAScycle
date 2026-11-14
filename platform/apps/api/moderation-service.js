@@ -4,12 +4,17 @@ const uuid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}
 const strict=(input,keys)=>input&&typeof input==='object'&&!Array.isArray(input)&&Object.keys(input).every(key=>keys.includes(key));
 function reason(input) { const text=String(input??'').trim(); if(text.length<10||text.length>2000)throw new ServiceError('invalid_moderation_reason',422,'Explique o pedido ou decisão com 10 a 2000 caracteres.'); return text; }
 const SANCTIONS=new Set(['warning','functional_restriction','temporary_suspension','permanent_block']);
+const APPEAL_OUTCOMES=new Set(['uphold','reverse']);
 function sanctionInput(input,{review=false}={}) {
   const keys=review?['action','until','reason','confirmed']:['userId','action','until','reason','confirmed'];
   if(!strict(input,keys)||input.confirmed!==true||!SANCTIONS.has(input.action)||(!review&&!uuid(input.userId)))throw new ServiceError('invalid_moderation_sanction',422,'Confirme uma sanção graduada válida.');
   const until=input.until==null?null:new Date(input.until);
   if((input.action==='temporary_suspension')!==Boolean(until)||until&&(Number.isNaN(until.getTime())||until.getTime()<=Date.now()))throw new ServiceError('invalid_moderation_sanction',422,'Suspensão temporária exige término futuro; outras sanções não recebem término.');
   return{action:input.action,until:until?.toISOString()??null,reason:reason(input.reason)};
+}
+function appealDecision(input) {
+  if(!strict(input,['outcome','note','confirmed'])||input.confirmed!==true||!APPEAL_OUTCOMES.has(input.outcome))throw new ServiceError('invalid_moderation_sanction_appeal_decision',422,'Confirme uma decisão válida para o recurso.');
+  return{outcome:input.outcome,note:reason(input.note)};
 }
 export function createModerationService(repository) {
   return Object.freeze({
@@ -46,6 +51,23 @@ export function createModerationService(repository) {
       if(actor?.role!=='admin'||actor?.staffSector!=='founder'||actor?.staffAccessLevel!==5||!uuid(caseId))throw new ServiceError('forbidden',403,'Somente o fundador nível 5 pode confirmar a execução autorizada.');
       if(!strict(input,['confirmed'])||input.confirmed!==true)throw new ServiceError('invalid_moderation_sanction_execution',422,'Confirme a execução da medida autorizada.');
       return repository.executeSanction({actorId:actor.id,caseId});
+    },
+    appealSanction(actor,caseId,input) {
+      if(!uuid(caseId)||!strict(input,['body']))throw new ServiceError('invalid_moderation_sanction_appeal',422,'Informe o motivo da contestação.');
+      return repository.appealSanction({userId:actor.id,caseId,body:reason(input.body)});
+    },
+    analyzeSanctionAppeal(actor,appealId,input) {
+      if(actor?.role!=='admin'||actor?.staffSector!=='moderation'||actor?.staffAccessLevel!==3||!uuid(appealId))throw new ServiceError('forbidden',403,'Somente moderação nível 3 pode analisar o recurso.');
+      return repository.analyzeSanctionAppeal({actorId:actor.id,appealId,...appealDecision(input)});
+    },
+    reviewSanctionAppeal(actor,appealId,input) {
+      if(actor?.role!=='admin'||actor?.staffSector!=='moderation'||actor?.staffAccessLevel!==4||!uuid(appealId))throw new ServiceError('forbidden',403,'Somente moderação nível 4 pode revisar o recurso.');
+      return repository.reviewSanctionAppeal({actorId:actor.id,appealId,...appealDecision(input)});
+    },
+    decideSanctionAppeal(actor,appealId,input) {
+      if(actor?.role!=='admin'||actor?.staffSector!=='founder'||actor?.staffAccessLevel!==5||!uuid(appealId))throw new ServiceError('forbidden',403,'Somente o fundador nível 5 pode decidir o recurso.');
+      if(!strict(input,['note','confirmed'])||input.confirmed!==true)throw new ServiceError('invalid_moderation_sanction_appeal_decision',422,'Confirme a decisão final do recurso.');
+      return repository.decideSanctionAppeal({actorId:actor.id,appealId,note:reason(input.note)});
     },
   });
 }

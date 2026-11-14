@@ -4,17 +4,17 @@
   "repo": "bonecodesign/FRALDAScycle",
   "sourceOfTruth": "docs/requirements-matrix.json",
   "baseline": {
-    "mainSha": "28b5870dc7873e5874424c9ba9ee4489e578faf6",
+    "mainSha": "ee92b8a034b6f2377ecd8fcaa894dcf41d63d8b8",
     "denominator": 70,
-    "concluido": 43,
-    "parcial": 16,
+    "concluido": 44,
+    "parcial": 15,
     "bloqueado": 11,
-    "percentCompleted": 61.43
+    "percentCompleted": 62.86
   },
   "planningTarget": {
     "completedCount": 49,
     "percentCompleted": 70,
-    "additionalCompletedRequired": 6,
+    "additionalCompletedRequired": 5,
     "qualification": "Planejamento condicional; nenhum requisito promovido por este arquivo."
   },
   "prerequisites": [
@@ -86,7 +86,6 @@
       "order": 3,
       "requirementIds": [
         18,
-        42,
         62
       ],
       "name": "Operação, suporte e instituições",

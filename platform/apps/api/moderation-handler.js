@@ -14,6 +14,10 @@ export async function handleModeration(request,response,{url,headers,requestId,a
     if(sanctionAuthorization&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send({sanction:await moderationService.authorizeSanction(actor,sanctionAuthorization[1],await readJson(request)),accountRestricted:false});return true; }
     const sanctionExecution=url.pathname.match(/^\/v1\/moderation\/sanctions\/([0-9a-f-]{36})\/execute$/i);
     if(sanctionExecution&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send(await moderationService.executeSanction(actor,sanctionExecution[1],await readJson(request)));return true; }
+    const sanctionAppeal=url.pathname.match(/^\/v1\/moderation\/sanctions\/([0-9a-f-]{36})\/appeal$/i);
+    if(sanctionAppeal&&request.method==='POST') { const actor=await authenticatedUser(request,authService);send(await moderationService.appealSanction(actor,sanctionAppeal[1],await readJson(request)));return true; }
+    const appealStage=url.pathname.match(/^\/v1\/moderation\/sanction-appeals\/([0-9a-f-]{36})\/(level3-analysis|level4-review|level5-decision)$/i);
+    if(appealStage&&request.method==='POST') { const actor=await authenticatedUser(request,authService),method={"level3-analysis":'analyzeSanctionAppeal',"level4-review":'reviewSanctionAppeal',"level5-decision":'decideSanctionAppeal'}[appealStage[2]];send({appeal:await moderationService[method](actor,appealStage[1],await readJson(request))});return true; }
     if(decision&&((!decision[2]&&request.method==='GET')||(decision[2]&&request.method==='POST'))) {
       const actor=await authenticatedUser(request,authService);
       send(!decision[2]?{decision:await moderationService.detail(actor,decision[1])}:await moderationService[decision[2]==='appeal'?'appeal':'reviewAppeal'](actor,decision[1],await readJson(request)));return true;

@@ -30,7 +30,7 @@ Uma prova HTTP/PostgreSQL dedicada acrescentada em 15 de outubro confirma a jorn
 
 Outra prova HTTP/PostgreSQL de 15 de outubro confirma o chat: acesso somente após pagamento confirmado, persistência idempotente, bloqueio de e-mail/telefone/convite externo sem cópia na auditoria e exceção de falso positivo limitada ao conteúdo exato revisado. A detecção não promete reconhecer todo disfarce futuro.
 
-Matriz atualizada conserva denominador 70 e sete concluídos (10%): item 43 concluído pelo recurso protocolado e revisão independente efetivamente validados. Há 38 parciais, 13 pendentes e 12 bloqueados; demais itens de moderação continuam parciais. Prontidão para produção bloqueada, sem percentual atribuído.
+O registro histórico do primeiro beta promoveu o item 43 após recurso protocolado e revisão independente. Os totais vigentes ficam exclusivamente na matriz canônica; prontidão para produção continua bloqueada e não é inferida por este documento.
 
 ## Endurecimento do lote de expiração — 07/11/2026
 
@@ -42,6 +42,6 @@ Em 14/11/2026 foi criada a primeira etapa da cadeia humana para sanções gradua
 
 Proposta e revisão não desativam conta, não inserem restrição operacional e não aplicam ação irreversível. A autorização final exige o fundador no nível exato 5, distinto das duas etapas anteriores, e também não aplica efeito. Uma segunda confirmação executa somente a ação revisada e autorizada. Advertência cria aviso sem restringir; as demais medidas bloqueiam apenas novas operações. Login, histórico, suporte e obrigações existentes permanecem disponíveis. A suspensão temporária deixa de bloquear quando seu prazo termina. Execução repetida é idempotente e não duplica aviso ou efeito.
 
-Contestação e reversão específicas dessa nova cadeia permanecem para o próximo pacote. Por isso, o requisito 42 continua parcial.
+O titular pode contestar a sanção executada por um protocolo idempotente de suporte. A contestação exige dois novos revisores, primeiro nível 3 e depois nível 4, ambos distintos das pessoas que decidiram a sanção original e entre si. O fundador único nível 5 profere a decisão final; ele pode ser o mesmo fundador que autorizou a sanção original, pois a governança permite somente um nível 5 ativo. Uma reversão desativa o efeito, restaura novas operações, resolve o protocolo, avisa o titular e preserva todo o histórico e a auditoria.
 
-O requisito 42 segue **parcial**: aplicação humana, revisão, disponibilidade de equipe e supervisão no piloto não foram homologadas.
+O requisito 42 está **concluído tecnicamente**. Aplicação humana, disponibilidade de equipe e supervisão no piloto continuam gates operacionais transversais e não autorizam produção.

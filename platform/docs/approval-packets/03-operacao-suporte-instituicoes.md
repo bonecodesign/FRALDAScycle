@@ -8,7 +8,7 @@
 - A doação institucional é retirada **diretamente pela instituição**, sem frete, cobrança, comissão logística, entregador ou repasse da plataforma. O recebimento exige representante atualmente habilitado e validação independente, em ordem, com idempotência. Fontes: `docs/requirement-18-institution-receipt-order.md`, `tests/donation-institutional-pickup-postgres.test.mjs`.
 - O suporte interno tem fila, atribuição, proteção contra respostas concorrentes, RBAC, notas internas e auditoria; **não significa equipe em atendimento**, SLA contratual ou capacidade real. Fontes: `docs/support-queue-assignment.md`, `tests/support-operations-http-postgres.test.mjs`.
 - Sanções, incidentes e retomada possuem portões humanos; nenhum bot deve conceder sanção crítica ou autorizar retomada. A futura automação determinística/IA assistiva é uma **opção de planejamento, não autorização de implementar**.
-- **IDs diretamente relacionados ainda abertos:** 18, 42, 51, 56, 62, 67. O item 50 foi concluído tecnicamente em 14/11/2026; a capacidade humana continua sendo portão transversal do piloto. As ligações com 41, 49, 57, 59 e 61 devem ser repassadas às trilhas correspondentes do quadro Codex.
+- **IDs diretamente relacionados ainda abertos:** 18, 51, 56, 62, 67. Os itens 50 e 42 foram concluídos tecnicamente em 14/11/2026; a capacidade humana continua sendo portão transversal do piloto. As ligações com 41, 49, 57, 59 e 61 devem ser repassadas às trilhas correspondentes do quadro Codex.
 
 ## Portões que exigem pessoas e evidência real
 
@@ -36,4 +36,4 @@ A eventual ausência de equipe permanente **não elimina** responsabilidade, esc
 
 **Não abrir suporte externo, captar instituição, lançar anúncios, emitir convite de piloto ou publicar documentos.** O pacote só muda de `needs_human_review` para estado aprovado mediante evidência documental privada, assinaturas e autorização de execução adequada, fora do alcance deste preparo técnico.
 
-**Situação atual:** o item 50 teve o escopo técnico concluído após as provas de suporte e segregação dos níveis 1/2. Nenhuma mudança no status dos IDs 18, 42, 51, 56, 62 e 67. Piloto BH: **NO-GO**.
+**Situação atual:** os itens 50 e 42 tiveram o escopo técnico concluído após as provas de suporte e do ciclo graduado de sanção, recurso e reversão. Nenhuma mudança no status dos IDs 18, 51, 56, 62 e 67. Piloto BH: **NO-GO**.
