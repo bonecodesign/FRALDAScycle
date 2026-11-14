@@ -90,7 +90,9 @@ export async function runNotificationBatch(repository, config, fetchImpl = fetch
       await deliverNotification(job, config, fetchImpl);
       await repository.delivered(job.id, job.claim_token);
     } catch (error) {
-      await repository.failed(job.id, error.message, backoffSeconds(job.attempts), job.claim_token);
+      // Internal failures may include recipient details, tokens or SQL values.
+      // Persist only a fixed, non-sensitive diagnostic in the outbox.
+      await repository.failed(job.id, "Notification processing failed", backoffSeconds(job.attempts), job.claim_token);
     }
   }
   return jobs.length;
