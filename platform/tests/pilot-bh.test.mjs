@@ -75,7 +75,8 @@ test("BH pilot rejects a non-capital postal code even when city and state say Be
 
 test("BH pilot revalidates the stored postal code before institution activation", async () => {
   const institutionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-  const verification = { documentsChecked: true, representativeChecked: true, capacityChecked: true };
+    const verification = { documentsChecked:true,representativeChecked:true,capacityChecked:true,
+      documentEvidenceReference:'synthetic-document-check',representativeEvidenceReference:'synthetic-representative-check',capacityEvidenceReference:'synthetic-capacity-check' };
   for (const postalCode of ["32000000", "30110000"]) {
     const writes = [];
     const institutions = createInstitutionService({

@@ -81,10 +81,13 @@ export function createInstitutionRepository(database) {
         );
         if(status!=='active')await client.query(`UPDATE listings SET status='paused',updated_at=now() WHERE institution_id=$1 AND kind='donation' AND status='published'
           AND NOT EXISTS(SELECT 1 FROM transactions t WHERE t.listing_id=listings.id AND t.status NOT IN('cancelled','refunded','completed'))`,[institutionId]);
+        if(status==='active'&&verification)await client.query(`INSERT INTO institution_activation_reviews(
+          institution_id,actor_user_id,previous_status,document_evidence_reference,representative_evidence_reference,capacity_evidence_reference)
+          VALUES($1,$2,$3,$4,$5,$6)`,[institutionId,actorUserId,previousStatus,verification.documentEvidenceReference,verification.representativeEvidenceReference,verification.capacityEvidenceReference]);
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1, 'institution.status.changed', 'institution', $2, $3::jsonb)`,
-          [actorUserId, institutionId, JSON.stringify({ previousStatus, newStatus: status, reason, ...(verification ? { verification } : {}) })],
+          [actorUserId, institutionId, JSON.stringify({ previousStatus, newStatus: status, reason, ...(verification ? { verification:{documentsChecked:true,representativeChecked:true,capacityChecked:true,evidenceReferencesRecorded:true} } : {}) })],
         );
         return updated.rows[0];
       });

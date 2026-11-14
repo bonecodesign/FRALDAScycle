@@ -407,6 +407,8 @@
         "apps/api/institution-access-service.js",
         "apps/api/institution-access-handler.js",
         "tests/institutions.test.mjs",
+        "database/migrations/169_institution_activation_evidence.sql",
+        "tests/institution-activation-evidence-postgres.test.mjs",
         "tests/institution-capacity.test.mjs",
         "database/receipt-repository.js",
         "apps/api/logistics-service.js",
@@ -1323,8 +1325,8 @@
         "tools/beta-institution-access-check.mjs",
         "docs/institution-access-beta.md"
       ],
-      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras, job 111813035041. Identidade/documento fictícios; limites em institution-access-beta.md.",
-      "reason": "Ativação individual exige atestação explícita de documentos, representante e capacidade na auditoria; estado e autoridade continuam revalidados sob trava. Conferência humana e capacidade real pendentes."
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras. Em 14/11/2026, a ativação do piloto passou a exigir referências auditáveis separadas para documentos, representante e capacidade; PostgreSQL conserva essas referências em registro mínimo e a auditoria registra apenas que elas existem, sem copiar documento ou referência privada.",
+      "reason": "Ativação individual exige atestação e referências explícitas de documentos, representante e capacidade; estado e autoridade continuam revalidados sob trava. Conferência humana e capacidade real pendentes."
     },
     {
       "id": 63,
