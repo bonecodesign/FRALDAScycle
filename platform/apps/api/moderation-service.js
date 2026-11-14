@@ -37,5 +37,15 @@ export function createModerationService(repository) {
       if(actor?.role!=='admin'||actor?.staffSector!=='moderation'||actor?.staffAccessLevel!==4||!uuid(caseId))throw new ServiceError('forbidden',403,'Somente moderação nível 4 pode revisar a proposta.');
       return repository.reviewSanction({actorId:actor.id,caseId,...sanctionInput(input,{review:true})});
     },
+    authorizeSanction(actor,caseId,input) {
+      if(actor?.role!=='admin'||actor?.staffSector!=='founder'||actor?.staffAccessLevel!==5||!uuid(caseId))throw new ServiceError('forbidden',403,'Somente o fundador nível 5 pode autorizar a sanção.');
+      if(!strict(input,['note','confirmed'])||input.confirmed!==true)throw new ServiceError('invalid_moderation_sanction_authorization',422,'Confirme a autorização final.');
+      return repository.authorizeSanction({actorId:actor.id,caseId,note:reason(input.note)});
+    },
+    executeSanction(actor,caseId,input) {
+      if(actor?.role!=='admin'||actor?.staffSector!=='founder'||actor?.staffAccessLevel!==5||!uuid(caseId))throw new ServiceError('forbidden',403,'Somente o fundador nível 5 pode confirmar a execução autorizada.');
+      if(!strict(input,['confirmed'])||input.confirmed!==true)throw new ServiceError('invalid_moderation_sanction_execution',422,'Confirme a execução da medida autorizada.');
+      return repository.executeSanction({actorId:actor.id,caseId});
+    },
   });
 }

@@ -16,8 +16,9 @@ async function releaseSuspension(client,decision,reason) {
 export async function newOperationsAllowed(client,userId) {
   const result=await client.query(`SELECT
     EXISTS(SELECT 1 FROM moderation_decisions WHERE owner_id=$1 AND surface='account' AND status<>'overturned' AND suspended_until>clock_timestamp()) AS suspended,
-    EXISTS(SELECT 1 FROM account_operation_restrictions WHERE user_id=$1 AND reason='closure_pending') AS closure_pending`,[userId]);
-  return result.rows[0]?.suspended===false&&result.rows[0]?.closure_pending!==true;
+    EXISTS(SELECT 1 FROM account_operation_restrictions WHERE user_id=$1 AND reason='closure_pending') AS closure_pending,
+    EXISTS(SELECT 1 FROM moderation_sanction_effects WHERE user_id=$1 AND active AND action<>'warning' AND (ends_at IS NULL OR ends_at>clock_timestamp())) AS sanction_restricted`,[userId]);
+  return result.rows[0]?.suspended===false&&result.rows[0]?.closure_pending!==true&&result.rows[0]?.sanction_restricted!==true;
 }
 export async function requireNewOperations(client,userId) {
   if(!await newOperationsAllowed(client,userId)) throw fail('new_operations_suspended',403,'Novas operações estão suspensas. Acompanhamento das operações existentes e suporte continuam disponíveis.');
@@ -145,6 +146,35 @@ export function createModerationRepository(database) {
         const row=(await client.query(`UPDATE moderation_sanction_cases SET status='level4_approved',level4_action=$2,level4_until=$3,level4_reason=$4,level4_by=$5,level4_at=now(),updated_at=now() WHERE id=$1 RETURNING *`,[caseId,action,until,reason,actorId])).rows[0];
         await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.level4_reviewed','moderation_sanction_case',$2,$3::jsonb)`,[actorId,caseId,JSON.stringify({approvedAction:action,modified:action!==current.proposed_action||String(until??'')!==String(current.proposed_until??''),accountRestricted:false,irreversibleActionApplied:false})]);
         return row;
+      });
+    },
+    authorizeSanction({actorId,caseId,note}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];
+        if(Number(actor?.staff_access_level)!==5||actor.staff_sector!=='founder')throw fail('forbidden',403,'Somente o fundador nível 5 pode autorizar a sanção.');
+        const current=(await client.query("SELECT * FROM moderation_sanction_cases WHERE id=$1 AND status='level4_approved' FOR UPDATE",[caseId])).rows[0];
+        if(!current)throw fail('moderation_sanction_not_authorizable',409,'A sanção não está disponível para autorização final.');
+        if([current.proposed_by,current.level4_by].includes(actorId))throw fail('moderation_independent_authorizer_required',403,'O autorizador final deve ser uma terceira pessoa.');
+        const row=(await client.query("UPDATE moderation_sanction_cases SET status='level5_authorized',level5_note=$2,level5_by=$3,level5_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[caseId,note,actorId])).rows[0];
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.level5_authorized','moderation_sanction_case',$2,$3::jsonb)`,[actorId,caseId,JSON.stringify({authorizedAction:row.level4_action,accountRestricted:false,executionPending:true})]);
+        return row;
+      });
+    },
+    executeSanction({actorId,caseId}) {
+      return database.transaction(async client=>{
+        const actor=(await client.query("SELECT staff_access_level,staff_sector FROM users WHERE id=$1 AND role='admin' AND disabled_at IS NULL FOR SHARE",[actorId])).rows[0];
+        if(Number(actor?.staff_access_level)!==5||actor.staff_sector!=='founder')throw fail('forbidden',403,'Somente o fundador nível 5 pode confirmar a execução.');
+        const current=(await client.query("SELECT * FROM moderation_sanction_cases WHERE id=$1 FOR UPDATE",[caseId])).rows[0];
+        if(!current)throw fail('moderation_sanction_not_executable',409,'A sanção não está disponível para execução.');
+        const existing=(await client.query('SELECT * FROM moderation_sanction_effects WHERE case_id=$1',[caseId])).rows[0];
+        if(existing&&current.status==='executed')return{case:current,effect:existing,reused:true};
+        if(current.status!=='level5_authorized'||current.level5_by!==actorId)throw fail('moderation_sanction_not_executable',409,'A execução exige autorização final válida do próprio fundador.');
+        const effect=(await client.query(`INSERT INTO moderation_sanction_effects(case_id,user_id,action,ends_at) VALUES($1,$2,$3,$4) RETURNING *`,[caseId,current.user_id,current.level4_action,current.level4_until])).rows[0];
+        const row=(await client.query("UPDATE moderation_sanction_cases SET status='executed',executed_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[caseId])).rows[0];
+        const message=current.level4_action==='warning'?'Você recebeu uma advertência de moderação. Consulte o motivo e o canal de contestação no painel.':current.level4_action==='temporary_suspension'?'Novas operações estão suspensas temporariamente. Consulte o prazo, o motivo e o canal de contestação no painel.':'Novas operações foram restringidas por decisão de moderação. Sua conta, histórico, suporte e contestação continuam acessíveis.';
+        await client.query(`INSERT INTO account_notices(user_id,kind,message,dedupe_key) VALUES($1,'moderation_sanction',$2,$3) ON CONFLICT(dedupe_key) DO NOTHING`,[current.user_id,message,`moderation-sanction:${caseId}:executed`]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'moderation.sanction.executed','moderation_sanction_case',$2,$3::jsonb)`,[actorId,caseId,JSON.stringify({action:current.level4_action,newOperationsRestricted:current.level4_action!=='warning',loginDisabled:false,supportPreserved:true,existingObligationsPreserved:true})]);
+        return{case:row,effect,reused:false};
       });
     },
   });

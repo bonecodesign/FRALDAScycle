@@ -912,14 +912,15 @@
         "docs/moderation-beta.md",
         "database/migrations/134_moderation_suspension_lifecycle.sql",
         "database/migrations/166_moderation_sanction_governance.sql",
+        "database/migrations/167_moderation_sanction_authorization_execution.sql",
         "workers/moderation-suspensions.js",
         "tests/moderation-sanction-governance-postgres.test.mjs",
         "tests/moderation-suspension-maintenance.test.mjs",
         "tests/moderation-suspension-expiry-postgres.test.mjs",
         "tests/moderation-appeal-http-postgres.test.mjs"
       ],
-      "evidence": "Além da base do PR #76, provas PostgreSQL isoladas confirmam suspensão temporária, recurso independente, expiração automática e restauração idempotente apenas dos anúncios pausados pela decisão. Pausas manuais são preservadas, suspensões concorrentes impedem restauração e a manutenção declara permanentBansApplied=0. Em 14/11/2026, a cadeia graduada passou a aceitar proposta exata do nível 3 e revisão/modificação por pessoa distinta no nível 4, sem restringir a conta ou aplicar ação irreversível; migração, serviço, API, auditoria e prova PostgreSQL foram acrescentados.",
-      "reason": "Ciclo temporário e etapas 3→4 da governança graduada estão implementados. Autorização final do nível 5, execução proporcional, comunicação e reversão da nova cadeia ainda precisam ser concluídas; capacidade humana continua portão do piloto."
+      "evidence": "Além da base do PR #76, provas PostgreSQL isoladas confirmam suspensão temporária, recurso independente, expiração automática e restauração idempotente apenas dos anúncios pausados pela decisão. Pausas manuais são preservadas e a manutenção declara permanentBansApplied=0. Em 14/11/2026, a cadeia graduada passou a exigir proposta exata do nível 3, revisão/modificação por pessoa distinta no nível 4 e autorização final por uma terceira pessoa no nível 5. A autorização não aplica efeito; execução confirmada e idempotente restringe somente novas operações quando aplicável, preservando login, histórico, suporte e obrigações, com aviso interno e auditoria.",
+      "reason": "Ciclo temporário e cadeia 3→4→5 com execução proporcional estão implementados. Contestação e reversão específicas dos novos efeitos ainda precisam ser concluídas; capacidade humana continua portão do piloto."
     },
     {
       "id": 43,
