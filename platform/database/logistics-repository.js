@@ -167,6 +167,22 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
            VALUES ($1,$2::shipment_status,$3,$4,$5,$6)`,
           [shipment.id,next,event.description,event.latitude,event.longitude,event.occurredAt],
         );
+        const deliveryMessage={
+          assigned:'A entrega recebeu um entregador.',picked_up:'O pacote foi coletado.',
+          in_transit:'O pacote está em trânsito.',delivered:'A entrega foi marcada como concluída.',
+          failed:'A entrega apresentou uma ocorrência e precisa de acompanhamento.',
+          cancelled:'A entrega foi cancelada e precisa de acompanhamento.',
+        }[next];
+        await client.query(
+          `INSERT INTO account_notices(user_id,kind,message,dedupe_key)
+           SELECT participant.user_id,'operational_delivery',$2,
+             'operational-delivery:'||$3||':'||participant.user_id::text
+           FROM shipments s
+           CROSS JOIN LATERAL unnest(array_remove(ARRAY[s.buyer_id,s.seller_id,s.courier_id],NULL)) AS participant(user_id)
+           WHERE s.id=$1
+           ON CONFLICT(dedupe_key) DO NOTHING`,
+          [shipment.id,deliveryMessage,event.id],
+        );
         await client.query(
           `INSERT INTO audit_events (action,entity_type,entity_id,metadata)
            VALUES ('shipment.webhook.processed','shipment',$1,$2::jsonb)`,

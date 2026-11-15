@@ -39,3 +39,9 @@ Atualização no PR #74: persistência, conflito concorrente de duas conexões e
 Antes de qualquer despacho, `deliverNotification` valida a URL do provedor: exige HTTPS e rejeita credenciais embutidas, parâmetros de consulta ou fragmento. Solicitações autenticadas usam `redirect: 'error'`, de modo que redirecionamentos não carreguem o bearer token, destinatário ou conteúdo do aviso para outro destino. Falhas de transporte geram erro genérico sem copiar credenciais/dados de contato, e a fila conserva os mecanismos existentes de elegibilidade, preferência, idempotência e retentativa.
 
 Testes adicionais usam transportes totalmente sintéticos e exercitam recusa pré-rede e erros de redirecionamento. Não houve habilitação do canal externo, envio de mensagem real, registro de dispositivo push ou declaração de capacidade operacional. O requisito 49 continua **parcial**.
+
+## Cobertura dos eventos obrigatórios — 15 de novembro de 2026
+
+Pagamento, entrega e aprovação agora criam avisos internos mínimos e idempotentes na mesma transação da mudança de estado. Disputa e segurança permanecem nos fluxos específicos já existentes. Os avisos não contêm publicidade, valores, endereço, contato ou documento; um webhook duplicado não repete efeitos. Evidências e limites estão em `required-operational-notices.md`.
+
+O requisito 49 permanece **parcial** porque a decisão exige envio dos avisos e a entrega externa ainda não foi homologada.

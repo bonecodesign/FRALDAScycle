@@ -158,10 +158,13 @@ test("logistics webhook updates timeline transaction and audit atomically", asyn
   const statements=[];const client={async query(text,values){statements.push({text,values});if(/INSERT INTO logistics_webhook_events/.test(text))return{rows:[{id:"evt-1"}]};if(/SELECT id,transaction_id,status/.test(text))return{rows:[{id:shipmentId,transaction_id:transactionId,status:"assigned"}]};return{rows:[]}}};
   const repository=createLogisticsRepository({async transaction(operation){return operation(client)},async query(){return{rows:[]}}});
   const result=await repository.processWebhook({id:"evt-1",type:"shipment.in_transit",providerReference:"remote-1",latitude:-19.9,longitude:-43.9,description:"Em trânsito",occurredAt:new Date(),payloadHash:Buffer.from("hash")});
-  assert.equal(result.status,"in_transit");assert.equal(statements.length,6);
+  assert.equal(result.status,"in_transit");assert.equal(statements.length,7);
   assert.match(statements[2].text,/UPDATE shipments/);assert.deepEqual(statements[2].values,[shipmentId,"in_transit"]);
   assert.match(statements[3].text,/UPDATE transactions/);assert.deepEqual(statements[3].values,[transactionId,"in_delivery"]);
-  assert.match(statements[4].text,/shipment_events/);assert.match(statements[5].text,/shipment\.webhook\.processed/);
+  assert.match(statements[4].text,/shipment_events/);
+  assert.match(statements[5].text,/operational_delivery/);
+  assert.deepEqual(statements[5].values,[shipmentId,"O pacote está em trânsito.","evt-1"]);
+  assert.match(statements[6].text,/shipment\.webhook\.processed/);
 });
 
 test("logistics webhook blocks status regression and duplicate side effects", async () => {

@@ -378,6 +378,23 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
             [intent.transaction_id,intent.id],
           );
         }
+        const paymentMessage = {
+          "payment.authorized": "O pagamento foi autorizado e continua em processamento.",
+          "payment.paid": "O pagamento foi confirmado.",
+          "payment.failed": "O pagamento não foi concluído. Consulte a operação antes de tentar novamente.",
+          "payment.refunded": "O reembolso do pagamento foi confirmado.",
+          "payment.disputed": "O pagamento entrou em disputa e aguarda análise.",
+        }[event.type];
+        await client.query(
+          `INSERT INTO account_notices(user_id,kind,message,dedupe_key)
+           SELECT participant.user_id,'operational_payment',$2,
+             'operational-payment:'||$3||':'||participant.user_id::text
+           FROM transactions t
+           CROSS JOIN LATERAL unnest(ARRAY[t.buyer_id,t.seller_id]) AS participant(user_id)
+           WHERE t.id=$1
+           ON CONFLICT(dedupe_key) DO NOTHING`,
+          [intent.transaction_id,paymentMessage,event.id],
+        );
         await client.query(
           `INSERT INTO audit_events (action, entity_type, entity_id, metadata)
            VALUES ('payment.webhook.processed', 'payment_intent', $1, $2::jsonb)`,

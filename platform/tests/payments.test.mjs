@@ -238,13 +238,14 @@ test("payment webhook ledger prevents replay and updates payment transaction and
     amountCents: 10_000, occurredAt: new Date(), payloadHash: Buffer.from("hash"),
   });
   assert.equal(result.status, "refunded");
-  assert.equal(statements.length, 6);
+  assert.equal(statements.length, 7);
   assert.match(statements[0].text, /ON CONFLICT \(id\) DO NOTHING/);
   assert.match(statements[3].text, /UPDATE payment_intents/);
   assert.deepEqual(statements[3].values, ["intent-1", "refunded"]);
   assert.match(statements[4].text, /UPDATE transactions/);
   assert.deepEqual(statements[4].values, [transactionId, "refunded"]);
-  assert.match(statements[5].text, /payment\.webhook\.processed/);
+  assert.match(statements[5].text, /operational_payment/);
+  assert.match(statements[6].text, /payment\.webhook\.processed/);
 });
 
 test("duplicate financial webhook is acknowledged without repeating side effects", async () => {

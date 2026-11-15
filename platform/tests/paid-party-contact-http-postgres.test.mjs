@@ -36,6 +36,8 @@ test('verified party contact unlocks after paid webhook and is revoked by suppor
       const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),contactUrl=`${origin}/v1/transactions/${ids.transaction}/contact`;
       const before=await fetch(contactUrl,{headers:headers('buyer')});assert.equal(before.status,409);assert.equal((await before.json()).error.code,'contact_not_available');
       const payment=await createPaymentRepository(database).processWebhook({id:'party-contact-paid-event',type:'payment.paid',providerReference:'party-contact-provider',occurredAt:new Date().toISOString(),payloadHash:'party-contact-paid-hash',amountCents:10000});assert.equal(payment.status,'paid');
+      const paymentNotices=(await database.query(`SELECT user_id,kind,message FROM account_notices WHERE kind='operational_payment' ORDER BY user_id`)).rows;
+      assert.equal(paymentNotices.length,2);assert.ok(paymentNotices.every(row=>row.message==='O pagamento foi confirmado.'));
       const paidWithoutConsent=await fetch(contactUrl,{headers:headers('buyer')});assert.equal(paidWithoutConsent.status,409);assert.equal((await paidWithoutConsent.json()).error.code,'contact_not_available');
       const authorizationUrl=`${origin}/v1/transactions/${ids.transaction}/contact-authorization`;
       const initialAuthorization=await fetch(authorizationUrl,{headers:headers('seller')}),initialAuthorizationBody=await initialAuthorization.json();assert.equal(initialAuthorization.status,200);assert.deepEqual(initialAuthorizationBody.authorization,{emailAllowed:false,phoneAllowed:false,version:0,revoked:false});assert.equal(initialAuthorization.headers.get('cache-control'),'no-store');
