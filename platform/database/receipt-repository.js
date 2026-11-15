@@ -266,6 +266,15 @@ export function createReceiptRepository(database) {
            ON CONFLICT(dedupe_key) DO NOTHING`,
           [shipmentId,approvalMessage,approvalKind],
         );
+        await client.query(
+          `INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
+           SELECT 'operational_required_notice',u.email,$2::jsonb,u.id
+           FROM shipments s
+           CROSS JOIN LATERAL (VALUES(s.buyer_id),(s.seller_id),(s.courier_id)) AS participant(user_id)
+           JOIN users u ON u.id=participant.user_id
+           WHERE s.id=$1::uuid AND u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL`,
+          [shipmentId,JSON.stringify({channel:'email',event:validation?'proof.validated':'receipt.approved'})],
+        );
         // Recording either decision never completes the transaction or initiates payout.
         return { recordedAt: result.rows[0].recorded_at, reused: false };
       });
