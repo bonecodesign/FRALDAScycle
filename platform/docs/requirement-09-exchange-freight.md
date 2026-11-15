@@ -1,6 +1,6 @@
 # Requisito formal 9 — frete nas duas pernas da troca
 
-**Status: parcial.** A responsabilidade continua individual: o destinatário de cada pacote paga seu próprio frete (valor-base do parceiro/entregador + comissão de 5% da FraldaCycle). Não existe pagamento agregado de frete da troca.
+**Status: concluído no escopo técnico.** A responsabilidade é individual: o destinatário de cada pacote paga seu próprio frete (valor-base do parceiro/entregador + comissão de 5% da FraldaCycle). Não existe pagamento agregado de frete da troca.
 
 ## Nova consulta financeira local
 
@@ -19,3 +19,5 @@ O resultado preserva `providerReconciled: false`, `externalChargeCreated: false`
 `tests/exchange-freight-readiness.test.mjs` cobre legitimidade das duas pernas, segregação de pagadores, preço e tratamento fail-closed de inconsistências. `tests/freight-settlement-postgres.test.mjs` valida consulta financeira por HTTP e PostgreSQL com duas cotações e planos sintéticos.
 
 A contratação e integração de transportadoras, preço cotado externamente, cobrança individual por recebedor, confirmação financeira, reversão, entrega física e homologação operacional permanecem pendentes. **Não habilitar fornecedores, segredos, cobranças nem repasses.**
+
+Esses pontos são processamento e ativação externa, controlados pelos requisitos 2, 3, 10 e 12. Eles não reabrem o contrato técnico do item 9, que se limita à responsabilidade individual e à separação das duas pernas.

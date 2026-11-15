@@ -4,11 +4,11 @@
   "sourceMatrix": "docs/requirements-matrix.json",
   "sourceCodexBoard": "config/codex-action-board.v1.json",
   "state": "preparation_only",
-  "mainBaseline": "019f32ef8a80a59b2f618d87d72ec43406a68a49",
+  "mainBaseline": "d92aff9a94e02ac968a81bf9502c75d9a77e98d9",
   "countsAtCreation": {
     "denominator": 70,
-    "completed": 47,
-    "partial": 12,
+    "completed": 48,
+    "partial": 11,
     "blocked": 11
   },
   "noGo": true,
@@ -132,7 +132,6 @@
       "requirementIds": [
         2,
         3,
-        9,
         10,
         12
       ],

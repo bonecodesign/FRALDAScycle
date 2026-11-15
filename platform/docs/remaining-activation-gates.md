@@ -4,8 +4,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 ## Situação formal
 
-- 47 concluídos: 67,14%.
-- 12 parciais: 17,14%.
+- 48 concluídos: 68,57%.
+- 11 parciais: 15,71%.
 - 11 bloqueados: 15,71%.
 - Produção: bloqueada.
 
@@ -13,7 +13,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 | Requisitos | Próximo fechamento local | Portão que continuará aberto |
 | --- | --- | --- |
-| 2, 9 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. Os fluxos técnicos do frete separado na venda (item 11), entregador único na troca (item 17) e recebimento institucional (item 18) estão concluídos. | Tarifas, cobrança, entrega e confirmação reais. |
+| 2 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. Os fluxos técnicos do frete individual na troca (item 9), frete separado na venda (item 11), entregador único na troca (item 17) e recebimento institucional (item 18) estão concluídos. | Tarifas, cobrança, entrega e confirmação reais. |
 | 10, 12 | Manter a obrigação local da diferença e o processamento de frete desligados. | Homologação financeira da diferença; decisão sobre retirada do standby do frete, fornecedor e tarifas. |
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
 | 41, 45 | Fortalecer filtros, pedidos de exclusão e testes sintéticos. O ciclo técnico de sanções do item 42 está concluído. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |
