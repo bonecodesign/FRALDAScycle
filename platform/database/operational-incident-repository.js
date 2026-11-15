@@ -54,6 +54,13 @@ export function createOperationalIncidentRepository(database) {
         const current = (await client.query('SELECT * FROM operational_incidents WHERE id=$1 FOR UPDATE',[id])).rows[0];
         if (!current) return null;
         if (Number(current.version) !== expectedVersion) return { conflict: true, incident: current };
+        // Check privacy review under the same row lock used to resolve the incident.
+        if (current.domain === 'privacy' && action === 'resolve') {
+          const review = (await client.query(`SELECT DISTINCT action FROM operational_incident_events
+            WHERE incident_id=$1 AND action IN ('risk_assessed','communication_decision')`, [id])).rows;
+          const recorded = new Set(review.map(event => event.action));
+          if (!recorded.has('risk_assessed') || !recorded.has('communication_decision')) return { privacyReviewIncomplete: true };
+        }
         let status=current.status,assigned=current.assigned_to,resolvedAt=current.resolved_at;
         if(action==='claim'){if(assigned&&assigned!==actorUserId)return{assignedConflict:true,incident:current};assigned=actorUserId;}
         if(action==='release'){if(assigned!==actorUserId)return{assignedConflict:true,incident:current};assigned=null;}
