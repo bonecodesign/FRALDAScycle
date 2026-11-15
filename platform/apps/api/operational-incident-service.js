@@ -50,6 +50,7 @@ export function createOperationalIncidentService(repository,{clock=Date.now}={})
         :action==='record_communication'?privacyCommunicationDecision(input.communication):{};
       const result=await repository.change({actorUserId:actor.id,id,expectedVersion,action,note,metadata});
       if(!result)throw fail('incident_not_found',404,'Incidente não encontrado.');
+      if(result.privacyReviewIncomplete)throw fail('privacy_incident_review_incomplete',409,'Avalie o risco e registre a decisão de comunicação antes de resolver.');
       if(result.conflict)throw fail('incident_version_conflict',409,'O incidente foi atualizado; recarregue antes de continuar.');
       if(result.assignedConflict)throw fail('incident_assignment_conflict',409,'O incidente está atribuído a outro responsável.');
       return result;
