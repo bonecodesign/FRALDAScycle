@@ -57,3 +57,22 @@ test('incident containment clears stale resolution timestamp', async () => {
   assert.equal(update.values[1],'contained');
   assert.equal(update.values[3],null);
 });
+
+test('privacy incident resolution fails closed under row lock without both review events', async () => {
+  const calls = [];
+  const client = {async query(sql, values) {
+    calls.push({sql, values});
+    if(sql.includes('SELECT * FROM operational_incidents')) return {rows:[{
+      id,version:2,status:'open',domain:'privacy',assigned_to:null,resolved_at:null
+    }]};
+    if(sql.includes('SELECT DISTINCT action FROM operational_incident_events')) return {rows:[{action:'risk_assessed'}]};
+    return {rows:[]};
+  }};
+  const result = await createOperationalIncidentRepository({transaction:fn=>fn(client)}).change({
+    actorUserId:id,id,expectedVersion:2,action:'resolve',note:'Synthetic privacy incident review'
+  });
+  assert.equal(result.privacyReviewIncomplete,true);
+  assert.equal(calls[0].sql.includes('FOR UPDATE'),true);
+  assert.equal(calls.some(call=>call.sql.includes('UPDATE operational_incidents SET')),false);
+  assert.equal(calls.some(call=>call.sql.includes('INSERT INTO operational_incident_events')),false);
+});
