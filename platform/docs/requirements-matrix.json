@@ -275,7 +275,7 @@
     {
       "id": 11,
       "title": "Frete na venda",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "packages/contracts/commercial-rules.js",
         "apps/api/delivery-quote-handler.js",
@@ -286,12 +286,13 @@
         "tests/commercial-rules.test.mjs",
         "tests/delivery-quote-http-postgres.test.mjs",
         "tests/delivery-quote-persistence.test.mjs",
+        "tests/freight-payment-readiness-postgres.test.mjs",
         "tests/payments.test.mjs",
         "docs/delivery-quote-cache-decision.md",
         "docs/requirement-11-sale-freight-lock.md"
       ],
       "evidence": "Prova HTTP/PostgreSQL local de 2026-10-27: somente o comprador confirma identificador, fingerprint e total exatos; adulteração é recusada; cotação confirmada é travada para pagamento e não pode ser substituída. Cotação externa de R$ 20,00 preservou o valor integral do parceiro e adicionou R$ 1,00 (5%) da FraldaCycle. Complemento técnico 07/11/2026: trava interna de cotação restringida à venda, sem perna logística de troca, com confirmação pelo comprador e expiração válida; testes HTTP/PostgreSQL para impedir troca e confirmação indevida; validade de cotação inválida rejeitada antes da persistência (sujeitos a CI do PR).",
-      "reason": "Cotação e confirmação auditadas, composição comercial, bloqueio de pagamento incompleto e trava de venda delimitada tecnicamente. Cotações reais em parceiro, cobrança, split e repasse dependem de contratação e homologação externa."
+      "reason": "Escopo técnico concluído conforme a decisão original: o comprador recebe o frete separado do produto antes de confirmar; cotação, composição de 5%, confirmação, auditoria e trava contra alteração estão comprovadas. Processamento, fornecedor, cobrança, split e repasse reais permanecem nos requisitos 2, 3, 12 e 13 e como gates de ativação."
     },
     {
       "id": 12,
