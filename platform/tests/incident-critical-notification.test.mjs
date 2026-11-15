@@ -24,3 +24,18 @@ test('incident audit transition fields cannot be overridden by supplied metadata
   { previousStatus: 'open', status: 'contained', previousVersion: 2, version: 3 });
   assert.equal(metadata.assessment, 'synthetic');
 });
+
+test('incident creation acquires a transaction-scoped key lock before reading or inserting', async () => {
+  const db = database();
+  await createOperationalIncidentRepository(db).create({
+    actorUserId: id, reference: 'FC-INC-LOCK', idempotencyKey: id,
+    title: 'Synthetic concurrent incident', summary: 'Synthetic data only',
+    severity: 'high', domain: 'marketplace',
+  });
+  const lockIndex = db.calls.findIndex(call => call.sql.includes('pg_advisory_xact_lock'));
+  const lookupIndex = db.calls.findIndex(call => call.sql.includes('SELECT id FROM operational_incidents'));
+  const insertIndex = db.calls.findIndex(call => call.sql.includes('INSERT INTO operational_incidents'));
+  assert.equal(lockIndex, 0);
+  assert.ok(lockIndex < lookupIndex && lookupIndex < insertIndex);
+  assert.deepEqual(db.calls[lockIndex].values, [id]);
+});
