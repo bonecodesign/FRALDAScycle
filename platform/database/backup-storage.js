@@ -6,7 +6,7 @@ import {basename} from 'node:path';
 async function privateFile(path){const metadata=await lstat(path);if(!metadata.isFile()||(metadata.mode&0o077)!==0||metadata.size===0)throw new Error('Backup artifact must be a non-empty private regular file');return metadata;}
 export function createProtectedBackupStorage({enabled=false,endpoint=null,bearerToken=null,kmsKeyId=null,retentionDays=null,fetchImpl=fetch,clock=Date.now}={}){
   let origin=null;try{origin=endpoint?new URL(endpoint):null;}catch{throw new Error('Backup storage endpoint is invalid');}
-  const days=Number(retentionDays);
+  const days=retentionDays;
   // A storage prefix must be unambiguous and must not carry credentials or token-bearing query strings.
   const safeEndpoint=origin?.protocol==='https:'&&!origin.username&&!origin.password&&!origin.search&&!origin.hash&&origin.pathname.endsWith('/');
   const configured=enabled&&safeEndpoint&&Boolean(bearerToken&&kmsKeyId)&&Number.isInteger(days)&&days>=1&&days<=365;
