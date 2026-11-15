@@ -28,3 +28,12 @@ test('protected storage rejects ambiguous key path segments before opening a fil
   }
   assert.equal(calls,0);
 });
+
+test('backup publication rejects unsafe prefixes without reading artifacts or uploading',async()=>{
+  let calls=0;
+  const storage={put(){calls++;throw new Error('unexpected upload');}};
+  for(const prefix of ['../outside','database/other','database//','.', '', 'database?token=fixture','database%2fother','a'.repeat(65),null]){
+    await assert.rejects(publishBackupArtifacts({dumpPath:'/nonexistent',storage,prefix}),/prefix is invalid/);
+  }
+  assert.equal(calls,0);
+});
