@@ -9,5 +9,7 @@ test('admin work queue explains sector isolation and avoids financial execution 
  assert.match(html,/Anexos não são aceitos entre setores/);
  assert.match(script,/detalhes protegidos/);
  assert.match(script,/\/v1\/admin\/work-items/);
+ assert.match(script,/Prazo de primeira resposta excedido/);
+ assert.match(script,/Primeira resposta humana registrada/);
  assert.doesNotMatch(`${html}\n${script}`,/executar pagamento|confirmar reembolso|paymentProvider/);
 });

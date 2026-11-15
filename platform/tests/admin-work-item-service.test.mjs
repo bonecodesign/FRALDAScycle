@@ -15,12 +15,15 @@ test('masks personal and credential-like content before cross-sector persistence
 
 test('creates a minimized work item and never accepts attachments',async()=>{
   let persisted;
-  const service=createAdminWorkItemService({create:async input=>(persisted=input),list:async()=>({items:[]})});
+  const service=createAdminWorkItemService({create:async input=>(persisted=input),list:async()=>({items:[]})},{clock:()=>Date.parse('2026-11-14T12:00:00Z')});
   await service.create(actor,{sector:'support',kind:'refund_review',title:'Analisar reembolso',context:'contato ana@example.com',priority:'high'});
   assert.equal(persisted.actorId,actor.id);
   assert.equal(persisted.sector,'support');
   assert.equal(persisted.context.includes('ana@example.com'),false);
+  assert.equal(persisted.firstResponseDueAt,'2026-11-14T16:00:00.000Z');
+  assert.equal(persisted.createdAt,'2026-11-14T12:00:00.000Z');
   assert.throws(()=>service.create(actor,{sector:'support',kind:'refund_review',title:'Analisar reembolso',priority:'high',attachments:[]}),/anexos/i);
+  assert.throws(()=>service.create(actor,{sector:'support',kind:'refund_review',title:'Analisar reembolso',priority:'high',dueAt:'2030-01-01T00:00:00Z'}),/prazos/i);
 });
 
 test('exposes the status-only cross-sector policy to authenticated staff',()=>{

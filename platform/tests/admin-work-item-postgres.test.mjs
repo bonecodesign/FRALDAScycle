@@ -13,7 +13,7 @@ test('admin queue isolates sector details while preserving status visibility and
   await migrate(database,await discoverMigrations());
   for(const [sector,id] of Object.entries(ids)){const level=sector==='founder'?5:sector==='support'?1:3;await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector,adult_declaration_version,adult_declared_at) VALUES($1,$2,'fixture',$3,'admin',$4,$5,'FC-AGE-1',now())`,[id,`${sector}@example.test`,sector,level,sector]);}
   const repository=createAdminWorkItemRepository(database);
-  const created=await repository.create({actorId:ids.finance,sector:'support',kind:'refund_review',title:'Revisar reembolso',context:'Conteúdo já minimizado',priority:'high',dueAt:null});
+  const created=await repository.create({actorId:ids.finance,sector:'support',kind:'refund_review',title:'Revisar reembolso',context:'Conteúdo já minimizado',priority:'high',createdAt:'2026-11-14T12:00:00.000Z',firstResponseDueAt:'2026-11-14T16:00:00.000Z'});
   const financeView=await repository.list({actorId:ids.finance});
   assert.equal(financeView.items[0].status,'new');
   assert.equal(financeView.items[0].details_visible,false);
@@ -26,6 +26,7 @@ test('admin queue isolates sector details while preserving status visibility and
   assert.equal(claimed.assigned_to,ids.support);
   const triage=await repository.transition({actorId:ids.support,id:created.id,expectedVersion:1,status:'triage',note:'Triagem iniciada pela equipe responsável.'});
   assert.equal(triage.status,'triage');
+  assert.ok(triage.first_responded_at);
   await assert.rejects(()=>repository.transition({actorId:ids.support,id:created.id,expectedVersion:2,status:'closed',note:'Tentativa de pular o fluxo operacional.'}),error=>error.code==='admin_work_item_transition_forbidden');
   const founderView=await repository.list({actorId:ids.founder});
   assert.equal(founderView.items[0].details_visible,true);
@@ -33,6 +34,7 @@ test('admin queue isolates sector details while preserving status visibility and
   const supportView=await repository.list({actorId:ids.support});
   assert.equal(supportView.items[0].details_visible,true);
   assert.equal(supportView.items[0].assignee_name,'support');
+  assert.equal(supportView.items[0].first_response_overdue,false);
   const events=(await database.query('SELECT event_type FROM admin_work_item_events WHERE work_item_id=$1 ORDER BY id',[created.id])).rows.map(row=>row.event_type);
   assert.deepEqual(events,['created','claimed','status_changed']);
  }finally{await database.close();}});
