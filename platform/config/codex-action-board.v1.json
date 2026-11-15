@@ -4,17 +4,17 @@
   "repo": "bonecodesign/FRALDAScycle",
   "sourceOfTruth": "docs/requirements-matrix.json",
   "baseline": {
-    "mainSha": "ec0fb98413534e870ad14079153d496d57d80f65",
+    "mainSha": "019f32ef8a80a59b2f618d87d72ec43406a68a49",
     "denominator": 70,
-    "concluido": 46,
-    "parcial": 13,
+    "concluido": 47,
+    "parcial": 12,
     "bloqueado": 11,
-    "percentCompleted": 65.71
+    "percentCompleted": 67.14
   },
   "planningTarget": {
     "completedCount": 49,
     "percentCompleted": 70,
-    "additionalCompletedRequired": 3,
+    "additionalCompletedRequired": 2,
     "qualification": "Planejamento condicional; nenhum requisito promovido por este arquivo."
   },
   "prerequisites": [
@@ -63,7 +63,6 @@
         3,
         9,
         10,
-        11,
         12
       ],
       "name": "Pagamento, frete e troca",

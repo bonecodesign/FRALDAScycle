@@ -1,6 +1,6 @@
 # Requisito formal 11 — proteção de cotação e trava de frete na venda
 
-**Status: parcial.** A preparação comercial de frete permanece sem chamadas financeiras externas. A cotação do comprador exibe o preço-base do parceiro ou entregador, a comissão de 5% da FraldaCycle e o total de pagamento; as tarifas reais de processamento não são presumidas.
+**Status: concluído no escopo técnico.** A cotação do comprador exibe separadamente o preço-base do parceiro ou entregador, a comissão de 5% da FraldaCycle e o total antes da confirmação. A preparação comercial permanece sem chamadas financeiras externas e as tarifas reais de processamento não são presumidas.
 
 ## Endurecimento da transição de cotação para pagamento
 
@@ -22,6 +22,8 @@ O serviço de registro rejeita valores `expiresAt` ausentes, inválidos ou venci
 - `tests/delivery-quote-persistence.test.mjs`: rejeição de expiração malformada e vencida sem registrar cotação.
 - `tests/freight-payment-readiness-postgres.test.mjs`: pagamento de venda com frete ainda bloqueado contra bypass do comprador.
 
-## O que permanece pendente
+## Portões de ativação que permanecem abertos
 
-Cotações consultadas efetivamente em fornecedores homologados, operação logística externa e garantia do valor entregue; processador de pagamento e termos comerciais de split/tarifa; cobrança única corretamente distribuída; conciliação verificável por recebedor, reversões e repasses. **Não foram ativados contratação, credenciais, pedidos de entrega, cobrança, repasse ou publicação externa.** A matriz permanece com o item 11 `parcial`, sem alterar os outros requisitos.
+Cotações consultadas efetivamente em fornecedores homologados, operação logística externa e garantia do valor entregue; processador de pagamento e termos comerciais de split/tarifa; cobrança única corretamente distribuída; conciliação verificável por recebedor, reversões e repasses. **Não foram ativados contratação, credenciais, pedidos de entrega, cobrança, repasse ou publicação externa.**
+
+A decisão fundadora do item 11 delimita seu escopo a “comprador paga frete separado do produto, informado antes de confirmar” e declara que o processamento não é definido por esse item. Por isso, os pontos acima permanecem controlados pelos requisitos 2, 3, 12 e 13 e pelos gates de ativação, sem reabrir o contrato técnico do item 11.
