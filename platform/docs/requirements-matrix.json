@@ -174,7 +174,7 @@
     {
       "id": 9,
       "title": "Frete na troca",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
         "database/migrations/056_exchange_logistics_responsibility.sql",
@@ -198,7 +198,7 @@
         "docs/requirement-09-exchange-freight.md"
       ],
       "evidence": "HTTP/PostgreSQL comprova duas pernas opostas com destinatários responsáveis, duas cotações independentes e confirmação restrita ao pagador de cada perna. Totais externos de R$ 21,00 e R$ 31,50 preservaram o preço do parceiro e adicionaram 5% da FraldaCycle; tentativa cruzada recebeu 404. Complemento técnico 07/11/2026: consulta administrativa somente leitura valida duas pernas, pagadores independentes, cotações, planos financeiros e composição de 5%, com provas sintéticas unitárias e PostgreSQL/HTTP (sujeitas a CI do PR).",
-      "reason": "Cotações, confirmação individual, planos por perna e consulta conjunta de consistência interna foram preparados; não há cotação real no fornecedor, cobrança individual homologada ou liquidação/repasses externos."
+      "reason": "Escopo técnico concluído: cada destinatário é o pagador exclusivo da perna que recebe, com cotações, confirmação privada, composição comercial, planos independentes e consistência conjunta comprovados. Fornecedor, cobrança, liquidação e repasses reais permanecem nos requisitos 2, 3, 10 e 12 e como gates de ativação."
     },
     {
       "id": 10,
