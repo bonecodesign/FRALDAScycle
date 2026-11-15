@@ -261,8 +261,8 @@ export function createReceiptRepository(database) {
            SELECT participant.user_id,'operational_approval',$2,
              'operational-approval:'||$3||':'||$1::text||':'||participant.user_id::text
            FROM shipments s
-           CROSS JOIN LATERAL unnest(array_remove(ARRAY[s.buyer_id,s.seller_id,s.courier_id],NULL)) AS participant(user_id)
-           WHERE s.id=$1
+           CROSS JOIN LATERAL (VALUES(s.buyer_id),(s.seller_id),(s.courier_id)) AS participant(user_id)
+           WHERE s.id=$1::uuid AND participant.user_id IS NOT NULL
            ON CONFLICT(dedupe_key) DO NOTHING`,
           [shipmentId,approvalMessage,approvalKind],
         );
