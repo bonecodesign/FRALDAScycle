@@ -398,7 +398,7 @@
     {
       "id": 18,
       "title": "Recebimento institucional",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "apps/api/institution-service.js",
         "database/institution-repository.js",
@@ -426,8 +426,8 @@
         "tests/donation-service.test.mjs",
         "docs/requirement-18-institution-receipt-order.md"
       ],
-      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse. Em 14/11/2026, a conclusão administrativa separada passou a revalidar autoridade, comprovante, ordem temporal e ocorrências; repetição não duplica efeito e a auditoria registra explicitamente que nenhum pagamento, repasse ou ato externo foi criado.",
-      "reason": "Autorização institucional, aprovação, validação independente e conclusão idempotente estão preparadas localmente. Identidade, retirada, entrega e evidências humanas reais ainda exigem homologação operacional."
+      "evidence": "Prova HTTP/PostgreSQL dedicada: terceiros recebem 404; representante verificado aprova de forma idempotente; participante não valida o próprio recebimento; administrador independente valida; consulta operacional permanece sem repasse. Banco confirma uma aprovação, uma validação, zero pagamentos e zero obrigações de repasse. Em 14/11/2026, a conclusão administrativa separada passou a revalidar autoridade, comprovante, ordem temporal e ocorrências; repetição não duplica efeito e a auditoria registra explicitamente que nenhum pagamento, repasse ou ato externo foi criado. PRs #272 e #273 foram integrados com CI remoto aprovado. Revisão formal de 15/11/2026 confirmou que os efeitos humanos e físicos restantes são gates de ativação, não lacunas do fluxo técnico deste requisito.",
+      "reason": "Escopo técnico concluído: autoridade institucional vigente, confirmação do representante, validação independente, ordem obrigatória, idempotência e conclusão administrativa sem efeito financeiro estão comprovadas. Identidade, retirada e evidências humanas reais permanecem gates de ativação e não são alegadas como executadas."
     },
     {
       "id": 19,

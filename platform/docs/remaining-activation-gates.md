@@ -4,8 +4,8 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 ## Situação formal
 
-- 44 concluídos: 62,86%.
-- 15 parciais: 21,43%.
+- 45 concluídos: 64,29%.
+- 14 parciais: 20,00%.
 - 11 bloqueados: 15,71%.
 - Produção: bloqueada.
 
@@ -13,7 +13,7 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 
 | Requisitos | Próximo fechamento local | Portão que continuará aberto |
 | --- | --- | --- |
-| 2, 9, 11, 17, 18 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. | Tarifas, cobrança, entrega e confirmação reais. |
+| 2, 9, 11, 17 | Manter contratos, fórmulas, estados, idempotência e jornadas de homologação protegidos por testes. O fluxo técnico do recebimento institucional (item 18) está concluído. | Tarifas, cobrança, entrega e confirmação reais. |
 | 10, 12 | Manter a obrigação local da diferença e o processamento de frete desligados. | Homologação financeira da diferença; decisão sobre retirada do standby do frete, fornecedor e tarifas. |
 | 26, 27, 28, 31, 32, 33 | Manter controles de minimização, isolamento, correção, remoção e flags desligadas; testar sem dados reais. | Revisão jurídica e de privacidade: finalidade, base, obrigatoriedade, retenção, direitos e ofertas. |
 | 41, 45 | Fortalecer filtros, pedidos de exclusão e testes sintéticos. O ciclo técnico de sanções do item 42 está concluído. | Inspeção de mídia real, equipe de moderação, decisão legal de retenção e atendimento humano. |

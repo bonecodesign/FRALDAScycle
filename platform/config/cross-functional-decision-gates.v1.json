@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-08",
+  "asOf": "2026-11-15",
   "sourceMatrix": "docs/requirements-matrix.json",
   "sourceCodexBoard": "config/codex-action-board.v1.json",
   "state": "preparation_only",
-  "mainBaseline": "ee92b8a034b6f2377ecd8fcaa894dcf41d63d8b8",
+  "mainBaseline": "b6ee265619601eb0836bf00f2f32393b47b8af13",
   "countsAtCreation": {
     "denominator": 70,
-    "completed": 44,
-    "partial": 15,
+    "completed": 45,
+    "partial": 14,
     "blocked": 11
   },
   "noGo": true,
@@ -232,7 +232,6 @@
       "title": "Operação de instituições, suporte, incidentes e piloto",
       "priority": 3,
       "requirementIds": [
-        18,
         51,
         56,
         62,
