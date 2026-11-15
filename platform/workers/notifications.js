@@ -12,6 +12,11 @@ export function backoffSeconds(attempt) {
 }
 
 const CHILD_AGE_EVENTS = new Set(["child_profile_age_limit_warning", "child_profile_age_limit_closed"]);
+const REQUIRED_OPERATIONAL_EVENTS = new Set([
+  "payment.authorized", "payment.paid", "payment.failed", "payment.refunded", "payment.disputed",
+  "shipment.assigned", "shipment.picked_up", "shipment.in_transit", "shipment.delivered",
+  "shipment.failed", "shipment.cancelled", "receipt.approved", "proof.validated",
+]);
 
 /**
  * A provider must never receive child profile attributes from historical jobs.
@@ -19,6 +24,13 @@ const CHILD_AGE_EVENTS = new Set(["child_profile_age_limit_warning", "child_prof
  * fields at the final dispatch boundary without mutating or inventing evidence.
  */
 export function notificationPayloadForDispatch(job) {
+  if (job?.kind === "operational_required_notice") {
+    if (job.payload?.channel !== "email" || !REQUIRED_OPERATIONAL_EVENTS.has(job.payload?.event)
+      || Object.keys(job.payload).some(key => !["channel", "event"].includes(key))) {
+      throw new Error("Required operational notification payload is not supported");
+    }
+    return { channel: "email", event: job.payload.event };
+  }
   if (job?.kind !== "account_lifecycle_notice") return job?.payload;
   // This notification kind is exclusive to child age lifecycle messages.
   // Missing events or unexpected payloads must never bypass minimization.

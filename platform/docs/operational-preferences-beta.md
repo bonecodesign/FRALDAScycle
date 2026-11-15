@@ -45,3 +45,9 @@ Testes adicionais usam transportes totalmente sintéticos e exercitam recusa pr�
 Pagamento, entrega e aprovação agora criam avisos internos mínimos e idempotentes na mesma transação da mudança de estado. Disputa e segurança permanecem nos fluxos específicos já existentes. Os avisos não contêm publicidade, valores, endereço, contato ou documento; um webhook duplicado não repete efeitos. Evidências e limites estão em `required-operational-notices.md`.
 
 O requisito 49 permanece **parcial** porque a decisão exige envio dos avisos e a entrega externa ainda não foi homologada.
+
+## Fila externa minimizada — 15 de novembro de 2026
+
+Os eventos obrigatórios de pagamento, entrega e aprovação agora também geram, na mesma transação, jobs de e-mail para participantes ativos com endereço verificado. Esses jobs usam o tipo `operational_required_notice`, não são lembretes opcionais e não são adiados pelo horário silencioso. Na fronteira de despacho, uma allowlist reduz o payload a `channel` e `event`; qualquer campo extra ou evento desconhecido falha antes da rede.
+
+Os testes PostgreSQL usam destinatários e transporte sintéticos. Nenhum fornecedor, credencial, template real ou mensagem externa foi ativado. Por isso, o requisito 49 continua **parcial**.

@@ -1069,6 +1069,7 @@
         "tests/notification-device-service.test.mjs",
         "tests/incident-critical-notification.test.mjs",
         "database/migrations/172_required_operational_notices.sql",
+    "database/migrations/173_required_operational_notification_kind.sql",
         "tests/paid-party-contact-http-postgres.test.mjs",
         "tests/logistics.test.mjs",
         "tests/receipt-records.test.mjs",
@@ -1077,8 +1078,8 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Pagamento, entrega e aprovação geram avisos internos mínimos, transacionais e idempotentes; disputa e segurança permanecem cobertas por seus fluxos específicos. Preferências, transporte protegido e vínculo técnico de push estão preparados localmente. Testes unitários e PostgreSQL cobrem as categorias obrigatórias, registro, falsificação, envio sintético e revogação, sem chamada externa.",
-      "reason": "Geração automática das categorias obrigatórias, preferências e transporte protegido estão preparados localmente. Fornecedor, SDK, credenciais, permissão do sistema operacional, dispositivo físico, templates e homologação da entrega externa continuam pendentes."
+  "evidence": "Pagamento, entrega e aprovação geram avisos internos idempotentes e fila externa para e-mail verificado com payload restrito a canal e evento; disputa e segurança permanecem cobertas por seus fluxos específicos. Testes unitários e PostgreSQL cobrem geração, elegibilidade, minimização e transporte sintético.",
+  "reason": "Geração automática, fila externa minimizada e transporte protegido estão preparados localmente. Fornecedor, SDK, credenciais, templates e homologação da entrega externa continuam pendentes."
     },
     {
       "id": 50,

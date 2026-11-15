@@ -396,6 +396,15 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           [intent.transaction_id,paymentMessage,event.id],
         );
         await client.query(
+          `INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
+           SELECT 'operational_required_notice',u.email,$2::jsonb,u.id
+           FROM transactions t
+           CROSS JOIN LATERAL (VALUES(t.buyer_id),(t.seller_id)) AS participant(user_id)
+           JOIN users u ON u.id=participant.user_id
+           WHERE t.id=$1 AND u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL`,
+          [intent.transaction_id,JSON.stringify({channel:'email',event:event.type})],
+        );
+        await client.query(
           `INSERT INTO audit_events (action, entity_type, entity_id, metadata)
            VALUES ('payment.webhook.processed', 'payment_intent', $1, $2::jsonb)`,
           [intent.id, JSON.stringify({ eventId: event.id, eventType: event.type })],
