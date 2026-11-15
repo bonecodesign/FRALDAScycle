@@ -252,6 +252,20 @@ export function createReceiptRepository(database) {
           [actorId, validation ? "shipment.proof.validated" : "shipment.receipt.approved",
             shipmentId, JSON.stringify({ proofId: row.proof_id })],
         );
+        const approvalKind=validation?'proof-validated':'receipt-approved';
+        const approvalMessage=validation
+          ? 'O comprovante da entrega recebeu validação independente.'
+          : 'O recebimento da entrega foi confirmado.';
+        await client.query(
+          `INSERT INTO account_notices(user_id,kind,message,dedupe_key)
+           SELECT participant.user_id,'operational_approval',$2,
+             'operational-approval:'||$3||':'||$1::text||':'||participant.user_id::text
+           FROM shipments s
+           CROSS JOIN LATERAL unnest(array_remove(ARRAY[s.buyer_id,s.seller_id,s.courier_id],NULL)) AS participant(user_id)
+           WHERE s.id=$1
+           ON CONFLICT(dedupe_key) DO NOTHING`,
+          [shipmentId,approvalMessage,approvalKind],
+        );
         // Recording either decision never completes the transaction or initiates payout.
         return { recordedAt: result.rows[0].recorded_at, reused: false };
       });

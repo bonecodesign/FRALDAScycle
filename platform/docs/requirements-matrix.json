@@ -1068,12 +1068,17 @@
         "apps/api/notification-device-service.js",
         "tests/notification-device-service.test.mjs",
         "tests/incident-critical-notification.test.mjs",
+        "database/migrations/172_required_operational_notices.sql",
+        "tests/paid-party-contact-http-postgres.test.mjs",
+        "tests/logistics.test.mjs",
+        "tests/receipt-records.test.mjs",
+        "docs/required-operational-notices.md",
         "docs/operational-preferences-beta.md",
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-      "evidence": "Preferências, lembretes opcionais e alerta crítico permanecem comprovados. Em 10/11/2026, a fundação push passou a aceitar somente referência opaca, hash da instalação e prova recente originada no servidor, sem token bruto ou rota pública. A elegibilidade exige conta ativa, preferência atual e dispositivo ativo; referência inexistente ou revogada é cancelada antes do transporte. Testes unitários e PostgreSQL cobrem registro, falsificação, envio sintético e revogação. Envio real e canal oficial permanecem não homologados.",
-      "reason": "Geração automática, transporte protegido e vínculo técnico de push estão preparados localmente. Fornecedor, SDK, credenciais, permissão do sistema operacional, dispositivo físico e homologação das categorias continuam pendentes."
+      "evidence": "Pagamento, entrega e aprovação geram avisos internos mínimos, transacionais e idempotentes; disputa e segurança permanecem cobertas por seus fluxos específicos. Preferências, transporte protegido e vínculo técnico de push estão preparados localmente. Testes unitários e PostgreSQL cobrem as categorias obrigatórias, registro, falsificação, envio sintético e revogação, sem chamada externa.",
+      "reason": "Geração automática das categorias obrigatórias, preferências e transporte protegido estão preparados localmente. Fornecedor, SDK, credenciais, permissão do sistema operacional, dispositivo físico, templates e homologação da entrega externa continuam pendentes."
     },
     {
       "id": 50,

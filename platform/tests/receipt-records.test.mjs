@@ -27,9 +27,13 @@ test('buyer approval and independent validation are separate, audited, and never
       actorId: validation ? 'admin' : 'buyer', shipmentId, validation, reason: 'Foto conferida pela administração.',
     });
     assert.equal(result.reused, false);
-    assert.equal(db.calls.length, 3);
+    assert.equal(db.calls.length, 4);
     assert.match(db.calls[1].sql, validation ? /INSERT INTO delivery_proof_validations/ : /INSERT INTO delivery_receipt_approvals/);
     assert.equal(db.calls[2].values[1], validation ? 'shipment.proof.validated' : 'shipment.receipt.approved');
+    assert.match(db.calls[3].sql, /operational_approval/);
+    assert.equal(db.calls[3].values[1], validation
+      ? 'O comprovante da entrega recebeu validação independente.'
+      : 'O recebimento da entrega foi confirmado.');
     assert.ok(db.calls.every(({ sql }) => !/UPDATE transactions|payment_intents|payout/.test(sql)));
   }
 });
