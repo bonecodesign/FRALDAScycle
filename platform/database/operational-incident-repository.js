@@ -23,6 +23,7 @@ export function createOperationalIncidentRepository(database) {
         const previous = (await client.query('SELECT id FROM operational_incidents WHERE idempotency_key=$1', [idempotencyKey])).rows[0];
         if (previous) {
           const incident=(await client.query(`${select} WHERE i.id=$1`,[previous.id])).rows[0];
+          if (incident && (incident.title !== title || incident.summary !== summary || incident.severity !== severity || incident.domain !== domain || incident.created_by !== actorUserId)) return { idempotencyConflict: true };
           const events=(await client.query(`SELECT id,actor_user_id,action,note,metadata,created_at
             FROM operational_incident_events WHERE incident_id=$1 ORDER BY id`,[previous.id])).rows;
           return {incident,events,reused:true};
