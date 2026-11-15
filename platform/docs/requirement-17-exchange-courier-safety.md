@@ -1,6 +1,6 @@
 # Requisito formal 17 — entregadores nas duas pernas da troca
 
-**Status: parcial.** O código existente já mantém duas remessas independentes, confirmação financeira da diferença, atribuição de entregadores distintos nos testes sintéticos, comprovante e validação por destinatário. Nenhuma entrega, cobrança ou repasse de fornecedor foi habilitado.
+**Status: concluído no escopo técnico.** O código mantém duas remessas independentes, confirmação financeira da diferença e o mesmo entregador durante todo o ciclo A → B → A, com comprovante e validação próprios por destinatário. Nenhuma entrega, cobrança ou repasse de fornecedor foi habilitado.
 
 ## Lacuna corrigida nesta etapa
 
@@ -21,3 +21,5 @@ Todos os bloqueios recusam a atribuição e não geram evento `shipment.courier.
 ## Bloqueios de produção
 
 Disponibilidade real dos entregadores, documentos/consentimentos verificados pelo processo competente, frete cotado e liquidado, repasses, coleta/entrega físicas, fornecedores e operação supervisionada ainda exigem homologação. Esta etapa não ativa orquestração operacional autônoma, contratação, publicação ou transferências reais.
+
+Esses pontos são portões de ativação e não lacunas do contrato técnico do requisito 17. Pagamentos e fornecedores continuam formalmente controlados pelos requisitos 2, 3, 9, 10, 11 e 12.

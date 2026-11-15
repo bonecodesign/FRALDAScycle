@@ -375,7 +375,7 @@
     {
       "id": 17,
       "title": "Entregadores na troca",
-      "status": "parcial",
+      "status": "concluido",
       "references": [
         "database/migrations/037_bilateral_exchanges.sql",
         "database/exchange-repository.js",
@@ -384,6 +384,7 @@
         "apps/app/courier-details.js",
         "apps/api/logistics-handler.js",
         "database/logistics-repository.js",
+        "database/migrations/154_exchange_single_courier_cycle.sql",
         "tests/bilateral-exchange.test.mjs",
         "tests/exchange-http-postgres.test.mjs",
         "tests/courier-payout-eligibility.test.mjs",
@@ -393,7 +394,7 @@
         "docs/requirement-17-exchange-courier-safety.md"
       ],
       "evidence": "Cada perna possui shipment, remetente, recebedor, comprovante e decisões próprios, mas ambas preservam o mesmo entregador durante o ciclo A → B → A. Serviço e restrição PostgreSQL recusam entregador divergente, inclusive por acesso direto ou concorrência, mantendo consulta de repasse isolada sem inventar frete nem permitir repasse. Administrador, entregador suspenso, transação em disputa e segunda atribuição incompatível são recusados. A prova PostgreSQL sintética cobre as duas pernas, diferença quitada localmente, revalidação da habilitação e auditoria; homologação operacional real continua pendente.",
-      "reason": "Atribuição por perna, cadastro, suspensão e travas de aceitação de oferta reforçadas; disponibilidade operacional real, remuneração, fornecedor, coleta e entrega física permanecem dependentes de homologação."
+      "reason": "Escopo técnico concluído: as duas pernas preservam o mesmo entregador no ciclo A → B → A, com revalidação de elegibilidade, bloqueios operacionais, isolamento por perna e restrição PostgreSQL contra divergência ou concorrência. Disponibilidade, remuneração, fornecedor, coleta e entrega reais permanecem gates de ativação."
     },
     {
       "id": 18,

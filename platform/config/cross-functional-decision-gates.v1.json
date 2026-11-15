@@ -4,11 +4,11 @@
   "sourceMatrix": "docs/requirements-matrix.json",
   "sourceCodexBoard": "config/codex-action-board.v1.json",
   "state": "preparation_only",
-  "mainBaseline": "b6ee265619601eb0836bf00f2f32393b47b8af13",
+  "mainBaseline": "ec0fb98413534e870ad14079153d496d57d80f65",
   "countsAtCreation": {
     "denominator": 70,
-    "completed": 45,
-    "partial": 14,
+    "completed": 46,
+    "partial": 13,
     "blocked": 11
   },
   "noGo": true,
@@ -135,8 +135,7 @@
         9,
         10,
         11,
-        12,
-        17
+        12
       ],
       "doc": "docs/approval-packets/02-financeiro-gateway-logistica.md",
       "testPaths": [
