@@ -4,17 +4,17 @@
   "repo": "bonecodesign/FRALDAScycle",
   "sourceOfTruth": "docs/requirements-matrix.json",
   "baseline": {
-    "mainSha": "b6ee265619601eb0836bf00f2f32393b47b8af13",
+    "mainSha": "ec0fb98413534e870ad14079153d496d57d80f65",
     "denominator": 70,
-    "concluido": 45,
-    "parcial": 14,
+    "concluido": 46,
+    "parcial": 13,
     "bloqueado": 11,
-    "percentCompleted": 64.29
+    "percentCompleted": 65.71
   },
   "planningTarget": {
     "completedCount": 49,
     "percentCompleted": 70,
-    "additionalCompletedRequired": 4,
+    "additionalCompletedRequired": 3,
     "qualification": "Planejamento condicional; nenhum requisito promovido por este arquivo."
   },
   "prerequisites": [
@@ -64,8 +64,7 @@
         9,
         10,
         11,
-        12,
-        17
+        12
       ],
       "name": "Pagamento, frete e troca",
       "codexNow": "Consolidar tabelas de conservação financeira, split e rollback por operação; rodar provas PostgreSQL sintéticas sem executar provedores, preservando item 12 como standby.",
