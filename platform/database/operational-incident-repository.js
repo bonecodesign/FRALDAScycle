@@ -61,6 +61,8 @@ export function createOperationalIncidentRepository(database) {
         if(action==='monitor')status='monitoring';
         if(action==='resolve'){status='resolved';resolvedAt=new Date();}
         if(action==='reopen'){status='open';resolvedAt=null;}
+        // A resolution timestamp is valid only while the incident is resolved.
+        if(status!=='resolved')resolvedAt=null;
         const eventAction={claim:'claimed',release:'released',contain:'contained',monitor:'monitoring',resolve:'resolved',reopen:'reopened',note:'note',assess_privacy:'risk_assessed',record_communication:'communication_decision'}[action];
         const incident=(await client.query(`UPDATE operational_incidents SET status=$2,assigned_to=$3,resolved_at=$4,
           updated_at=now(),version=version+1 WHERE id=$1 RETURNING *`,[id,status,assigned,resolvedAt])).rows[0];

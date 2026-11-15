@@ -39,3 +39,21 @@ test('incident creation acquires a transaction-scoped key lock before reading or
   assert.ok(lockIndex < lookupIndex && lookupIndex < insertIndex);
   assert.deepEqual(db.calls[lockIndex].values, [id]);
 });
+
+test('incident containment clears stale resolution timestamp', async () => {
+  const calls = [];
+  const client = { async query(sql, values) {
+    calls.push({sql, values});
+    if(sql.includes('SELECT * FROM operational_incidents')) return {rows:[{
+      id, version:3, status:'resolved', assigned_to:null, resolved_at:new Date('2026-11-01T10:00:00Z')
+    }]};
+    if(sql.includes('UPDATE operational_incidents SET')) return {rows:[{id,version:4,status:values[1],resolved_at:values[3]}]};
+    return {rows:[]};
+  }};
+  await createOperationalIncidentRepository({transaction:fn=>fn(client)}).change({
+    actorUserId:id,id,expectedVersion:3,action:'contain',note:'Synthetic incident containment'
+  });
+  const update=calls.find(call=>call.sql.includes('UPDATE operational_incidents SET'));
+  assert.equal(update.values[1],'contained');
+  assert.equal(update.values[3],null);
+});
