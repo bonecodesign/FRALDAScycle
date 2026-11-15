@@ -20,6 +20,9 @@ export function createOperationalIncidentRepository(database) {
     },
     async create({ actorUserId, reference, idempotencyKey, title, summary, severity, domain }) {
       return database.transaction(async client => {
+        // Serialize concurrent requests sharing a key before checking for an existing incident.
+        // Transaction-scoped advisory locks release automatically on commit or rollback.
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))', [idempotencyKey]);
         const previous = (await client.query('SELECT id FROM operational_incidents WHERE idempotency_key=$1', [idempotencyKey])).rows[0];
         if (previous) {
           const incident=(await client.query(`${select} WHERE i.id=$1`,[previous.id])).rows[0];
