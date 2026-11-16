@@ -62,12 +62,17 @@ test('pilot preflight refuses malformed evidence arrays instead of silently clas
   assert.match(invalidRegister.errors.join(' | '),/21 distinct valid identifiers/);
 });
 
-test('pilot preflight rejects a claimed pass when underlying evidence is failed or skipped',()=>{
-  const registered={evidence:[...Array.from({length:19},(_,index)=>({id:`evidence-${index}`,status:'passed'})),{id:'screen-reader-check',status:'skipped'},{id:'rollback-owner',status:'skipped'}]};
-  const good=validatePilotTechnicalPreflight(base,registered);
+test('pilot preflight rejects a claimed pass when underlying evidence is failed or skipped',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const [preflight,registered]=await Promise.all([
+    readFile(new URL('../config/pilot-technical-preflight.v1.json',import.meta.url),'utf8').then(JSON.parse),
+    readFile(new URL('../config/pilot-evidence.v1.json',import.meta.url),'utf8').then(JSON.parse),
+  ]);
+  const good=validatePilotTechnicalPreflight(preflight,registered);
   assert.equal(good.valid,true,good.errors.join(' | '));
-  registered.evidence[0].status='failed';
-  const result=validatePilotTechnicalPreflight(base,registered);
+  const covered=registered.evidence.find(item=>preflight.coveredEvidenceIds.includes(item.id));
+  covered.status='failed';
+  const result=validatePilotTechnicalPreflight(preflight,registered);
   assert.equal(result.valid,false);
   assert.match(result.errors.join(' | '),/covered evidence is not passed/);
   assert.equal(result.launchAuthorized,false);
