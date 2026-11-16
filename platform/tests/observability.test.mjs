@@ -122,7 +122,7 @@ test("external secrets failures do not expose provider response content or fall 
     [async () => new Response(marker, { status: 503 }), /rejected the request/],
     [async () => new Response(marker, { status: 200 }), /invalid response/],
     [async () => ({ ok: true, async json() { throw new Error(marker); } }), /invalid response/],
-    [async () => Response.json({ secrets: {} }), /did not return SESSION_SECRET/],
+    [async () => Response.json({ secrets: {} }), /unexpected key set/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "" } }), /did not return SESSION_SECRET/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "   " } }), /did not return SESSION_SECRET/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "secret\nsmuggled" } }), /did not return SESSION_SECRET/],
