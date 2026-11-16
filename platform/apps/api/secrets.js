@@ -81,7 +81,7 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   if (!response.ok) throw new Error("External secrets provider rejected the request");
   // Reject oversized declared responses before parsing; secrets should be small.
   const declaredSize = response.headers?.get?.("content-length");
-  if (declaredSize != null && (!/^\\d+$/.test(declaredSize) || Number(declaredSize) > 65536)) {
+  if (declaredSize != null && (!/^\d+$/.test(declaredSize) || Number(declaredSize) > 65536)) {
     throw new Error("External secrets provider response exceeds size limit");
   }
 
