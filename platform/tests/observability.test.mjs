@@ -120,8 +120,8 @@ test("external secrets failures do not expose provider response content or fall 
   const scenarios = [
     [async () => { throw new Error(marker); }, /provider is unavailable/],
     [async () => new Response(marker, { status: 503 }), /rejected the request/],
-    [async () => new Response(marker, { status: 200 }), /invalid or oversized response/],
-    [async () => new Response(new ReadableStream({ start(controller) { controller.error(new Error(marker)); } })), /invalid or oversized response/],
+    [async () => new Response(marker, { status: 200, headers: { "content-type": "application/json" } }), /invalid or oversized response/],
+    [async () => new Response(new ReadableStream({ start(controller) { controller.error(new Error(marker)); } }), { headers: { "content-type": "application/json" } }), /invalid or oversized response/],
     [async () => Response.json({ secrets: {} }), /unexpected key set/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "" } }), /did not return SESSION_SECRET/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "   " } }), /did not return SESSION_SECRET/],
@@ -212,7 +212,7 @@ test("external secrets resolver rejects unrequested keys without exposing their 
     [],
   ]) {
     await assert.rejects(resolveRuntimeEnv(env, {
-      fetchImpl: async () => new Response(JSON.stringify({ secrets }), { status: 200 }),
+      fetchImpl: async () => new Response(JSON.stringify({ secrets }), { status: 200, headers: { "content-type": "application/json" } }),
     }), /unexpected key set|did not return/);
   }
 });
@@ -236,7 +236,7 @@ test("external secrets resolver rejects oversized declared vault responses befor
   }
   const resolved = await resolveRuntimeEnv(env, {
     fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "fixture" } }), {
-      headers: { "content-length": "65536" },
+      headers: { "content-length": "65536", "content-type": "application/json" },
     }),
   });
   assert.equal(resolved.SESSION_SECRET, "fixture");
@@ -262,12 +262,12 @@ test("external secrets resolver bounds actual bytes even without a trustworthy c
     SESSION_SECRET: "old-fixture",
   };
   for (const headers of [{}, { "content-length": "1" }]) {
-    const response = new Response(JSON.stringify({ secrets: { SESSION_SECRET: "x".repeat(70000) } }), { headers });
+    const response = new Response(JSON.stringify({ secrets: { SESSION_SECRET: "x".repeat(70000) } }), { headers: { ...headers, "content-type": "application/json" } });
     await assert.rejects(resolveRuntimeEnv(env, { fetchImpl: async () => response }), /invalid or oversized response/);
     assert.equal(env.SESSION_SECRET, "old-fixture");
   }
   const good = await resolveRuntimeEnv(env, {
-    fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "fresh-fixture" } })),
+    fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "fresh-fixture" } }), { headers: { "content-type": "application/json" } }),
   });
   assert.equal(good.SESSION_SECRET, "fresh-fixture");
 });
