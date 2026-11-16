@@ -82,6 +82,10 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
     throw new Error("External secrets provider is unavailable");
   }
   if (!response.ok) throw new Error("External secrets provider rejected the request");
+  const contentType = response.headers?.get?.("content-type");
+  if (typeof contentType !== "string" || !/^application\\/json(?:\\s*;\\s*charset=utf-8)?\\s*$/i.test(contentType)) {
+    throw new Error("External secrets provider returned an unexpected content type");
+  }
   // Reject oversized declared responses before parsing; secrets should be small.
   const declaredSize = response.headers?.get?.("content-length");
   if (declaredSize != null && (!/^\d+$/.test(declaredSize) || Number(declaredSize) > 65536)) {
