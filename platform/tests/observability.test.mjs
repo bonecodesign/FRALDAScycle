@@ -216,3 +216,30 @@ test("external secrets resolver rejects unrequested keys without exposing their 
     }), /unexpected key set|did not return/);
   }
 });
+
+test("external secrets resolver rejects oversized declared vault responses before parsing", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+  };
+  for (const length of ["65537", "-1", "not-a-number"]) {
+    let parsed = false;
+    await assert.rejects(resolveRuntimeEnv(env, {
+      fetchImpl: async () => ({
+        ok: true,
+        headers: new Headers({ "content-length": length }),
+        async json() { parsed = true; return { secrets: { SESSION_SECRET: "fixture" } }; },
+      }),
+    }), /response exceeds size limit/);
+    assert.equal(parsed, false);
+  }
+  const resolved = await resolveRuntimeEnv(env, {
+    fetchImpl: async () => ({
+      ok: true,
+      headers: new Headers({ "content-length": "65536" }),
+      async json() { return { secrets: { SESSION_SECRET: "fixture" } }; },
+    }),
+  });
+  assert.equal(resolved.SESSION_SECRET, "fixture");
+});
