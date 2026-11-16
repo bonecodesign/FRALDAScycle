@@ -94,6 +94,10 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   }
 
   let payload;
+  let bodyTimeout;
+  const bodyDeadline = new Promise((_, reject) => {
+    bodyTimeout = setTimeout(() => reject(new Error("vault response timed out")), 3_000);
+  });
   try {
     // Enforce the limit on actual bytes too: Content-Length can be missing or false.
     const reader = response.body?.getReader();
@@ -102,14 +106,15 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
     let total = 0;
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await Promise.race([reader.read(), bodyDeadline]);
         if (done) break;
         total += value.byteLength;
         if (total > 65536) throw new Error("response too large");
         chunks.push(value);
       }
     } catch (error) {
-      await reader.cancel().catch(() => {});
+      // Cancellation is best-effort: a broken provider must not stall failure handling.
+      void reader.cancel().catch(() => {});
       throw error;
     } finally {
       reader.releaseLock();
@@ -120,6 +125,8 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   } catch {
     // Never include response fragments or provider errors in logs.
     throw new Error("External secrets provider returned an invalid or oversized response");
+  } finally {
+    clearTimeout(bodyTimeout);
   }
   // The provider contract is a JSON object containing only the secrets map.
   if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
