@@ -34,10 +34,13 @@ export function supportedRuntimeSecretKeys(){return Object.freeze([...RUNTIME_SE
 export function validateSecretsProviderConfig(env = process.env) {
   const endpoint = env.SECRETS_PROVIDER_URL;
   const token = env.SECRETS_PROVIDER_TOKEN;
-  const keys = String(env.SECRETS_PROVIDER_KEYS ?? "")
-    .split(",").map((key) => key.trim()).filter(Boolean);
+  const rawKeys = env.SECRETS_PROVIDER_KEYS ?? "";
+  const keys = String(rawKeys).split(",").map((key) => key.trim());
 
-  if (!endpoint && !token && keys.length === 0) return null;
+  if (!endpoint && !token && rawKeys === "") return null;
+  if (keys.some((key) => key.length === 0)) {
+    throw new Error("SECRETS_PROVIDER_KEYS contains an empty key");
+  }
   if (!endpoint || !token || keys.length === 0) {
     throw new Error("SECRETS_PROVIDER_URL, SECRETS_PROVIDER_TOKEN and SECRETS_PROVIDER_KEYS must be configured together");
   }
