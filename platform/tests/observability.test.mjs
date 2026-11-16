@@ -357,3 +357,25 @@ test("external secrets provider fails closed on interrupted streams and invalid 
     assert.equal(env.SESSION_SECRET, "previous-fixture");
   }
 });
+
+test("external secrets provider times out when response body never finishes", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "previous-fixture",
+  };
+  let cancelled = false;
+  const body = new ReadableStream({
+    pull() { return new Promise(() => {}); },
+    cancel() { cancelled = true; },
+  });
+  const start = Date.now();
+  await assert.rejects(resolveRuntimeEnv(env, {
+    fetchImpl: async () => new Response(body, { headers: { "content-type": "application/json" } }),
+  }), /invalid or oversized response/);
+  assert.ok(Date.now() - start >= 2_500);
+  assert.ok(Date.now() - start < 10_000);
+  assert.equal(env.SESSION_SECRET, "previous-fixture");
+  assert.equal(cancelled, true);
+});
