@@ -296,3 +296,28 @@ test("external secrets provider rejects extra top-level fields and non-object en
   });
   assert.equal(resolved.SESSION_SECRET, "new-fixture");
 });
+
+test("external secrets provider rejects explicitly non-JSON media types", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "previous-fixture",
+  };
+  for (const type of ["text/html", "text/plain", "application/jsonp", "application/json; charset=iso-8859-1"]) {
+    await assert.rejects(resolveRuntimeEnv(env, {
+      fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "new-fixture" } }), {
+        headers: { "content-type": type },
+      }),
+    }), /unexpected content type/);
+    assert.equal(env.SESSION_SECRET, "previous-fixture");
+  }
+  for (const type of ["application/json", "application/json; charset=utf-8"]) {
+    const resolved = await resolveRuntimeEnv(env, {
+      fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "new-fixture" } }), {
+        headers: { "content-type": type },
+      }),
+    });
+    assert.equal(resolved.SESSION_SECRET, "new-fixture");
+  }
+});
