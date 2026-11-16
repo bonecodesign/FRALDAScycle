@@ -3,11 +3,11 @@ import test from 'node:test';
 import {inspectPilotTechnicalPreflight,validatePilotTechnicalPreflight} from '../tools/pilot-technical-preflight.mjs';
 
 const evidence={evidence:Array.from({length:21},(_,index)=>({id:`evidence-${index}`}))};
-const base={schemaVersion:1,policy:{syntheticDataOnly:true,externalIntegrationsAllowed:false,realTransactionsAllowed:false,publicAccessAllowed:false},coveredEvidenceIds:Array.from({length:19},(_,index)=>`evidence-${index}`),pendingEvidenceIds:['screen-reader-check','rollback-owner'],humanValidationComplete:false,launchAuthorized:false};
+const base={schemaVersion:1,policy:{syntheticDataOnly:true,externalIntegrationsAllowed:false,realTransactionsAllowed:false,publicAccessAllowed:false},coveredEvidenceIds:Array.from({length:16},(_,index)=>`evidence-${index}`),pendingEvidenceIds:['evidence-16','evidence-17','evidence-18','screen-reader-check','rollback-owner'],humanValidationComplete:false,launchAuthorized:false};
 
-test('current technical preflight covers 19 of 21 items without authorizing launch',async()=>{
+test('current technical preflight covers 16 of 21 items without authorizing launch',async()=>{
   const report=await inspectPilotTechnicalPreflight();
-  assert.equal(report.valid,true,report.errors.join('\n'));assert.equal(report.covered,19);assert.equal(report.pending,2);assert.equal(report.launchAuthorized,false);
+  assert.equal(report.valid,true,report.errors.join('\n'));assert.equal(report.covered,16);assert.equal(report.pending,5);assert.equal(report.launchAuthorized,false);
 });
 
 test('preflight fails closed on launch, unsafe policy or missing human-only gates',()=>{
@@ -17,7 +17,7 @@ test('preflight fails closed on launch, unsafe policy or missing human-only gate
   }
 });
 
-test('pilot preflight refuses duplicated evidence claims even if unique coverage remains 19 of 21',()=>{
+test('pilot preflight refuses duplicated evidence claims even if unique coverage remains 16 of 21',()=>{
   const registered={evidence:[...evidence.evidence.slice(0,19),{id:'screen-reader-check'},{id:'rollback-owner'}]};
   for(const patch of [
     {coveredEvidenceIds:[...base.coveredEvidenceIds,base.coveredEvidenceIds[0]]},
@@ -60,4 +60,15 @@ test('pilot preflight refuses malformed evidence arrays instead of silently clas
   const invalidRegister=validatePilotTechnicalPreflight(base,{evidence:'not-an-array'});
   assert.equal(invalidRegister.valid,false);
   assert.match(invalidRegister.errors.join(' | '),/21 distinct valid identifiers/);
+});
+
+test('pilot preflight rejects a claimed pass when underlying evidence is failed or skipped',()=>{
+  const registered={evidence:[...Array.from({length:19},(_,index)=>({id:`evidence-${index}`,status:'passed'})),{id:'screen-reader-check',status:'skipped'},{id:'rollback-owner',status:'skipped'}]};
+  const good=validatePilotTechnicalPreflight(base,registered);
+  assert.equal(good.valid,true,good.errors.join(' | '));
+  registered.evidence[0].status='failed';
+  const result=validatePilotTechnicalPreflight(base,registered);
+  assert.equal(result.valid,false);
+  assert.match(result.errors.join(' | '),/covered evidence is not passed/);
+  assert.equal(result.launchAuthorized,false);
 });
