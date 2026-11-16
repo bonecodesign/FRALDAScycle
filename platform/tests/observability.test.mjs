@@ -20,9 +20,6 @@ test("external secrets resolver requests only allowlisted keys over authenticate
         secrets: {
           DATABASE_URL: "postgresql://database/fraldacycle",
           SESSION_SECRET: "a".repeat(48),
-          UNREQUESTED_SECRET: "must-not-be-merged",
-          NODE_ENV: "development",
-          CORS_ORIGINS: "https://untrusted.example",
         },
       }), { status: 200, headers: { "content-type": "application/json" } });
     },
@@ -199,4 +196,23 @@ test("hosted telemetry configuration requires paired HTTPS credentials", () => {
     TELEMETRY_PROVIDER_URL: "http://telemetry.example.test/events",
     TELEMETRY_PROVIDER_SECRET: "secret",
   }), /must use HTTPS/);
+});
+
+
+test("external secrets resolver rejects unrequested keys without exposing their values", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "DATABASE_URL",
+  };
+  for (const secrets of [
+    { DATABASE_URL: "postgresql://fixture/db", NODE_ENV: "development" },
+    { DATABASE_URL: "postgresql://fixture/db", PAYMENT_PROVIDER_SECRET: "unrequested-value" },
+    {},
+    [],
+  ]) {
+    await assert.rejects(resolveRuntimeEnv(env, {
+      fetchImpl: async () => new Response(JSON.stringify({ secrets }), { status: 200 }),
+    }), /unexpected key set|did not return/);
+  }
 });
