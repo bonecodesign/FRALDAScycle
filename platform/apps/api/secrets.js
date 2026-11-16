@@ -87,6 +87,13 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
     // Parsing and stream errors may contain fragments of the secret response.
     throw new Error("External secrets provider returned an invalid response");
   }
+  // A provider must not return undeclared keys or override unrelated runtime settings.
+  const returned = payload?.secrets;
+  if (!returned || typeof returned !== "object" || Array.isArray(returned) ||
+      Object.keys(returned).length !== keys.length ||
+      Object.keys(returned).some((key) => !keys.includes(key))) {
+    throw new Error("External secrets provider returned an unexpected key set");
+  }
   const resolved = { ...env };
   for (const key of keys) {
     const value = payload?.secrets?.[key];
