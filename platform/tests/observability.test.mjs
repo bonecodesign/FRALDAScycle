@@ -321,3 +321,39 @@ test("external secrets provider rejects explicitly non-JSON media types", async 
     assert.equal(resolved.SESSION_SECRET, "new-fixture");
   }
 });
+
+test("external secrets provider fails closed on interrupted streams and invalid UTF-8", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "previous-fixture",
+  };
+  const fixture = new TextEncoder().encode(JSON.stringify({ secrets: { SESSION_SECRET: "new-fixture" } }));
+  const interrupted = new ReadableStream({
+    start(controller) {
+      controller.enqueue(fixture.subarray(0, 12));
+      controller.error(new Error("private provider response must not leak"));
+    },
+  });
+  for (const body of [
+    interrupted,
+    new ReadableStream({ start(controller) {
+      controller.enqueue(new Uint8Array([0x7b, 0x22, 0xff, 0x22, 0x3a, 0x31, 0x7d]));
+      controller.close();
+    } }),
+    new ReadableStream({ start(controller) {
+      controller.enqueue(fixture.subarray(0, 12));
+      controller.close();
+    } }),
+  ]) {
+    await assert.rejects(resolveRuntimeEnv(env, {
+      fetchImpl: async () => new Response(body, { headers: { "content-type": "application/json" } }),
+    }), (error) => {
+      assert.match(error.message, /invalid or oversized response/);
+      assert.doesNotMatch(error.message, /private provider response|new-fixture/);
+      return true;
+    });
+    assert.equal(env.SESSION_SECRET, "previous-fixture");
+  }
+});
