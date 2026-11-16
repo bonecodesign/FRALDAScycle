@@ -67,8 +67,12 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   const { url, token, keys } = provider;
 
   let response;
+  let requestTimeout;
+  const requestDeadline = new Promise((_, reject) => {
+    requestTimeout = setTimeout(() => reject(new Error("vault request timed out")), 3_000);
+  });
   try {
-    response = await fetchImpl(url, {
+    response = await Promise.race([fetchImpl(url, {
       method: "POST",
       redirect: "error",
       headers: {
@@ -77,9 +81,11 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
       },
       body: JSON.stringify({ keys }),
       signal: AbortSignal.timeout(3_000),
-    });
+    }), requestDeadline]);
   } catch {
     throw new Error("External secrets provider is unavailable");
+  } finally {
+    clearTimeout(requestTimeout);
   }
   if (!response.ok) throw new Error("External secrets provider rejected the request");
   // If supplied, the media type must be JSON; legacy mocks may omit the header.
