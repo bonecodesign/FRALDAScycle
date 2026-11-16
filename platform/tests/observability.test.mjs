@@ -379,3 +379,26 @@ test("external secrets provider times out when response body never finishes", as
   assert.equal(env.SESSION_SECRET, "previous-fixture");
   assert.equal(cancelled, true);
 });
+
+test("external secrets request times out when transport ignores abort signal", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "previous-fixture",
+  };
+  const start = Date.now();
+  await assert.rejects(resolveRuntimeEnv(env, {
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.signal instanceof AbortSignal, true);
+      return new Promise(() => {});
+    },
+  }), (error) => {
+    assert.equal(error.message, "External secrets provider is unavailable");
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.ok(Date.now() - start >= 2_500);
+  assert.ok(Date.now() - start < 10_000);
+  assert.equal(env.SESSION_SECRET, "previous-fixture");
+});
