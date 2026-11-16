@@ -120,8 +120,8 @@ test("external secrets failures do not expose provider response content or fall 
   const scenarios = [
     [async () => { throw new Error(marker); }, /provider is unavailable/],
     [async () => new Response(marker, { status: 503 }), /rejected the request/],
-    [async () => new Response(marker, { status: 200 }), /invalid response/],
-    [async () => ({ ok: true, async json() { throw new Error(marker); } }), /invalid response/],
+    [async () => new Response(marker, { status: 200 }), /invalid or oversized response/],
+    [async () => new Response(new ReadableStream({ start(controller) { controller.error(new Error(marker)); } })), /invalid or oversized response/],
     [async () => Response.json({ secrets: {} }), /unexpected key set/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "" } }), /did not return SESSION_SECRET/],
     [async () => Response.json({ secrets: { SESSION_SECRET: "   " } }), /did not return SESSION_SECRET/],
@@ -235,10 +235,8 @@ test("external secrets resolver rejects oversized declared vault responses befor
     assert.equal(parsed, false);
   }
   const resolved = await resolveRuntimeEnv(env, {
-    fetchImpl: async () => ({
-      ok: true,
-      headers: new Headers({ "content-length": "65536" }),
-      async json() { return { secrets: { SESSION_SECRET: "fixture" } }; },
+    fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "fixture" } }), {
+      headers: { "content-length": "65536" },
     }),
   });
   assert.equal(resolved.SESSION_SECRET, "fixture");
@@ -254,4 +252,22 @@ test("external secrets provider rejects empty comma-separated key entries", asyn
     }), /contains an empty key/);
   }
   assert.equal(validateSecretsProviderConfig({}), null);
+});
+
+test("external secrets resolver bounds actual bytes even without a trustworthy content-length", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "old-fixture",
+  };
+  for (const headers of [{}, { "content-length": "1" }]) {
+    const response = new Response(JSON.stringify({ secrets: { SESSION_SECRET: "x".repeat(70000) } }), { headers });
+    await assert.rejects(resolveRuntimeEnv(env, { fetchImpl: async () => response }), /invalid or oversized response/);
+    assert.equal(env.SESSION_SECRET, "old-fixture");
+  }
+  const good = await resolveRuntimeEnv(env, {
+    fetchImpl: async () => new Response(JSON.stringify({ secrets: { SESSION_SECRET: "fresh-fixture" } })),
+  });
+  assert.equal(good.SESSION_SECRET, "fresh-fixture");
 });
