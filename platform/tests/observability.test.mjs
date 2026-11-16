@@ -243,3 +243,15 @@ test("external secrets resolver rejects oversized declared vault responses befor
   });
   assert.equal(resolved.SESSION_SECRET, "fixture");
 });
+
+test("external secrets provider rejects empty comma-separated key entries", async () => {
+  const { validateSecretsProviderConfig } = await import("../apps/api/secrets.js");
+  for (const keys of ["SESSION_SECRET,", ",SESSION_SECRET", "SESSION_SECRET,,DATABASE_URL", " , ", "SESSION_SECRET,  "]) {
+    assert.throws(() => validateSecretsProviderConfig({
+      SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+      SECRETS_PROVIDER_TOKEN: "vault-token",
+      SECRETS_PROVIDER_KEYS: keys,
+    }), /contains an empty key/);
+  }
+  assert.equal(validateSecretsProviderConfig({}), null);
+});
