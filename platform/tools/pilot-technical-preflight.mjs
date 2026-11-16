@@ -24,8 +24,12 @@ export function validatePilotTechnicalPreflight(preflight,evidenceRegister){
   for(const id of covered)if(pending.has(id))errors.push(`evidence cannot be covered and pending: ${id}`);
   for(const id of [...covered,...pending])if(!required.has(id))errors.push(`unknown evidence: ${id}`);
   for(const id of required)if(!covered.has(id)&&!pending.has(id))errors.push(`unclassified evidence: ${id}`);
-  if(covered.size!==19)errors.push('technical coverage must equal 19');
-  if(pending.size!==2||!pending.has('screen-reader-check')||!pending.has('rollback-owner'))errors.push('human-only evidence must remain pending');
+  for(const item of registeredEvidence){
+    if(covered.has(item?.id)&&item?.status!=='passed')errors.push(`covered evidence is not passed: ${item.id}`);
+  }
+  if(covered.size!==16)errors.push('verified technical coverage must equal 16');
+  const mandatoryPending=['publish-search-negotiate','keyboard-check','device-matrix','screen-reader-check','rollback-owner'];
+  if(pending.size!==5||mandatoryPending.some(id=>!pending.has(id)))errors.push('unverified and human-only evidence must remain pending');
   return Object.freeze({valid:errors.length===0,errors:Object.freeze(errors),covered:covered.size,pending:pending.size,launchAuthorized:false});
 }
 

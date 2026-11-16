@@ -10,14 +10,30 @@
     "publicAccessAllowed": false
   },
   "coveredEvidenceIds": [
-    "approved-rules", "catalog-scope", "no-reservation-flow", "test-accounts",
-    "admin-auth", "role-boundaries", "publish-search-negotiate",
-    "open-donation-attestation", "listing-unavailability", "synthetic-data",
-    "chat-protection", "audit-trail", "keyboard-check", "device-matrix",
-    "support-script", "incident-severity", "findings-log", "go-no-go-decision",
+    "approved-rules",
+    "catalog-scope",
+    "no-reservation-flow",
+    "test-accounts",
+    "admin-auth",
+    "role-boundaries",
+    "open-donation-attestation",
+    "listing-unavailability",
+    "synthetic-data",
+    "chat-protection",
+    "audit-trail",
+    "support-script",
+    "incident-severity",
+    "findings-log",
+    "go-no-go-decision",
     "next-actions"
   ],
-  "pendingEvidenceIds": ["screen-reader-check", "rollback-owner"],
+  "pendingEvidenceIds": [
+    "publish-search-negotiate",
+    "keyboard-check",
+    "device-matrix",
+    "screen-reader-check",
+    "rollback-owner"
+  ],
   "humanValidationComplete": false,
   "launchAuthorized": false
 }
