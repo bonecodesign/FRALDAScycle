@@ -116,8 +116,13 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
     // Never include response fragments or provider errors in logs.
     throw new Error("External secrets provider returned an invalid or oversized response");
   }
+  // The provider contract is a JSON object containing only the secrets map.
+  if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
+      Object.keys(payload).length !== 1 || !Object.hasOwn(payload, "secrets")) {
+    throw new Error("External secrets provider returned an unexpected response shape");
+  }
   // A provider must not return undeclared keys or override unrelated runtime settings.
-  const returned = payload?.secrets;
+  const returned = payload.secrets;
   if (!returned || typeof returned !== "object" || Array.isArray(returned) ||
       Object.keys(returned).length !== keys.length ||
       Object.keys(returned).some((key) => !keys.includes(key))) {

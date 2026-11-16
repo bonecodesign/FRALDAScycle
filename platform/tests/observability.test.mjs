@@ -271,3 +271,28 @@ test("external secrets resolver bounds actual bytes even without a trustworthy c
   });
   assert.equal(good.SESSION_SECRET, "fresh-fixture");
 });
+
+test("external secrets provider rejects extra top-level fields and non-object envelopes", async () => {
+  const env = {
+    SECRETS_PROVIDER_URL: "https://secrets.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "vault-token",
+    SECRETS_PROVIDER_KEYS: "SESSION_SECRET",
+    SESSION_SECRET: "old-fixture",
+  };
+  for (const payload of [
+    { secrets: { SESSION_SECRET: "new-fixture" }, debug: "unexpected" },
+    { secrets: { SESSION_SECRET: "new-fixture" }, metadata: { status: "ok" } },
+    [{ secrets: { SESSION_SECRET: "new-fixture" } }],
+    null,
+    "unexpected",
+  ]) {
+    await assert.rejects(resolveRuntimeEnv(env, {
+      fetchImpl: async () => Response.json(payload),
+    }), /unexpected response shape/);
+    assert.equal(env.SESSION_SECRET, "old-fixture");
+  }
+  const resolved = await resolveRuntimeEnv(env, {
+    fetchImpl: async () => Response.json({ secrets: { SESSION_SECRET: "new-fixture" } }),
+  });
+  assert.equal(resolved.SESSION_SECRET, "new-fixture");
+});
