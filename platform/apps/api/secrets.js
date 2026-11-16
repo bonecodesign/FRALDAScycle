@@ -97,7 +97,6 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
   let bodyTimeout;
   const bodyDeadline = new Promise((_, reject) => {
     bodyTimeout = setTimeout(() => reject(new Error("vault response timed out")), 3_000);
-    bodyTimeout.unref?.();
   });
   try {
     // Enforce the limit on actual bytes too: Content-Length can be missing or false.
