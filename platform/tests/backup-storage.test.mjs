@@ -37,3 +37,11 @@ test('backup publication rejects unsafe prefixes without reading artifacts or up
   }
   assert.equal(calls,0);
 });
+
+test('protected storage requires explicit integer retention without coercing strings or booleans',()=>{
+  const config={enabled:true,endpoint:'https://storage.example.test/backups/',bearerToken:'fixture',kmsKeyId:'fixture-kms'};
+  for(const retentionDays of ['30',true,false,'',null,30.5,-1,366]){
+    assert.equal(createProtectedBackupStorage({...config,retentionDays}).configured,false,String(retentionDays));
+  }
+  assert.equal(createProtectedBackupStorage({...config,retentionDays:30}).configured,true);
+});
