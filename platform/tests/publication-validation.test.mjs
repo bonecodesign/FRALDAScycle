@@ -31,3 +31,19 @@ test('site location parsing separates neighborhood, city and UF without leaking 
   assert.deepEqual(validatePublicationDraft({...draft,...region,postalCode:null},{...options,surface:'site'}),[]);
   assert.ok(validatePublicationDraft({...draft,...parsePublicationRegion('Bairro apenas')},{...options,surface:'site'}).some(item=>item.step===7));
 });
+
+test('publication rejects malformed package counts and preserves seller-entered prices',()=>{
+  for(const stockUnits of [0,-1,1.5,6,'NaN',null,'9999999999999999999999']){
+    const issues=validatePublicationDraft({...draft,stockUnits},options);
+    assert.ok(issues.some(issue=>issue.code==='stockUnits'),String(stockUnits));
+  }
+  for(const stockUnits of [1,2,3,4,5]){
+    assert.deepEqual(validatePublicationDraft({...draft,stockUnits},options),[]);
+  }
+  for(const priceCents of [1,3700,12999]){
+    assert.deepEqual(validatePublicationDraft({...draft,priceCents},options),[]);
+  }
+  for(const priceCents of [0,-1,1.5,'3700',null]){
+    assert.ok(validatePublicationDraft({...draft,priceCents},options).some(issue=>issue.code==='price'));
+  }
+});
