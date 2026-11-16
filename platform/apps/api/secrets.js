@@ -90,10 +90,31 @@ export async function resolveRuntimeEnv(env = process.env, { fetchImpl = fetch }
 
   let payload;
   try {
-    payload = await response.json();
+    // Enforce the limit on actual bytes too: Content-Length can be missing or false.
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("missing response stream");
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > 65536) throw new Error("response too large");
+        chunks.push(value);
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    payload = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(
+      Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total)
+    ));
   } catch {
-    // Parsing and stream errors may contain fragments of the secret response.
-    throw new Error("External secrets provider returned an invalid response");
+    // Never include response fragments or provider errors in logs.
+    throw new Error("External secrets provider returned an invalid or oversized response");
   }
   // A provider must not return undeclared keys or override unrelated runtime settings.
   const returned = payload?.secrets;
