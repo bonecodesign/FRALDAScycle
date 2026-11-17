@@ -216,6 +216,17 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
         assert.equal(result.authentication.layouts.length,24);
         assert.equal((await database.query('SELECT email_verified_at IS NOT NULL AS verified FROM users WHERE email=$1',[authFixture.email])).rows[0].verified,true);
         assert.deepEqual(result.layouts.map(layout => layout.viewport), [320, 375, 768, 1280]);
+        assert.equal(result.publication.browserAutomation,true);
+        assert.equal(result.publication.viewportChecks,32);
+        assert.deepEqual(result.publication.layouts.map(layout=>layout.viewport).slice(0,4),[320,375,768,1280]);
+        assert.equal(result.publication.priceCents,3790);
+        assert.equal(result.publication.mediaRequired,true);
+        assert.equal(result.publication.searchNegativeQuery,true);
+        assert.equal(result.publication.chatUnpaidBlocked,true);
+        assert.equal(result.publication.successfulPublication,false);
+        assert.equal(result.publication.humanValidation,false);
+        assert.equal(result.publication.screenReader,false);
+        assert.equal(result.publication.physicalDevices,false);
         console.log('BETA_BROWSER: ' + JSON.stringify(result));
       } finally {
         if (surface.exitCode === null && surface.signalCode === null) { const stopped = new Promise(resolve => surface.once('exit', resolve)); surface.kill('SIGKILL'); await stopped; }
