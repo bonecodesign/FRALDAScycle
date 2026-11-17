@@ -19,30 +19,49 @@ function httpsUrl(value, field) {
   return url.toString();
 }
 
-async function providerRequest(endpoint, secret, payload, fetchImpl) {
-  let response;
-  try {
-    response = await fetchImpl(endpoint, {
-      method: "POST",
-      redirect: "error",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${secret}`,
-        "idempotency-key": crypto.randomUUID(),
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(8_000),
-    });
-  } catch {
-    throw new ProviderError("provider_unavailable", 503, "Integração externa temporariamente indisponível.");
-  }
-  if (!response.ok) throw new ProviderError("provider_rejected", 502, "O provedor externo recusou a solicitação.");
-  try { return await response.json(); } catch {
-    throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma resposta inválida.");
-  }
+async function providerRequest(endpoint, secret, payload, fetchImpl, timeoutMs) {
+  const controller = new AbortController();
+  let timer;
+  // AbortSignal alone cannot enforce a deadline against a provider adapter
+  // that ignores aborts, nor against a stalled response.json() stream.
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new ProviderError("provider_unavailable", 503, "Integração externa temporariamente indisponível."));
+    }, timeoutMs);
+  });
+  const operation = (async () => {
+    let response;
+    try {
+      response = await fetchImpl(endpoint, {
+        method: "POST",
+        redirect: "error",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${secret}`,
+          "idempotency-key": crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch {
+      throw new ProviderError("provider_unavailable", 503, "Integração externa temporariamente indisponível.");
+    }
+    if (!response?.ok) throw new ProviderError("provider_rejected", 502, "O provedor externo recusou a solicitação.");
+    let result;
+    try { result = await response.json(); }
+    catch { throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma resposta inválida."); }
+    if (!result || typeof result !== "object" || Array.isArray(result)) {
+      throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma resposta inválida.");
+    }
+    return result;
+  })();
+  try { return await Promise.race([operation, deadline]); }
+  finally { clearTimeout(timer); }
 }
 
-export function createMarketplaceProviders(config, fetchImpl = fetch) {
+export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutMs = 8_000 } = {}) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 8_000) throw new RangeError('Invalid media provider deadline');
   return Object.freeze({
     async signedListingRead(userId, input) {
       const storageKey=input?.storageKey;
@@ -65,7 +84,7 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
         const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
           operation: "verify-listing-media", ownerId, storageKey,
           contactRuleVersion:CONTENT_RULE_VERSION,requireOcr:true,requireQrDetection:true,storeOcrText:false,
-        }, fetchImpl);
+        }, fetchImpl, timeoutMs);
         if (result?.storageKey !== storageKey || result.ownerId !== ownerId ||
             result.exists !== true || result.processed !== true || result.immutable !== true ||
             result.contentType !== "image/webp" || result.exifRemoved !== true || result.scanStatus !== "clean" ||
@@ -87,7 +106,7 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
       }
       const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
         operation: "signed-read", requesterId: userId, storageKey, expiresInSeconds: 300,
-      }, fetchImpl);
+      }, fetchImpl, timeoutMs);
       const expiresAt = Date.parse(result.expiresAt);
       const now = Date.now();
       if (!Number.isFinite(expiresAt) || expiresAt <= now || expiresAt > now + 300_000) {
@@ -109,7 +128,7 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
       }
       const result = await providerRequest(config.mediaProviderUrl, config.mediaProviderSecret, {
         operation: "signed-upload", ownerId: userId, contentType, sizeBytes,
-      }, fetchImpl);
+      }, fetchImpl, timeoutMs);
       const storageKey = String(result.storageKey ?? "");
       if (!storageKey.startsWith(`listings/${userId}/`) ||
           !/^[a-zA-Z0-9._/-]{1,512}$/.test(storageKey) || storageKey.includes("..")) {
@@ -152,7 +171,7 @@ export function createMarketplaceProviders(config, fetchImpl = fetch) {
       }
       const result = await providerRequest(config.geocodingProviderUrl, config.geocodingProviderSecret, {
         operation: "geocode", requesterId: userId, address, country: "BR",
-      }, fetchImpl);
+      }, fetchImpl, timeoutMs);
       const latitude = Number(result.latitude);
       const longitude = Number(result.longitude);
       if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||

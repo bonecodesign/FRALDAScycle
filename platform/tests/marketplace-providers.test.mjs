@@ -157,3 +157,52 @@ test("media provider authenticated calls forbid redirects and fail closed on red
   assert.equal(requestOptions.redirect, "error");
   assert.match(requestOptions.headers.authorization, /^Bearer /);
 });
+
+test("media provider never-settling fetch cannot freeze publication even when abort is ignored", async () => {
+  let signal;
+  const providers = createMarketplaceProviders(configured, async (_url, options) => {
+    signal = options.signal;
+    return new Promise(() => {}); // Adapter intentionally ignores abort.
+  }, { timeoutMs: 60 });
+  await assert.rejects(
+    providers.verifyListingMedia("user-1", ["listings/user-1/one.webp"]),
+    error => error instanceof ProviderError && error.code === "provider_unavailable" && error.status === 503,
+  );
+  assert.equal(signal.aborted, true);
+});
+
+test("stalled provider JSON parsing obeys the same deadline as the fetch", async () => {
+  let signal;
+  const providers = createMarketplaceProviders(configured, async (_url, options) => {
+    signal = options.signal;
+    return { ok: true, json: async () => new Promise(() => {}) };
+  }, { timeoutMs: 60 });
+  await assert.rejects(
+    providers.signedUpload("user-1", { contentType: "image/webp", sizeBytes: 100 }),
+    error => error.code === "provider_unavailable" && error.status === 503,
+  );
+  assert.equal(signal.aborted, true);
+});
+
+test("null or array provider JSON cannot become a successful media or geocoding response", async () => {
+  for (const body of [null, [], "ok", 42]) {
+    const providers = createMarketplaceProviders(configured, async () => response(body), { timeoutMs: 100 });
+    await assert.rejects(
+      providers.signedUpload("user-1", { contentType: "image/webp", sizeBytes: 100 }),
+      error => error.code === "invalid_provider_response" && error.status === 502,
+    );
+    await assert.rejects(
+      providers.geocode("user-1", { address: "Belo Horizonte, Minas Gerais" }),
+      error => error.code === "invalid_provider_response" && error.status === 502,
+    );
+  }
+});
+
+test("media provider deadline is positive, bounded and cannot be silently disabled", () => {
+  for (const timeoutMs of [0, -1, NaN, Infinity, 8_001, "8000", null]) {
+    assert.throws(
+      () => createMarketplaceProviders(configured, fetch, { timeoutMs }),
+      RangeError,
+    );
+  }
+});
