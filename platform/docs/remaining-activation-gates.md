@@ -1,6 +1,6 @@
 # Portões restantes até a ativação
 
-Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, atualizada em **14/11/2026**; estado remoto consolidado em [17/11/2026](status-atual-2026-11-17.md). A classificação abaixo separa trabalho técnico local de decisões e provas externas. Um adaptador ou teste simulado não comprova operação real.
+Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, atualizada em **17/11/2026**; estado remoto consolidado em [17/11/2026](status-atual-2026-11-17.md). A classificação abaixo separa trabalho técnico local de decisões e provas externas. Um adaptador ou teste simulado não comprova operação real.
 
 ## Situação formal
 
