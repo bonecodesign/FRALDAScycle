@@ -12,6 +12,7 @@ export function validatePublicationDraft(draft,{mediaKeys=[],surface='app'}={}){
   if(!catalogHasModel(draft.category,draft.brand,draft.model))add(2,'model','Escolha a categoria, marca e modelo na etapa Produto.');
   if(!DIAPER_SIZES.includes(draft.size))add(2,'size','Escolha o tamanho na etapa Produto.');
   if(!/^\d+$/.test(String(draft.quantity??''))||!Number.isSafeInteger(Number(draft.quantity))||Number(draft.quantity)<1||Number(draft.quantity)>100_000)add(2,'quantity','Informe entre 1 e 100.000 unidades na etapa Produto.');
+  if((draft.stockUnits===null)||!Number.isSafeInteger(Number(draft.stockUnits??1))||!Number.isInteger(Number(draft.stockUnits??1))||Number(draft.stockUnits??1)<1||Number(draft.stockUnits??1)>5)add(2,'stockUnits','Informe de 1 a 5 pacotes iguais na etapa Produto.');
   if(!Array.isArray(mediaKeys)||mediaKeys.length<1||mediaKeys.length>8||new Set(mediaKeys).size!==mediaKeys.length||mediaKeys.some(key=>typeof key!=='string'||!/^listings\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9._/-]+$/.test(key)||key.length>512||key.includes('..')))add(3,'photo','Adicione uma foto do produto na etapa Fotos antes de enviar para revisão.');
   if(!['sealed','open'].includes(draft.packageCondition)||draft.packageCondition==='open'&&draft.kind!=='donation')add(4,'condition','Venda e troca exigem pacote fechado; confira a etapa Condição.');
   if(draft.packageCondition==='open'&&draft.openPackageAttested!==true)add(4,'attestation','Confirme as condições sanitárias na etapa Condição.');
