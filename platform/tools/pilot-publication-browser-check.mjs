@@ -8,6 +8,7 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
     await call('Page.navigate',{url:surfaceOrigin+path});
     await until(()=>evaluate(`document.readyState==='complete' && location.pathname===${JSON.stringify(path)} && Boolean(document.querySelector(${JSON.stringify(selector)}))`),'load '+path);
   };
+  const stepReady=async(step)=>until(()=>evaluate(`document.querySelector('[data-publish-step="${step}"]')!==null && document.querySelector('.screen-title-row .badge')?.textContent==='Rascunho nesta aba'`),'publication step '+step+' JS ready');
   const press=async(selector)=>{
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
     await key('Enter','Enter',13);
@@ -22,21 +23,25 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).kind`),'sale');
   await press('#publish-next');
   await until(()=>evaluate(`location.pathname==='/app/publish-2'`),'publication step 2 keyboard transition');
+  await stepReady(2);
   await until(()=>evaluate(`Boolean(document.querySelector('#app-stock-units')) && Boolean(document.querySelector('#app-diaper-model')?.value)`),'catalog options initialized');
   await evaluate(`document.querySelector('#app-diaper-quantity').value='';document.querySelector('#app-diaper-quantity').focus()`);
   await call('Input.insertText',{text:'32'});
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).quantity`),'32');
   await press('#publish-next');
   await until(()=>evaluate(`location.pathname==='/app/publish-3'`),'publication step 3 keyboard transition');
+  await stepReady(3);
   await until(()=>evaluate(`Boolean(document.querySelector('.upload-zone'))`),'publication upload control');
   assert.equal(await evaluate(`document.getElementById('publish-next').disabled`),true,'no photo means no advance');
   await navigate('/app/publish-4','[data-publish-step="4"]');
+  await stepReady(4);
   await evaluate(`document.querySelector('#publish-expiry').focus()`);
   await call('Input.insertText',{text:'08/2027'});
   await evaluate(`document.querySelector('#publish-description').focus()`);
   await call('Input.insertText',{text:'Pacote lacrado guardado em ambiente seco e limpo.'});
   await press('#publish-next');
   await until(()=>evaluate(`location.pathname==='/app/publish-5'`),'publication step 5 keyboard transition');
+  await stepReady(5);
   await press('#publish-next');
   assert.match(await evaluate(`document.querySelector('.publish-error')?.textContent`),/Informe o valor/);
   assert.equal(await evaluate('location.pathname'),'/app/publish-5');
@@ -45,9 +50,11 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).priceCents`),3790,'typed price is not replaced by a demo amount');
   await press('#publish-next');
   await until(()=>evaluate(`location.pathname==='/app/publish-6'`),'publication step 6 keyboard transition');
+  await stepReady(6);
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).delivery`),'Entrega por parceiro');
   await press('#publish-next');
   await until(()=>evaluate(`location.pathname==='/app/publish-7'`),'publication step 7 keyboard transition');
+  await stepReady(7);
   await press('#publish-next');
   assert.equal(await evaluate('location.pathname'),'/app/publish-7','location must not be skipped');
   assert.match(await evaluate(`document.querySelector('.publish-error').textContent`),/cidade e UF|CEP válido/);
@@ -79,6 +86,7 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
     }
   }
   await navigate('/app/publish-8','[data-publish-step="8"]');
+  await stepReady(8);
   await until(()=>evaluate(`document.querySelector('.review-product')!==null`),'review renders');
   assert.equal(await evaluate(`document.querySelector('.review-product .price')?.textContent.includes('37,90')`),true);
   await press('#publish-submit');
