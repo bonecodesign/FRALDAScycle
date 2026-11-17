@@ -48,3 +48,12 @@ test('Codex board refuses unauthorised feature activation, unsafe file refs and 
   absent.workstreams[0].testPaths = ['tests/non-existent-test.test.mjs'];
   await assert.rejects(validateCodexActionBoard(absent, matrix), { code: 'ENOENT' });
 });
+
+test('Codex board refuses omission of the mandatory wallet-postgres CI gate',async()=>{
+  const noWallet=clone(board);
+  noWallet.globalGates.requiredCiJobs=noWallet.globalGates.requiredCiJobs.filter(job=>job!=='wallet-postgres');
+  await assert.rejects(validateCodexActionBoard(noWallet,matrix),/all 5 required CI jobs/);
+  const extra=clone(board);
+  extra.globalGates.requiredCiJobs.push('unreviewed');
+  await assert.rejects(validateCodexActionBoard(extra,matrix),/all 5 required CI jobs/);
+});
