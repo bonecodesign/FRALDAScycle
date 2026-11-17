@@ -5,7 +5,7 @@
 ## Fontes e escopo
 
 - Código e histórico remoto: `bonecodesign/FRALDAScycle`; base da fotografia: commit `894049a4a16358c5f119fce0411bfed872facaa2` da `main` (merge #305).
-- Fonte normativa de percentuais: [matriz oficial](requirements-matrix.json), `updatedAt=2026-11-14`. Nenhum requisito foi promovido por esta sincronização.
+- Fonte normativa de percentuais: [matriz oficial](requirements-matrix.json), `updatedAt=2026-11-17`. Nenhum requisito foi promovido por esta sincronização.
 - Fonte normativa do piloto: [registro histórico de evidências](../config/pilot-evidence.v1.json), [classificação técnica vigente](../config/pilot-technical-preflight.v1.json) e [validador](../tools/pilot-technical-preflight.mjs).
 - Quadro para continuidade: [codex-action-board.v1.json](../config/codex-action-board.v1.json), com trabalho dentro de `platform/`.
 
