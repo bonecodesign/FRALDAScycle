@@ -16,5 +16,7 @@ test('human-readable requirement reports match the formal JSON counts and curren
   assert.match(activationReport,new RegExp(`- ${counts.bloqueado} bloqueados: ${(counts.bloqueado/70*100).toFixed(2).replace('.',',')}%\\.`));
   assert.doesNotMatch(activationReport,/37 concluídos|21 parciais/);
   assert.doesNotMatch(matrixReport,/Jornadas completas de destinos\/CEP/);
-  assert.match(matrixReport,/19\/21 evidências técnicas/);
+  assert.match(matrixReport,/16\/21 evidências técnicas/);
+  assert.doesNotMatch(matrixReport,/19\/21 evidências técnicas/);
+  assert.match(activationReport,/16\/21/);
 });
