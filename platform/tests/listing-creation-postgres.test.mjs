@@ -63,7 +63,7 @@ test('PostgreSQL applies listing identity upgrade and deduplicates concurrent re
 
     // FC-308: join the REAL local services across a single synthetic lifecycle.
     // No media provider, payment provider or human moderator is invoked.
-    const reviewer='10000000-0000-4000-8000-000000000004';
+    const reviewer='c308b308-0000-4000-8000-000000000308';
     await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector)
       VALUES($1,'listing-reviewer@example.test','synthetic-unusable','Moderador fictício','admin',5,'founder')`,[reviewer]);
     const actor={id:reviewer,sessionId:'synthetic-local-review-only'};
