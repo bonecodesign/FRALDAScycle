@@ -1,10 +1,12 @@
 # Homologação humana pendente — piloto interno BH (requisito 67)
 
-**Situação em 07/11/2026: NÃO EXECUTADA; NO-GO.** Este roteiro serve para conduzir e registrar, futuramente, as verificações humanas. Ele **não** é um registro de aceites, de uso de leitor de tela, de exercício humano ou de autorização para iniciar o piloto.
+**Situação em 07/11/2026: NÃO EXECUTADA; NO-GO.**
+> **Retificação documental (17/11/2026):** conferir sempre [estado vigente](status-atual-2026-11-17.md). O manifesto validado tem **16/21 aprovadas, cinco pendentes**. A automação de Chromium posterior não reclassifica a rodada histórica. Este roteiro humano continua **não executado**.
+ Este roteiro serve para conduzir e registrar, futuramente, as verificações humanas. Ele **não** é um registro de aceites, de uso de leitor de tela, de exercício humano ou de autorização para iniciar o piloto.
 
 ## Fontes e limites
 
-- `config/pilot-technical-preflight.v1.json`: 19 das 21 evidências possuem cobertura técnica sintética. Continuam pendentes `screen-reader-check` e `rollback-owner`.
+- `config/pilot-technical-preflight.v1.json`: **16 das 21 evidências estão aprovadas** no manifesto original, com **cinco pendências**: `publish-search-negotiate`, `keyboard-check`, `device-matrix`, `screen-reader-check` e `rollback-owner`. Os dois últimos exigem observação/aceite humano; os três primeiros pedem reexecução formal e rastreável.
 - `config/pilot-evidence.v1.json` e `docs/pilot-run-2026-10-02.md` são o **histórico imutável** da rodada anterior. Não transformar resultados históricos ignorados, falhos ou não executados em aprovações retroativas.
 - `docs/incident-drill-local.md` e `docs/decisions/FC-DEC-2026-10-29-responsaveis-incidentes.md`: estrutura aprovada para triagem, responsável técnico, substituto e observador independente.
 - O modo `PILOT_BH_ENABLED` permanece desligado; `humanValidationComplete=false` e `launchAuthorized=false`. Nenhum dado pessoal real, contratação, mensagem externa, cobrança, frete ou publicação é autorizado por este documento.
@@ -47,8 +49,8 @@
 ## Consolidação e decisão
 
 1. Confirmar que `screen-reader-check` e `rollback-owner` possuem registros humanos válidos e que não há falha bloqueadora. **Hoje ambos estão pendentes.**
-2. Preservar a distinção entre a pré-validação sintética 19/21, a futura homologação humana e a decisão formal de lançamento; não reescrever as evidências históricas nem promover automaticamente a matriz.
-3. Validar, em outro procedimento, identidade/revisão das contas convidadas, responsabilidades reais, parecer jurídico/privacidade, canais, fornecedores, infraestrutura, suporte e eventuais bloqueios financeiros. A conclusão dos dois portões **não basta** para liberar produção.
+2. Preservar a distinção entre a pré-validação sintética 16/21, a futura homologação humana e a decisão formal de lançamento; não reescrever as evidências históricas nem promover automaticamente a matriz.
+3. Validar, em outro procedimento, identidade/revisão das contas convidadas, responsabilidades reais, parecer jurídico/privacidade, canais, fornecedores, infraestrutura, suporte e eventuais bloqueios financeiros. A conclusão dos dois portões humanos **não basta** para liberar produção, nem dispensa as três evidências técnicas ainda pendentes.
 4. Submeter o pacote de evidências à decisão explícita do fundador, registrando data, versão, responsáveis e justificativa. Sem aprovação expressa ou diante de lacuna, resultado **NO-GO**.
 5. Enquanto não houver decisão positiva completa, não ativar `PILOT_BH_ENABLED`, não admitir usuários reais e não realizar cobranças ou entregas.
 
@@ -58,4 +60,4 @@
 
 O contrato de decisão do ensaio interno não admite mais um `go` baseado em um subconjunto dos controles. O validador `tools/pilot-execution.mjs` exige, **exatamente uma vez**, os sete IDs oficiais do plano `tools/pilot-contract.mjs`: regras do produto, identidade, jornada, segurança/privacidade, acessibilidade/dispositivos, suporte/incidentes e saída do piloto. Uma decisão `go` sintética só pode ser validada se **todos** os sete resultados forem `passed`, sem achados abertos, e houver próximas ações registradas. O manifesto de prontidão também é recusado caso omita ou substitua um dos sete portões.
 
-**Distinção essencial:** `go` no registro de um **ensaio interno sintético** não representa autorização de lançamento, contratação, usuários reais, pagamentos ou entregas. Este relatório não substitui os portões humanos H1/H2, a revisão das contas, a homologação das integrações ou uma decisão formal específica de início. A pré-validação técnica permanece **19/21**, com as mesmas duas verificações humanas pendentes. O piloto BH continua **NO-GO**.
+**Distinção essencial:** `go` no registro de um **ensaio interno sintético** não representa autorização de lançamento, contratação, usuários reais, pagamentos ou entregas. Este relatório não substitui os portões humanos H1/H2, a revisão das contas, a homologação das integrações ou uma decisão formal específica de início. A pré-validação técnica permanece **16/21**, com cinco evidências pendentes, incluindo as duas verificações humanas. O piloto BH continua **NO-GO**.

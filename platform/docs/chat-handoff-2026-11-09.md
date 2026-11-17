@@ -1,5 +1,8 @@
 # FraldaCycle — passagem de contexto e decisões para Codex (09/11/2026)
 
+> **ATENÇÃO — fotografia histórica.** Estado atualizado em [17/11/2026](status-atual-2026-11-17.md): **48/70 concluídos (68,57%)**, preflight do piloto **16/21 cobertas e cinco pendentes** (não 19/21), **cinco** jobs obrigatórios de CI (incluindo `wallet-postgres`), PRs #300–#305 integradas, piloto BH **NO-GO**. Manter abaixo apenas como contexto histórico; conferir fontes oficiais antes de executar.
+
+
 > Registro de continuidade oriundo das conversas de planejamento. **Não é homologação, parecer jurídico, aceite de gate ou autorização de produção.** Verificar a matriz e o HEAD atuais antes de executar.
 
 ## Fontes oficiais

@@ -1,6 +1,6 @@
 # Portões restantes até a ativação
 
-Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em outubro de 2026. A classificação abaixo separa trabalho técnico local de decisões e provas externas. Um adaptador ou teste simulado não comprova operação real.
+Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, atualizada em **17/11/2026**; estado remoto consolidado em [17/11/2026](status-atual-2026-11-17.md). A classificação abaixo separa trabalho técnico local de decisões e provas externas. Um adaptador ou teste simulado não comprova operação real.
 
 ## Situação formal
 
@@ -22,13 +22,13 @@ Base: matriz de 70 requisitos em `docs/requirements-matrix.json`, revisada em ou
 | 57, 59 | Validar backup/restauração com banco temporário, controles de segredo e diagnóstico de configuração. | Armazenamento, identidades, cofre, rotação e recuperação homologados em infraestrutura real. |
 | 60 | Preparar checklist de saída e portabilidade. | Condições contratuais e direitos de exportação/rescisão do fornecedor escolhido. |
 | 62 | Testar aceite, autoridade, capacidade e revogação com instituições fictícias. | Documentos, identidade e capacidade reais verificados por pessoas. |
-| 67 | Convite, admissão, perímetro de BH e 19/21 evidências técnicas já estão comprovados com dados sintéticos. | Leitor de tela humano, responsável de rollback aceito, revisão das contas e decisão formal de iniciar o piloto. |
+| 67 | Convite, admissão e perímetro de BH têm cobertura técnica sintética; a pré-validação vigente tem **16/21 aprovadas e cinco pendentes** (`publish-search-negotiate`, `keyboard-check`, `device-matrix`, `screen-reader-check`, `rollback-owner`). Testes novos de Chromium não alteram o registro histórico. | Reexecutar a jornada publicação-busca-negociação, teclado e viewports com evidência rastreável; depois leitor de tela humano, dispositivos físicos, responsável de rollback aceito, revisão das contas e decisão formal de iniciar o piloto. |
 
 ## Ordem prática de fechamento
 
 1. Preservar as suítes HTTP, PostgreSQL, navegador e containers verdes; registrar separadamente qualquer falha ambiental ou funcional.
-2. Manter os controles técnicos do piloto BH desligados por padrão e a pré-validação em 19/21 até as duas verificações humanas restantes.
-3. Conferir jornadas Site, App, entregador e Admin em navegador e dispositivos, incluindo teclado e leitor de tela; comparar a interface com as pranchas oficiais por viewport.
+2. Manter os controles técnicos do piloto BH desligados por padrão, preflight **16/21** e as cinco evidências pendentes até reexecução e classificação comprovadas. As pendências incluem três itens de validação técnica e dois portões humanos.
+3. Repetir a jornada de publicação, moderação, busca e negociação com armazenamento de mídia homologado; conferir Site, App, entregador e Admin em navegador, teclado, leitor de tela humano e dispositivos físicos, sem igualar emulação a teste físico.
 4. Executar sessão interna sintética, resposta a incidente, restauração e rollback com responsáveis designados e resultado registrado.
 5. Obter decisões comerciais, parecer jurídico/privacidade, equipe e instituições. Só então homologar infraestrutura e fornecedores reais.
 6. Repetir CI, testes de integração, diagnóstico de produção e decisão formal de lançamento.

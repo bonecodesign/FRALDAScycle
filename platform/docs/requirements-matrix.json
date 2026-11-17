@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-14",
+  "updatedAt": "2026-11-17",
   "baseline": "28b5870dc7873e5874424c9ba9ee4489e578faf6",
   "denominator": 70,
   "requirements": [
@@ -32,24 +32,24 @@
         "database/migrations/140_freight_payout_obligation_links.sql",
         "database/migrations/141_freight_reconciliation_incidents.sql",
         "database/migrations/142_freight_incident_supervision.sql",
-      "database/migrations/155_courier_wallet_foundation.sql",
-      "database/migrations/156_courier_wallet_provider_outbox.sql",
-      "database/migrations/157_wallet_marketplace_payment_allocation.sql",
-      "database/migrations/158_wallet_marketplace_refunds.sql",
-      "database/courier-wallet-repository.js",
-      "apps/api/courier-wallet-service.js",
-      "apps/api/courier-wallet-handler.js",
-      "packages/contracts/wallet-payment-allocation.js",
+        "database/migrations/155_courier_wallet_foundation.sql",
+        "database/migrations/156_courier_wallet_provider_outbox.sql",
+        "database/migrations/157_wallet_marketplace_payment_allocation.sql",
+        "database/migrations/158_wallet_marketplace_refunds.sql",
+        "database/courier-wallet-repository.js",
+        "apps/api/courier-wallet-service.js",
+        "apps/api/courier-wallet-handler.js",
+        "packages/contracts/wallet-payment-allocation.js",
         "tests/logistics-commission-conservation.test.mjs",
-      "tests/courier-wallet-foundation.test.mjs",
-      "tests/courier-wallet-postgres.test.mjs",
-      "tests/courier-wallet-http.test.mjs",
-      "tests/wallet-payment-allocation.test.mjs",
-      "tests/wallet-marketplace-payment-postgres.test.mjs",
-      "docs/courier-wallet-preactivation.md",
+        "tests/courier-wallet-foundation.test.mjs",
+        "tests/courier-wallet-postgres.test.mjs",
+        "tests/courier-wallet-http.test.mjs",
+        "tests/wallet-payment-allocation.test.mjs",
+        "tests/wallet-marketplace-payment-postgres.test.mjs",
+        "docs/courier-wallet-preactivation.md",
         "docs/requirement-02-logistics-commission.md"
       ],
-    "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha. O reembolso preserva a proporção das origens: carteira integral conclui localmente sem fornecedor; composição mista solicita ao provedor somente sua parcela e credita a carteira apenas após confirmação exata por webhook ou reconciliação; integração financeira real continua ausente.",
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha. O reembolso preserva a proporção das origens: carteira integral conclui localmente sem fornecedor; composição mista solicita ao provedor somente sua parcela e credita a carteira apenas após confirmação exata por webhook ou reconciliação; integração financeira real continua ausente.",
       "reason": "Comissão de 5% calculada, persistida e vinculada ao repasse local, com divergências e supervisão; cobrança, tarifa financeira, split homologado, reconciliação externa e repasse real permanecem pendentes."
     },
     {
@@ -1439,10 +1439,13 @@
         "tools/pilot-readiness.mjs",
         "tools/pilot-contract.mjs",
         "tests/pilot-execution.test.mjs",
-        "tests/pilot-readiness.test.mjs"
+        "tests/pilot-readiness.test.mjs",
+        "tools/pilot-publication-browser-check.mjs",
+        "tests/postgres-beta.test.mjs",
+        "docs/status-atual-2026-11-17.md"
       ],
-      "evidence": "PostgreSQL 16 local em 30/10/2026: emissão administrativa HTTP, token exibido uma vez, consumo atômico no cadastro, login admitido, destino BH persistido e consultado, CEP externo recusado sem gravação e bloqueios de reutilização/revogação aprovados. Painel administrativo e entrada opcional no cadastro estão implementados sem persistir o token no navegador. Pré-validação técnica isolada classifica 19/21 evidências e mantém lançamento não autorizado; limites em docs/pilot-bh-technical-gate.md. Em 07/11/2026, a pré-validação local passou a rejeitar identificadores duplicados/inválidos nos 21 registros e nas listas de 19 evidências cobertas e 2 pendentes; testes sintéticos adicionados, sujeitos ao CI. As duas validações humanas continuam pendentes e não alteram a cobertura. Procedimento humano preparado em 07/11/2026 para leitor de tela e nomeação/aceite do rollback, sem comprovantes de execução, sem responsáveis identificados e sem liberação do piloto. Em 07/11/2026 o contrato de decisão sintética passou a exigir os sete portões oficiais sem omissões ou duplicações antes de validar `go`; o catálogo de prontidão também recusa portões faltantes ou substituídos. Regressões sintéticas aguardam aprovação do CI. Um `go` interno não autoriza lançamento: H1/H2 e decisão humana permanecem pendentes.",
-      "reason": "Modo local desligado por padrão; convite, admissão, destino/CEP e 19 evidências técnicas foram comprovados com dados sintéticos. Leitor de tela, nomeação/aceite humano, revisão das contas e decisão de início continuam pendentes; NO-GO mantido."
+      "evidence": "PostgreSQL local com dados sintéticos: convite BH, consumo atômico, revogação, login admitido e limites de CEP testados. Em 30/10/2026 o relatório afirmava 19/21 evidências de pré-validação; a PR #300 corrigiu essa contagem porque havia itens reprovados ou não executados. Em 17/11/2026, o manifesto oficial exige 16/21 cobertas e 5 pendentes (publish-search-negotiate, keyboard-check, device-matrix, screen-reader-check, rollback-owner), mantendo humanValidationComplete=false e launchAuthorized=false. PR #304 executou testes em Chromium e PostgreSQL sintéticos para oito telas, quatro larguras, teclado, preço de rascunho, busca sem resultados e chat bloqueado sem pagamento; cinco jobs passaram, mas isso não comprova upload por fornecedor, publicação ponta a ponta, inspeção com leitor de tela ou dispositivos físicos. Roteiro H1/H2 preparado sem aceites humanos. O contrato de decisão exige todos os sete portões oficiais; go interno sintético não é autorização de piloto. Documento consolidado em docs/status-atual-2026-11-17.md.",
+      "reason": "Modo local desligado por padrão; convite, admissão e destino/CEP têm testes sintéticos. Pré-validação técnica atual: 16/21 evidências técnicas aprovadas e 5 pendentes, inclusive jornada completa, teclado/matriz formal, leitor de tela e rollback humano. Sem fornecedor de mídia, homologações humanas ou autorização; NO-GO mantido."
     },
     {
       "id": 68,

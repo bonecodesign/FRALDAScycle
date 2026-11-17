@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-15",
+  "asOf": "2026-11-17",
   "repo": "bonecodesign/FRALDAScycle",
   "sourceOfTruth": "docs/requirements-matrix.json",
   "baseline": {
-    "mainSha": "d92aff9a94e02ac968a81bf9502c75d9a77e98d9",
+    "mainSha": "894049a4a16358c5f119fce0411bfed872facaa2",
     "denominator": 70,
     "concluido": 48,
     "parcial": 11,
@@ -215,6 +215,7 @@
     "requireHumanApprovalForPromotion": true,
     "requiredCiJobs": [
       "foundation",
+      "wallet-postgres",
       "listing-postgres",
       "containers",
       "browser-postgres"

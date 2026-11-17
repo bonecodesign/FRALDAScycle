@@ -1,19 +1,27 @@
-# Pré-validação técnica do piloto — 30 de outubro de 2026
+# Pré-validação técnica do piloto — histórico de 30/10/2026 e retificação de 17/11/2026
 
-O contrato `config/pilot-technical-preflight.v1.json` classifica as 21 evidências do roteiro sem reescrever a execução histórica de 2 de outubro. A cobertura técnica atual é 19/21, exclusivamente com dados sintéticos e serviços locais.
+**Situação vigente em 17/11/2026:** **16 das 21 evidências aprovadas, cinco pendentes, piloto BH NO-GO.** Fonte atual: [manifesto](../config/pilot-technical-preflight.v1.json), [registro histórico](../config/pilot-evidence.v1.json), [validador](../tools/pilot-technical-preflight.mjs) e [status consolidado](status-atual-2026-11-17.md).
 
-A correção do preço informado na publicação está protegida por testes de interface e validação. O CI remoto #1439 aprovou fundação, PostgreSQL, containers e navegador; o navegador executou comandos de teclado e múltiplas larguras. Isso permite retirar da lacuna técnica a falha antiga de preço, o teste por teclado e a matriz de viewports simulados.
+## Correção do relatório anterior
 
-Continuam pendentes `screen-reader-check`, que exige tecnologia assistiva e observação humana, e `rollback-owner`, que exige nomeação e aceite de pessoas distintas. Dispositivo físico e sessão com participantes também não são alegados por esta pré-validação.
+O texto de 30/10 e seus adendos de 07/11 citavam **19/21 evidências** e apenas duas verificações humanas pendentes. Essa avaliação **não representa mais a classificação vigente**. A [PR #300](https://github.com/bonecodesign/FRALDAScycle/pull/300) corrigiu a contagem, pois uma evidência com estado `failed` e quatro com estado `skipped` estavam sendo consideradas tecnicamente cobertas.
 
-O validador mantém `humanValidationComplete=false` e `launchAuthorized=false`. Qualquer tentativa de autorizar lançamento, habilitar integração externa ou remover as duas pendências faz a validação falhar. O resultado não altera o NO-GO nem o estado parcial do requisito 67.
+O registro original da rodada de 02/10 permanece histórico, **sem aprovação retroativa**: **16 `passed`, 1 `failed` e 4 `skipped`**. A pré-validação atual conta **16 cobertas e 5 pendentes**, exigindo estado `passed` para todas as cobertas. Os cinco IDs ainda pendentes são:
 
-## Validação adicional do registro — 07/11/2026
+1. `publish-search-negotiate`: publicação completa, moderação, busca e negociação ainda não comprovadas em uma mesma sessão de homologação com mídia válida.
+2. `keyboard-check`: o cenário de acessibilidade do manifesto requer nova execução formal e evidência correspondente.
+3. `device-matrix`: viewport emulado não substitui dispositivos físicos nem um aceite abrangente de matriz.
+4. `screen-reader-check`: faltam sessão com leitor de tela e observação **humana** documentadas.
+5. `rollback-owner`: faltam nomeação e aceite reais de responsável técnico e substituto, com segregação de papéis.
 
-A pré-validação isolada rejeita agora identificadores ausentes, vazios ou duplicados, tanto no catálogo original de 21 evidências quanto nas listas de 19 itens com cobertura técnica e dois itens pendentes. Um identificador repetido não pode inflar nem mascarar a cobertura por efeito da deduplicação de `Set`. Listas que não sejam arrays também falham fechadas, em vez de serem interpretadas como cobertura válida.
+## Novas regressões não promovem evidências automaticamente
 
-Testes sintéticos exercitam duplicatas, entrada malformada e registro inconsistente. **Não houve aumento de cobertura:** permanecem 19/21 evidências técnicas e pendem observação por leitor de tela e nomeação/aceite do responsável pelo rollback. `humanValidationComplete=false` e `launchAuthorized=false` continuam obrigatórios. O requisito 67 permanece parcial, e o piloto BH continua NO-GO.
+As PRs [#301](https://github.com/bonecodesign/FRALDAScycle/pull/301)–[#304](https://github.com/bonecodesign/FRALDAScycle/pull/304) corrigiram os preços e ampliaram validação, idempotência, rótulos, navegação por teclado e testes no Chromium. A PR #304 verificou **oito etapas em quatro larguras (32 cenários de navegador)**, consulta negativa de busca, preço informado no rascunho e bloqueio de chat sem pagamento. O CI [#44193763114](https://github.com/bonecodesign/FRALDAScycle/actions/runs/44193763114) aprovou todos os **cinco** jobs exigidos.
 
-## Procedimento humano preparado — 07/11/2026
+Isso é **evidência técnica adicional**, mas não demonstra upload de fotografia por fornecedor homologado, publicação até revisão administrativa, anúncio visível ao comprador, negociação completa, leitor de tela humano nem dispositivo físico. Portanto, **nenhum dos cinco IDs foi reclassificado por este documento**.
 
-O roteiro [`pilot-bh-human-homologation.md`](pilot-bh-human-homologation.md) detalha a futura sessão de leitor de tela e o aceite nominal e independente dos responsáveis por rollback, com campos de evidência privada, tratamento de achados e decisão formal. **O roteiro não equivale à execução** e não altera o registro técnico 19/21, os dois itens pendentes, a decisão NO-GO ou as flags desligadas.
+## Portões permanentes
+
+`humanValidationComplete=false`, `launchAuthorized=false`, `syntheticDataOnly=true`, `externalIntegrationsAllowed=false`, `realTransactionsAllowed=false` e `publicAccessAllowed=false` permanecem obrigatórios. O requisito **67 continua parcial**. Nenhuma evidência documental ou sintética dispensa validação dos fornecedores, privacidade, jurídico, suporte, segurança, recuperação e decisão formal de GO/NO-GO.
+
+O procedimento para leitores de tela, nomeação/aceite e ensaio humano de rollback permanece em [homologação humana](pilot-bh-human-homologation.md). Não registrar dados identificáveis dos avaliadores no repositório público.
