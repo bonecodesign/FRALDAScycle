@@ -5,6 +5,7 @@ import test from 'node:test';
 import { publicationText } from '../packages/contracts/publication-review.js';
 import { publicationLocationFields } from '../packages/contracts/publication-draft-assets.js';
 import { validatePublicationDraft } from '../packages/contracts/publication-validation.js';
+import { listingPrice } from '../packages/contracts/commercial-rules.js';
 import { preparePublicationAttempt,publicationAttemptFailed } from '../packages/contracts/publication-attempt.js';
 
 async function appHarness(publishListing, withPhoto=true, draft={kind:'sale',priceCents:4200}) {
@@ -18,7 +19,7 @@ async function appHarness(publishListing, withPhoto=true, draft={kind:'sale',pri
   const context={
     document:{getElementById(){return null},querySelector(selector){return selector==='#publish-submit'?button:content},createElement(){return {append(...children){this.children=children}}}},
     sessionStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)},
-    publishListing,publicationText,publicationLocationFields,validatePublicationDraft,preparePublicationAttempt,publicationAttemptFailed,listingPrice:()=>4200,notify:message=>notices.push(message),location:{},
+    publishListing,publicationText,publicationLocationFields,validatePublicationDraft,preparePublicationAttempt,publicationAttemptFailed,listingPrice,notify:message=>notices.push(message),location:{},
   };
   vm.runInNewContext(source,context);
   return {click,button,content,values,notices};
@@ -103,4 +104,32 @@ test('submitted title and description match the review text and never substitute
   assert.equal(body.state,'PE');
   assert.equal(body.latitude,null);
   assert.doesNotMatch(body.description,/50000-000/);
+});
+
+test('real publication adapter preserves the seller price and never substitutes a fixed amount',async()=>{
+  for(const priceCents of [1,3700,4500,9999,150000]){
+    let payload;
+    const app=await appHarness(async body=>{payload=body;return {listing:{id:'sale-id',status:'review'}}},true,{kind:'sale',priceCents,stockUnits:2});
+    await app.click();
+    assert.equal(payload?.priceCents,priceCents);
+    assert.equal(payload?.stockUnits,2);
+    assert.equal(app.values.has('fc.publishDraft'),false);
+  }
+  for(const kind of ['exchange','donation']){
+    let payload;
+    const app=await appHarness(async body=>{payload=body;return {listing:{id:'non-sale-id',status:'review'}}},true,{kind,priceCents:null,...(kind==='donation'?{institutionId:'11111111-1111-4111-8111-111111111111'}:{})});
+    await app.click();
+    assert.equal(payload?.priceCents,null,kind);
+  }
+});
+
+test('invalid sale price or package count blocks API submission and preserves draft',async()=>{
+  for(const patch of [{priceCents:0},{priceCents:'4200'},{priceCents:1.5},{stockUnits:0},{stockUnits:6},{stockUnits:null}]){
+    let calls=0;
+    const app=await appHarness(async()=>{calls++},true,{kind:'sale',...patch});
+    await app.click();
+    assert.equal(calls,0,JSON.stringify(patch));
+    assert.equal(app.values.has('fc.publishDraft'),true);
+    assert.equal(app.button.disabled,false);
+  }
 });
