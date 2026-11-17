@@ -40,9 +40,9 @@ export async function validateCodexActionBoard(board, matrix, root = resolve(imp
       board.globalGates.autonomousOrchestration !== 'planned-not-authorized') {
     throw new Error('Codex board must preserve all project safety gates.');
   }
-  const expectedJobs = ['foundation', 'listing-postgres', 'containers', 'browser-postgres'];
+  const expectedJobs = ['foundation', 'wallet-postgres', 'listing-postgres', 'containers', 'browser-postgres'];
   if (JSON.stringify(board.globalGates.requiredCiJobs) !== JSON.stringify(expectedJobs)) {
-    throw new Error('Codex board must retain all 4 required CI jobs.');
+    throw new Error('Codex board must retain all 5 required CI jobs.');
   }
   if (!Array.isArray(board.workstreams) || !board.workstreams.length) {
     throw new Error('Codex board needs prioritized workstreams.');
