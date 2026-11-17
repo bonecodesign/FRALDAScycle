@@ -4,6 +4,8 @@ import {createDatabase} from '../database/client.js';
 import {discoverMigrations,migrate} from '../database/migrate.js';
 import {createMarketplaceRepository} from '../database/marketplace-repository.js';
 import {createMarketplaceService} from '../apps/api/marketplace-service.js';
+import {createAdminService} from '../apps/api/admin-service.js';
+import {createAdminRepository} from '../database/admin-repository.js';
 
 const databaseUrl=process.env.FC_LISTING_TEST_DATABASE_URL;
 test('PostgreSQL applies listing identity upgrade and deduplicates concurrent retries atomically',{
@@ -58,5 +60,71 @@ test('PostgreSQL applies listing identity upgrade and deduplicates concurrent re
     const recovered=await service.create(owner,rollbackInput);assert.ok(recovered.id);
     await assert.rejects(database.query('UPDATE listings SET creation_fingerprint=NULL WHERE id=$1',[recovered.id]),error=>error.code==='23514');
     console.log('Falha de mídia: rollback completo e repetição com a mesma chave verificados.');
+
+    // FC-308: join the REAL local services across a single synthetic lifecycle.
+    // No media provider, payment provider or human moderator is invoked.
+    const reviewer='10000000-0000-4000-8000-000000000004';
+    await database.query(`INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector)
+      VALUES($1,'listing-reviewer@example.test','synthetic-unusable','Moderador fictício','admin',5,'founder')`,[reviewer]);
+    const actor={id:reviewer,sessionId:'synthetic-local-review-only'};
+    let mediaReady=false,mediaChecks=0;
+    const syntheticMedia={
+      async verifyListingMedia(sellerId,keys){
+        mediaChecks++;
+        assert.equal(sellerId,owner);
+        assert.deepEqual(keys,rollbackInput.mediaKeys);
+        if(!mediaReady)throw Object.assign(new Error('Imagem sintética indisponível'),{code:'media_not_ready',status:409});
+        return {verified:true,count:keys.length};
+      },
+    };
+    const administration=createAdminService(createAdminRepository(database),syntheticMedia,{
+      reviewSecret:'synthetic-local-review-secret-not-for-production'.repeat(2),
+    });
+    const detail=await administration.listingReviewDetail(actor,recovered.id);
+    assert.equal(detail.listing.status,'review');
+    assert.deepEqual(detail.media.map(item=>item.storage_key),rollbackInput.mediaKeys);
+    assert.equal((await service.search({query:'Pampers',kind:'sale'})).some(item=>item.id===recovered.id),false);
+    await assert.rejects(service.detail(recovered.id),error=>error.code==='listing_not_found');
+    const reviewContext=administration.issueReviewContext(actor,detail,[{
+      expiresAt:new Date(Date.now()+120_000).toISOString(),
+    }]);
+    assert.ok(reviewContext);
+    const reviewInput={outcome:'published',reason:'Pacote fictício conferido com mídia simulada.',confirmed:true,reviewContext};
+    await assert.rejects(
+      administration.reviewListing({id:owner,sessionId:'seller'},recovered.id,reviewInput),
+      error=>error.code==='independent_listing_review_required',
+    );
+    await assert.rejects(administration.reviewListing(actor,recovered.id,reviewInput),
+      error=>error.code==='media_not_ready');
+    assert.equal((await database.query('SELECT status FROM listings WHERE id=$1',[recovered.id])).rows[0].status,'review');
+    assert.equal((await database.query('SELECT count(*)::integer AS count FROM listing_review_decisions WHERE listing_id=$1',[recovered.id])).rows[0].count,0);
+    mediaReady=true;
+    const approved=await administration.reviewListing(actor,recovered.id,reviewInput);
+    assert.equal(approved.status,'published');
+    assert.ok(new Date(approved.expires_at).getTime()>new Date(approved.published_at).getTime()+29*86400_000);
+    assert.equal((await database.query('SELECT count(*)::integer AS count FROM listing_review_decisions WHERE listing_id=$1 AND reviewer_id=$2',[recovered.id,reviewer])).rows[0].count,1);
+    assert.equal((await database.query("SELECT count(*)::integer AS count FROM audit_events WHERE entity_id=$1 AND action='listing.review.approved'",[recovered.id])).rows[0].count,1);
+    const visible=await service.search({query:'Pampers',kind:'sale',category:'infant',size:'M'});
+    assert.ok(visible.some(item=>item.id===recovered.id),'Only independently approved listings appear in search');
+    const publicListing=await service.detail(recovered.id);
+    assert.equal(publicListing.price_cents,3500);
+    assert.equal(publicListing.status,'published');
+    await assert.rejects(administration.reviewListing(actor,recovered.id,reviewInput),
+      error=>error.code==='listing_review_conflict');
+    assert.equal(mediaChecks,2,'Media check occurred once for the refused attempt and once for approval');
+    const transaction=await service.startTransaction(other,recovered.id,{itemUnits:1});
+    assert.equal(transaction.status,'initiated');
+    assert.equal(transaction.amount_cents,3500);
+    assert.equal(transaction.item_units,1);
+    assert.equal((await service.chatAccess(other,transaction.id)).allowed,false);
+    assert.equal((await service.chatAccess(other,transaction.id)).reason,'payment_not_confirmed');
+    assert.equal((await service.chatAccess(owner,transaction.id)).allowed,false);
+    await assert.rejects(service.chatAccess(reviewer,transaction.id),error=>error.code==='transaction_not_found');
+    assert.equal((await database.query('SELECT count(*)::integer AS count FROM payment_intents WHERE transaction_id=$1',[transaction.id])).rows[0].count,0);
+    assert.equal((await service.search({query:'Pampers',kind:'sale'})).some(item=>item.id===recovered.id),false,'Reserved single-unit listing is no longer searchable');
+    await assert.rejects(service.startTransaction(other,recovered.id),error=>error.code==='listing_unavailable');
+    assert.equal((await database.query('SELECT count(*)::integer AS count FROM transactions WHERE listing_id=$1',[recovered.id])).rows[0].count,1);
+    console.log('FC-308: create -> independent review -> verified synthetic media -> catalog -> search -> transaction -> unpaid chat denied; no provider or human approval claimed.');
+
   }finally{await database.close()}
 });
