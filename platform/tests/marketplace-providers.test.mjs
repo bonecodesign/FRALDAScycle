@@ -346,3 +346,24 @@ test("FC-312: HTTP geocoding returns a safe 502 for incomplete provider coordina
   assert.equal(Object.hasOwn(body,"location"),false);
   assert.equal(invalid.headers.get("cache-control"),"no-store");
 });
+
+test("FC-312: provider cannot invent Brazilian state via truncation or stringify malformed city",async()=>{
+  for(const patch of [
+    {city:{name:"Belo Horizonte"}},{city:42},{city:"x".repeat(121)},{city:"   "},
+    {state:"California"},{state:"XX"},{state:123},{state:{code:"MG"}},
+    {state:"CA"},{state:"M"},{state:"MGxxx"},{state:[]},
+  ]){
+    const providers=createMarketplaceProviders(configured,async()=>response({
+      latitude:-19.9167,longitude:-43.9345,city:"Belo Horizonte",state:"MG",...patch,
+    }));
+    await assert.rejects(providers.geocode("user-1",{address:"Castelo, Belo Horizonte - MG"}),
+      error=>error.code==="invalid_provider_response"&&error.status===502,
+      JSON.stringify(patch));
+  }
+  const providers=createMarketplaceProviders(configured,async()=>response({
+    latitude:-19.9167,longitude:-43.9345,city:"  Belo Horizonte  ",state:" mg ",
+  }));
+  assert.deepEqual(await providers.geocode("user-1",{address:"Castelo, Belo Horizonte - MG"}),{
+    latitude:-19.9167,longitude:-43.9345,city:"Belo Horizonte",state:"MG",approximate:true,
+  });
+});
