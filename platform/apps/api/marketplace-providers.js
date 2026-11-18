@@ -118,8 +118,8 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
     },
     async signedUpload(userId, input) {
       configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
-      const contentType = String(input?.contentType ?? "");
-      const sizeBytes = Number(input?.sizeBytes);
+      const contentType = typeof input?.contentType === "string" ? input.contentType : "";
+      const sizeBytes = input?.sizeBytes;
       if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
         throw new ProviderError("invalid_media_type", 422, "Envie uma imagem JPEG, PNG ou WebP.");
       }
@@ -165,17 +165,21 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
 
     async geocode(userId, input) {
       configured(config.geocodingProviderUrl, config.geocodingProviderSecret, "A geocodificação");
-      const address = String(input?.address ?? "").trim();
+      // Reject objects coerced to "[object Object]" and other ambiguous addresses.
+      const address = typeof input?.address === "string" ? input.address.trim() : "";
       if (address.length < 5 || address.length > 300) {
         throw new ProviderError("invalid_address", 422, "Informe um endereço válido.");
       }
       const result = await providerRequest(config.geocodingProviderUrl, config.geocodingProviderSecret, {
         operation: "geocode", requesterId: userId, address, country: "BR",
       }, fetchImpl, timeoutMs);
-      const latitude = Number(result.latitude);
-      const longitude = Number(result.longitude);
-      if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
-          !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      // Number(null), Number("") and Number(false) are 0. Never convert a
+      // missing or ambiguous provider value into a valid geographic coordinate.
+      // The provider contract requires JSON numbers, not numeric strings.
+      const latitude = result.latitude;
+      const longitude = result.longitude;
+      if (typeof latitude !== "number" || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+          typeof longitude !== "number" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
         throw new ProviderError("invalid_provider_response", 502, "O provedor retornou coordenadas inválidas.");
       }
       return {
