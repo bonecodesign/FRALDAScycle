@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-executed",
+  "source": "config/pilot-technical-preflight.v1.json",
+  "policy": {
+    "syntheticDataOnly": true,
+    "externalIntegrationsAllowed": false,
+    "realTransactionsAllowed": false,
+    "publicAccessAllowed": false
+  },
+  "items": [
+    {
+      "id": "publish-search-negotiate",
+      "taskIds": [
+        "confirm-synthetic-media-sandbox",
+        "publish-eight-step-flow",
+        "independent-review-observation",
+        "verify-search-and-unpaid-chat"
+      ],
+      "status": "not-executed",
+      "humanAttestationRecorded": false,
+      "privateEvidenceRef": null
+    },
+    {
+      "id": "keyboard-check",
+      "taskIds": [
+        "walk-with-keyboard-only",
+        "verify-focus-and-skip-links",
+        "verify-form-errors-and-live-status"
+      ],
+      "status": "not-executed",
+      "humanAttestationRecorded": false,
+      "privateEvidenceRef": null
+    },
+    {
+      "id": "device-matrix",
+      "taskIds": [
+        "record-real-device-environment",
+        "exercise-portrait-and-landscape",
+        "verify-navigation-and-zoom"
+      ],
+      "status": "not-executed",
+      "humanAttestationRecorded": false,
+      "privateEvidenceRef": null
+    },
+    {
+      "id": "screen-reader-check",
+      "taskIds": [
+        "identify-assistive-technology",
+        "observe-forms-search-and-feedback",
+        "observe-purchase-gate-and-support"
+      ],
+      "status": "not-executed",
+      "humanAttestationRecorded": false,
+      "privateEvidenceRef": null
+    },
+    {
+      "id": "rollback-owner",
+      "taskIds": [
+        "nominate-independent-roles",
+        "collect-private-acceptances",
+        "rehearse-three-incidents",
+        "confirm-segregated-recovery-decision"
+      ],
+      "status": "not-executed",
+      "humanAttestationRecorded": false,
+      "privateEvidenceRef": null
+    }
+  ],
+  "rollbackRoles": {
+    "primary": {
+      "accepted": false,
+      "privateEvidenceRef": null
+    },
+    "substitute": {
+      "accepted": false,
+      "privateEvidenceRef": null
+    },
+    "independentObserver": {
+      "accepted": false,
+      "privateEvidenceRef": null
+    }
+  },
+  "quality": {
+    "blockingFindingsReviewed": false,
+    "humanDecisionRecorded": false,
+    "decision": "NO-GO"
+  },
+  "humanValidationComplete": false,
+  "launchAuthorized": false
+}
