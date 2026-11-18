@@ -1,3 +1,4 @@
+import { validateExternalProviderEndpoint } from "./external-provider-endpoint.js";
 const SECRET_KEY_PATTERN = /^[A-Z][A-Z0-9_]{1,127}$/;
 
 // The remote resolver may only supply values that are secrets at runtime.
@@ -47,11 +48,7 @@ export function validateSecretsProviderConfig(env = process.env) {
   if (typeof token !== "string" || token.trim() !== token || token.length < 8 || /[\u0000-\u001f\u007f]/.test(token)) {
     throw new Error("SECRETS_PROVIDER_TOKEN must be a non-empty opaque token without surrounding whitespace or control characters");
   }
-  let url;
-  try { url = new URL(endpoint); } catch { throw new Error("SECRETS_PROVIDER_URL must be a valid URL"); }
-  if (url.protocol !== "https:") throw new Error("SECRETS_PROVIDER_URL must use HTTPS");
-  if (url.username || url.password) throw new Error("SECRETS_PROVIDER_URL must not contain credentials");
-  if (url.search || url.hash) throw new Error("SECRETS_PROVIDER_URL must not contain query parameters or fragments");
+  const url = validateExternalProviderEndpoint(endpoint, "SECRETS_PROVIDER_URL");
   if (
     keys.some((key) => !SECRET_KEY_PATTERN.test(key) || !RUNTIME_SECRET_KEYS.has(key)) ||
     new Set(keys).size !== keys.length
