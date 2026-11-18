@@ -1,3 +1,4 @@
+import { validateExternalProviderEndpoint } from "./external-provider-endpoint.js";
 import { ServiceError } from "./service-error.js";
 import {CONTENT_RULE_VERSION} from '../../packages/contracts/content-moderation.js';
 export class ProviderError extends ServiceError {
@@ -10,6 +11,10 @@ function configured(endpoint, secret, name) {
   if (!endpoint || !secret) {
     throw new ProviderError("provider_not_configured", 503, `${name} ainda não foi configurado.`);
   }
+  // Defense in depth for adapters built without loadConfig(): never send a
+  // Bearer secret to an accidentally local, IP or credential-embedded URL.
+  try { validateExternalProviderEndpoint(endpoint, "PROVIDER_ENDPOINT"); }
+  catch { throw new ProviderError("provider_not_configured", 503, `${name} possui configuração inválida.`); }
 }
 
 function httpsUrl(value, field) {
