@@ -1,4 +1,5 @@
 import { pilotBhConfig } from "./pilot-bh.js";
+import { validateExternalProviderEndpoint } from "./external-provider-endpoint.js";
 
 const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "SESSION_SECRET"];
 
@@ -13,10 +14,8 @@ function httpsProviderPair(env, urlKey, secretKey) {
   if (Boolean(url) !== Boolean(secret)) {
     throw new Error(`${urlKey} and ${secretKey} must be configured together`);
   }
-  if (url && !url.startsWith("https://")) {
-    throw new Error(`${urlKey} must use HTTPS`);
-  }
-  return { url, secret };
+  const validatedUrl = url == null ? null : validateExternalProviderEndpoint(url, urlKey);
+  return { url: validatedUrl, secret };
 }
 
 function fixedManufacturerAvailabilitySources(value) {
