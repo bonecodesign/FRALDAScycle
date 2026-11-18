@@ -79,7 +79,11 @@
         "MED-02: Como bloquear conteúdo inválido e integrar varredura antimalware antes de publicar?",
         "MED-03: Quais região, replicação, durabilidade, disponibilidade e latência para o Brasil?",
         "MED-04: Exclusão, retenção, lifecycle, auditoria e exportação S3 são suportados?",
-        "MED-05: Quais custos de armazenamento, operações e egress devem compor o teto mensal?"
+        "MED-05: Quais custos de armazenamento, operações e egress devem compor o teto mensal?",
+        "MED-06: Qual serviço executará conversão imutável para WebP, remoção EXIF e verificação antimalware antes de disponibilizar a mídia?",
+        "MED-07: Quem fará OCR e leitura de QR Code para impedir contatos externos, sem reter texto reconhecido, com versão auditável da regra?",
+        "MED-08: Como serão comprovados vínculo da mídia ao anunciante, URL de leitura curta, expiração, segregação e confirmação visual independente?",
+        "MED-09: Qual conjunto de evidências permitirá rejeitar respostas incompletas, indisponibilidade, sobrescrita, exclusão pendente e falhas de processamento?"
       ]
     },
     {
@@ -132,8 +136,19 @@
     }
   ],
   "evidencePolicy": {
-    "allowed": ["public-url", "redacted-document-reference", "approval-record-id", "test-result-id"],
-    "forbidden": ["credential", "private-url", "personal-data", "contract-copy", "secret-value"],
+    "allowed": [
+      "public-url",
+      "redacted-document-reference",
+      "approval-record-id",
+      "test-result-id"
+    ],
+    "forbidden": [
+      "credential",
+      "private-url",
+      "personal-data",
+      "contract-copy",
+      "secret-value"
+    ],
     "answersStoredInRepository": false
   }
 }

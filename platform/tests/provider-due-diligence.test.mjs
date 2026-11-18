@@ -7,7 +7,7 @@ test("provider diligence is complete, unsent and contains no approvals or creden
   assert.equal(report.valid, true, report.errors.join("\n"));
   assert.equal(report.diligence.providers.length, 8);
   assert.equal(report.diligence.providers.every(({ state }) => state === "not-contacted"), true);
-  assert.equal(report.diligence.providers.flatMap(({ questions }) => questions).length, 40);
+  assert.equal(report.diligence.providers.flatMap(({ questions }) => questions).length, 44);
   assert.equal(Object.values(report.diligence.scoreWeights).reduce((sum, value) => sum + value, 0), 100);
 });
 
@@ -65,4 +65,23 @@ test("provider diligence rejects duplicate or incomplete questionnaires", () => 
   assert.match(report.errors.join("\n"), /not-contacted/);
   assert.match(report.errors.join("\n"), /incomplete/);
   assert.match(report.errors.join("\n"), /duplicated/);
+});
+
+test("FC-310: vendor questionnaire cannot omit image processing and human review proof", async () => {
+  const { diligence } = await inspectProviderDueDiligence();
+  const media = diligence.providers.find(provider => provider.id === "media");
+  assert.equal(media.questions.length, 9);
+  for (const number of [6,7,8,9]) {
+    const code = "MED-" + String(number).padStart(2, "0");
+    assert.ok(media.questions.some(question => question.startsWith(code + ": ")));
+    const changed = structuredClone(diligence);
+    const entry = changed.providers.find(provider => provider.id === "media");
+    entry.questions = entry.questions.filter(question => !question.startsWith(code + ": "));
+    const result = validateProviderDueDiligence(changed);
+    assert.equal(result.valid, false, code);
+    assert.match(result.errors.join(" "), new RegExp("missing media requirement " + code));
+  }
+  assert.equal(diligence.policy.externalContactPerformed, false);
+  assert.equal(diligence.policy.contracted, false);
+  assert.equal(diligence.policy.credentialsStored, false);
 });

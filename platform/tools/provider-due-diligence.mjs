@@ -36,6 +36,13 @@ export function validateProviderDueDiligence(value) {
       if (seenQuestions.has(id)) errors.push("question " + id + " is duplicated");
       seenQuestions.add(id);
     }
+    if (provider?.id === "media") {
+      const questionIds = new Set((provider.questions ?? []).map(question => question.split(":")[0]));
+      for (let number = 1; number <= 9; number++) {
+        const id = "MED-" + String(number).padStart(2, "0");
+        if (!questionIds.has(id)) errors.push(at + ".questions missing media requirement " + id);
+      }
+    }
   }
   for (const id of IDS) if (!seenIds.has(id)) errors.push("missing capability " + id);
   if (value.evidencePolicy?.answersStoredInRepository !== false) errors.push("answersStoredInRepository must be false");

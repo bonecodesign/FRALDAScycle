@@ -34,7 +34,20 @@
         "short-lived-signed-upload",
         "content-type-validation",
         "retention-policy",
-        "data-processing-agreement"
+        "data-processing-agreement",
+        "immutable-processed-webp",
+        "exif-removal",
+        "malware-scan-clean",
+        "ocr-contact-scan",
+        "qr-code-detection",
+        "contact-rule-version",
+        "no-ocr-text-storage",
+        "owner-isolation",
+        "short-lived-signed-review-read",
+        "independent-human-review",
+        "failure-closed",
+        "deletion-and-export",
+        "provider-adapter-evidence"
       ]
     },
     {

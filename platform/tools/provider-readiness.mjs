@@ -5,6 +5,17 @@ import { isMainModule } from "../packages/contracts/main-module.js";
 const ID = /^[a-z][A-Za-z0-9]*$/;
 const ENV_KEY = /^[A-Z][A-Z0-9_]*$/;
 const CHECK = /^[a-z0-9][a-z0-9-]*$/;
+// FC-310: storage alone is not an approved listing-media processing pipeline.
+// Keep these aligned with marketplace-providers.js and review requirements.
+export const REQUIRED_MEDIA_CHECKS = Object.freeze([
+  "https", "short-lived-signed-upload", "content-type-validation",
+  "retention-policy", "data-processing-agreement",
+  "immutable-processed-webp", "exif-removal", "malware-scan-clean",
+  "ocr-contact-scan", "qr-code-detection", "contact-rule-version",
+  "no-ocr-text-storage", "owner-isolation", "short-lived-signed-review-read",
+  "independent-human-review", "failure-closed", "deletion-and-export",
+  "provider-adapter-evidence",
+]);
 
 export function validateProviderReadinessManifest(value) {
   const errors = [];
@@ -30,7 +41,17 @@ export function validateProviderReadinessManifest(value) {
       if (!Array.isArray(provider?.contractChecks) || provider.contractChecks.length === 0 || provider.contractChecks.some((check) => !CHECK.test(check))) {
         errors.push(at + ".contractChecks is invalid");
       }
+      if (provider?.id === "media") {
+        const contractChecks = new Set(Array.isArray(provider.contractChecks) ? provider.contractChecks : []);
+        for (const check of REQUIRED_MEDIA_CHECKS) {
+          if (!contractChecks.has(check)) errors.push(at + ".contractChecks is missing media gate: " + check);
+        }
+        for (const name of ["MEDIA_PROVIDER_URL", "MEDIA_PROVIDER_SECRET"]) {
+          if (!provider.requiredEnvironment?.includes(name)) errors.push(at + ".requiredEnvironment is missing media variable: " + name);
+        }
+      }
     }
+    if (!ids.has("media")) errors.push("media capability must remain in the provider plan");
   }
   if (SECRET_VALUE.test(JSON.stringify(value))) errors.push("manifest appears to contain a credential");
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
