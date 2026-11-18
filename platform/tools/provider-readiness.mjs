@@ -51,6 +51,7 @@ export function validateProviderReadinessManifest(value) {
         }
       }
     }
+    if (!ids.has("media")) errors.push("media capability must remain in the provider plan");
   }
   if (SECRET_VALUE.test(JSON.stringify(value))) errors.push("manifest appears to contain a credential");
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
