@@ -64,9 +64,7 @@ export function loadConfig(env = process.env) {
   if (Boolean(logisticsProviderUrl) !== Boolean(logisticsProviderSecret)) {
     throw new Error("LOGISTICS_PROVIDER_URL and LOGISTICS_PROVIDER_SECRET must be configured together");
   }
-  if (logisticsProviderUrl && !logisticsProviderUrl.startsWith("https://")) {
-    throw new Error("LOGISTICS_PROVIDER_URL must use HTTPS");
-  }
+  if (logisticsProviderUrl) validateExternalProviderEndpoint(logisticsProviderUrl, "LOGISTICS_PROVIDER_URL");
   if (nodeEnv === "production" && logisticsProviderUrl && !logisticsWebhookSecret) {
     throw new Error("LOGISTICS_WEBHOOK_SECRET is required with a production logistics provider");
   }
@@ -82,18 +80,14 @@ export function loadConfig(env = process.env) {
   if (Boolean(paymentProviderSdkUrl) !== Boolean(paymentProviderSdkIntegrity)) {
     throw new Error("PAYMENT_PROVIDER_SDK_URL and PAYMENT_PROVIDER_SDK_INTEGRITY must be configured together");
   }
-  if (paymentProviderSdkUrl && !paymentProviderSdkUrl.startsWith("https://")) {
-    throw new Error("PAYMENT_PROVIDER_SDK_URL must use HTTPS");
-  }
+  if (paymentProviderSdkUrl) validateExternalProviderEndpoint(paymentProviderSdkUrl, "PAYMENT_PROVIDER_SDK_URL", { allowQuery: true });
   if (paymentProviderSdkIntegrity && !/^sha(256|384|512)-/.test(paymentProviderSdkIntegrity)) {
     throw new Error("PAYMENT_PROVIDER_SDK_INTEGRITY must use SRI");
   }
   if (Boolean(paymentProviderUrl) !== Boolean(paymentProviderSecret)) {
     throw new Error("PAYMENT_PROVIDER_URL and PAYMENT_PROVIDER_SECRET must be configured together");
   }
-  if (paymentProviderUrl && !paymentProviderUrl.startsWith("https://")) {
-    throw new Error("PAYMENT_PROVIDER_URL must use HTTPS");
-  }
+  if (paymentProviderUrl) validateExternalProviderEndpoint(paymentProviderUrl, "PAYMENT_PROVIDER_URL");
   if (nodeEnv === "production" && paymentProviderUrl && !paymentWebhookSecret) {
     throw new Error("PAYMENT_WEBHOOK_SECRET is required with a production payment provider");
   }
@@ -110,17 +104,13 @@ export function loadConfig(env = process.env) {
   if (Boolean(telemetryProviderUrl) !== Boolean(telemetryProviderSecret)) {
     throw new Error("TELEMETRY_PROVIDER_URL and TELEMETRY_PROVIDER_SECRET must be configured together");
   }
-  if (telemetryProviderUrl && !telemetryProviderUrl.startsWith("https://")) {
-    throw new Error("TELEMETRY_PROVIDER_URL must use HTTPS");
-  }
+  if (telemetryProviderUrl) validateExternalProviderEndpoint(telemetryProviderUrl, "TELEMETRY_PROVIDER_URL");
   const rateLimitProviderUrl = env.RATE_LIMIT_PROVIDER_URL ?? null;
   const rateLimitProviderSecret = env.RATE_LIMIT_PROVIDER_SECRET ?? null;
   if (Boolean(rateLimitProviderUrl) !== Boolean(rateLimitProviderSecret)) {
     throw new Error("RATE_LIMIT_PROVIDER_URL and RATE_LIMIT_PROVIDER_SECRET must be configured together");
   }
-  if (rateLimitProviderUrl && !rateLimitProviderUrl.startsWith("https://")) {
-    throw new Error("RATE_LIMIT_PROVIDER_URL must use HTTPS");
-  }
+  if (rateLimitProviderUrl) validateExternalProviderEndpoint(rateLimitProviderUrl, "RATE_LIMIT_PROVIDER_URL");
   if (nodeEnv === "production") {
     for (const key of REQUIRED_IN_PRODUCTION) {
       if (!env[key]) throw new Error(`Missing required production configuration: ${key}`);
@@ -195,14 +185,14 @@ export function loadConfig(env = process.env) {
   const loggiQuoteProviderUrl=env.LOGGI_QUOTE_PROVIDER_URL??null;
   const loggiQuoteProviderSecret=env.LOGGI_QUOTE_PROVIDER_SECRET??null;
   if(Boolean(loggiQuoteProviderUrl)!==Boolean(loggiQuoteProviderSecret))throw new Error('LOGGI_QUOTE_PROVIDER_URL and LOGGI_QUOTE_PROVIDER_SECRET must be configured together');
-  if(loggiQuoteProviderUrl&&!loggiQuoteProviderUrl.startsWith('https://'))throw new Error('LOGGI_QUOTE_PROVIDER_URL must use HTTPS');
+  if(loggiQuoteProviderUrl)validateExternalProviderEndpoint(loggiQuoteProviderUrl,'LOGGI_QUOTE_PROVIDER_URL');
   if(loggiQuotingRequested&&(!loggiQuoteProviderUrl||!loggiHomologationAcknowledged))throw new Error('Loggi quoting requires gateway configuration and homologation acknowledgement');
   const uberDirectQuotingRequested=env.UBER_DIRECT_QUOTING_ENABLED==='true';
   const uberDirectHomologationAcknowledged=env.UBER_DIRECT_HOMOLOGATION_ACKNOWLEDGED==='true';
   const uberDirectQuoteProviderUrl=env.UBER_DIRECT_QUOTE_PROVIDER_URL??null;
   const uberDirectQuoteProviderSecret=env.UBER_DIRECT_QUOTE_PROVIDER_SECRET??null;
   if(Boolean(uberDirectQuoteProviderUrl)!==Boolean(uberDirectQuoteProviderSecret))throw new Error('UBER_DIRECT_QUOTE_PROVIDER_URL and UBER_DIRECT_QUOTE_PROVIDER_SECRET must be configured together');
-  if(uberDirectQuoteProviderUrl&&!uberDirectQuoteProviderUrl.startsWith('https://'))throw new Error('UBER_DIRECT_QUOTE_PROVIDER_URL must use HTTPS');
+  if(uberDirectQuoteProviderUrl)validateExternalProviderEndpoint(uberDirectQuoteProviderUrl,'UBER_DIRECT_QUOTE_PROVIDER_URL');
   if(uberDirectQuotingRequested&&(!uberDirectQuoteProviderUrl||!uberDirectHomologationAcknowledged))throw new Error('Uber Direct quoting requires gateway configuration and homologation acknowledgement');
   const deliveryQuoteCheckoutRequested=env.DELIVERY_QUOTE_CHECKOUT_ENABLED==='true';
   const deliveryQuoteCheckoutAcknowledged=env.DELIVERY_QUOTE_CHECKOUT_ACTIVATION_ACKNOWLEDGED==='true';
