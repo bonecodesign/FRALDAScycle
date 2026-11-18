@@ -18,10 +18,15 @@ function configured(endpoint, secret, name) {
 }
 
 function httpsUrl(value, field) {
-  let url;
-  try { url = new URL(value); } catch { throw new ProviderError("invalid_provider_response", 502, `Resposta inválida do provedor: ${field}.`); }
-  if (url.protocol !== "https:") throw new ProviderError("invalid_provider_response", 502, `O provedor deve retornar HTTPS em ${field}.`);
-  return url.toString();
+  // Media providers may return a different object-storage host and signed query
+  // parameters. Never hand a browser a signed upload/read URL targeting a local
+  // service, IP literal or URL with embedded credentials/fragment.
+  try {
+    validateExternalProviderEndpoint(value, field, { allowQuery: true });
+    return new URL(value).toString();
+  } catch {
+    throw new ProviderError("invalid_provider_response", 502, `O provedor retornou um endereço de mídia inválido: ${field}.`);
+  }
 }
 
 async function providerRequest(endpoint, secret, payload, fetchImpl, timeoutMs) {
