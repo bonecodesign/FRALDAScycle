@@ -270,3 +270,79 @@ test("FC-310: multi-photo verification never accepts partial evidence or serves 
     error=>error.code==="media_not_ready"&&error.status===409);
   assert.deepEqual(operations,["verify-listing-media","verify-listing-media","verify-listing-media"]);
 });
+
+test("FC-312: missing, coerced or non-finite coordinates fail closed instead of defaulting to 0,0",async()=>{
+  const wrong=[
+    {latitude:null,longitude:null},
+    {latitude:null,longitude:-43.9345},
+    {latitude:-19.9167,longitude:null},
+    {latitude:"",longitude:""},
+    {latitude:"-19.9167",longitude:"-43.9345"},
+    {latitude:false,longitude:0},
+    {latitude:true,longitude:0},
+    {latitude:[],longitude:-43.9345},
+    {latitude:{value:-19.9167},longitude:-43.9345},
+    {latitude:NaN,longitude:-43.9345},
+    {latitude:Infinity,longitude:-43.9345},
+    {latitude:-91,longitude:-43.9345},
+    {latitude:-19.9167,longitude:181},
+    {latitude:undefined,longitude:-43.9345},
+  ];
+  for(const payload of wrong){
+    const providers=createMarketplaceProviders(configured,async()=>response(payload));
+    await assert.rejects(
+      providers.geocode("user-1",{address:"Belo Horizonte - MG, Brasil"}),
+      error=>error instanceof ProviderError && error.code==="invalid_provider_response" && error.status===502,
+      JSON.stringify(payload),
+    );
+  }
+  // Numeric zero itself is valid geometry; only implicit conversion to zero is forbidden.
+  const zero=createMarketplaceProviders(configured,async()=>response({latitude:0,longitude:0}));
+  assert.deepEqual(await zero.geocode("user-1",{address:"Endereço sintético de validação"}),{
+    latitude:0,longitude:0,city:null,state:null,approximate:true,
+  });
+});
+
+test("FC-312: geocoding address and upload size types are validated before external calls",async()=>{
+  let calls=0;
+  const providers=createMarketplaceProviders(configured,async()=>{
+    calls++;
+    return response({latitude:-19.9167,longitude:-43.9345});
+  });
+  for(const address of [null,0,true,[],{}, {street:"Av. Brasil"},["Av. Brasil"],"    ","a"]){
+    await assert.rejects(providers.geocode("user-1",{address}),
+      error=>error.code==="invalid_address" && error.status===422);
+  }
+  for(const sizeBytes of [null,"2048",true,false,[],[2048],{},1.5,-1,0,Infinity,10_000_001]){
+    await assert.rejects(providers.signedUpload("user-1",{contentType:"image/png",sizeBytes}),
+      error=>error.code==="invalid_media_size" && error.status===422);
+  }
+  assert.equal(calls,0,"Invalid input must never contact a provider");
+});
+
+test("FC-312: HTTP geocoding returns a safe 502 for incomplete provider coordinates",async context=>{
+  const providers=createMarketplaceProviders(configured,async()=>response({latitude:null,longitude:""}));
+  const server=createApiServer({
+    config:loadConfig({NODE_ENV:"test"}),
+    authService:{async session(cookie){return cookie==="valid"?{id:"synthetic-geo-user"}:null;}},
+    marketplaceProviders:providers,
+  });
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+  context.after(()=>server.close());
+  const origin="http://127.0.0.1:"+server.address().port;
+  const payload={address:"Belo Horizonte, Minas Gerais"};
+  const denied=await fetch(origin+"/v1/geocoding/resolve",{
+    method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),
+  });
+  assert.equal(denied.status,401);
+  const invalid=await fetch(origin+"/v1/geocoding/resolve",{
+    method:"POST",
+    headers:{"content-type":"application/json",cookie:"fc_session=valid"},
+    body:JSON.stringify(payload),
+  });
+  const body=await invalid.json();
+  assert.equal(invalid.status,502,JSON.stringify(body));
+  assert.equal(body.error.code,"invalid_provider_response");
+  assert.equal(Object.hasOwn(body,"location"),false);
+  assert.equal(invalid.headers.get("cache-control"),"no-store");
+});
