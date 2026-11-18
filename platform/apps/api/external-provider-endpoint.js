@@ -28,5 +28,6 @@ export function validateExternalProviderEndpoint(value, field, { allowQuery = fa
       !unbracketed.includes(".")) {
     throw new Error(field + " must use a public DNS hostname, not a local or IP endpoint");
   }
-  return url.toString();
+  // Preserve the caller's already validated path spelling for existing provider contracts.
+  return value;
 }
