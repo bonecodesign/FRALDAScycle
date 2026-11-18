@@ -367,3 +367,29 @@ test("FC-312: provider cannot invent Brazilian state via truncation or stringify
     latitude:-19.9167,longitude:-43.9345,city:"Belo Horizonte",state:"MG",approximate:true,
   });
 });
+
+test("FC-314: direct media and geocoding adapters never send Bearer credentials to unsafe endpoints",async()=>{
+  let outboundCalls=0;
+  const fetchImpl=async()=>{outboundCalls++;throw new Error("No outbound request should be sent");};
+  for(const endpoint of [
+    "https://127.0.0.1/verify",
+    "https://169.254.169.254/latest",
+    "https://localhost/verify",
+    "https://metadata.google.internal/verify",
+    "https://user:password@media.example.test/verify",
+    "https://media.example.test/verify?credential=unexpected",
+  ]){
+    const providers=createMarketplaceProviders({
+      ...configured,mediaProviderUrl:endpoint,geocodingProviderUrl:endpoint,
+    },fetchImpl);
+    await assert.rejects(
+      providers.signedUpload("user-1",{contentType:"image/webp",sizeBytes:100}),
+      error=>error.code==="provider_not_configured"&&error.status===503,
+    );
+    await assert.rejects(
+      providers.geocode("user-1",{address:"Belo Horizonte, MG"}),
+      error=>error.code==="provider_not_configured"&&error.status===503,
+    );
+  }
+  assert.equal(outboundCalls,0);
+});
