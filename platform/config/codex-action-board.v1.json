@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-17",
+  "asOf": "2026-11-18",
   "repo": "bonecodesign/FRALDAScycle",
   "sourceOfTruth": "docs/requirements-matrix.json",
   "baseline": {
-    "mainSha": "894049a4a16358c5f119fce0411bfed872facaa2",
+    "mainSha": "a6573baa1ab30cd42041b6f7648933ab38cdabff",
     "denominator": 70,
     "concluido": 48,
     "parcial": 11,
@@ -20,13 +20,23 @@
   "prerequisites": [
     {
       "pr": 222,
-      "statusAtSnapshot": "draft",
-      "action": "Verificar a consolidação FC-JUR-50 frente à main atual, atualizar textos antigos sobre PR #215, CI e revisão humana; não supor merge."
+      "statusAtSnapshot": "closed-not-merged",
+      "action": "Fotografia histórica, não usar como frente ativa nem reabrir sem lacuna específica."
     },
     {
       "pr": 224,
-      "statusAtSnapshot": "draft",
-      "action": "Conciliar a passagem documental para Codex com este quadro, sem duplicar tarefas; não supor merge."
+      "statusAtSnapshot": "closed-not-merged",
+      "action": "Passagem histórica substituída por matriz e quadro atuais; não duplicar."
+    },
+    {
+      "pr": 265,
+      "statusAtSnapshot": "open-stale",
+      "action": "PR documental antiga, com 43/70 e 19/21; incorporar apenas informação ainda válida ao delta 18/11 e encerrar sem merge se não houver acréscimo único."
+    },
+    {
+      "pr": 286,
+      "statusAtSnapshot": "closed-not-merged-superseded-by-287",
+      "action": "Correção transacional já integrada pelo PR #287; não repetir código, testes ou merge."
     }
   ],
   "workstreams": [
@@ -42,7 +52,7 @@
         33
       ],
       "name": "Dados infantis e perfis",
-      "codexNow": "Preparar dossiê por requisito com cobertura HTTP/PostgreSQL, fluxo desligado por padrão, inventário de dados coletados e lacunas LGPD; identificar testes de não regressão sem habilitar coleta.",
+      "codexNow": "Issue #229 já possui inventário real no arquivo docs/child-profile-dataflow-audit-2026-11-09.md, minimização de notificações e testes HTTP/PostgreSQL, marketing e consentimento. Não repetir auditoria nem testes iguais. Delta: conferir destino e retenção de eventos históricos com atributos infantis e regras de exclusão/backup, com dados sintéticos e parecer humano pendente.",
       "testPaths": [
         "tests/child-profile-http-postgres.test.mjs",
         "tests/family-profile-foundation.test.mjs",
@@ -65,7 +75,7 @@
         12
       ],
       "name": "Pagamento, frete e troca",
-      "codexNow": "Consolidar tabelas de conservação financeira, split e rollback por operação; rodar provas PostgreSQL sintéticas sem executar provedores, preservando item 12 como standby.",
+      "codexNow": "Issue #230 já conta com FC-305 e testes finance-preactivation-reconciliation-matrix.test.mjs, logistics-commission-conservation.test.mjs, diferença de troca e bloqueio de payout. Não duplicar matrizes/centavos. Delta: identificar evento concreto sem cobertura (webhook fora de ordem, chargeback ou reconciliação externa) antes de novo teste; tarifas, contratos e item 12 continuam bloqueados.",
       "testPaths": [
         "tests/logistics-commission-conservation.test.mjs",
         "tests/delivery-quote-http-postgres.test.mjs",
@@ -85,7 +95,7 @@
         62
       ],
       "name": "Operação, suporte e instituições",
-      "codexNow": "Consolidar cobertura de idempotência, RBAC, trilhas de auditoria e prontidão operacional da equipe; listar pessoas/aceites como PENDENTE, sem criar identidades.",
+      "codexNow": "Issue #231 já dispõe de suporte interno, autorização institucional, retirada idempotente e testes HTTP/PostgreSQL, além do roteiro humano FC-311. Não reexecutar cenários cobertos; delta operacional é autoridade e capacidade reais, escala/SLA, canais e validação humana sem presumir pessoas.",
       "testPaths": [
         "tests/institution-receipt-http-postgres.test.mjs",
         "tests/support-operations-http-postgres.test.mjs",
@@ -108,7 +118,7 @@
         61
       ],
       "name": "Backup, credenciais, fornecedores e seguro",
-      "codexNow": "Executar ensaios locais de restauração, checksum, fail-closed de cofre e inventário de saída de fornecedor; preparar plano de RPO/RTO e diligência contratual sem prover recursos pagos.",
+      "codexNow": "Reutilizar ensaios locais existentes de backup/cofre e o hardening de endpoints HTTPS do PR #314. Não repetir validações de URL. Delta: infra autorizada para RPO/RTO, política de egress/DNS, cofre, identidades, fornecedor/seguro reais, sem provisionar serviços.",
       "testPaths": [
         "tests/database-recovery.test.mjs",
         "tests/backup-storage.test.mjs",
@@ -130,7 +140,7 @@
         56
       ],
       "name": "Comunicação, suporte externo e incidentes",
-      "codexNow": "Revisar notificações mínimas, replay/idempotência, caminhos de falha de e-mail e gates do ensaio de incidente; não disparar mensagens reais.",
+      "codexNow": "A proteção de incidente já foi reaplicada pelo PR #287 e os adaptadores seguem inativos; PR #286 encerrado sem merge. Não criar teste transacional equivalente. Delta: canais/avisos homologados, responsáveis independentes, ensaio humano e contato oficial.",
       "testPaths": [
         "tests/notifications.test.mjs",
         "tests/operational-notices-http-postgres.test.mjs",
@@ -151,7 +161,7 @@
         46
       ],
       "name": "Exclusão da conta e mudanças de termos",
-      "codexNow": "Verificar inventário de retenção, purga e concorrência no PostgreSQL; preparar checklist de mudança relevante de termos sem publicar minuta como política aprovada.",
+      "codexNow": "Fluxos locais de encerramento, retenção e consentimento versionado já possuem testes específicos. Não replicar os mesmos casos. Delta: decisão jurídica por categoria, prova de purga real, documentos aprovados e comunicação material autorizada.",
       "testPaths": [
         "tests/account-closure-retention-postgres.test.mjs",
         "tests/account-closure-http-postgres.test.mjs",
@@ -171,7 +181,7 @@
         41
       ],
       "name": "Detecção de contatos em imagens",
-      "codexNow": "Auditar contrato fail-closed de OCR/QR e testes de texto e mídia; criar casos sintéticos para fornecedor ausente, timeout, falso retorno e retenção de OCR.",
+      "codexNow": "PR #310 reforçou gates de mídia, preparação de diligência e lote de imagens sintéticas. Não repetir testes de ausência/timeout já incorporados. Delta: OCR/QR e fluxo de mídia completos com fornecedor homologado, revisão humana de falsos negativos e privacidade.",
       "testPaths": [
         "tests/approved-business-rules.test.mjs",
         "tests/marketplace-providers.test.mjs"
@@ -190,7 +200,7 @@
         67
       ],
       "name": "Piloto BH e acessibilidade",
-      "codexNow": "Revisar preflight das 21 evidências e automação de teclado/contraste; produzir roteiro para leitor de tela sem alegar teste humano feito.",
+      "codexNow": "PRs #304, #308 e #309 já cobrem Chromium, integração HTTP/PostgreSQL e bloqueio de chat; #311 já preparou 17 tarefas para cinco evidências. Não repetir testes sintéticos. Delta: fornecedor de mídia, testes em dispositivos reais/leitor de tela, observador, titular/suplente de rollback e aceite privado. Preflight 16/21 e piloto NO-GO.",
       "testPaths": [
         "tests/pilot-bh-http-postgres.test.mjs",
         "tests/pilot-technical-preflight.test.mjs",
@@ -220,5 +230,23 @@
       "containers",
       "browser-postgres"
     ]
+  },
+  "executionPolicy": {
+    "sourceOfTruth": "docs/requirements-matrix.json",
+    "auditPath": "docs/auditoria-diferencial-2026-11-18.md",
+    "inspectExistingEvidenceFirst": true,
+    "noDuplicateImplementation": true,
+    "noDuplicateTests": true,
+    "newRegressionOnlyForReproducibleGap": true,
+    "noPromotionWithoutIndividualEvidenceAndHumanApproval": true,
+    "doNotRunUnchangedFocusedSuitesRepeatedly": true,
+    "ciOnPullRequestAtExactHead": [
+      "foundation",
+      "wallet-postgres",
+      "listing-postgres",
+      "containers",
+      "browser-postgres"
+    ],
+    "note": "Testes já incorporados devem ser citados pelo arquivo e CI existente; em mudanças apenas documentais, usar CI obrigatório do PR sem criar casos redundantes."
   }
 }
