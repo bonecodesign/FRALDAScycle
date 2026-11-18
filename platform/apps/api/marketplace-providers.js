@@ -118,8 +118,8 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
     },
     async signedUpload(userId, input) {
       configured(config.mediaProviderUrl, config.mediaProviderSecret, "O armazenamento de mídia");
-      const contentType = String(input?.contentType ?? "");
-      const sizeBytes = Number(input?.sizeBytes);
+      const contentType = typeof input?.contentType === "string" ? input.contentType : "";
+      const sizeBytes = input?.sizeBytes;
       if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
         throw new ProviderError("invalid_media_type", 422, "Envie uma imagem JPEG, PNG ou WebP.");
       }
@@ -165,23 +165,37 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
 
     async geocode(userId, input) {
       configured(config.geocodingProviderUrl, config.geocodingProviderSecret, "A geocodificação");
-      const address = String(input?.address ?? "").trim();
+      // Reject objects coerced to "[object Object]" and other ambiguous addresses.
+      const address = typeof input?.address === "string" ? input.address.trim() : "";
       if (address.length < 5 || address.length > 300) {
         throw new ProviderError("invalid_address", 422, "Informe um endereço válido.");
       }
       const result = await providerRequest(config.geocodingProviderUrl, config.geocodingProviderSecret, {
         operation: "geocode", requesterId: userId, address, country: "BR",
       }, fetchImpl, timeoutMs);
-      const latitude = Number(result.latitude);
-      const longitude = Number(result.longitude);
-      if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
-          !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      // Number(null), Number("") and Number(false) are 0. Never convert a
+      // missing or ambiguous provider value into a valid geographic coordinate.
+      // The provider contract requires JSON numbers, not numeric strings.
+      const latitude = result.latitude;
+      const longitude = result.longitude;
+      if (typeof latitude !== "number" || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+          typeof longitude !== "number" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
         throw new ProviderError("invalid_provider_response", 502, "O provedor retornou coordenadas inválidas.");
+      }
+      // Never turn arbitrary objects, foreign state codes or long city names
+      // into apparently valid Brazilian localities by String()/slice().
+      const city = result.city == null || result.city === "" ? null : result.city;
+      const state = result.state == null || result.state === "" ? null : result.state;
+      const uf = typeof state === "string" ? state.trim().toUpperCase() : null;
+      if ((city !== null && (typeof city !== "string" || !city.trim() || city.trim().length > 120)) ||
+          (state !== null && (typeof state !== "string" ||
+            !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(uf)))) {
+        throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma localidade inválida.");
       }
       return {
         latitude, longitude,
-        city: String(result.city ?? "").slice(0, 120) || null,
-        state: String(result.state ?? "").slice(0, 2).toUpperCase() || null,
+        city: city === null ? null : city.trim(),
+        state: state === null ? null : uf,
         approximate: true,
       };
     },
