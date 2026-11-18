@@ -206,3 +206,67 @@ test("media provider deadline is positive, bounded and cannot be silently disabl
     );
   }
 });
+
+test("FC-310: synthetic upload -> two-photo verification -> signed review read is bound to the owner", async () => {
+  const owner = "synthetic-owner", keys = ["listings/synthetic-owner/one.webp","listings/synthetic-owner/two.webp"];
+  const operations = [];
+  const mock = async (_endpoint, options) => {
+    assert.equal(options.method, "POST");
+    assert.equal(options.redirect, "error");
+    assert.match(options.headers.authorization, /^Bearer /);
+    const body = JSON.parse(options.body);
+    operations.push(body);
+    if (body.operation === "signed-upload") return response({
+      storageKey:keys[0],uploadUrl:"https://storage.example.test/upload/token",
+      expiresAt:new Date(Date.now()+120000).toISOString(),headers:{"x-upload-token":"synthetic"},
+    });
+    if (body.operation === "verify-listing-media") return response({
+      storageKey:body.storageKey,ownerId:body.ownerId,exists:true,processed:true,immutable:true,
+      contentType:"image/webp",exifRemoved:true,scanStatus:"clean",contactScanStatus:"clear",
+      contactRuleVersion:"FC-CONTENT-1",ocrTextStored:false,qrCodeDetected:false,
+      contactReasons:[],sizeBytes:2048,width:640,height:480,
+    });
+    if (body.operation === "signed-read") return response({
+      readUrl:"https://storage.example.test/read/token",expiresAt:new Date(Date.now()+90000).toISOString(),
+    });
+    throw new Error("Unexpected operation: " + body.operation);
+  };
+  const providers=createMarketplaceProviders(configured,mock);
+  const upload=await providers.signedUpload(owner,{contentType:"image/png",sizeBytes:2048});
+  assert.equal(upload.storageKey,keys[0]);
+  assert.equal(await providers.verifyListingMedia(owner,keys).then(result=>result.count),2);
+  const read=await providers.signedListingRead(owner,{storageKey:keys[0]});
+  assert.match(read.readUrl,/^https:\/\/storage\.example\.test\/read\//);
+  assert.deepEqual(operations.map(item=>item.operation),[
+    "signed-upload","verify-listing-media","verify-listing-media","verify-listing-media","signed-read",
+  ]);
+  assert.ok(operations.filter(item=>item.operation==="verify-listing-media").every(item=>
+    item.requireOcr===true && item.requireQrDetection===true && item.storeOcrText===false
+      && item.contactRuleVersion==="FC-CONTENT-1" && item.ownerId===owner));
+  assert.doesNotMatch(JSON.stringify({upload,read}),/media-secret/);
+  const count=operations.length;
+  await assert.rejects(providers.signedListingRead("other-account",{storageKey:keys[0]}),
+    error=>error.code==="invalid_media" && error.status===422);
+  assert.equal(operations.length,count,"Other owners must be rejected before any request to the provider");
+});
+
+test("FC-310: multi-photo verification never accepts partial evidence or serves a review URL", async () => {
+  const keys=["listings/synthetic-owner/clean.webp","listings/synthetic-owner/not-ready.webp"];
+  const operations=[];
+  const providers=createMarketplaceProviders(configured,async(_endpoint,options)=>{
+    const body=JSON.parse(options.body);operations.push(body.operation);
+    if(body.operation==="signed-read")throw new Error("Unverified image must not receive a signed URL");
+    return response({
+      storageKey:body.storageKey,ownerId:body.ownerId,exists:true,processed:true,
+      immutable:true,contentType:"image/webp",exifRemoved:true,scanStatus:"clean",
+      contactScanStatus:body.storageKey===keys[1]?"pending":"clear",
+      contactRuleVersion:"FC-CONTENT-1",ocrTextStored:false,qrCodeDetected:false,
+      contactReasons:[],sizeBytes:2048,width:640,height:480,
+    });
+  });
+  await assert.rejects(providers.verifyListingMedia("synthetic-owner",keys),
+    error=>error.code==="media_not_ready"&&error.status===409);
+  await assert.rejects(providers.signedListingRead("synthetic-owner",{storageKey:keys[1]}),
+    error=>error.code==="media_not_ready"&&error.status===409);
+  assert.deepEqual(operations,["verify-listing-media","verify-listing-media","verify-listing-media"]);
+});
