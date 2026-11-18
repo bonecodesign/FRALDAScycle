@@ -182,10 +182,20 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
           typeof longitude !== "number" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
         throw new ProviderError("invalid_provider_response", 502, "O provedor retornou coordenadas inválidas.");
       }
+      // Never turn arbitrary objects, foreign state codes or long city names
+      // into apparently valid Brazilian localities by String()/slice().
+      const city = result.city == null || result.city === "" ? null : result.city;
+      const state = result.state == null || result.state === "" ? null : result.state;
+      const uf = typeof state === "string" ? state.trim().toUpperCase() : null;
+      if ((city !== null && (typeof city !== "string" || !city.trim() || city.trim().length > 120)) ||
+          (state !== null && (typeof state !== "string" ||
+            !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(uf)))) {
+        throw new ProviderError("invalid_provider_response", 502, "O provedor retornou uma localidade inválida.");
+      }
       return {
         latitude, longitude,
-        city: String(result.city ?? "").slice(0, 120) || null,
-        state: String(result.state ?? "").slice(0, 2).toUpperCase() || null,
+        city: city === null ? null : city.trim(),
+        state: state === null ? null : uf,
         approximate: true,
       };
     },
