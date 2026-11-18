@@ -4,6 +4,10 @@
 > **Retificação documental (17/11/2026):** conferir sempre [estado vigente](status-atual-2026-11-17.md). O manifesto validado tem **16/21 aprovadas, cinco pendentes**. A automação de Chromium posterior não reclassifica a rodada histórica. Este roteiro humano continua **não executado**.
  Este roteiro serve para conduzir e registrar, futuramente, as verificações humanas. Ele **não** é um registro de aceites, de uso de leitor de tela, de exercício humano ou de autorização para iniciar o piloto.
 
+## Preparação validada (FC-311, sem execução humana)
+
+O [checklist de execução e registro privado](pilot-human-preparation-fc311.md) e o validador `tools/pilot-human-session-preparation.mjs` relacionam as **cinco evidências pendentes** a **17 tarefas**. O arquivo de preparação é obrigatoriamente `prepared-not-executed`, com todos os aceites vazios, `humanValidationComplete=false` e `launchAuthorized=false`. A aprovação do validador apenas comprova completude do planejamento. Nenhum dos portões humanos foi executado nem liberado.
+
 ## Fontes e limites
 
 - `config/pilot-technical-preflight.v1.json`: **16 das 21 evidências estão aprovadas** no manifesto original, com **cinco pendências**: `publish-search-negotiate`, `keyboard-check`, `device-matrix`, `screen-reader-check` e `rollback-owner`. Os dois últimos exigem observação/aceite humano; os três primeiros pedem reexecução formal e rastreável.
