@@ -44,3 +44,13 @@ Os prestadores dessas funções podem ser distintos. A disponibilidade de uma AP
 ## Proteções de projeto mantidas
 
 Protótipo original intocado; alterações restritas a `platform/`. Sem serviço pago, credenciais, produção, dados de crianças, transações, publicação externa ou aceite jurídico presumido. A matriz de requisitos continua **48/70** e o preflight do piloto **16/21** até comprovação formal de cada pendência.
+
+## FC-316 — Proteção adicional dos URLs assinados devolvidos pelo provedor (18/11/2026)
+
+**Lacuna observada no código:** `apps/api/marketplace-providers.js` validava somente HTTPS e a ausência de usuário/senha em `uploadUrl` e `readUrl`. Um provedor configurado incorretamente, defeituoso ou comprometido poderia devolver `https://127.0.0.1/...`, `https://localhost/...` ou hosts locais, que eram entregues ao navegador como endereço de mídia.
+
+**Correção restrita:** reutilizar `validateExternalProviderEndpoint` com `allowQuery: true` para os **endereços assinados retornados**, não apenas para o endpoint da API que recebe Bearer token. Isso recusa IPs, hosts locais/internos, usuário/senha, fragmentos e URLs ambíguas antes de expor o endereço ao cliente. Preserva um nome DNS público diferente do endpoint original e os parâmetros legítimos de assinatura (`X-Amz-Signature` etc.). Payload inválido falha com HTTP 502 sem divulgar o valor nem conceder acesso de mídia.
+
+**Prova sintética focada:** teste `FC-316` em `tests/marketplace-providers.test.mjs` exerce URLs inseguras em **upload e leitura**, além de uma URL assinada externa válida; CI do PR é a fonte de resultado observado, não esta documentação.
+
+**Limite residual:** validação do nome textual **não** protege contra DNS rebinding, resolução de domínio público para IP privado, comprometimento do provedor de mídia ou redirecionamentos no cliente. A homologação deverá impor política de rede/egress e conferir domínio de armazenamento, redirecionamentos, validade da assinatura, permissões e cadeia MED-G01–G12. **Sem** fornecedor ativado, dados reais, serviços pagos, publicação externa, modificação do protótipo ou mudança da matriz. Piloto BH **NO-GO**.

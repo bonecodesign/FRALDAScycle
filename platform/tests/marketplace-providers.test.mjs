@@ -67,6 +67,56 @@ test("signed uploads reject foreign keys, unsafe headers and invalid expiration"
   }
 });
 
+test("FC-316: provider-signed media URLs cannot target private/local hosts; signed queries survive", async () => {
+  const owner = "synthetic-owner";
+  const storageKey = "listings/synthetic-owner/one.webp";
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  const destinations = [
+    "https://127.0.0.1/file?X-Amz-Signature=synthetic",
+    "https://[::1]/file",
+    "https://169.254.169.254/metadata",
+    "https://localhost/file",
+    "https://bucket.localhost/file",
+    "https://objects.internal/file",
+    "https://user:password@storage.example.test/file",
+    "https://storage.example.test/file#unexpected",
+  ];
+
+  function providerFor(signedUrl) {
+    return createMarketplaceProviders(configured, async (_endpoint, options) => {
+      const { operation } = JSON.parse(options.body);
+      if (operation === "signed-upload") return response({
+        storageKey, uploadUrl: signedUrl, expiresAt, headers: {},
+      });
+      if (operation === "signed-read") return response({ readUrl: signedUrl, expiresAt });
+      throw new Error("Unexpected operation");
+    });
+  }
+
+  for (const signedUrl of destinations) {
+    const providers = providerFor(signedUrl);
+    await assert.rejects(
+      providers.signedUpload(owner, { contentType: "image/webp", sizeBytes: 1_024 }),
+      error => error.code === "invalid_provider_response" && error.status === 502,
+      "upload: " + signedUrl,
+    );
+    await assert.rejects(
+      providers.signedProofRead(owner, storageKey),
+      error => error.code === "invalid_provider_response" && error.status === 502,
+      "read: " + signedUrl,
+    );
+  }
+
+  // Signed links legitimately include query tokens and may use a different
+  // public storage hostname from the configured media API.
+  const signedUrl = "https://objects.example.test/file?X-Amz-Signature=synthetic&X-Amz-Expires=300";
+  const providers = providerFor(signedUrl);
+  const upload = await providers.signedUpload(owner, { contentType: "image/webp", sizeBytes: 1_024 });
+  const read = await providers.signedProofRead(owner, storageKey);
+  assert.equal(upload.uploadUrl, signedUrl);
+  assert.equal(read.readUrl, signedUrl);
+});
+
 test("media verification rejects missing, foreign, mutable and unprocessed images", async () => {
   const key = "listings/user-1/one.webp";
   const ready = { storageKey: key, ownerId: "user-1", exists: true, processed: true,
