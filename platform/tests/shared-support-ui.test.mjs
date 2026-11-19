@@ -61,7 +61,7 @@ test('creation explains outside-hours queue without promising resolution',async(
  await app.send();
  assert.match(app.elements['support-feedback'].textContent,/fora do horário planejado/);
  assert.match(app.elements['support-feedback'].textContent,/primeira resposta depende da classificação de criticidade/);
- assert.match(app.elements['support-feedback'].textContent,/não garante a resolução/);
+ assert.match(app.elements['support-feedback'].textContent,/sem garantia de resolução/);
 });
 test('reused key returning another draft does not discard fields or claim creation',async()=>{
  const app=await harness(async()=>({ticket:{...ticket(one),subject:'Pedido anterior'}}),{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');assert.notEqual(app.values.get('fc.supportDraftKey'),old);assert.match(app.elements['support-feedback'].textContent,/pedido anterior/);
