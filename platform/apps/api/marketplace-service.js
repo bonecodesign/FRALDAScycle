@@ -84,13 +84,28 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async supportPage(actor,{page='1',status='',category='',q='',assignment='',sort='newest'}={}) {
       if(typeof page!=='string'||! /^[1-9][0-9]{0,5}$/.test(page)||Number(page)>100000)throw new MarketplaceError('invalid_support_page',400,'Informe uma página válida.');
       const reviewer=accessLevel(actor)>=1;
-      if((status!==''&&!['open','under_review','resolved'].includes(status))||(category!==''&&!['general','cancellation','receipt_problem','privacy','account'].includes(category))||(typeof q!=='string'||q.length>100||/[\u0000-\u001f\u007f]/.test(q))||(assignment!==''&&!['mine','unassigned'].includes(assignment))||!['newest','oldest','stale'].includes(sort))throw new MarketplaceError('invalid_support_filter',400,'O filtro de atendimento é inválido.');
+      if((status!==''&&!['open','under_review','resolved'].includes(status))||(category!==''&&!['general','cancellation','receipt_problem','privacy','account'].includes(category))||(typeof q!=='string'||q.length>100||/[\u0000-\u001f\u007f]/.test(q))||(assignment!==''&&!['mine','unassigned'].includes(assignment))||!['newest','oldest','stale','priority'].includes(sort))throw new MarketplaceError('invalid_support_filter',400,'O filtro de atendimento é inválido.');
       if(!reviewer&&(status!==''||category!==''||q!==''||assignment!==''||sort!=='newest'))throw new MarketplaceError('support_filter_forbidden',403,'Filtros da fila administrativa indisponíveis para esta conta.');
       const current=Number(page),rows=await repository.supportTickets({userId:actor.id,reviewer,limit:51,offset:(current-1)*50,status:status||null,category:category||null,q:q.trim()||null,assignment:assignment||null,sort});
       return {items:rows.slice(0,50),page:current,hasMore:rows.length>50};
     },
     async supportTicket(actor,ticketId) {
       return repository.supportTicket({userId:actor.id,ticketId,reviewer:accessLevel(actor)>=1});
+    },
+    async classifySupportTicket(actor,ticketId,input) {
+      requireAccessLevel(actor,1);
+      const priority=input?.priority,reason=input?.reason;
+      if(!input||typeof input!=='object'||Array.isArray(input)||
+         Object.keys(input).some(key=>!['priority','reason'].includes(key))||
+         !['critical','high','normal','low'].includes(priority)||
+         typeof reason!=='string'||reason.trim().length<10||reason.trim().length>500) {
+        throw new MarketplaceError('invalid_support_priority',422,'Informe uma criticidade e justificativa válidas.');
+      }
+      return repository.classifySupportTicket({actorId:actor.id,ticketId,priority,reason:reason.trim()});
+    },
+    async supportAttention(actor) {
+      requireAccessLevel(actor,1);
+      return repository.supportAttention({limit:50});
     },
     async addSupportNote(actor,ticketId,input) {
       requireAccessLevel(actor,1);
