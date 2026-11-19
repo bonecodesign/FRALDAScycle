@@ -382,6 +382,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     }
     await call('Network.setCookie',{name:'fc_session',value:adminSessionToken,domain:'127.0.0.1',path:'/',httpOnly:true,sameSite:'Lax'});await call('Page.navigate',{url:`${adminOrigin}/admin/launch`});
     await until(()=>evaluate(`document.querySelectorAll('#support-rows button').length>0`),'admin returns to support queue');
+    await evaluate(`(()=>{document.getElementById('support-filter-query').value='Pedido fictício suporte cliente';document.getElementById('support-filter-form').requestSubmit();})()`);
+    await until(()=>evaluate(`[...document.querySelectorAll('#support-rows tr')].some(row=>row.textContent.includes('Pedido fictício suporte cliente'))`),'specific support protocol after priority sorting');
     await evaluate(`([...document.querySelectorAll('#support-rows tr')].find(row=>row.textContent.includes('Pedido fictício suporte cliente')).querySelector('button').focus())`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelector('#support-reply-form input[name=ticketId]').value===${JSON.stringify(clientSupport.id)}&&!document.getElementById('support-note-body').disabled`),'admin opens customer support detail');
     await evaluate(`(()=>{const form=document.getElementById('support-note-form');form.elements.body.value='Nota interna fictícia somente para a equipe.';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
@@ -395,6 +397,8 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('support-refresh'))`),'operational support ready');
     await evaluate(`document.getElementById('support-refresh').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.querySelectorAll('#support-list button').length>0`),'operational support queue');
+    await evaluate(`(()=>{document.getElementById('support-filter-query').value='Pedido fictício suporte cliente';document.getElementById('support-filter-form').requestSubmit();})()`);
+    await until(()=>evaluate(`[...document.querySelectorAll('#support-list button')].some(button=>button.textContent.includes('Pedido fictício suporte cliente'))`),'specific operations support protocol after priority sorting');
     await evaluate(`[...document.querySelectorAll('#support-list button')].find(button=>button.textContent.includes('Pedido fictício suporte cliente')).focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`Boolean(document.querySelector('#support-reply-form textarea'))`),'operational selected protocol');
     await evaluate(`window.fcOriginalSupportFetch=window.fetch;window.fetch=async(...args)=>{const result=await window.fcOriginalSupportFetch(...args);if(!window.fcSupportResponseDropped&&String(args[0]).endsWith('/v1/support/tickets/'+${JSON.stringify(clientSupport.id)}+'/reply')&&args[1]?.method==='POST'){window.fcSupportResponseDropped=true;throw new TypeError('Synthetic response loss');}return result;}`);
