@@ -115,6 +115,26 @@ export function setupSupport({admin=false}={}){
   finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}
  }
  refresh.addEventListener('click',()=>load(1));
+ const attentionButton=admin?document.getElementById('support-attention'):null,
+  attentionFeedback=admin?document.getElementById('support-attention-feedback'):null,
+  attentionList=admin?document.getElementById('support-attention-list'):null;
+ attentionButton?.addEventListener('click',async()=>{
+  if(replying||noteSaving||listBusy||attentionButton.disabled)return;
+  attentionButton.disabled=true;if(attentionList)attentionList.replaceChildren();
+  if(attentionFeedback)attentionFeedback.textContent='Consultando prazos vencidos…';
+  try{
+   const result=await query('/v1/support/attention');
+   if(!Array.isArray(result?.items)||!Number.isSafeInteger(result.overdue_total)||!Number.isSafeInteger(result.critical_overdue)||result.externalDispatchAuthorized!==false||result.automaticPauseAuthorized!==false)throw new Error('Resposta de atenção inválida.');
+   if(attentionFeedback)attentionFeedback.textContent=result.overdue_total+' primeira(s) resposta(s) vencida(s); '+result.critical_overdue+' crítica(s). É necessário encaminhamento humano. Nenhum aviso externo ou pausa foi executado.';
+   if(attentionList)for(const item of result.items){
+    if(!validId(item.id)||!validProtocol(item.protocol)||!Object.hasOwn(priorityLabels,item.priority))throw new Error('Registro de atenção inválido.');
+    const button=text('button','FC-S-'+item.protocol+' · '+priorityLabels[item.priority]+' · Prazo '+date(item.first_response_due_at));button.type='button';button.className='button secondary block';
+    button.addEventListener('click',()=>openTicket(item.id));attentionList.append(button);
+   }
+  }catch(error){if(attentionFeedback)attentionFeedback.textContent=error.message||'Não foi possível consultar os prazos.';}
+  finally{attentionButton.disabled=false;}
+ });
+
  previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return load(page-1);});
  next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return load(page+1);});
  statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));assignmentFilter?.addEventListener('change',()=>load(1));sortFilter?.addEventListener('change',()=>load(1));filterForm?.addEventListener('submit',event=>{event.preventDefault();return load(1);});
