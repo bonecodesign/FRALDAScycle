@@ -19,13 +19,14 @@ const routeSectors=Object.freeze([
   ['/v1/admin/operational-resume-requests',['operations','finance']],
   ['/v1/admin/incidents',['operations','finance','security','legal_privacy']],
   ['/v1/admin/incident-roles',['operations','security']],
+  ['/v1/admin/support-duty',['support','operations']],
   ['/v1/admin/access-level-changes',['operations']],
   ['/v1/admin/staff-sector-changes',['operations']],
 ]);
 export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
 export async function handleAdmin(request, response, {
-  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
+  url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, supportDutyService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
 }) {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
@@ -161,6 +162,40 @@ export async function handleAdmin(request, response, {
     if (!operationalIncidentService) throw new AuthError("incident_console_unavailable", 503, "Console de incidentes indisponível.");
     const result=await operationalIncidentService.change(user,incident[1],await readJson(request));
     sendJson(response,200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
+  }
+  if(url.pathname==='/v1/admin/support-duty'&&request.method==='GET'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.list(user);
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  if(url.pathname==='/v1/admin/support-duty/proposals'&&request.method==='POST'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.propose(user,await readJson(request));
+    sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const dutyReview=url.pathname.match(/^\/v1\/admin\/support-duty\/proposals\/([0-9a-f-]{36})\/review$/i);
+  if(dutyReview&&request.method==='POST'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.review(user,dutyReview[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const dutyDecision=url.pathname.match(/^\/v1\/admin\/support-duty\/proposals\/([0-9a-f-]{36})\/decision$/i);
+  if(dutyDecision&&request.method==='POST'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.decide(user,dutyDecision[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const dutyResponse=url.pathname.match(/^\/v1\/admin\/support-duty\/assignments\/([0-9a-f-]{36})\/response$/i);
+  if(dutyResponse&&request.method==='POST'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.respond(user,dutyResponse[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const dutyRevoke=url.pathname.match(/^\/v1\/admin\/support-duty\/assignments\/([0-9a-f-]{36})\/revoke$/i);
+  if(dutyRevoke&&request.method==='POST'){
+    if(!supportDutyService)throw new AuthError('support_duty_unavailable',503,'Governança de suporte indisponível.');
+    const result=await supportDutyService.revoke(user,dutyRevoke[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
   if(request.method==='GET'&&url.pathname==='/v1/admin/incident-roles'){if(!incidentRoleService)throw new AuthError('incident_roles_unavailable',503,'Nomeações de incidentes indisponíveis.');const result=await incidentRoleService.list(user);sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
   if(request.method==='POST'&&url.pathname==='/v1/admin/incident-roles'){if(!incidentRoleService)throw new AuthError('incident_roles_unavailable',503,'Nomeações de incidentes indisponíveis.');const result=await incidentRoleService.appoint(user,await readJson(request));sendJson(response,201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;}
