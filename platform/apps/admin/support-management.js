@@ -15,7 +15,7 @@ const notesPanel=document.getElementById('support-notes-panel'),notesList=docume
 const rows=document.getElementById('support-rows');
 const previous=document.getElementById('support-previous'),next=document.getElementById('support-next'),pageLabel=document.getElementById('support-page'),statusFilter=document.getElementById('support-filter-status'),categoryFilter=document.getElementById('support-filter-category'),queryFilter=document.getElementById('support-filter-query'),assignmentFilter=document.getElementById('support-filter-assignment'),sortFilter=document.getElementById('support-filter-sort'),filterForm=document.getElementById('support-filter-form');
 let page=1,hasMore=false,listBusy=false,noteSaving=false,triageSaving=false;
-const lockPages=()=>{if(previous)previous.disabled=replying||noteSaving||listBusy||page<=1;if(next)next.disabled=replying||noteSaving||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||noteSaving||listBusy;if(categoryFilter)categoryFilter.disabled=replying||noteSaving||listBusy;if(queryFilter)queryFilter.disabled=replying||noteSaving||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||noteSaving||listBusy;if(sortFilter)sortFilter.disabled=replying||noteSaving||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||noteSaving||listBusy;}};
+const lockPages=()=>{if(previous)previous.disabled=replying||noteSaving||triageSaving||listBusy||page<=1;if(next)next.disabled=replying||noteSaving||triageSaving||listBusy||!hasMore;if(statusFilter)statusFilter.disabled=replying||noteSaving||triageSaving||listBusy;if(categoryFilter)categoryFilter.disabled=replying||noteSaving||triageSaving||listBusy;if(queryFilter)queryFilter.disabled=replying||noteSaving||triageSaving||listBusy;if(assignmentFilter)assignmentFilter.disabled=replying||noteSaving||triageSaving||listBusy;if(sortFilter)sortFilter.disabled=replying||noteSaving||triageSaving||listBusy;if(filterForm){const submit=filterForm.querySelector('button[type=submit]');if(submit)submit.disabled=replying||noteSaving||triageSaving||listBusy;}};
 let selectionGeneration=0,listGeneration=0,selected=null,replying=false;const noteKeys=new Map();
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(parsed.getTime())?dateTime.format(parsed):'Data não informada';};
@@ -45,8 +45,8 @@ async function openTicket(id,afterReply=false){
   form.elements.ticketId.value=id;form.elements.status.value=ticket.status;form.elements.body.value='';selected=id;panel.hidden=false;lockForm(replying);replyStatus.textContent=messages.children.length+' mensagem(ns) registrada(s).';panel.scrollIntoView({behavior:'smooth',block:'nearest'});
  }catch(error){if(generation!==selectionGeneration)return;clearSelection();panel.hidden=false;replyStatus.textContent=failure(error);}
 }
-async function loadTickets(target=1){
- if(noteSaving||triageSaving)return;
+async function loadTickets(target=1,afterTriage=false){
+ if(noteSaving||(triageSaving&&!afterTriage))return;
  listBusy=true;lockPages();const generation=++listGeneration,status=document.getElementById('support-status');rows.replaceChildren();status.textContent='Consultando atendimentos…';
  try{
   const params=new URLSearchParams({page:String(target)});if(statusFilter?.value)params.set('status',statusFilter.value);if(categoryFilter?.value)params.set('category',categoryFilter.value);if(queryFilter?.value.trim())params.set('q',queryFilter.value.trim());if(assignmentFilter?.value)params.set('assignment',assignmentFilter.value);if(sortFilter?.value&&sortFilter.value!=='newest')params.set('sort',sortFilter.value);const result=await query('/v1/support/tickets?'+params);if(generation!==listGeneration)return;
@@ -69,7 +69,7 @@ priorityForm?.addEventListener('submit',async event=>{
  try{
   const result=await apiRequest('/v1/support/tickets/'+id+'/priority',{method:'POST',body:{priority,reason}});
   if(result?.id!==id||result?.priority!==priority)throw new Error('Não foi possível confirmar a classificação.');
-  await Promise.all([loadTickets(page),openTicket(id,true)]);
+  await Promise.all([loadTickets(page,true),openTicket(id,true)]);
  }catch(error){priorityStatus.textContent=failure(error)+' Confira o protocolo antes de reenviar.';}
  finally{triageSaving=false;for(const control of priorityForm.querySelectorAll('textarea,select,button'))control.disabled=!selected;lockPages();}
 });
