@@ -117,7 +117,8 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
         repository.supportAttention({limit:50}),
         repository.supportEscalationRoster(),
       ]);
-      return previewSupportEscalation({tickets:attention.items,duties:roster.duties,coordinators:roster.coordinators});
+      return previewSupportEscalation({tickets:attention.items,duties:roster.duties,coordinators:roster.coordinators,
+        overdueTotal:attention.overdue_total,criticalOverdue:attention.critical_overdue});
     },
     async addSupportNote(actor,ticketId,input) {
       requireAccessLevel(actor,1);
