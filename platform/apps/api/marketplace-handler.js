@@ -61,6 +61,18 @@ export async function handleMarketplace(request, response, {
     const result=await marketplaceService.addSupportMessage(actor,supportMessage[1],await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  // Explicit staff triage / overdue preview; neither dispatches messages nor pauses operations.
+  if(url.pathname==='/v1/support/attention'&&request.method==='GET'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.supportAttention(actor);
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
+  const supportPriority=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/priority$/i);
+  if(supportPriority&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.classifySupportTicket(actor,supportPriority[1],await readJson(request));
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const supportNote=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/notes$/i);
   if(supportNote&&request.method==='POST'){
     const actor=await authenticatedUser(request,authService);

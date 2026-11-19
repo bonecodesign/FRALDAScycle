@@ -1,4 +1,5 @@
 import {institutionPublicationAllowed} from "./institution-publication.js";
+import {firstResponseDeadline} from '../packages/contracts/support-priority.js';
 import { lockPremiumAccount, freePublicationAvailable } from './premium-repository.js';
 const fail = (code, status, message) => Object.assign(new Error(message), { code, status });
 export function createOperationSupportRepository(database) {
@@ -196,9 +197,13 @@ export function createOperationSupportRepository(database) {
         const result = await client.query(`SELECT st.id,st.protocol,st.category,st.subject,st.status,st.created_at,st.updated_at,
           CASE WHEN $2::boolean THEN st.assignee_id END AS assignee_id,
           CASE WHEN $2::boolean THEN assignee.display_name END AS assignee_name,
-          CASE WHEN $2::boolean THEN st.assigned_at END AS assigned_at
+          CASE WHEN $2::boolean THEN st.assigned_at END AS assigned_at,
+          CASE WHEN $2::boolean THEN st.priority END AS priority,
+          CASE WHEN $2::boolean THEN st.priority_classified_at END AS priority_classified_at,
+          CASE WHEN $2::boolean THEN st.first_response_due_at END AS first_response_due_at,
+          CASE WHEN $2::boolean THEN st.first_response_at END AS first_response_at
           FROM support_tickets st LEFT JOIN users assignee ON assignee.id=st.assignee_id
-          WHERE (st.requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR st.status=$5) AND ($6::text IS NULL OR st.category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(st.protocol::text || ' ' || st.subject || ' ' || st.details))>0) AND ($8::text IS NULL OR ($8='mine' AND st.assignee_id=$1) OR ($8='unassigned' AND st.assignee_id IS NULL)) ORDER BY CASE WHEN $9='oldest' THEN st.created_at END ASC,CASE WHEN $9='oldest' THEN st.id END ASC,CASE WHEN $9='stale' THEN st.updated_at END ASC,CASE WHEN $9='stale' THEN st.id END ASC,CASE WHEN $9='newest' THEN st.created_at END DESC,CASE WHEN $9='newest' THEN st.id END DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q,assignment,reviewer?sort:'newest']);
+          WHERE (st.requester_id=$1 OR $2::boolean) AND ($5::text IS NULL OR st.status=$5) AND ($6::text IS NULL OR st.category=$6) AND ($7::text IS NULL OR position(lower($7) in lower(st.protocol::text || ' ' || st.subject || ' ' || st.details))>0) AND ($8::text IS NULL OR ($8='mine' AND st.assignee_id=$1) OR ($8='unassigned' AND st.assignee_id IS NULL)) ORDER BY CASE WHEN $9='priority' THEN (st.priority_classified_at IS NULL)::int END ASC,CASE WHEN $9='priority' THEN (CASE st.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END) END ASC,CASE WHEN $9='priority' THEN st.created_at END ASC,CASE WHEN $9='priority' THEN st.id END ASC,CASE WHEN $9='oldest' THEN st.created_at END ASC,CASE WHEN $9='oldest' THEN st.id END ASC,CASE WHEN $9='stale' THEN st.updated_at END ASC,CASE WHEN $9='stale' THEN st.id END ASC,CASE WHEN $9='newest' THEN st.created_at END DESC,CASE WHEN $9='newest' THEN st.id END DESC LIMIT $3 OFFSET $4`,[userId,reviewer,limit,offset,status,category,q,assignment,reviewer?sort:'newest']);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.tickets.listed','support_ticket','list',$2::jsonb)`,[userId,JSON.stringify({reviewer,count:result.rows.length,status,category,q,assignment,sort:reviewer?sort:'newest'})]);
         return result.rows;
@@ -219,8 +224,44 @@ export function createOperationSupportRepository(database) {
           FROM support_ticket_internal_notes n JOIN users u ON u.id=n.author_id WHERE n.ticket_id=$1 ORDER BY n.created_at,n.id`,[ticketId]):null;
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.read','support_ticket',$2,'{}'::jsonb)`,[userId,ticketId]);
-        return {...result.rows[0],messages:messages.rows,...(reviewer?{internal_notes:internalNotes.rows}:{})};
+        const {priority_classified_by,...safeTicket}=result.rows[0];
+        return {...safeTicket,messages:messages.rows,...(reviewer?{priority_classified_by,internal_notes:internalNotes.rows}:{})};
       });
+    },
+    // Human triage is always auditable; the deadline is anchored to creation,
+    // never reset by reclassification or a message from the requester.
+    async classifySupportTicket({actorId,ticketId,priority,reason}) {
+      return database.transaction(async client=>{
+        const ticket=(await client.query('SELECT id,created_at,status,priority,priority_classified_at,first_response_due_at FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId])).rows[0];
+        if(!ticket)throw fail('support_ticket_not_found',404,'Pedido de suporte não encontrado.');
+        if(ticket.status==='resolved')throw fail('support_ticket_resolved',409,'Atendimento encerrado. Não é possível alterar sua criticidade.');
+        if(ticket.priority===priority&&ticket.priority_classified_at)return {id:ticketId,priority,firstResponseDueAt:ticket.first_response_due_at,reused:true};
+        const due=firstResponseDeadline(ticket.created_at,priority);
+        const changed=(await client.query(`UPDATE support_tickets SET priority=$2,priority_classified_at=now(),priority_classified_by=$3,
+          first_response_due_at=$4,updated_at=now() WHERE id=$1
+          RETURNING id,priority,first_response_due_at`,[ticketId,priority,actorId,due])).rows[0];
+        // Justification is restricted to existing administrator-only notes.
+        await client.query(`INSERT INTO support_ticket_internal_notes(ticket_id,author_id,body,idempotency_key)
+          VALUES($1,$2,$3,gen_random_uuid()::text)`,[ticketId,actorId,'Classificação de criticidade: '+priority+'. '+reason]);
+        await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
+          VALUES($1,'support.ticket.priority_classified','support_ticket',$2,$3::jsonb)`,[actorId,ticketId,
+          JSON.stringify({priority,previousPriority:ticket.priority,deadline:due,firstResponseOnly:true,externalDispatchAuthorized:false})]);
+        return {id:changed.id,priority:changed.priority,firstResponseDueAt:changed.first_response_due_at,reused:false};
+      });
+    },
+    // Read-only attention queue, explicitly *not* an alert dispatch or auto-pause.
+    async supportAttention({limit=50}) {
+      const result=await database.query(`SELECT id,protocol,category,subject,status,priority,first_response_due_at,created_at,
+        assignee_id,first_response_at FROM support_tickets
+        WHERE priority_classified_at IS NOT NULL AND first_response_at IS NULL
+          AND status<>'resolved' AND first_response_due_at<=now()
+        ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
+          first_response_due_at ASC,id ASC LIMIT $1`,[limit]);
+      const counts=await database.query(`SELECT count(*)::int AS overdue_total,
+        count(*) FILTER(WHERE priority='critical')::int AS critical_overdue FROM support_tickets
+        WHERE priority_classified_at IS NOT NULL AND first_response_at IS NULL
+          AND status<>'resolved' AND first_response_due_at<=now()`);
+      return {items:result.rows,...counts.rows[0],externalDispatchAuthorized:false,automaticPauseAuthorized:false};
     },
     async addSupportNote({actorId,ticketId,body,idempotencyKey}) {
       return database.transaction(async client=>{
@@ -290,7 +331,7 @@ export function createOperationSupportRepository(database) {
           if(!concurrent.rows[0])throw fail('support_reply_key_conflict',409,'Consulte o protocolo antes de reenviar.');
           return replay(concurrent.rows[0]);
         }
-        await client.query('UPDATE support_tickets SET status=$2,updated_at=now() WHERE id=$1',[ticketId,status]);
+        await client.query('UPDATE support_tickets SET status=$2,updated_at=now(),first_response_at=COALESCE(first_response_at,now()) WHERE id=$1',[ticketId,status]);
         await client.query(`INSERT INTO audit_events (actor_user_id,action,entity_type,entity_id,metadata)
           VALUES ($1,'support.ticket.replied','support_ticket',$2,$3::jsonb)`,[actorId,ticketId,JSON.stringify({status})]);
         return {id:ticketId,status,messageId:created.rows[0].id,reused:false};
