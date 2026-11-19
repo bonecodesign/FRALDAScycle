@@ -110,11 +110,11 @@ export function setupSupport({admin=false}={}){
     if(ticket.subject!==input.subject||ticket.details!==input.details||ticket.category!==input.category||(ticket.transaction_id??null)!==input.transactionId){rotateKey();throw new Error('A chave corresponde a um pedido anterior. O rascunho foi preservado para um novo envio; confira o acompanhamento.');}
     rotateKey();form.elements.subject.value='';form.elements.details.value='';await load();await openTicket(ticket.id);
     const policy=result?.supportPolicy;
-    const serviceMessage=policy?.firstResponseTargetBusinessDays===2&&policy?.resolutionGuaranteed===false
+    const serviceMessage=policy?.firstResponseTargets&&policy?.resolutionGuaranteed===false
       ? policy.queueState==='received_outside_service_hours'
-        ? ' Recebido fora do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+        ? ' Recebido fora do horário planejado; a primeira resposta depende da classificação de criticidade e da disponibilidade humana, sem garantia de resolução.'
         : policy.queueState==='within_service_hours'
-          ? ' Recebido dentro do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+          ? ' Recebido no horário planejado; a primeira resposta depende da classificação de criticidade e da disponibilidade humana, sem garantia de resolução.'
           : ''
       : '';
     say('Pedido registrado: FC-S-'+ticket.protocol+'.'+serviceMessage);
