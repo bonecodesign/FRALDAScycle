@@ -16,8 +16,34 @@ async function harness(request,{admin=false,client=false,signal=null}={}){
  return {elements,values,calls,refresh:()=>elements['support-refresh'].handlers.click(),open:index=>elements['support-list'].children[index].handlers.click(),send:()=>elements['support-form'].handlers.submit({preventDefault(){}}),cancel:()=>elements['operation-cancel'].handlers.click(),search:()=>elements['support-filter-form'].handlers.submit({preventDefault(){}})};
 }
 test('latest detail wins, invalid date has fallback, and client gets no reply or internal-note controls',async()=>{
- let finish;const app=await harness(async path=>path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:path.endsWith(one)?new Promise(resolve=>finish=resolve):{ticket:ticket(two)});await app.refresh();const pending=app.open(0);await app.open(1);finish({ticket:ticket(one)});await pending;assert.equal(app.elements['support-detail'].children[0].textContent,'Protocolo FC-S-43');assert.equal(app.elements['support-detail'].children.filter(item=>item.tag==='form').length,0);assert.equal(app.elements['support-detail'].children.some(item=>item.children?.[0]?.textContent?.includes('Notas internas')),false);assert.match(app.elements['support-detail'].children.at(-1).textContent,/Data não informada/);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,0);
+ let finish;const app=await harness(async path=>path==='/v1/support/tickets'?{items:[ticket(one),ticket(two)]}:path.endsWith(one)?new Promise(resolve=>finish=resolve):{ticket:ticket(two)});await app.refresh();const pending=app.open(0);await app.open(1);finish({ticket:ticket(one)});await pending;assert.equal(app.elements['support-detail'].children[0].textContent,'Protocolo FC-S-43');assert.equal(app.elements['support-detail'].children.filter(item=>item.id==='support-customer-message-form').length,1);assert.equal(app.elements['support-detail'].children.some(item=>item.id==='support-reply-form'),false);assert.equal(app.elements['support-detail'].children.some(item=>item.children?.[0]?.textContent?.includes('Notas internas')),false);assert.equal(app.elements['support-detail'].children.some(item=>typeof item.textContent==='string'&&item.textContent.includes('Data não informada')),true);assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,0);
 });
+test('customer can continue a private support conversation with one confirmed message', async()=>{
+ const messages=[];
+ const app=await harness(async(path,options)=>{
+  if(path==='/v1/support/tickets')return {items:[ticket(one)]};
+  if(path.endsWith('/messages')&&options?.method==='POST'){messages.push(options.body);return {id:one,status:'under_review',messageId:17,reused:false};}
+  return {ticket:{...ticket(one),status:'under_review'}};
+ },{client:true});
+ await app.refresh();await app.open(0);
+ const conversation=app.elements['support-detail'].children.find(child=>child.id==='support-customer-message-form');
+ assert.ok(conversation,'customer conversation form present');
+ assert.equal(app.elements['support-detail'].children.some(child=>child.id==='support-reply-form'),false);
+ const body=conversation.children[1];body.value='Mensagem adicional fictícia para o suporte.';
+ await conversation.handlers.submit({preventDefault(){}});
+ assert.equal(messages.length,1);
+ assert.equal(messages[0].body,'Mensagem adicional fictícia para o suporte.');
+ assert.equal(messages[0].idempotencyKey,'synthetic-support-reply-key');
+ assert.equal(app.calls.some(call=>call.path.endsWith('/messages')&&call.options.method==='POST'),true);
+});
+
+test('resolved support ticket has no customer message form',async()=>{
+ const app=await harness(async path=>path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:{...ticket(one),status:'resolved'}},{client:true});
+ await app.refresh();await app.open(0);
+ assert.equal(app.elements['support-detail'].children.some(item=>item.id==='support-customer-message-form'),false);
+ assert.equal(app.elements['support-detail'].children.some(item=>typeof item.textContent==='string'&&item.textContent.includes('Atendimento encerrado')),true);
+});
+
 test('failed or malformed list/detail removes old actions and handles error without stale content',async()=>{
  let detailCalls=0,lists=0;const app=await harness(async path=>{if(path==='/v1/support/tickets')return ++lists===1?{items:[ticket(one)]}:{items:[{...ticket(one),status:'constructor'}]};if(++detailCalls===1)return {ticket:ticket(one)};throw new Error('Acesso revogado');});await app.refresh();await app.open(0);await app.open(0);assert.equal(app.elements['support-detail'].children.length,0);assert.equal(app.elements['support-feedback'].textContent,'Acesso revogado');await app.refresh();assert.equal(app.elements['support-list'].children.length,0);
 });
@@ -31,10 +57,10 @@ test('creation failure preserves key and fields for idempotent retry',async()=>{
  const app=await harness(async()=>{throw new Error('Sem conexão')},{client:true});const old=app.values.get('fc.supportDraftKey');await app.send();await app.send();assert.equal(app.calls[0].options.body.idempotencyKey,app.calls[1].options.body.idempotencyKey);assert.equal(app.values.get('fc.supportDraftKey'),old);assert.equal(app.elements['support-form'].elements.subject.value,'Assunto fictício');
 });
 test('creation explains outside-hours queue without promising resolution',async()=>{
- const app=await harness(async(path,options)=>options?.method==='POST'?{ticket:ticket(one),supportPolicy:{queueState:'received_outside_service_hours',firstResponseTargetBusinessDays:2,resolutionGuaranteed:false}}:path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)},{client:true});
+ const app=await harness(async(path,options)=>options?.method==='POST'?{ticket:ticket(one),supportPolicy:{queueState:'received_outside_service_hours',firstResponseTargets:{critical:{minutes:30},high:{hours:4},normal:{businessDays:1},low:{businessDays:2}},resolutionGuaranteed:false}}:path==='/v1/support/tickets'?{items:[ticket(one)]}:{ticket:ticket(one)},{client:true});
  await app.send();
- assert.match(app.elements['support-feedback'].textContent,/fora do horário de atendimento/);
- assert.match(app.elements['support-feedback'].textContent,/primeira resposta em até 2 dias úteis/);
+ assert.match(app.elements['support-feedback'].textContent,/fora do horário planejado/);
+ assert.match(app.elements['support-feedback'].textContent,/primeira resposta depende da classificação de criticidade/);
  assert.match(app.elements['support-feedback'].textContent,/não garante a resolução/);
 });
 test('reused key returning another draft does not discard fields or claim creation',async()=>{
