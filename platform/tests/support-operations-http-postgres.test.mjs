@@ -21,7 +21,7 @@ test('internal support is private, assigned, idempotent and audited over HTTP/Po
     ($2,'support-outsider@example.test','fixture','Pessoa externa','customer'),
     ($3,'support-admin@example.test','fixture','Atendente fictício','admin'),
     ($4,'support-second@example.test','fixture','Outro atendente','admin')`,Object.values(ids));
-   const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'operations'},second:{id:ids.secondAdmin,role:'admin'}};
+   const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'operations'},second:{id:ids.secondAdmin,role:'admin',staffSector:'finance'}};
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),marketplaceService:createMarketplaceService(createMarketplaceRepository(database)),authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
    const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),root=`${origin}/v1/support/tickets`;
@@ -51,6 +51,7 @@ test('internal support is private, assigned, idempotent and audited over HTTP/Po
    const beforeOutbox=(await database.query('SELECT count(*)::int AS n FROM notification_outbox')).rows[0].n;
    const outsiderPreview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('owner')});assert.equal(outsiderPreview.status,403);
    const anonymousPreview=await fetch(`${origin}/v1/support/escalation-preview`);assert.equal(anonymousPreview.status,401);
+   const otherSectorPreview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('second')});assert.equal(otherSectorPreview.status,403);
    const preview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('admin')});
    const previewBody=await preview.json();
    assert.equal(preview.status,200,JSON.stringify(previewBody));
