@@ -362,8 +362,12 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
     await until(()=>evaluate(`document.readyState==='complete'&&Boolean(document.getElementById('support-form'))&&Boolean(sessionStorage.getItem('fc.supportDraftKey'))`),'client support form');
     await evaluate(`(()=>{const form=document.getElementById('support-form');form.elements.transaction.value='';form.elements.subject.value='Pedido fictício suporte cliente';form.elements.details.value='Descrição sintética para validar pedido e resposta operacional.';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('support-feedback')?.textContent.includes('Pedido registrado:')`),'client support created by keyboard');
-    assert.equal(await evaluate(`document.querySelectorAll('#support-detail form').length`),0);
+    assert.equal(await evaluate(`Boolean(document.getElementById('support-customer-message-form'))`),true);
+    assert.equal(await evaluate(`Boolean(document.getElementById('support-reply-form'))`),false);
     const clientSupport=await evaluate(`fetch(${JSON.stringify(apiOrigin+'/v1/support/tickets')},{credentials:'include'}).then(r=>r.json()).then(r=>r.items.find(ticket=>ticket.subject==='Pedido fictício suporte cliente'))`);assert.ok(clientSupport?.id);
+    // Reuse the existing browser beta: prove the customer can continue a ticket via keyboard.
+    await evaluate(`(()=>{const form=document.getElementById('support-customer-message-form');form.querySelector('textarea').value='Mensagem complementar fictícia enviada pelo cliente.';form.querySelector('button').focus();})()`);await key('Enter','Enter',13);
+    await until(()=>evaluate(`document.getElementById('support-detail').textContent.includes('Mensagem complementar fictícia enviada pelo cliente.')`),'customer support conversation persisted');
     await evaluate(`document.getElementById('support-form').elements.transaction.value=${JSON.stringify(browserTransaction)};document.getElementById('operation-cancel').focus()`);await key('Enter','Enter',13);
     await until(()=>evaluate(`document.getElementById('support-form').elements.category.value==='cancellation'&&!document.getElementById('operation-cancel').disabled`),'paid cancellation requires support');
     await evaluate(`document.getElementById('support-next').focus()`);await key('Enter','Enter',13);
