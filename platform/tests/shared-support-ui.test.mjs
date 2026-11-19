@@ -8,7 +8,7 @@ class FixedDate extends Date{constructor(...args){super(...(args.length?args:[fi
 function node(){return {children:[],handlers:{},disabled:false,value:'',tag:'',append(...children){this.children.push(...children)},replaceChildren(){this.children=[]},addEventListener(type,handler){this.handlers[type]=handler},setAttribute(){},focus(){},querySelectorAll(selector){return this.children.flatMap(child=>[...(selector==='button'?(child.tag==='button'?[child]:[]):['input','select','textarea','button'].includes(child.tag)?[child]:[]),...child.querySelectorAll(selector)])}};}
 const ticket=id=>({id,protocol:id===one?'42':'43',status:'open',created_at:'2026-10-09T12:00:00Z',updated_at:'2026-10-10T12:34:00Z',subject:'Assunto fictício',details:'Descrição fictícia do atendimento',category:'general',transaction_id:null,messages:[{body:'Mensagem sintética',created_at:'invalid'}],internal_notes:[]});
 async function harness(request,{admin=false,client=false,signal=null}={}){
- const elements=Object.fromEntries(['support-feedback','support-list','support-detail','support-refresh','support-previous','support-next','support-page','support-filter-status','support-filter-category','support-filter-query','support-filter-assignment','support-filter-sort','support-filter-form'].map(key=>[key,node()]));
+ const elements=Object.fromEntries(['support-feedback','support-list','support-detail','support-refresh','support-attention','support-attention-feedback','support-attention-list','support-previous','support-next','support-page','support-filter-status','support-filter-category','support-filter-query','support-filter-assignment','support-filter-sort','support-filter-form'].map(key=>[key,node()]));
  elements['support-filter-sort'].value='newest';const filterSubmit=node();filterSubmit.tag='button';filterSubmit.type='submit';elements['support-filter-form'].querySelector=()=>filterSubmit;
  if(client){const form=node();form.elements=Object.fromEntries(['transaction','category','subject','details'].map(key=>[key,node()]));form.elements.category.value='general';form.elements.subject.value='Assunto fictício';form.elements.details.value='Descrição fictícia do atendimento';form.querySelectorAll=()=>Object.values(form.elements);elements['support-form']=form;elements['operation-cancel']=node();}
  const values=new Map(),calls=[];let keys=0;const source=(await readFile(new URL('../packages/contracts/support-ui.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'').replace('export function','function');
@@ -35,6 +35,26 @@ test('customer can continue a private support conversation with one confirmed me
  assert.equal(messages[0].body,'Mensagem adicional fictícia para o suporte.');
  assert.equal(messages[0].idempotencyKey,'synthetic-support-reply-key');
  assert.equal(app.calls.some(call=>call.path.endsWith('/messages')&&call.options.method==='POST'),true);
+});
+
+test('staff can classify and inspect internal critical attention without a provider dispatch',async()=>{
+ const app=await harness(async(path,options)=>{
+  if(path==='/v1/support/tickets')return {items:[ticket(one)]};
+  if(path==='/v1/support/attention')return {items:[{id:one,protocol:'42',priority:'critical',first_response_due_at:'2026-10-09T15:00:00Z'}],overdue_total:1,critical_overdue:1,externalDispatchAuthorized:false,automaticPauseAuthorized:false};
+  if(path.endsWith('/priority')&&options?.method==='POST')return {id:one,priority:'critical',reused:false};
+  return {ticket:ticket(one)};
+ },{admin:true});
+ await app.refresh();await app.open(0);
+ const triage=app.elements['support-detail'].children.find(node=>node.id==='support-priority-form');
+ assert.ok(triage);
+ triage.children[1].value='critical';
+ triage.children[3].value='Triagem sintética por pessoa autorizada.';
+ await triage.handlers.submit({preventDefault(){}});
+ assert.equal(app.calls.some(call=>call.path==='/v1/support/tickets/'+one+'/priority'&&call.options.body.priority==='critical'),true);
+ await app.elements['support-attention'].handlers.click();
+ assert.equal(app.elements['support-attention-list'].children.length,1);
+ assert.match(app.elements['support-attention-feedback'].textContent,/Nenhum aviso externo ou pausa foi executado/);
+ assert.equal(app.calls.filter(call=>call.options?.method==='POST').length,1);
 });
 
 test('resolved support ticket has no customer message form',async()=>{
