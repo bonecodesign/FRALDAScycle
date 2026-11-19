@@ -13,7 +13,7 @@ test("internal support identifies service hours in Sao Paulo without promising r
   assert.equal(open.schedule, 'monday_saturday_08_20');
   assert.equal(open.staffedServiceVerified, false);
   assert.equal(open.resolutionGuaranteed, false);
-  const evening = internalSupportPolicy("2026-10-21T22:00:00Z");
+  const evening = internalSupportPolicy("2026-10-21T23:00:00Z");
   assert.equal(evening.open, false);
   assert.equal(evening.queueState, "received_outside_service_hours");
   assert.equal(internalSupportPolicy("2026-10-24T15:00:00Z").open, true);
