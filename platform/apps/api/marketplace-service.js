@@ -102,7 +102,7 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       // The caller never chooses a status or an administrator identity.
       const body=String(input?.body??'').trim();
       const idempotencyKey=input?.idempotencyKey;
-      if(!input||Object.keys(input).some(key=>!['body','idempotencyKey'].includes(key))||
+      if(!input||typeof input.body!=='string'||Object.keys(input).some(key=>!['body','idempotencyKey'].includes(key))||
         body.length<10||body.length>2000||typeof idempotencyKey!=='string'||! /^[a-zA-Z0-9:_-]{16,128}$/.test(idempotencyKey)) {
         throw new MarketplaceError('invalid_support_message',422,'Informe uma mensagem de 10 a 2000 caracteres.');
       }
