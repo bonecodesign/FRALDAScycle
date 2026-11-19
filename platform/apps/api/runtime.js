@@ -95,6 +95,8 @@ import {createUberDirectQuoteAdapter} from './uber-direct-quote-adapter.js';
 import {createGoogleMapsClient} from './google-maps-client.js';
 import {createIncidentRoleRepository} from '../../database/incident-role-repository.js';
 import {createIncidentRoleService} from './incident-role-service.js';
+import {createSupportDutyRepository} from '../../database/support-duty-repository.js';
+import {createSupportDutyService} from './support-duty-service.js';
 import {createExchangeSettlementWebhookService} from './exchange-settlement-webhook-service.js';
 import {createWalletPayoutWebhookService} from './wallet-payout-webhook-service.js';
 import {createCourierWalletRepository} from '../../database/courier-wallet-repository.js';
@@ -160,6 +162,7 @@ export async function startRuntime(config = null) {
   const exchangeRetentionStatusService=createExchangeRetentionStatusService(createExchangeReconciliationRetentionRepository(database));
   const exchangeRetentionRequestService=createExchangeRetentionRequestService(createExchangeReconciliationRetentionRepository(database));
   const incidentRoleService=createIncidentRoleService(createIncidentRoleRepository(database,{stepUpRepository:accountStepUpRepository}));
+  const supportDutyService=createSupportDutyService(createSupportDutyRepository(database,{stepUpRepository:accountStepUpRepository}));
   const adultDeclarationService = createAdultDeclarationService(createAdultDeclarationRepository(database));
   const childProfileService = createChildProfileService(createChildProfileRepository(database), { featureEnabled: config.childProfilesEnabled });
   const childProfileResponsibilityService=createChildProfileResponsibilityService(createChildProfileResponsibilityRepository(database),{enabled:config.familyResponsibilityDisputesEnabled});
@@ -262,6 +265,7 @@ export async function startRuntime(config = null) {
     operationalControlService,
     operationalIncidentService,
     incidentRoleService,
+    supportDutyService,
     staffAccessService,
     adultDeclarationService,
     childProfileService,
