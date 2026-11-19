@@ -3,7 +3,7 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const priorityOrder=Object.freeze({critical:0,high:1,normal:2,low:3});
 const fail=message=>{throw new TypeError(message);};
 const idOf=value=>typeof value==='string'&&uuid.test(value)?value:null;
-export function previewSupportEscalation({tickets=[],duties=[],coordinators=[]}={}){
+export function previewSupportEscalation({tickets=[],duties=[],coordinators=[],overdueTotal=null,criticalOverdue=null}={}){
  if(!Array.isArray(tickets)||!Array.isArray(duties)||!Array.isArray(coordinators))fail('Expected explicit arrays for escalation preview');
  if(tickets.length>50||duties.length>10||coordinators.length>100)fail('Escalation preview input exceeds safe bound');
  const dutyTargets=new Map();
@@ -37,14 +37,21 @@ export function previewSupportEscalation({tickets=[],duties=[],coordinators=[]}=
    actualDispatch:false,
   };
  });
- const criticalOverdue=routes.filter(x=>x.priority==='critical').length;
- const criticalWithoutCoverage=routes.some(x=>x.priority==='critical'&&x.missing.length>0);
+ const visibleCritical=routes.filter(x=>x.priority==='critical').length;
+ const confirmedTotal=overdueTotal==null?routes.length:overdueTotal;
+ const confirmedCritical=criticalOverdue==null?visibleCritical:criticalOverdue;
+ if(!Number.isSafeInteger(confirmedTotal)||!Number.isSafeInteger(confirmedCritical)||
+    confirmedTotal<routes.length||confirmedCritical<visibleCritical||confirmedCritical>confirmedTotal||
+    (confirmedTotal===0&&routes.length!==0))fail('Invalid aggregate overdue counts');
+ const incompleteRouting=routes.some(x=>x.priority==='critical'&&x.missing.length>0);
  return {
-  routes,overdueTotal:routes.length,criticalOverdue,
+  routes,overdueTotal:confirmedTotal,criticalOverdue:confirmedCritical,
+  previewLimitedTo:50,
   preventionPreview:{
-   threeCriticalOverdue:criticalOverdue>=3,
-   criticalCoverageMissing:criticalWithoutCoverage,
-   humanDecisionRequired:criticalOverdue>=3||criticalWithoutCoverage,
+   threeCriticalOverdue:confirmedCritical>=3,
+   criticalRoutingIncomplete:incompleteRouting,
+   criticalCoverageMissing:confirmedCritical>0, // never claim verified on-call staffing
+   humanDecisionRequired:confirmedCritical>0,
   },
   channelVerified:false,staffingVerified:false,externalDispatchAuthorized:false,
   internalDispatchAuthorized:false,automaticPauseAuthorized:false,sendAttempted:false,
