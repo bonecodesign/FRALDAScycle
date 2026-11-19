@@ -35,3 +35,9 @@ São dois canais complementares de atendimento. **Nenhum endereço, domínio ou 
 - Reflexos: **45** (exclusão e direitos), **49** (notificações), **56** (incidentes), **67** (piloto).
 - Sem alteração de 48/70 = **68,57%**, sem mudança de preflight 16/21, sem ativação de produção, pagamentos, fornecedores ou perfis infantis.
 - A aprovação do fundador aqui é **decisão de produto**, não prova de funcionalidade implementada, parecer jurídico ou autorização operacional.
+
+## Atualização técnica FC-321 — implementação após a decisão
+
+O texto acima registra a **situação na data da decisão**, antes da implementação. O pacote FC-321 adiciona a função técnica para o titular autenticado enviar novas mensagens no seu próprio protocolo em `/app/help`, reutilizando mensagens, equipe administrativa, autorização e idempotência existentes; sem habilitar equipe, chat ao vivo, serviço externo ou o e-mail ainda indefinido. Corrige a antiga janela de serviço e os prazos exibidos, que divergiam da decisão de 14/11. Evidências e limites em `docs/shared-support-interface.md`; confirmação do CI e merge devem ser consultados no PR específico.
+
+**Esta atualização não conclui o requisito 51:** atendimento humano real, canal de e-mail oficial, aprovação operacional, identidade e cobertura humana, privacidade, testes físicos e integração externa ainda dependem de homologação. A matriz e o piloto mantêm seus estados até novas evidências.
