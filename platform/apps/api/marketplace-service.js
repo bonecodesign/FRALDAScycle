@@ -6,6 +6,8 @@ import { catalogHasModel } from "../../packages/contracts/diaper-catalog.js";
 import { accessLevel, requireAccessLevel } from "./authorization.js";
 import { pilotBhLocation } from "./pilot-bh.js";
 import { internalSupportPolicy } from "../../packages/contracts/support-hours.js";
+import { previewSupportEscalation } from '../../packages/contracts/support-escalation-preview.js';
+import { requireAdminSector } from './authorization.js';
 import { createMarketplaceCursor, readMarketplaceCursor } from "../../packages/contracts/marketplace-pagination.js";
 
 export class MarketplaceError extends ServiceError {
@@ -106,6 +108,16 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
     async supportAttention(actor) {
       requireAccessLevel(actor,1);
       return repository.supportAttention({limit:50});
+    },
+    async supportEscalationPreview(actor) {
+      // Reveal candidate routing only to authorized support/operations leadership.
+      // Does not create outbox records, actions, incidents or pause commands.
+      requireAdminSector(actor,['support','operations'],4);
+      const [attention,roster]=await Promise.all([
+        repository.supportAttention({limit:50}),
+        repository.supportEscalationRoster(),
+      ]);
+      return previewSupportEscalation({tickets:attention.items,duties:roster.duties,coordinators:roster.coordinators});
     },
     async addSupportNote(actor,ticketId,input) {
       requireAccessLevel(actor,1);
