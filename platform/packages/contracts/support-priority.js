@@ -50,7 +50,7 @@ export function firstResponseDeadline(createdAt,priority){
  for(let day=0;day<10&&remaining>0;day++){
   const p=parts(new Date(instant));
   const boundary=zonedInstant(p.y,p.m,p.d,20);
-  const available=Math.max(0,Math.round((boundary-instant)/60000));
+  const available=Math.max(0,(boundary-instant)/60000);
   const consumed=Math.min(remaining,available);
   instant+=consumed*60000;
   remaining-=consumed;
