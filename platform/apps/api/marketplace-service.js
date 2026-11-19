@@ -98,6 +98,16 @@ export function createMarketplaceService(repository, moderation = null, mediaPro
       if(body.length<10||body.length>2000||typeof idempotencyKey!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey))throw new MarketplaceError('invalid_support_note',422,'Informe uma nota interna de 10 a 2000 caracteres.');
       return repository.addSupportNote({actorId:actor.id,ticketId,body,idempotencyKey});
     },
+    async addSupportMessage(actor,ticketId,input) {
+      // The caller never chooses a status or an administrator identity.
+      const body=String(input?.body??'').trim();
+      const idempotencyKey=input?.idempotencyKey;
+      if(!input||typeof input.body!=='string'||Object.keys(input).some(key=>!['body','idempotencyKey'].includes(key))||
+        body.length<10||body.length>2000||typeof idempotencyKey!=='string'||! /^[a-zA-Z0-9:_-]{16,128}$/.test(idempotencyKey)) {
+        throw new MarketplaceError('invalid_support_message',422,'Informe uma mensagem de 10 a 2000 caracteres.');
+      }
+      return repository.addSupportMessage({actorId:actor.id,ticketId,body,idempotencyKey});
+    },
     async replySupportTicket(actor,ticketId,input) {
       requireAccessLevel(actor,1);
       const body=String(input?.body??"").trim();

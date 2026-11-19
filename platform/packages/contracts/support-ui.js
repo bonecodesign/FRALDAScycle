@@ -25,9 +25,31 @@ export function setupSupport({admin=false}={}){
    const {ticket}=await query('/v1/support/tickets/'+id);if(generation!==detailGeneration)return;
    if(!ticket||ticket.id!==id||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)||typeof ticket.subject!=='string'||typeof ticket.details!=='string'||!Array.isArray(ticket.messages)||ticket.messages.some(message=>!message||typeof message.body!=='string')||(admin&&(!Array.isArray(ticket.internal_notes)||ticket.internal_notes.some(note=>!note||typeof note.body!=='string'||!Number.isSafeInteger(Number(note.id))))))throw new Error('Não foi possível confirmar o atendimento.');
    detail.append(text('h3','Protocolo FC-S-'+ticket.protocol),text('p',statusLabels[ticket.status]),text('p',ticket.subject),text('p',ticket.details));
-   for(const message of ticket.messages)detail.append(text('p',date(message.created_at)+' · '+message.body));
+   for(const message of ticket.messages){
+    const sender=message.mine===true?'Você':message.mine===false?'Equipe FraldaCycle':'Atendimento';
+    detail.append(text('p',sender+' · '+date(message.created_at)+' · '+message.body));
+   }
    say('Atendimento carregado.');
-   if(!admin)return;
+   if(!admin){
+    if(ticket.status==='resolved'){detail.append(text('p','Atendimento encerrado. Para uma nova solicitação, abra outro pedido.'));return;}
+    const form=document.createElement('form'),label=text('label','Enviar mensagem ao suporte'),body=document.createElement('textarea'),button=text('button','Enviar mensagem');
+    form.id='support-customer-message-form';body.id='support-customer-message-body';label.htmlFor=body.id;body.className='input';body.required=true;body.minLength=10;body.maxLength=2000;
+    button.type='submit';button.className='button primary';form.append(label,body,button);detail.append(form);
+    form.addEventListener('submit',async event=>{
+     event.preventDefault();if(replying||noteSaving||generation!==detailGeneration)return;
+     const answer=body.value.trim();if(answer.length<10||answer.length>2000){say('Informe uma mensagem de 10 a 2000 caracteres.');return;}
+     replying=true;body.disabled=true;button.disabled=true;lockList(true);refresh.disabled=true;lockPages();
+     try{
+      const idempotencyKey=await supportReplyKey(id,answer,'customer_message');
+      const result=await apiRequest('/v1/support/tickets/'+id+'/messages',{method:'POST',body:{body:answer,idempotencyKey}});
+      if(result?.id!==id||result?.status!=='under_review'||!Number.isSafeInteger(Number(result?.messageId))||Number(result.messageId)<=0)throw new Error('Não foi possível confirmar a mensagem.');
+      clearSupportReplyKey(id,idempotencyKey);say('Mensagem registrada no protocolo. A equipe responderá conforme a prioridade e a disponibilidade de atendimento.');
+      await load(page,true);await openTicket(id,true);
+     }catch(error){say((error.message||'Não foi possível enviar a mensagem.')+' Consulte o protocolo antes de reenviar; seu texto foi preservado.');}
+     finally{replying=false;body.disabled=false;button.disabled=false;lockList(false);refresh.disabled=false;lockPages();}
+    });
+    return;
+   }
    detail.append(text('p',ticket.assignee_id?'Responsável: '+(ticket.assignee_name||'administrador atribuído'):'Sem responsável atribuído.'));
    const assignment=document.createElement('button');assignment.type='button';assignment.className='button secondary';assignment.textContent=ticket.assigned_to_me?'Liberar atribuição':'Assumir atendimento';assignment.disabled=Boolean(ticket.assignee_id&&!ticket.assigned_to_me);detail.append(assignment);
    assignment.addEventListener('click',async()=>{if(replying||noteSaving||generation!==detailGeneration)return;const current=generation,action=ticket.assigned_to_me?'release':'claim';assignment.disabled=true;try{const result=await apiRequest('/v1/support/tickets/'+id+'/assignment',{method:'POST',body:{action}});if(current!==detailGeneration){await load(page);return;}if(result?.assignment?.id!==id||Boolean(result.assignment.assigned_to_me)!==(action==='claim'))throw new Error('Não foi possível confirmar a atribuição.');await Promise.all([load(page),openTicket(id,true)]);}catch(error){if(current===detailGeneration){assignment.disabled=false;say(error.message||'Não foi possível alterar a atribuição.');}}});
@@ -88,11 +110,11 @@ export function setupSupport({admin=false}={}){
     if(ticket.subject!==input.subject||ticket.details!==input.details||ticket.category!==input.category||(ticket.transaction_id??null)!==input.transactionId){rotateKey();throw new Error('A chave corresponde a um pedido anterior. O rascunho foi preservado para um novo envio; confira o acompanhamento.');}
     rotateKey();form.elements.subject.value='';form.elements.details.value='';await load();await openTicket(ticket.id);
     const policy=result?.supportPolicy;
-    const serviceMessage=policy?.firstResponseTargetBusinessDays===2&&policy?.resolutionGuaranteed===false
+    const serviceMessage=policy?.firstResponseTargets&&policy?.resolutionGuaranteed===false
       ? policy.queueState==='received_outside_service_hours'
-        ? ' Recebido fora do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+        ? ' Recebido fora do horário planejado; a primeira resposta depende da classificação de criticidade e da disponibilidade humana, sem garantia de resolução.'
         : policy.queueState==='within_service_hours'
-          ? ' Recebido dentro do horário de atendimento; primeira resposta em até 2 dias úteis. O prazo não garante a resolução.'
+          ? ' Recebido no horário planejado; a primeira resposta depende da classificação de criticidade e da disponibilidade humana, sem garantia de resolução.'
           : ''
       : '';
     say('Pedido registrado: FC-S-'+ticket.protocol+'.'+serviceMessage);
