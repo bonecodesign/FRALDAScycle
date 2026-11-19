@@ -1,6 +1,6 @@
 # Diligência pré-contratação de fornecedores
 
-Estado: preparada e não enviada.
+Estado: **pesquisa pública preparatória autorizada pelo fundador e executada para Asaas/Lalamove em 18/11/2026**; questionários comerciais, contatos externos e propostas **ainda não enviados/recebidos**. A evidência e as perguntas delta estão em [FC-320 — diligência pública Asaas/Lalamove](finance/fc320-asaas-lalamove-diligencia-publica-2026-11-18.md).
 
 Este pacote transforma a seleção preliminar em um portão auditável. Ele não autoriza contato externo, abertura de conta, envio de dados, aceite de termos, contratação, provisionamento, credenciais ou pagamento.
 
