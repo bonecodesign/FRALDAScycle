@@ -21,7 +21,7 @@ test('internal support is private, assigned, idempotent and audited over HTTP/Po
     ($2,'support-outsider@example.test','fixture','Pessoa externa','customer'),
     ($3,'support-admin@example.test','fixture','Atendente fictício','admin'),
     ($4,'support-second@example.test','fixture','Outro atendente','admin')`,Object.values(ids));
-   const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin'},second:{id:ids.secondAdmin,role:'admin'}};
+   const actors={owner:{id:ids.owner,role:'customer'},outsider:{id:ids.outsider,role:'customer'},admin:{id:ids.admin,role:'admin',staffSector:'operations'},second:{id:ids.secondAdmin,role:'admin',staffSector:'finance'}};
    api=createApiServer({config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),marketplaceService:createMarketplaceService(createMarketplaceRepository(database)),authService:{async session(token){return actors[token]??null;}}});
    await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
    const origin=`http://127.0.0.1:${api.address().port}`,headers=token=>({cookie:`fc_session=${token}`,'content-type':'application/json'}),root=`${origin}/v1/support/tickets`;
@@ -47,6 +47,27 @@ test('internal support is private, assigned, idempotent and audited over HTTP/Po
    const attention=await fetch(`${origin}/v1/support/attention`,{headers:headers('admin')}),attentionBody=await attention.json();
    assert.equal(attention.status,200,JSON.stringify(attentionBody));assert.equal(attentionBody.critical_overdue,1);assert.equal(attentionBody.items[0].id,ticketId);
    assert.equal(attentionBody.externalDispatchAuthorized,false);assert.equal(attentionBody.automaticPauseAuthorized,false);
+   // FC-323: only leadership may inspect a read-only route draft.
+   const beforeOutbox=(await database.query('SELECT count(*)::int AS n FROM notification_outbox')).rows[0].n;
+   const outsiderPreview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('owner')});assert.equal(outsiderPreview.status,403);
+   const anonymousPreview=await fetch(`${origin}/v1/support/escalation-preview`);assert.equal(anonymousPreview.status,401);
+   const otherSectorPreview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('second')});assert.equal(otherSectorPreview.status,403);
+   const preview=await fetch(`${origin}/v1/support/escalation-preview`,{headers:headers('admin')});
+   const previewBody=await preview.json();
+   assert.equal(preview.status,200,JSON.stringify(previewBody));
+   assert.equal(preview.headers.get('cache-control'),'no-store');
+   assert.equal(previewBody.overdueTotal,1);
+   assert.equal(previewBody.criticalOverdue,1);
+   assert.equal(previewBody.routes[0].ticketId,ticketId);
+   assert.equal(previewBody.routes[0].readiness,'missing_coverage');
+   assert.deepEqual(previewBody.routes[0].missing,['primary','substitute','level4','level5']);
+   assert.equal(previewBody.externalDispatchAuthorized,false);
+   assert.equal(previewBody.internalDispatchAuthorized,false);
+   assert.equal(previewBody.automaticPauseAuthorized,false);
+   assert.equal(previewBody.sendAttempted,false);
+   assert.equal(previewBody.preventionPreview.humanDecisionRequired,true);
+   assert.equal((await database.query('SELECT count(*)::int AS n FROM support_duty_assignments')).rows[0].n,0);
+   assert.equal((await database.query('SELECT count(*)::int AS n FROM notification_outbox')).rows[0].n,beforeOutbox);
    const customerPage=await fetch(`${root}?page=1`,{headers:headers('owner')});assert.equal(customerPage.status,200);
    const customerPageText=JSON.stringify(await customerPage.json());
    assert.equal(customerPageText.includes(noteInput.body),false);

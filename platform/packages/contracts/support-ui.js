@@ -135,6 +135,33 @@ export function setupSupport({admin=false}={}){
   finally{attentionButton.disabled=false;}
  });
 
+ const escalationButton=admin?document.getElementById('support-escalation-preview'):null,
+  escalationFeedback=admin?document.getElementById('support-escalation-feedback'):null,
+  escalationList=admin?document.getElementById('support-escalation-list'):null;
+ escalationButton?.addEventListener('click',async()=>{
+  if(replying||noteSaving||listBusy||escalationButton.disabled)return;
+  escalationButton.disabled=true;escalationList?.replaceChildren();
+  if(escalationFeedback)escalationFeedback.textContent='Consultando a prévia interna, sem envio…';
+  try{
+   const preview=await query('/v1/support/escalation-preview');
+   if(!Array.isArray(preview?.routes)||!Number.isSafeInteger(preview.overdueTotal)||
+      !Number.isSafeInteger(preview.criticalOverdue)||preview.externalDispatchAuthorized!==false||
+      preview.internalDispatchAuthorized!==false||preview.automaticPauseAuthorized!==false||
+      preview.sendAttempted!==false||preview.channelVerified!==false||preview.staffingVerified!==false)throw new Error('Prévia inválida; nenhuma ação executada.');
+   if(escalationFeedback)escalationFeedback.textContent=preview.overdueTotal+' protocolo(s) vencido(s); '+preview.criticalOverdue+
+     ' crítico(s). Prévia somente: mensagens externas, plantão e pausa automática DESATIVADOS.';
+   const labels={primary:'titular',substitute:'substituto',level4:'nível 4',level5:'fundador nível 5',independent_recipients_required:'pessoas distintas'};
+   if(escalationList)for(const route of preview.routes){
+    if(!validId(route.ticketId)||!Object.hasOwn(priorityLabels,route.priority)||
+       !Array.isArray(route.missing)||route.actualDispatch!==false)throw new Error('Registro de prévia inválido.');
+    const missing=route.missing.map(key=>labels[key]||'cobertura a confirmar').join(', ');
+    const row=text('p',priorityLabels[route.priority]+' · '+(missing?'Aguardando '+missing:'Papéis elegíveis; canais e escala ainda não homologados')+' · Sem envio');
+    escalationList.append(row);
+   }
+  }catch(error){if(escalationFeedback)escalationFeedback.textContent=error.message||'Não foi possível preparar a prévia.';}
+  finally{escalationButton.disabled=false;}
+ });
+
  previous?.addEventListener('click',()=>{if(!listBusy&&!replying&&page>1)return load(page-1);});
  next?.addEventListener('click',()=>{if(!listBusy&&!replying&&hasMore)return load(page+1);});
  statusFilter?.addEventListener('change',()=>load(1));categoryFilter?.addEventListener('change',()=>load(1));assignmentFilter?.addEventListener('change',()=>load(1));sortFilter?.addEventListener('change',()=>load(1));filterForm?.addEventListener('submit',event=>{event.preventDefault();return load(1);});

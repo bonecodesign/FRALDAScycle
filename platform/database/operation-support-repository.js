@@ -263,6 +263,26 @@ export function createOperationSupportRepository(database) {
           AND status<>'resolved' AND first_response_due_at<=now()`);
       return {items:result.rows,...counts.rows[0],externalDispatchAuthorized:false,automaticPauseAuthorized:false};
     },
+    // Read-only duty candidate lookup. A nominated sector is NOT a staffed on-call shift.
+    async supportEscalationRoster() {
+      const [duties,coordinators]=await Promise.all([
+        database.query(`SELECT r.role_kind,r.target_user_id,r.status,true AS verified
+          FROM support_duty_assignments r JOIN users u ON u.id=r.target_user_id
+          WHERE r.status='accepted' AND r.accepted_by=r.target_user_id
+            AND r.acceptance_step_up_id IS NOT NULL AND r.appointment_step_up_id IS NOT NULL
+            AND u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL
+            AND u.role IN ('admin','moderator') AND u.staff_sector='support'
+            AND u.staff_access_level BETWEEN 1 AND 4
+          ORDER BY r.role_kind,r.target_user_id`),
+        database.query(`SELECT id AS user_id,staff_access_level,true AS verified
+          FROM users WHERE disabled_at IS NULL AND email_verified_at IS NOT NULL
+          AND role='admin' AND (
+            (staff_access_level=4 AND staff_sector IN ('operations','support','security'))
+            OR (staff_access_level=5 AND staff_sector='founder')
+          ) ORDER BY staff_access_level,id`),
+      ]);
+      return {duties:duties.rows,coordinators:coordinators.rows};
+    },
     async addSupportNote({actorId,ticketId,body,idempotencyKey}) {
       return database.transaction(async client=>{
         const found=await client.query('SELECT id FROM support_tickets WHERE id=$1 FOR UPDATE',[ticketId]);

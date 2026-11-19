@@ -61,6 +61,12 @@ export async function handleMarketplace(request, response, {
     const result=await marketplaceService.addSupportMessage(actor,supportMessage[1],await readJson(request));
     sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
   }
+  // Coordination preflight: approved humans and channel gates remain mandatory.
+  if(url.pathname==='/v1/support/escalation-preview'&&request.method==='GET'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.supportEscalationPreview(actor);
+    sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   // Explicit staff triage / overdue preview; neither dispatches messages nor pauses operations.
   if(url.pathname==='/v1/support/attention'&&request.method==='GET'){
     const actor=await authenticatedUser(request,authService);

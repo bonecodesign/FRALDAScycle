@@ -8,7 +8,7 @@ class FixedDate extends Date{constructor(...args){super(...(args.length?args:[fi
 function node(){return {children:[],handlers:{},disabled:false,value:'',tag:'',append(...children){this.children.push(...children)},replaceChildren(){this.children=[]},addEventListener(type,handler){this.handlers[type]=handler},setAttribute(){},focus(){},querySelectorAll(selector){return this.children.flatMap(child=>[...(selector==='button'?(child.tag==='button'?[child]:[]):['input','select','textarea','button'].includes(child.tag)?[child]:[]),...child.querySelectorAll(selector)])}};}
 const ticket=id=>({id,protocol:id===one?'42':'43',status:'open',created_at:'2026-10-09T12:00:00Z',updated_at:'2026-10-10T12:34:00Z',subject:'Assunto fictício',details:'Descrição fictícia do atendimento',category:'general',transaction_id:null,messages:[{body:'Mensagem sintética',created_at:'invalid'}],internal_notes:[]});
 async function harness(request,{admin=false,client=false,signal=null}={}){
- const elements=Object.fromEntries(['support-feedback','support-list','support-detail','support-refresh','support-attention','support-attention-feedback','support-attention-list','support-previous','support-next','support-page','support-filter-status','support-filter-category','support-filter-query','support-filter-assignment','support-filter-sort','support-filter-form'].map(key=>[key,node()]));
+ const elements=Object.fromEntries(['support-feedback','support-list','support-detail','support-refresh','support-attention','support-attention-feedback','support-attention-list','support-escalation-preview','support-escalation-feedback','support-escalation-list','support-previous','support-next','support-page','support-filter-status','support-filter-category','support-filter-query','support-filter-assignment','support-filter-sort','support-filter-form'].map(key=>[key,node()]));
  elements['support-filter-sort'].value='newest';const filterSubmit=node();filterSubmit.tag='button';filterSubmit.type='submit';elements['support-filter-form'].querySelector=()=>filterSubmit;
  if(client){const form=node();form.elements=Object.fromEntries(['transaction','category','subject','details'].map(key=>[key,node()]));form.elements.category.value='general';form.elements.subject.value='Assunto fictício';form.elements.details.value='Descrição fictícia do atendimento';form.querySelectorAll=()=>Object.values(form.elements);elements['support-form']=form;elements['operation-cancel']=node();}
  const values=new Map(),calls=[];let keys=0;const source=(await readFile(new URL('../packages/contracts/support-ui.js',import.meta.url),'utf8')).replace(/^import .*;\s*$/gm,'').replace('export function','function');
@@ -35,6 +35,28 @@ test('customer can continue a private support conversation with one confirmed me
  assert.equal(messages[0].body,'Mensagem adicional fictícia para o suporte.');
  assert.equal(messages[0].idempotencyKey,'synthetic-support-reply-key');
  assert.equal(app.calls.some(call=>call.path.endsWith('/messages')&&call.options.method==='POST'),true);
+});
+
+test('staff sees fail-closed routing preview without dispatch, pause or customer access',async()=>{
+ const app=await harness(async path=>{
+  if(path==='/v1/support/escalation-preview')return {
+   routes:[{ticketId:one,priority:'critical',missing:['primary','substitute','level4','level5'],actualDispatch:false}],
+   overdueTotal:1,criticalOverdue:1,
+   channelVerified:false,staffingVerified:false,externalDispatchAuthorized:false,
+   internalDispatchAuthorized:false,automaticPauseAuthorized:false,sendAttempted:false,
+  };
+  return {items:[]};
+ },{admin:true});
+ const trigger=app.elements['support-escalation-preview'];
+ await trigger.handlers.click();
+ assert.equal(trigger.disabled,false);
+ assert.equal(app.calls.filter(item=>item.path==='/v1/support/escalation-preview').length,1);
+ assert.equal(app.calls.some(item=>item.options?.method==='POST'),false);
+ assert.match(app.elements['support-escalation-feedback'].textContent,/DESATIVADOS/);
+ assert.equal(app.elements['support-escalation-list'].children.length,1);
+ assert.match(app.elements['support-escalation-list'].children[0].textContent,/Aguardando titular, substituto, nível 4, fundador nível 5/);
+ const client=await harness(async()=>({items:[]}),{client:true});
+ assert.equal(client.elements['support-escalation-preview'].handlers.click,undefined);
 });
 
 test('staff can classify and inspect internal critical attention without a provider dispatch',async()=>{
