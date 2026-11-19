@@ -55,6 +55,17 @@ test('critical workload and ordering generate only a HUMAN review preview',()=>{
  assert.equal(result.automaticPauseAuthorized,false);
 });
 
+test('aggregate critical overload cannot disappear when preview is capped at 50',()=>{
+ const result=previewSupportEscalation({tickets:[ticket(uuids[0],'low')],overdueTotal:140,criticalOverdue:4});
+ assert.equal(result.routes.length,1);
+ assert.equal(result.overdueTotal,140);
+ assert.equal(result.criticalOverdue,4);
+ assert.equal(result.preventionPreview.threeCriticalOverdue,true);
+ assert.equal(result.preventionPreview.humanDecisionRequired,true);
+ assert.equal(result.automaticPauseAuthorized,false);
+ assert.throws(()=>previewSupportEscalation({tickets:[ticket(uuids[0])],overdueTotal:1,criticalOverdue:0}),/aggregate/);
+});
+
 test('preflight rejects malformed or answered records and unbounded batches',()=>{
  assert.throws(()=>previewSupportEscalation({tickets:[{...ticket(uuids[0]),first_response_at:'2026-11-19T14:30:00Z'}]}),/classified/);
  assert.throws(()=>previewSupportEscalation({tickets:[ticket('not-uuid')]}),/classified/);
