@@ -62,8 +62,10 @@ test('support duty stage chain: L3 → independent L4 → founder L5 → nominee
    const grant=async(token)=>{
     const r=await send(token,'POST','/v1/account/step-up/request',{password,purpose:'support_duty_assignment'});
     assert.equal(r.status,202,JSON.stringify(r.body));
-    const code=(await db.query(`SELECT payload->>'token' AS code FROM notification_outbox WHERE kind='account_step_up'
-      AND recipient=$1 ORDER BY id DESC LIMIT 1`,['fc324-'+token+'@example.test'])).rows[0].code;
+    const code=(await db.query(`SELECT o.payload->>'token' AS code FROM notification_outbox o
+      JOIN auth_tokens t ON t.id=o.auth_token_id WHERE o.kind='account_step_up'
+      AND o.recipient=$1 AND t.consumed_at IS NULL AND t.expires_at>now()
+      ORDER BY o.created_at DESC LIMIT 1`,['fc324-'+token+'@example.test'])).rows[0].code;
     const verified=await send(token,'POST','/v1/account/step-up/confirm',
      {challenge:r.body.challenge,code,purpose:'support_duty_assignment'});
     assert.equal(verified.status,200,JSON.stringify(verified.body));
