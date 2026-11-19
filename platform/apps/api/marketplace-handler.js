@@ -54,6 +54,13 @@ export async function handleMarketplace(request, response, {
       : await marketplaceService.supportPage(actor,{page:url.searchParams.get('page')??'1',status:url.searchParams.get('status')??'',category:url.searchParams.get('category')??'',q:url.searchParams.get('q')??'',assignment:url.searchParams.get('assignment')??'',sort:url.searchParams.get('sort')??'newest'});
     sendJson(response,request.method==="POST"&&!result.reused?201:200,{...result,requestId},{...headers,"cache-control":"no-store"});return true;
   }
+  // Customer conversation is separate from the post-payment buyer/seller chat.
+  const supportMessage=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/messages$/i);
+  if(supportMessage&&request.method==='POST'){
+    const actor=await authenticatedUser(request,authService);
+    const result=await marketplaceService.addSupportMessage(actor,supportMessage[1],await readJson(request));
+    sendJson(response,result.reused?200:201,{...result,requestId},{...headers,'cache-control':'no-store'});return true;
+  }
   const supportNote=url.pathname.match(/^\/v1\/support\/tickets\/([0-9a-f-]{36})\/notes$/i);
   if(supportNote&&request.method==='POST'){
     const actor=await authenticatedUser(request,authService);
