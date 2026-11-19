@@ -1,6 +1,7 @@
 import { apiRequest } from './api-client.js';
 import { supportReplyKey, clearSupportReplyKey } from './support-reply-key.js';
 const statusLabels={open:'Aberto',under_review:'Em análise',resolved:'Resolvido'};
+const priorityLabels={critical:'Crítico',high:'Alto',normal:'Normal',low:'Baixo'};
 const validId=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const validProtocol=value=>/^[1-9][0-9]{0,19}$/.test(String(value??''));
 const date=value=>{const parsed=new Date(value);return value&&Number.isFinite(parsed.getTime())?parsed.toLocaleString('pt-BR'):'Data não informada';};
@@ -51,6 +52,30 @@ export function setupSupport({admin=false}={}){
     return;
    }
    detail.append(text('p',ticket.assignee_id?'Responsável: '+(ticket.assignee_name||'administrador atribuído'):'Sem responsável atribuído.'));
+   const priorityCurrent=Object.hasOwn(priorityLabels,ticket.priority)?priorityLabels[ticket.priority]:'Não classificado';
+   const deadline=ticket.first_response_due_at?date(ticket.first_response_due_at):'Aguardando classificação humana';
+   detail.append(text('p','Criticidade: '+(ticket.priority_classified_at?priorityCurrent:'Pendente de triagem')+' · Primeira resposta: '+(ticket.first_response_at?'registrada':deadline)));
+   const triage=document.createElement('form'),priorityLabel=text('label','Classificar criticidade'),priorityChoice=document.createElement('select'),reasonLabel=text('label','Justificativa da triagem'),reasonInput=document.createElement('textarea'),prioritySubmit=text('button','Salvar classificação'),priorityFeedback=text('p','');
+   triage.id='support-priority-form';priorityChoice.id='support-priority-choice';priorityChoice.className='input';priorityLabel.htmlFor=priorityChoice.id;
+   for(const [value,label] of Object.entries(priorityLabels)){const opt=text('option',label);opt.value=value;priorityChoice.append(opt);}
+   priorityChoice.value=ticket.priority||'normal';reasonInput.id='support-priority-reason';reasonInput.className='input';reasonInput.required=true;reasonInput.minLength=10;reasonInput.maxLength=500;reasonLabel.htmlFor=reasonInput.id;
+   prioritySubmit.type='submit';prioritySubmit.className='button secondary';priorityFeedback.setAttribute('role','status');priorityFeedback.setAttribute('aria-live','polite');
+   triage.append(priorityLabel,priorityChoice,reasonLabel,reasonInput,prioritySubmit,priorityFeedback);detail.append(triage);
+   const priorityLocked=ticket.status==='resolved';prioritySubmit.disabled=priorityLocked;priorityChoice.disabled=priorityLocked;reasonInput.disabled=priorityLocked;
+   triage.addEventListener('submit',async event=>{
+    event.preventDefault();if(priorityLocked||replying||noteSaving||generation!==detailGeneration)return;
+    const priority=priorityChoice.value,reason=reasonInput.value.trim();
+    if(!Object.hasOwn(priorityLabels,priority)||reason.length<10||reason.length>500){priorityFeedback.textContent='Selecione a criticidade e justifique em 10 a 500 caracteres.';return;}
+    replying=true;priorityChoice.disabled=true;reasonInput.disabled=true;prioritySubmit.disabled=true;lockList(true);refresh.disabled=true;lockPages();
+    try{
+     const result=await apiRequest('/v1/support/tickets/'+id+'/priority',{method:'POST',body:{priority,reason}});
+     if(result?.id!==id||result?.priority!==priority)throw new Error('Não foi possível confirmar a classificação.');
+     priorityFeedback.textContent='Classificação registrada; a equipe deve avaliar incidentes e prazos vencidos.';
+     await load(page,true);await openTicket(id,true);
+    }catch(error){priorityFeedback.textContent=error.message||'Falha ao registrar criticidade. Reconsulte o protocolo antes de tentar novamente.';}
+    finally{replying=false;priorityChoice.disabled=priorityLocked;reasonInput.disabled=priorityLocked;prioritySubmit.disabled=priorityLocked;lockList(false);refresh.disabled=false;lockPages();}
+   });
+
    const assignment=document.createElement('button');assignment.type='button';assignment.className='button secondary';assignment.textContent=ticket.assigned_to_me?'Liberar atribuição':'Assumir atendimento';assignment.disabled=Boolean(ticket.assignee_id&&!ticket.assigned_to_me);detail.append(assignment);
    assignment.addEventListener('click',async()=>{if(replying||noteSaving||generation!==detailGeneration)return;const current=generation,action=ticket.assigned_to_me?'release':'claim';assignment.disabled=true;try{const result=await apiRequest('/v1/support/tickets/'+id+'/assignment',{method:'POST',body:{action}});if(current!==detailGeneration){await load(page);return;}if(result?.assignment?.id!==id||Boolean(result.assignment.assigned_to_me)!==(action==='claim'))throw new Error('Não foi possível confirmar a atribuição.');await Promise.all([load(page),openTicket(id,true)]);}catch(error){if(current===detailGeneration){assignment.disabled=false;say(error.message||'Não foi possível alterar a atribuição.');}}});
    const notes=document.createElement('section'),notesHeading=text('h3','Notas internas · somente equipe'),notesList=document.createElement('div'),noteForm=document.createElement('form'),noteLabel=text('label','Adicionar nota interna'),noteBody=document.createElement('textarea'),noteButton=text('button','Salvar nota interna'),noteStatus=text('p','');
@@ -84,7 +109,7 @@ export function setupSupport({admin=false}={}){
    if(!Array.isArray(items)||items.length>50||items.some(ticket=>!ticket||!validId(ticket.id)||!validProtocol(ticket.protocol)||!Object.hasOwn(statusLabels,ticket.status)))throw new Error('Não foi possível confirmar a lista de pedidos.');
    page=target;hasMore=result.hasMore;if(pageLabel)pageLabel.textContent='Página '+page;
    if(!items.length)list.append(text('p','Nenhum pedido registrado.'));
-   for(const ticket of items){const ageText=age(ticket.created_at);const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(ticket.assignee_name||'Sem responsável')+(admin?' · Criado '+ageText+' · Atualizado em '+date(ticket.updated_at):'') );button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
+   for(const ticket of items){const ageText=age(ticket.created_at);const button=text('button','FC-S-'+ticket.protocol+' · '+ticket.subject+' · '+statusLabels[ticket.status]+' · '+(admin?(ticket.priority_classified_at?(priorityLabels[ticket.priority]||'Criticidade inválida'):'Triagem pendente')+' · ':'')+(ticket.assignee_name||'Sem responsável')+(admin?' · Criado '+ageText+' · Atualizado em '+date(ticket.updated_at):'') );button.className='button secondary block';button.type='button';button.addEventListener('click',()=>openTicket(ticket.id));list.append(button);}
    lockList(replying);say('Pedidos carregados. Página '+page+'.');
   }catch(error){if(generation===listGeneration){list.replaceChildren();hasMore=false;say(error.message||'Não foi possível consultar os pedidos.');}}
   finally{if(generation===listGeneration){listBusy=false;refresh.disabled=replying;lockPages();}}
