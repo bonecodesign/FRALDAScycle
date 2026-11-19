@@ -42,7 +42,7 @@ export function setupSupport({admin=false}={}){
      try{
       const idempotencyKey=await supportReplyKey(id,answer,'customer_message');
       const result=await apiRequest('/v1/support/tickets/'+id+'/messages',{method:'POST',body:{body:answer,idempotencyKey}});
-      if(result?.id!==id||result?.status!=='under_review'||!Number.isSafeInteger(Number(result?.messageId)))throw new Error('Não foi possível confirmar a mensagem.');
+      if(result?.id!==id||result?.status!=='under_review'||!Number.isSafeInteger(Number(result?.messageId))||Number(result.messageId)<=0)throw new Error('Não foi possível confirmar a mensagem.');
       clearSupportReplyKey(id,idempotencyKey);say('Mensagem registrada no protocolo. A equipe responderá conforme a prioridade e a disponibilidade de atendimento.');
       await load(page,true);await openTicket(id,true);
      }catch(error){say((error.message||'Não foi possível enviar a mensagem.')+' Consulte o protocolo antes de reenviar; seu texto foi preservado.');}
