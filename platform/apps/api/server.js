@@ -54,6 +54,7 @@ export function createApiServer({
   paymentService = null,
   freightSettlementService = null,
   incidentRoleService = null,
+  supportDutyService = null,
   paymentProvider = null,
   logisticsService = null,
   addressChangeService = null,
@@ -349,7 +350,7 @@ export function createApiServer({
       })) return;
 
       if (await handleAdmin(request, response, {
-        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
+        url, headers, requestId: id, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, supportDutyService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
       })) return;
 
       if (await handleExchanges(request,response,{url,headers,requestId:id,authService,exchangeService})) return;
