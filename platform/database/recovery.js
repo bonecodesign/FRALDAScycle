@@ -83,6 +83,15 @@ export function createRestorePlan(env = process.env) {
   if (env.DATABASE_URL && databaseIdentity(env.DATABASE_URL) === databaseIdentity(env.RESTORE_DATABASE_URL)) {
     throw new Error("RESTORE_DATABASE_URL must target a database different from DATABASE_URL");
   }
+  // A generic RESTORE acknowledgement is insufficient for a remote destination.
+  // Require its exact, secret-free host:port/database identity to avoid accidentally
+  // running pg_restore --clean against another hosted PostgreSQL environment.
+  const restoreEnvironment = databaseEnvironment(env.RESTORE_DATABASE_URL);
+  const hostname = restoreEnvironment.PGHOST.toLowerCase().replace(/\\.$/, "");
+  const loopback = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  if (!loopback && env.CONFIRM_REMOTE_RESTORE_TARGET !== databaseIdentity(env.RESTORE_DATABASE_URL)) {
+    throw new Error("Remote restoration requires CONFIRM_REMOTE_RESTORE_TARGET matching the exact host:port/database");
+  }
   return Object.freeze({
     command: "pg_restore",
     args: ["--clean", "--if-exists", "--exit-on-error", "--single-transaction", "--no-owner", "--no-privileges", "--dbname", databaseEnvironment(env.RESTORE_DATABASE_URL).PGDATABASE, dumpPath(env.DATABASE_DUMP_PATH)],
