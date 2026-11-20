@@ -27,6 +27,7 @@ test("restore requires explicit authorization and targets a separate database", 
   }), /authorize restoration/);
   const plan = createRestorePlan({
     CONFIRM_DATABASE_RESTORE: "RESTORE",
+    CONFIRM_REMOTE_RESTORE_TARGET: "db.internal:5432/restore",
     RESTORE_DATABASE_URL: "postgresql://operator:secret@db.internal/restore",
     DATABASE_DUMP_PATH: "./backup.dump",
   });
@@ -58,6 +59,40 @@ test("restore recognizes canonical DNS and loopback spellings of the source endp
       DATABASE_DUMP_PATH: "./backup.dump",
     }), /different from DATABASE_URL/);
   }
+});
+
+test("remote restore requires exact secret-free target identity, not a generic acknowledgement", () => {
+  const base = {
+    CONFIRM_DATABASE_RESTORE: "RESTORE",
+    DATABASE_URL: "postgresql://source:sensitive@db.source.example.test/postgres",
+    RESTORE_DATABASE_URL: "postgresql://restore:othersecret@db.target.example.test:5432/recovery",
+    DATABASE_DUMP_PATH: "./isolated.dump",
+  };
+  assert.throws(() => createRestorePlan(base), /CONFIRM_REMOTE_RESTORE_TARGET/);
+  assert.throws(() => createRestorePlan({
+    ...base, CONFIRM_REMOTE_RESTORE_TARGET: "db.source.example.test:5432/postgres",
+  }), /CONFIRM_REMOTE_RESTORE_TARGET/);
+  assert.throws(() => createRestorePlan({
+    ...base, CONFIRM_REMOTE_RESTORE_TARGET: "db.target.example.test:5432/postgres",
+  }), /CONFIRM_REMOTE_RESTORE_TARGET/);
+  const plan = createRestorePlan({
+    ...base, CONFIRM_REMOTE_RESTORE_TARGET: "db.target.example.test:5432/recovery",
+  });
+  assert.equal(plan.command, "pg_restore");
+  assert.equal(plan.args.join(" ").includes("othersecret"), false);
+  assert.equal(plan.env.PGPASSWORD, "othersecret");
+});
+
+test("Supabase-hosted restore requires explicit destination identity and never grants implicit approval", () => {
+  const base = {
+    CONFIRM_DATABASE_RESTORE: "RESTORE",
+    DATABASE_DUMP_PATH: "./isolated.dump",
+    RESTORE_DATABASE_URL: "postgresql://postgres:sensitive@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres?sslmode=verify-full",
+  };
+  assert.throws(() => createRestorePlan(base), /CONFIRM_REMOTE_RESTORE_TARGET/);
+  assert.throws(() => createRestorePlan({
+    ...base, CONFIRM_REMOTE_RESTORE_TARGET: "localhost:5432/postgres",
+  }), /CONFIRM_REMOTE_RESTORE_TARGET/);
 });
 
 test("backup and restore require a valid PostgreSQL database address", () => {
@@ -105,6 +140,7 @@ test("database URLs reject malformed encoded components and fragments", () => {
 test("database utilities receive parsed PG settings but not raw database URLs", async () => {
   const plan = createRestorePlan({
     CONFIRM_DATABASE_RESTORE: "RESTORE",
+    CONFIRM_REMOTE_RESTORE_TARGET: "restore.example.test:5432/restore",
     DATABASE_URL: "postgresql://source:source-secret@source.example.test/source",
     RESTORE_DATABASE_URL: "postgresql://restore:restore-secret@restore.example.test/restore",
     DATABASE_DUMP_PATH: "./backup.dump",
