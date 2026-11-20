@@ -87,7 +87,7 @@ export function createRestorePlan(env = process.env) {
   // Require its exact, secret-free host:port/database identity to avoid accidentally
   // running pg_restore --clean against another hosted PostgreSQL environment.
   const restoreEnvironment = databaseEnvironment(env.RESTORE_DATABASE_URL);
-  const hostname = restoreEnvironment.PGHOST.toLowerCase().replace(/\\.$/, "");
+  const hostname = restoreEnvironment.PGHOST.toLowerCase().replace(/\.$/, "");
   const loopback = ["localhost", "127.0.0.1", "::1"].includes(hostname);
   if (!loopback && env.CONFIRM_REMOTE_RESTORE_TARGET !== databaseIdentity(env.RESTORE_DATABASE_URL)) {
     throw new Error("Remote restoration requires CONFIRM_REMOTE_RESTORE_TARGET matching the exact host:port/database");
