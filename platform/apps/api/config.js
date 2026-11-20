@@ -224,6 +224,8 @@ export function loadConfig(env = process.env) {
     port: integer(env.API_PORT, 4200, 65_535),
     databaseUrl: env.DATABASE_URL ?? null,
     databaseSsl: env.DATABASE_SSL === "true",
+    databaseSslCa: env.DATABASE_SSL_CA ?? null,
+    supabaseInfrastructureEnabled: env.SUPABASE_INFRASTRUCTURE_ENABLED === "true",
     sessionSecret: env.SESSION_SECRET ?? "development-only-session-secret",
     sessionTtlSeconds: integer(env.SESSION_TTL_SECONDS, 2_592_000, 2_592_000),
     rateLimitMax: integer(env.RATE_LIMIT_MAX, 120, 10_000),
