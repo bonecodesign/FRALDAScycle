@@ -1,6 +1,6 @@
 # FC-335 — endurecimento TLS do cliente PostgreSQL para Supabase-BR
 
-Data da evidência: 20 de novembro de 2026  
+Data da evidência: 20 de novembro de 2026
 Escopo: configuração técnica inativa, sem conexão ao projeto hospedado
 
 ## Resultado
