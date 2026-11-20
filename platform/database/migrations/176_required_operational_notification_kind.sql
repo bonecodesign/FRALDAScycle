@@ -1,0 +1,2 @@
+ALTER TYPE auth_token_kind ADD VALUE IF NOT EXISTS 'operational_required_notice';
+

@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createNotificationService } from "../apps/api/notifications.js";
-import { backoffSeconds, deliverNotification, runNotificationBatch, loadNotificationConfig } from "../workers/notifications.js";
+import { backoffSeconds, deliverNotification, notificationPayloadForDispatch, runNotificationBatch, loadNotificationConfig } from "../workers/notifications.js";
+
+test("required operational notices expose only an approved template event", () => {
+  assert.deepEqual(notificationPayloadForDispatch({ kind: "operational_required_notice",
+    payload: { channel: "email", event: "payment.paid" } }),
+  { channel: "email", event: "payment.paid" });
+  for (const payload of [
+    { channel: "sms", event: "payment.paid" },
+    { channel: "email", event: "unknown.event" },
+    { channel: "email", event: "shipment.delivered", amountCents: 100 },
+  ]) assert.throws(() => notificationPayloadForDispatch({ kind: "operational_required_notice", payload }),
+    /payload is not supported/);
+});
 
 test("notification worker resolves vault credentials before configuring delivery", async () => {
   const env = {

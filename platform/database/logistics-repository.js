@@ -184,6 +184,15 @@ export function createLogisticsRepository(database,{pilotBh=null}={}) {
           [shipment.id,deliveryMessage,event.id],
         );
         await client.query(
+          `INSERT INTO notification_outbox(kind,recipient,payload,recipient_user_id)
+           SELECT 'operational_required_notice',u.email,$2::jsonb,u.id
+           FROM shipments s
+           CROSS JOIN LATERAL (VALUES(s.buyer_id),(s.seller_id),(s.courier_id)) AS participant(user_id)
+           JOIN users u ON u.id=participant.user_id
+           WHERE s.id=$1 AND u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL`,
+          [shipment.id,JSON.stringify({channel:'email',event:event.type})],
+        );
+        await client.query(
           `INSERT INTO audit_events (action,entity_type,entity_id,metadata)
            VALUES ('shipment.webhook.processed','shipment',$1,$2::jsonb)`,
           [shipment.id,JSON.stringify({eventId:event.id,eventType:event.type,status:next})],

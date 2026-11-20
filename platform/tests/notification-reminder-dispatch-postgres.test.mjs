@@ -88,6 +88,19 @@ test('optional notification reminder is associated with its account and deferred
       assert.equal((await database.query('SELECT status FROM notification_outbox WHERE id=$1', [validId])).rows[0].status, 'delivered');
       assert.equal(providerCalls, 1);
 
+      let requiredEnvelope;
+      const requiredId = await repository.enqueue({
+        kind: 'operational_required_notice', recipient: 'quiet-reminder@example.test', userId,
+        payload: { channel: 'email', event: 'shipment.delivered' },
+      });
+      await runNotificationBatch(repository,
+        { notificationWebhookUrl: 'https://synthetic.example.test', notificationWebhookSecret: 'synthetic' },
+        async (_url, options) => { providerCalls++; requiredEnvelope=JSON.parse(options.body); return { ok: true }; },
+        () => new Date('2026-10-18T23:00:00Z'));
+      assert.equal((await database.query('SELECT status FROM notification_outbox WHERE id=$1',[requiredId])).rows[0].status,'delivered');
+      assert.deepEqual(requiredEnvelope.payload,{channel:'email',event:'shipment.delivered'});
+      assert.equal(providerCalls,2);
+
       const pushReference='push-reference-postgres-0001';
       await database.query(`UPDATE account_operational_preferences SET push=true,version=version+1 WHERE user_id=$1`,[userId]);
       const device=(await database.query(`INSERT INTO notification_push_devices
@@ -96,12 +109,12 @@ test('optional notification reminder is associated with its account and deferred
       const validPushId=await repository.enqueue({kind:'delivery_reminder',recipient:pushReference,userId,payload:{channel:'push',message:'Dispositivo opaco verificado'}});
       await runNotificationBatch(repository,{notificationWebhookUrl:'https://synthetic.example.test',notificationWebhookSecret:'synthetic'},async()=>{providerCalls++;return{ok:true};},()=>new Date('2026-10-18T12:00:00Z'));
       assert.equal((await database.query('SELECT status FROM notification_outbox WHERE id=$1',[validPushId])).rows[0].status,'delivered');
-      assert.equal(providerCalls,2);
+      assert.equal(providerCalls,3);
       await database.query(`UPDATE notification_push_devices SET status='revoked',revoked_at=now() WHERE id=$1`,[device.id]);
       const revokedPushId=await repository.enqueue({kind:'general_reminder',recipient:pushReference,userId,payload:{channel:'push',message:'Dispositivo revogado'}});
       await runNotificationBatch(repository,{notificationWebhookUrl:'https://synthetic.example.test',notificationWebhookSecret:'synthetic'},async()=>{providerCalls++;return{ok:true};},()=>new Date('2026-10-18T12:00:00Z'));
       assert.equal((await database.query('SELECT status FROM notification_outbox WHERE id=$1',[revokedPushId])).rows[0].status,'cancelled');
-      assert.equal(providerCalls,2);
+      assert.equal(providerCalls,3);
 
       const suspendedId = await repository.enqueue({
         kind: 'delivery_reminder', recipient: 'quiet-reminder@example.test', userId,
@@ -112,7 +125,7 @@ test('optional notification reminder is associated with its account and deferred
         { notificationWebhookUrl: 'https://synthetic.example.test', notificationWebhookSecret: 'synthetic' },
         async () => { providerCalls++; return { ok: true }; }, () => new Date('2026-10-18T12:00:00Z'));
       assert.equal((await database.query('SELECT status FROM notification_outbox WHERE id=$1', [suspendedId])).rows[0].status, 'cancelled');
-      assert.equal(providerCalls, 2);
+      assert.equal(providerCalls, 3);
     } finally { await database.close(); }
   });
 });
