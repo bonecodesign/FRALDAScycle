@@ -1110,10 +1110,13 @@
       "references": [
         "database/operation-support-repository.js",
         "apps/api/marketplace-service.js",
-        "tests/local-cancellation-support.test.mjs"
+        "tests/local-cancellation-support.test.mjs",
+        "config/support-channel-readiness.v1.json",
+        "tools/support-channel-readiness.mjs",
+        "tests/support-channel-readiness.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "E-mail oficial e processo operacional não definidos; não enviar mensagens."
+      "evidence": "Conversa assíncrona por protocolo e operação interna permanecem locais. O manifesto FC de canais registra e valida, sem credenciais, que domínio, remetente, provedor de e-mail, WhatsApp de emergência, escala humana, privacidade, acessibilidade e exercício real continuam ausentes; qualquer alegação antecipada falha fechada.",
+      "reason": "E-mail oficial, WhatsApp de emergência, equipe real e homologação ainda ausentes; despacho externo permanece proibido."
     },
     {
       "id": 52,

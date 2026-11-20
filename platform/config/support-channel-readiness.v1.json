@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-20",
+  "state": "prepared-not-activated",
+  "requirementId": 51,
+  "policyReference": "docs/decisions/FC-DEC-2026-11-18-canais-suporte-email-chat-app.md",
+  "inApp": {
+    "status": "implemented-local",
+    "protocolConversation": true,
+    "externalDispatch": false
+  },
+  "email": {
+    "status": "waiting-real-configuration",
+    "officialDomain": null,
+    "senderAddress": null,
+    "provider": null,
+    "credentialsConfigured": false,
+    "deliveryVerified": false
+  },
+  "whatsapp": {
+    "status": "waiting-real-configuration",
+    "scope": "critical-incidents-only",
+    "provider": null,
+    "credentialsConfigured": false,
+    "templateApproved": false,
+    "deliveryVerified": false
+  },
+  "operations": {
+    "staffingAccepted": false,
+    "primaryAssigned": false,
+    "substituteAssigned": false,
+    "privacyApproved": false,
+    "accessibilityVerified": false,
+    "humanExerciseCompleted": false
+  },
+  "activation": {
+    "externalDispatchAuthorized": false,
+    "realStaffingActive": false,
+    "founderAuthorizationRecorded": false,
+    "launchClaimAllowed": false
+  }
+}
