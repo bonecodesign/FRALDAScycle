@@ -106,3 +106,11 @@ O painel técnico atual está em `/admin/operations`. Ele já oferece pausa e re
 - indicar as pessoas que ocuparão as quatro funções;
 - registrar o aceite de cada uma;
 - agendar e executar a sessão observada com dados exclusivamente sintéticos.
+
+## Confirmação do fundador — 20 de novembro de 2026
+
+O fundador confirmou que as funções de responsável técnico, substituto técnico e observador independente serão ocupadas por **equipe interna**, sempre por pessoas distintas e sem acumulação com a função final do fundador. A decisão exclui, para o primeiro exercício, a terceirização integral desses papéis.
+
+Esta confirmação define a origem da equipe, mas não inventa identidades, não representa nomeação nominal e não substitui o aceite individual. O portão humano permanece pendente até que as três pessoas sejam indicadas em contas administrativas próprias, aceitem formalmente as atribuições e participem do exercício observado.
+
+Até a preparação imediata do lançamento real, somente o fundador permanece nomeado no papel de nível 5. Responsável técnico, substituto e observador ficam como vagas internas preparadas, sem identidade, conta, permissão ou aceite presumido. O fluxo futuro deverá usar contas individuais e a sequência formal de nomeação; o fundador não acumulará essas três funções para contornar o portão.

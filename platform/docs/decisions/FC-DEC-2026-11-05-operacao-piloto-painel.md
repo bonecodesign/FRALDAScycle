@@ -91,9 +91,13 @@ Este registro não ativa fornecedor, pagamento, carteira, coleta infantil, logí
 
 61. OCR: Google Cloud Vision; QR local. Sem persistir texto reconhecido. Inconclusivo vai à revisão humana em 24 horas; recurso independente em 48 horas; qualquer QR bloqueia no piloto.
 62. Homologação OCR: 500 imagens, 98% telefone/e-mail, 99% QR, até 5% falso positivo e auditoria mensal de 100 imagens. Privacidade e aprovação 3 → 4 → 5 precedem produção.
+
+**Segregação humana aprovada em 20/11/2026:** uma pessoa autorizada de nível 2 analisa o resultado inconclusivo; uma pessoa distinta de nível 3 decide eventual recurso; o nível 4 recebe alertas de risco crítico. A mesma identidade não pode realizar a análise inicial e julgar o recurso do mesmo caso. Essa definição não ativa OCR nem substitui a homologação do fornecedor.
 63. E-mail transacional: Amazon SES. Push: Firebase Cloud Messaging. WhatsApp crítico: Meta Cloud API. Marketing SES usa subdomínio separado.
 64. Notificação crítica escala push/e-mail e WhatsApp autorizado como contingência. Tokens push saem no logout, invalidação ou 90 dias. Metadados de entrega ficam 90 dias.
 65. Suporte: aplicativo e e-mail; WhatsApp somente emergência. Geral em dias úteis 8h–18h; entrega/crítico todos os dias 8h–21h. SLA inicial: 15 min crítico, 4 h úteis financeiro/bloqueio, 1 dia útil demais.
+
+**Composição humana aprovada em 20/11/2026:** dois atendentes atuam em revezamento; cada turno precisa ter cobertura efetiva de resolução de nível 2. O nível 3 financeiro permanece de sobreaviso, o nível 4 exerce supervisão e o nível 5 participa somente do escalonamento final. Permissões continuam setoriais, graduais, revogáveis e não cumulativas; a composição só é considerada operacional após nomeação, aceite, treinamento e ensaio da escala.
 66. Incidentes têm quatro gravidades, equipe multidisciplinar, comunicação protetiva, evidência proporcional, simulação trimestral, exercício anual e prontidão 3 → 4 → 5.
 67. Backup: S3+KMS em conta separada na região de São Paulo; incremental horário, completo diário, janela 30 dias, RPO 1 h, RTO crítico 4 h, Object Lock 30 dias e restauração trimestral.
 68. Segredos: AWS Secrets Manager, identidade por serviço/ambiente, rotação conforme criticidade, acesso temporário e testes de revogação. Prontidão 3 → 4 → 5.
@@ -103,6 +107,8 @@ Este registro não ativa fornecedor, pagamento, carteira, coleta infantil, logí
 69. Instituição usa CNPJ, representante, autodeclaração e eventual indicação de parceiro. Nível 2 verifica, nível 3 aprova e nível 4 é notificado. Renovação anual.
 70. Todas as instituições do piloto aceitam embalagem aberta, mas podem recusar livremente na retirada. Recusas frequentes geram revisão humana de capacidade.
 71. Doação usa chat para retirada, confirmação bilateral e reserva de 48 horas. Até cinco instituições; expansão após 20 retiradas e aprovação 3 → 4 → 5.
+
+**Confirmação de 20/11/2026:** o piloto começa com **uma ou duas instituições de Belo Horizonte**, cada uma submetida à conferência humana de documentos, representante e capacidade. A ampliação será gradual, respeitará o limite de cinco instituições e não ocorrerá apenas porque o limite técnico está disponível.
 72. Marketplace não possui catálogo central obrigatório. Usuário cria foto, dados, condição, quantidade e preço. Referência do fabricante apenas auxilia.
 73. Correspondência e OCR sugerem marca, linha, tamanho e quantidade; usuário confirma. Um anúncio ativo por produto idêntico: até três unidades comum e cinco Premium.
 74. Referência de preço é opcional e anônima, somente após dez vendas semelhantes nos últimos 90 dias.

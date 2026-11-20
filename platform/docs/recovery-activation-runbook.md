@@ -20,3 +20,9 @@ O manifesto `config/recovery-objectives.v1.json` fixa como alvo inicial: backup 
 ## Limites atuais
 
 Os ensaios locais e de CI utilizam dados sintéticos e PostgreSQL descartável. Todos os portões externos permanecem `false`. A mudança desses valores exige recursos reais, responsáveis nomeados e evidência de homologação; portanto, o requisito 57 continua parcial e o projeto permanece NO-GO para produção.
+
+## Responsabilidade humana aprovada em 20 de novembro de 2026
+
+O responsável técnico interno será titular da operação de backup, cofre e recuperação; o substituto técnico assumirá apenas em indisponibilidade formal. Uma pessoa independente observará o ensaio completo trimestral e não poderá executar a restauração que avalia. O nível 5 revisará e aprovará o resultado final.
+
+Essa governança não reduz a cadência técnica mensal definida neste documento: os ensaios mensais permanecem obrigatórios, e ao menos um ensaio completo por trimestre terá observação humana independente. O portão só poderá avançar depois da nomeação e aceite das pessoas, provisionamento autorizado da infraestrutura e comprovação real de RPO, RTO, retenção e restauração.

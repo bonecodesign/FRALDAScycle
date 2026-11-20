@@ -1,5 +1,13 @@
 # Homologação humana pendente — piloto interno BH (requisito 67)
 
+## Modelo humano aprovado em 20 de novembro de 2026
+
+O fundador definiu que a homologação de acessibilidade será conduzida por **especialista independente** e contará com pelo menos **uma pessoa usuária de tecnologia assistiva**, usando leitor de tela e dispositivos físicos. Testes automatizados e simulações de viewport permanecem evidência complementar e não substituem essa sessão humana.
+
+Esta definição não registra participantes, execução ou aceite. O portão permanece pendente até a nomeação e o consentimento dos participantes, execução do roteiro, tratamento dos achados bloqueadores e assinatura do relatório.
+
+A matriz física mínima do piloto será: **Android com Chrome e TalkBack**, **iPhone com Safari e VoiceOver** e **Windows com Chrome ou Edge e NVDA**. Cada combinação deverá executar o roteiro essencial aplicável; emulação ou simples redimensionamento de tela não conta como dispositivo físico nem como leitor de tela humano.
+
 **Situação em 07/11/2026: NÃO EXECUTADA; NO-GO.**
 > **Retificação documental (17/11/2026):** conferir sempre [estado vigente](status-atual-2026-11-17.md). O manifesto validado tem **16/21 aprovadas, cinco pendentes**. A automação de Chromium posterior não reclassifica a rodada histórica. Este roteiro humano continua **não executado**.
  Este roteiro serve para conduzir e registrar, futuramente, as verificações humanas. Ele **não** é um registro de aceites, de uso de leitor de tela, de exercício humano ou de autorização para iniciar o piloto.
