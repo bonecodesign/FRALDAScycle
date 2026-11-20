@@ -112,3 +112,19 @@ Este registro não é parecer jurídico, aprovação do encarregado, homologaç�
 - Requisitos infantis continuam formalmente bloqueados até parecer jurídico e de privacidade registrado.
 - O projeto permanece NO-GO até o checklist conjunto da decisão 68.
 
+## Confirmação do modelo de revisão — 20 de novembro de 2026
+
+O fundador escolheu revisão por **dois profissionais distintos**: um advogado responsável pela análise jurídica e um especialista em privacidade responsável pela análise de proteção de dados. As conclusões deverão formar parecer conjunto, preservando a identificação, responsabilidade e manifestação individual de cada revisor.
+
+A escolha do modelo não constitui parecer profissional nem libera qualquer gate. Dados infantis, piloto financeiro e produção permanecem bloqueados até a nomeação dos profissionais, entrega dos pareceres, tratamento dos achados e autorização final do nível 5.
+
+O escopo será apresentado aos dois revisores como **um pacote pré-piloto consolidado**, cobrindo conjuntamente dados infantis, Termos de Uso, Política de Privacidade, retenção e exclusão, pagamentos e fornecedores. Pareceres parciais podem registrar achados durante o trabalho, mas não substituem a conclusão conjunta sobre o pacote nem liberam isoladamente uma funcionalidade bloqueada.
+
+Achados **críticos ou altos** de qualquer revisão aplicável bloqueiam o lançamento até correção e nova validação. Achados **médios** exigem responsável identificado, prazo, mitigação e acompanhamento formal; achados **baixos** entram em backlog rastreável. Severidade não pode ser reduzida apenas para contornar um gate, e o nível 5 não substitui a validação profissional exigida para encerrar um achado crítico ou alto.
+
+O prazo máximo de correção de achado médio aceito para o piloto é de **30 dias corridos**. Antes do lançamento, o risco já deve possuir mitigação efetiva e verificável; a simples abertura de tarefa ou atribuição de prazo não conta como mitigação.
+
+Se esse prazo vencer sem correção validada, a funcionalidade afetada será suspensa. Quando o achado alcançar pagamentos, privacidade ou segurança de forma transversal, a suspensão abrange o domínio inteiro. A contenção preserva suporte, histórico, direitos dos titulares e cumprimento das obrigações existentes; vencimento não admite liberação automática nem exceção unilateral do nível 5.
+
+Achados baixos deverão ser resolvidos em até **90 dias corridos** ou antes da próxima expansão relevante de público, categoria, região ou integração, o que ocorrer primeiro. Permanecem registrados com responsável e rastreabilidade até o encerramento.
+

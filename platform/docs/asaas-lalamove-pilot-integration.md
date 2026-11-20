@@ -2,6 +2,10 @@
 
 Decisão em 2026-10-19: fornecedores escolhidos para homologação, sem contrato, credenciais ou ativação. Os módulos nativos `apps/api/asaas-webhook.js` e `apps/api/lalamove-client.js` são preparatórios e **não estão ligados ao runtime**.
 
+Em 20/11/2026, o fundador autorizou somente a etapa de **solicitação de proposta formal, documentação técnica e acesso a sandbox** de Asaas e Lalamove. A autorização não abrange assinatura contratual, credenciais de produção, cobrança, pedido logístico real, compromisso financeiro ou ativação de qualquer feature flag. Nova decisão explícita será necessária depois da análise jurídica, técnica, financeira e de privacidade dos materiais recebidos.
+
+A homologação do sandbox exigirá o ciclo completo aplicável: cobrança, estorno, disputa, eventos fora de ordem, conciliação, cotação logística, cancelamento, prova de entrega e as duas pernas independentes da troca. Autenticação, conectividade ou execução exclusiva do caminho feliz não bastam para aprovação.
+
 ## O que o código já prepara
 
 - Lalamove: requisições HMAC-SHA256 para a API v3 do Brasil, cotação com duas paradas geocodificadas, bloqueio de cotação vencida e pedido com `isPODEnabled: true`. A API genérica de entregas ainda não contém endereços e contatos consentidos suficientes para criar o pedido real.

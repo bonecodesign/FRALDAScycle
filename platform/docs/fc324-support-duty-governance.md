@@ -38,3 +38,9 @@ A FC-323 permanece com `staffingVerified=false`, `channelVerified=false`, `sendA
 - Após **CI 5/5 e merge**, aplicar uma vez somente a migração 175 ao Supabase-BR, preservar checksum SHA-256 idêntico ao SQL da `main`, conferir RLS/revogação de grants públicos, novas tabelas vazias e `Health/Security Advisor` sem alertas novos relevantes.
 
 A matriz mantém **48/70 (68,57%)** e piloto BH **NO-GO**. Os requisitos 49, 51, 56 e 67 continuam dependentes de operação humana e canais reais; 57/59 dependem de infraestrutura e segurança externa. Não repetir testes anteriores de triagem FC-322 ou de prévia FC-323.
+
+## Preparação de equipe definida em 20 de novembro de 2026
+
+Até a proximidade do lançamento real, somente o fundador será nomeado como nível 5. As demais funções permanecem vagas e não podem receber identidade fictícia, conta compartilhada, aceite automático ou permissão antecipada. O fluxo técnico desta entrega fica preservado para que, futuramente, pessoas reais sejam propostas, revisadas, autorizadas e aceitem individualmente suas funções.
+
+Esse estado não comprova escala, segregação ou capacidade humana e não altera o NO-GO. Qualquer prévia operacional deve continuar exibindo `staffingVerified=false` enquanto as pessoas exigidas não estiverem nomeadas e ativas.
