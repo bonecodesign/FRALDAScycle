@@ -3,6 +3,7 @@ import { authenticatedUser } from "./session.js";
 import { AuthError } from "./auth-service.js";
 import { requireAccessLevel, requireAdminSector, requireSectorScope } from "./authorization.js";
 import { sendCsv, sendJson } from "./http.js";
+import {loadLaunchPreparationSnapshot} from './launch-preparation-service.js';
 
 const routeSectors=Object.freeze([
   ['/v1/admin/exchange-retention',['finance']],
@@ -31,6 +32,17 @@ export async function handleAdmin(request, response, {
   if (!url.pathname.startsWith("/v1/admin/")) return false;
   const user = await authenticatedUser(request, authService, { optionalService: true });
   requireAdminRouteSector(user,url.pathname);
+
+  if(request.method==='GET'&&url.pathname==='/v1/admin/launch-preparation'){
+    requireAccessLevel(user,1);
+    try{
+      const result=await loadLaunchPreparationSnapshot();
+      sendJson(response,200,{...result,requestId},{...headers,'cache-control':'no-store'});
+    }catch{
+      throw new AuthError('launch_preparation_unavailable',503,'Prontidão de lançamento indisponível.');
+    }
+    return true;
+  }
 
   if(request.method==='GET'&&url.pathname==='/v1/admin/courier-wallet-blocked'){
     if(!courierWalletService)throw new AuthError('courier_wallet_unavailable',503,'Fila de saques indisponível.');
