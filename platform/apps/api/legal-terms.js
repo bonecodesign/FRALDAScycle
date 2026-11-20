@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import {LEGAL_DOCUMENT_CHANGE_POLICY} from '../../packages/contracts/legal-document-change-policy.js';
 
 export async function loadLegalTerms() {
   const sources = ['politicas-privacidade-cookies-termos-pre-operacionais.md',
@@ -9,5 +10,6 @@ export async function loadLegalTerms() {
   })));
   const contentHash = createHash('sha256').update(JSON.stringify(documents)).digest('hex');
   // Activation requires a separately reviewed and approved change.
-  return { version: 'FC-PREOP-1.0', status: 'draft', contentHash, documents };
+  return { version: 'FC-PREOP-1.0', status: 'draft', contentHash, documents,
+    changePolicy:LEGAL_DOCUMENT_CHANGE_POLICY };
 }
