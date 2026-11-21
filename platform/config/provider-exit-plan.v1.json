@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-20",
+  "state": "prepared-not-executed",
+  "requirementId": 60,
+  "policy": {
+    "contractReviewed": false,
+    "ownerAssigned": false,
+    "externalExportPerformed": false,
+    "externalDeletionPerformed": false,
+    "credentialsRevoked": false,
+    "continuityTested": false,
+    "exitAuthorized": false
+  },
+  "capabilities": [
+    {"id":"payments","candidate":"asaas","dataClasses":["provider-customer-reference","payment-reference","reconciliation-events"],"exportRequirement":"machine-readable-ledger","fallback":"pause-new-financial-commitments"},
+    {"id":"logistics","candidate":"lalamove","dataClasses":["delivery-reference","quote-reference","delivery-events"],"exportRequirement":"machine-readable-delivery-history","fallback":"platform-courier-only"},
+    {"id":"notifications","candidate":"brevo","dataClasses":["recipient-reference","delivery-events","suppression-list"],"exportRequirement":"machine-readable-delivery-and-suppression-data","fallback":"in-app-notices-only"},
+    {"id":"media","candidate":"cloudflare-r2","dataClasses":["object-reference","media-metadata","deletion-receipts"],"exportRequirement":"s3-compatible-object-export","fallback":"block-new-media-publication"},
+    {"id":"geocoding","candidate":"google-maps","dataClasses":["route-cache","quota-events"],"exportRequirement":"no-personal-location-export-required","fallback":"straight-line-distance"},
+    {"id":"distributedRateLimit","candidate":"upstash-redis","dataClasses":["pseudonymous-rate-keys","ttl-state"],"exportRequirement":"redis-compatible-snapshot-or-safe-expiry","fallback":"fail-closed-local-limits"},
+    {"id":"telemetry","candidate":"sentry","dataClasses":["pseudonymous-error-events","release-metadata"],"exportRequirement":"machine-readable-event-export","fallback":"local-structured-logs"},
+    {"id":"externalSecrets","candidate":"doppler","dataClasses":["secret-identifiers","access-audit-events"],"exportRequirement":"encrypted-secret-migration-and-audit-export","fallback":"approved-emergency-vault"}
+  ],
+  "requiredEvidence": [
+    "contract-exit-terms-review",
+    "data-export-report",
+    "provider-deletion-receipt",
+    "credential-revocation-report",
+    "continuity-test-report",
+    "founder-decision-record"
+  ],
+  "evidenceReferences": []
+}
