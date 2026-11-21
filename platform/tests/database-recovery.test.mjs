@@ -10,14 +10,14 @@ import { createBackupPlan, createRestorePlan, executeBackupPlan, executePlan, ex
 
 test("backup uses custom compressed format without exposing credentials in arguments", () => {
   const plan = createBackupPlan({
-    DATABASE_URL: "postgresql://operator:secret@db.internal:5433/fraldacycle?sslmode=require",
+    DATABASE_URL: "postgresql://operator:secret@db.internal:5433/fraldacycle?sslmode=verify-full",
     DATABASE_DUMP_PATH: "./backups/fraldacycle.dump",
   });
   assert.equal(plan.command, "pg_dump");
   assert.ok(plan.args.includes("--format=custom"));
   assert.equal(plan.args.join(" ").includes("secret"), false);
   assert.equal(plan.env.PGPASSWORD, "secret");
-  assert.equal(plan.env.PGSSLMODE, "require");
+  assert.equal(plan.env.PGSSLMODE, "verify-full");
 });
 
 test("restore requires explicit authorization and targets a separate database", () => {
@@ -28,7 +28,7 @@ test("restore requires explicit authorization and targets a separate database", 
   const plan = createRestorePlan({
     CONFIRM_DATABASE_RESTORE: "RESTORE",
     CONFIRM_REMOTE_RESTORE_TARGET: "db.internal:5432/restore",
-    RESTORE_DATABASE_URL: "postgresql://operator:secret@db.internal/restore",
+    RESTORE_DATABASE_URL: "postgresql://operator:secret@db.internal/restore?sslmode=verify-full",
     DATABASE_DUMP_PATH: "./backup.dump",
   });
   assert.equal(plan.command, "pg_restore");
@@ -65,7 +65,7 @@ test("remote restore requires exact secret-free target identity, not a generic a
   const base = {
     CONFIRM_DATABASE_RESTORE: "RESTORE",
     DATABASE_URL: "postgresql://source:sensitive@db.source.example.test/postgres",
-    RESTORE_DATABASE_URL: "postgresql://restore:othersecret@db.target.example.test:5432/recovery",
+    RESTORE_DATABASE_URL: "postgresql://restore:othersecret@db.target.example.test:5432/recovery?sslmode=verify-full",
     DATABASE_DUMP_PATH: "./isolated.dump",
   };
   assert.throws(() => createRestorePlan(base), /CONFIRM_REMOTE_RESTORE_TARGET/);
@@ -93,6 +93,53 @@ test("Supabase-hosted restore requires explicit destination identity and never g
   assert.throws(() => createRestorePlan({
     ...base, CONFIRM_REMOTE_RESTORE_TARGET: "localhost:5432/postgres",
   }), /CONFIRM_REMOTE_RESTORE_TARGET/);
+});
+
+test("remote pg_dump fails closed without certificate and hostname verification", () => {
+  const base = "postgresql://backup:secret@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres";
+  for (const suffix of ["", "?sslmode=disable", "?sslmode=allow", "?sslmode=prefer",
+    "?sslmode=require", "?sslmode=verify-ca"]) {
+    assert.throws(() => createBackupPlan({
+      DATABASE_URL: base + suffix, DATABASE_DUMP_PATH: "./isolated.dump",
+    }), error => /sslmode=verify-full/.test(error.message) && !error.message.includes("secret"));
+  }
+  const secure = createBackupPlan({
+    DATABASE_URL: base + "?sslmode=verify-full", DATABASE_DUMP_PATH: "./isolated.dump",
+  });
+  assert.equal(secure.env.PGSSLMODE, "verify-full");
+  assert.equal(secure.env.PGHOST, "db.urbrtnenrsjvgqjhfhdj.supabase.co");
+});
+
+test("remote pg_restore rejects weak TLS even after exact destination confirmation", () => {
+  const base = {
+    CONFIRM_DATABASE_RESTORE: "RESTORE",
+    CONFIRM_REMOTE_RESTORE_TARGET: "isolated.example.test:5432/restore",
+    DATABASE_DUMP_PATH: "./isolated.dump",
+  };
+  const url = "postgresql://operator:super-secret@isolated.example.test/restore";
+  for (const suffix of ["", "?sslmode=disable", "?sslmode=require", "?sslmode=verify-ca"]) {
+    assert.throws(() => createRestorePlan({
+      ...base, RESTORE_DATABASE_URL: url + suffix,
+    }), error => /sslmode=verify-full/.test(error.message) && !error.message.includes("super-secret"));
+  }
+  const secure = createRestorePlan({
+    ...base, RESTORE_DATABASE_URL: url + "?sslmode=verify-full",
+  });
+  assert.equal(secure.env.PGSSLMODE, "verify-full");
+  assert.equal(secure.command, "pg_restore");
+});
+
+test("disposable loopback recovery retains existing no-TLS PostgreSQL workflow", () => {
+  const dump = createBackupPlan({
+    DATABASE_URL: "postgresql://local@127.0.0.1:5444/postgres",
+    DATABASE_DUMP_PATH: "./synthetic.dump",
+  });
+  assert.equal(dump.env.PGSSLMODE, undefined);
+  const restore = createRestorePlan({
+    RESTORE_DATABASE_URL: "postgresql://local@localhost:5444/restore",
+    CONFIRM_DATABASE_RESTORE: "RESTORE", DATABASE_DUMP_PATH: "./synthetic.dump",
+  });
+  assert.equal(restore.env.PGSSLMODE, undefined);
 });
 
 test("backup and restore require a valid PostgreSQL database address", () => {
@@ -142,7 +189,7 @@ test("database utilities receive parsed PG settings but not raw database URLs", 
     CONFIRM_DATABASE_RESTORE: "RESTORE",
     CONFIRM_REMOTE_RESTORE_TARGET: "restore.example.test:5432/restore",
     DATABASE_URL: "postgresql://source:source-secret@source.example.test/source",
-    RESTORE_DATABASE_URL: "postgresql://restore:restore-secret@restore.example.test/restore",
+    RESTORE_DATABASE_URL: "postgresql://restore:restore-secret@restore.example.test/restore?sslmode=verify-full",
     DATABASE_DUMP_PATH: "./backup.dump",
   });
   const child = new EventEmitter();
@@ -156,7 +203,8 @@ test("database utilities receive parsed PG settings but not raw database URLs", 
       assert.equal(options.env.RESTORE_DATABASE_URL, undefined);
       assert.equal(options.env.PGHOSTADDR, undefined);
       assert.equal(options.env.PGSERVICE, undefined);
-      assert.equal(options.env.PGSSLMODE, undefined);
+      // Child must keep verify-full from the approved URL, not inherit a disabled mode.
+      assert.equal(options.env.PGSSLMODE, "verify-full");
       assert.equal(options.env.PGSSLROOTCERT, "/certs/root.pem");
       assert.equal(options.env.PGPASSWORD, "restore-secret");
       assert.equal(options.env.PGHOST, "restore.example.test");
