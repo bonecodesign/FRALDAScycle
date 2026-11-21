@@ -17,6 +17,20 @@ O manifesto `config/recovery-objectives.v1.json` fixa como alvo inicial: backup 
 7. Medir perda máxima recuperável e tempo total; somente aceitar se RPO ≤ 60 minutos e RTO ≤ 240 minutos.
 8. Registrar evidência sem URL privada, credenciais ou conteúdo do banco e agendar novo ensaio em até 30 dias.
 
+## FC-337 — transporte seguro também para dump e restore (21/11/2026)
+
+O backend da API já possuía TLS estruturado com validação de certificado (PR #336), mas os utilitários **separados** `pg_dump`/`pg_restore` ainda aceitavam conexões remotas sem `sslmode` explícito ou com modos `require`, `prefer`, `verify-ca` e `disable`. No libpq, `prefer` pode recorrer a conexão sem criptografia, enquanto `require` não verifica a identidade do servidor.
+
+Agora `database/recovery.js` exige `sslmode=verify-full` na URL **somente para hosts remotos**, tanto para backup quanto para restauração. O cliente `libpq` deve receber a CA do projeto por configuração privada `PGSSLROOTCERT` (arquivo montado no backend protegido ou localização padrão confiável). Sem CA confiável, hostname e cadeia válidos, a conexão deve falhar, nunca reduzir a exigência. **Não guardar CA junto com segredos**, credenciais ou dumps no Git público. O certificado de CA não é senha, mas sua distribuição e atualização precisam ser controladas.
+
+A restauração remota continua exigindo **também** `CONFIRM_DATABASE_RESTORE=RESTORE`, destino separado e `CONFIRM_REMOTE_RESTORE_TARGET` com `host:porta/banco`. Isso **não autoriza** restaurar sobre o Supabase-BR: `pg_restore --clean` é potencialmente destrutivo. Manter o destino remoto isolado até autorização humana e prova de backup/rollback. Os testes PostgreSQL descartáveis em loopback continuam funcionando sem TLS.
+
+**Evidência real somente leitura (21/11/2026 às 22:50 UTC):** consulta no projeto de homologação `urbrtnenrsjvgqjhfhdj` retornou `pg_settings.ssl=on`, versão mínima `TLSv1.2` e `pg_stat_ssl` da **sessão do conector** com `ssl=true` e `TLSv1.3`. Isto **não valida** a sessão da API FraldaCycle, imposição geral de SSL, certificados do backend, a rede de origem, `pg_dump` remoto ou backups realizados. O endpoint PostgreSQL direto pode exigir IPv6, e a homologação precisa escolher o host real da tela **Connect** do projeto, sem adivinhá-lo.
+
+**Limitação do ambiente de execução desta inspeção:** tentativa não autenticada de testar o handshake TLS diretamente de um contêiner externo falhou ainda na resolução DNS; não se deve tratar isso como falha do Supabase nem como teste do certificado. Não houve conexão do aplicativo, exportação, restauração, armazenamento externo, criação de recursos ou alteração do banco.
+
+Referências oficiais: [Conexões e SSL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres), [Backups do Supabase](https://supabase.com/docs/guides/platform/backups) e o [inventário anterior FC-328](recovery-hosted-fc328-2026-11-20.md).
+
 ## Limites atuais
 
 Os ensaios locais e de CI utilizam dados sintéticos e PostgreSQL descartável. Todos os portões externos permanecem `false`. A mudança desses valores exige recursos reais, responsáveis nomeados e evidência de homologação; portanto, o requisito 57 continua parcial e o projeto permanece NO-GO para produção.
