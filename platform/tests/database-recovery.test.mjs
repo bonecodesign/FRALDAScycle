@@ -203,7 +203,8 @@ test("database utilities receive parsed PG settings but not raw database URLs", 
       assert.equal(options.env.RESTORE_DATABASE_URL, undefined);
       assert.equal(options.env.PGHOSTADDR, undefined);
       assert.equal(options.env.PGSERVICE, undefined);
-      assert.equal(options.env.PGSSLMODE, undefined);
+      // Child must keep verify-full from the approved URL, not inherit a disabled mode.
+      assert.equal(options.env.PGSSLMODE, "verify-full");
       assert.equal(options.env.PGSSLROOTCERT, "/certs/root.pem");
       assert.equal(options.env.PGPASSWORD, "restore-secret");
       assert.equal(options.env.PGHOST, "restore.example.test");
