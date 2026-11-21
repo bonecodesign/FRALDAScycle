@@ -1302,10 +1302,13 @@
       "references": [
         "docs/provider-due-diligence.md",
         "docs/provider-selection.md",
-        "tests/provider-due-diligence.test.mjs"
+        "tests/provider-due-diligence.test.mjs",
+        "config/provider-exit-plan.v1.json",
+        "tools/provider-exit-plan.mjs",
+        "tests/provider-exit-plan.test.mjs"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md.",
-      "reason": "Diligência preparada; condições contratuais ausentes, sem contratação autorizada."
+      "evidence": "Plano técnico de reversibilidade cobre as oito capacidades previstas, com inventário mínimo, exportação, fallback, exclusão comprovada, revogação e continuidade. O validador impede alegar contrato revisado, execução, evidência ou autorização antes da atuação real.",
+      "reason": "Plano técnico preparado; condições contratuais, responsáveis, testes reais e comprovantes dos fornecedores continuam ausentes."
     },
     {
       "id": 61,

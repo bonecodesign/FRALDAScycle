@@ -1,18 +1,11 @@
 import pg from "pg";
 import { loadConfig } from "../apps/api/config.js";
+import { databasePoolConfig } from "./connection-security.js";
 
 const { Pool } = pg;
 
 export function createDatabase(config = loadConfig()) {
-  if (!config.databaseUrl) throw new Error("DATABASE_URL is required to connect to PostgreSQL");
-  const pool = new Pool({
-    connectionString: config.databaseUrl,
-    ssl: config.databaseSsl ? { rejectUnauthorized: true } : false,
-    max: 10,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
-    application_name: "fraldacycle-api",
-  });
+  const pool = new Pool(databasePoolConfig(config));
 
   return Object.freeze({
     query(text, values) {

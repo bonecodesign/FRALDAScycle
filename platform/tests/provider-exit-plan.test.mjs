@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {inspectProviderExitPlan,validateProviderExitPlan} from '../tools/provider-exit-plan.mjs';
+const source=JSON.parse(await readFile(new URL('../config/provider-exit-plan.v1.json',import.meta.url),'utf8'));
+test('provider exit plan covers eight capabilities without claiming execution',async()=>{const{plan:unused,...report}=await inspectProviderExitPlan();assert.deepEqual(report,{valid:true,errors:[],requirementId:60,capabilities:8,state:'prepared-not-executed',exitAuthorized:false,evidenceComplete:false});assert.equal(source.evidenceReferences.length,0);});
+test('provider exit plan fails closed on premature evidence or authorization',()=>{for(const mutate of [value=>{value.policy.contractReviewed=true;},value=>{value.policy.externalDeletionPerformed=true;},value=>{value.policy.credentialsRevoked=true;},value=>{value.policy.exitAuthorized=true;},value=>{value.evidenceReferences.push('fake-evidence');}]){const changed=structuredClone(source);mutate(changed);assert.equal(validateProviderExitPlan(changed).valid,false);}});
+test('provider exit plan rejects missing, duplicate or incomplete capabilities',()=>{const missing=structuredClone(source);missing.capabilities.pop();assert.equal(validateProviderExitPlan(missing).valid,false);const duplicate=structuredClone(source);duplicate.capabilities[1].id=duplicate.capabilities[0].id;assert.equal(validateProviderExitPlan(duplicate).valid,false);const incomplete=structuredClone(source);incomplete.capabilities[0].dataClasses=[];assert.equal(validateProviderExitPlan(incomplete).valid,false);});
