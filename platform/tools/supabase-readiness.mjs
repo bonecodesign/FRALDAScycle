@@ -1,4 +1,7 @@
 const TRUE = "true";
+const PROJECT_REFERENCE = "urbrtnenrsjvgqjhfhdj";
+
+import { inspectDatabaseTransport } from "../database/connection-security.js";
 
 function configured(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -15,13 +18,23 @@ export function assessSupabaseReadiness(env = process.env) {
   }
 
   let databaseUrl;
-  try { databaseUrl = new URL(env.DATABASE_URL); } catch {}
+  let transport;
+  try {
+    databaseUrl = new URL(env.DATABASE_URL);
+    transport = inspectDatabaseTransport(env.DATABASE_URL);
+  } catch {}
   const host = databaseUrl?.hostname ?? "";
   const isSupabaseHost = host.endsWith(".supabase.co") || host.endsWith(".pooler.supabase.com");
-  add("database-url", Boolean(databaseUrl) && isSupabaseHost,
-    "DATABASE_URL deve apontar para a conexão oficial do projeto Supabase.");
+  const isExpectedProject = host === `db.${PROJECT_REFERENCE}.supabase.co` ||
+    transport?.username.endsWith(`.${PROJECT_REFERENCE}`);
+  add("database-url", Boolean(databaseUrl) && isSupabaseHost && isExpectedProject,
+    "DATABASE_URL deve apontar para o projeto FraldaCycle-BR esperado.");
   add("database-ssl", env.DATABASE_SSL === TRUE,
     "Conexões com o PostgreSQL gerenciado devem exigir TLS.");
+  add("database-tls-source", transport?.tlsParameters.length === 0 && transport?.queryParameters.length === 0,
+    "A URL não pode sobrescrever o transporte; TLS é controlado somente pela API.");
+  add("database-ca", /^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/.test(env.DATABASE_SSL_CA ?? ""),
+    "A CA oficial deve ser fornecida para validar certificado e identidade do servidor.");
   add("persistent-pool", databaseUrl?.port !== "6543",
     "A API persistente deve usar conexão direta ou pooler em modo session; porta 6543 fica reservada a clientes transitórios.");
   add("data-api-disabled", env.SUPABASE_DATA_API_ENABLED !== TRUE,
