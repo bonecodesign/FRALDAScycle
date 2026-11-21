@@ -55,6 +55,18 @@ function databaseEnvironment(value) {
   };
 }
 
+// libpq defaults to sslmode=prefer. A remote dump or restore must not silently
+// fall back to plaintext, skip CA validation, or ignore the server hostname.
+function verifiedRecoveryEnvironment(value) {
+  const environment = databaseEnvironment(value);
+  const hostname = environment.PGHOST.toLowerCase().replace(/\.$/, "");
+  const loopback = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  if (!loopback && environment.PGSSLMODE !== "verify-full") {
+    throw new Error("Remote backup/restore requires sslmode=verify-full for certificate and hostname verification");
+  }
+  return environment;
+}
+
 function databaseIdentity(value) {
   const environment = databaseEnvironment(value);
   const hostname = environment.PGHOST.toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '');
@@ -73,7 +85,7 @@ export function createBackupPlan(env = process.env) {
   return Object.freeze({
     command: "pg_dump",
     args: ["--format=custom", "--compress=9", "--no-owner", "--no-privileges", "--file", dumpPath(env.DATABASE_DUMP_PATH)],
-    env: databaseEnvironment(env.DATABASE_URL),
+    env: verifiedRecoveryEnvironment(env.DATABASE_URL),
   });
 }
 
@@ -86,7 +98,7 @@ export function createRestorePlan(env = process.env) {
   // A generic RESTORE acknowledgement is insufficient for a remote destination.
   // Require its exact, secret-free host:port/database identity to avoid accidentally
   // running pg_restore --clean against another hosted PostgreSQL environment.
-  const restoreEnvironment = databaseEnvironment(env.RESTORE_DATABASE_URL);
+  const restoreEnvironment = verifiedRecoveryEnvironment(env.RESTORE_DATABASE_URL);
   const hostname = restoreEnvironment.PGHOST.toLowerCase().replace(/\.$/, "");
   const loopback = ["localhost", "127.0.0.1", "::1"].includes(hostname);
   if (!loopback && env.CONFIRM_REMOTE_RESTORE_TARGET !== databaseIdentity(env.RESTORE_DATABASE_URL)) {
@@ -95,7 +107,7 @@ export function createRestorePlan(env = process.env) {
   return Object.freeze({
     command: "pg_restore",
     args: ["--clean", "--if-exists", "--exit-on-error", "--single-transaction", "--no-owner", "--no-privileges", "--dbname", databaseEnvironment(env.RESTORE_DATABASE_URL).PGDATABASE, dumpPath(env.DATABASE_DUMP_PATH)],
-    env: databaseEnvironment(env.RESTORE_DATABASE_URL),
+    env: restoreEnvironment,
   });
 }
 
