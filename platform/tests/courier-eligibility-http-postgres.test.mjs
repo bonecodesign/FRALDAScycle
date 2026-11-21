@@ -53,9 +53,12 @@ test("courier clearance rejection is enforced over HTTP and PostgreSQL", {
           '2026-10-22T19:00:00.000Z','2026-10-23T19:00:00.000Z')`, [ids.review, ids.document]);
 
       const repository = createCourierEligibilityRepository(database);
+      // The decision is made at the current simulated test execution time.
+      // Keeping it fixed in October 2026 eventually makes retention (decision+30d)
+      // precede the document's actual created_at, violating the P-01 database CHECK.
       const service = createCourierEligibilityService(repository, {
         featureEnabled: true,
-        clock: () => Date.parse("2026-10-22T20:00:00.000Z"),
+        clock: Date.now,
       });
       const actors = {
         courier: { id: ids.courier, role: "courier" },
