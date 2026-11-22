@@ -5,8 +5,7 @@ set -Eeuo pipefail
 umask 077
 
 if [[ "${GITHUB_ACTIONS:-}" != "true" ||
-      "${GITHUB_REPOSITORY:-}" == "bonecodesign/FRALDAScycle" ||
-      "${GITHUB_REPOSITORY:-}" != bonecodesign/* ||
+      "${GITHUB_REPOSITORY:-}" != "bonecodesign/fraldacycle-backups-private" ||
       "${NODE_ENV:-}" == "production" ||
       "${PRIVATE_BACKUP_RUNNER_APPROVED:-}" != "MANUAL_HOMOLOGATION" ||
       "${OFFSITE_BACKUP_UPLOAD_APPROVED:-}" != "PRIVATE_RUNNER_MANUAL" ]]; then
@@ -46,8 +45,8 @@ export RECOVERY_ARCHIVE_APPROVED="ENCRYPT_OR_VERIFY"
 # The dedicated preflight is executed from inside the uploader, but do it also
 # BEFORE the PostgreSQL export so an incorrect Supabase project never gets dumped.
 node --input-type=module -e '
-  const { validateBackupSource } = await import("./source/platform/tools/dropbox-encrypted-upload.mjs");
-  const report = validateBackupSource(process.env);
+  const { validateBackupProtectionFiles } = await import("./source/platform/tools/dropbox-encrypted-upload.mjs");
+  const report = await validateBackupProtectionFiles(process.env);
   if (report.project !== "urbrtnenrsjvgqjhfhdj") process.exit(1);
 '
 

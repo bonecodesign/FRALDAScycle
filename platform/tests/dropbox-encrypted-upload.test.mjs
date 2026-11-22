@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile, chmod } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile, chmod, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { encryptBackupArchive } from "../database/recovery-archive.js";
 import {
   CONTENT_BLOCK_BYTES, DROPBOX_BACKUP_FOLDER, localFileDigests,
-  uploadVerifiedArchive, validateBackupSource,
+  uploadVerifiedArchive, validateBackupProtectionFiles, validateBackupSource,
 } from "../tools/dropbox-encrypted-upload.mjs";
 
 const digest = x => createHash("sha256").update(x).digest("hex");
 function configured(overrides = {}) {
   return {
     GITHUB_ACTIONS: "true",
-    GITHUB_REPOSITORY: "bonecodesign/private-fraldacycle-backup-tests",
+    GITHUB_REPOSITORY: "bonecodesign/fraldacycle-backups-private",
     NODE_ENV: "test",
     PRIVATE_BACKUP_RUNNER_APPROVED: "MANUAL_HOMOLOGATION",
     OFFSITE_BACKUP_UPLOAD_APPROVED: "PRIVATE_RUNNER_MANUAL",
@@ -29,7 +29,7 @@ function configured(overrides = {}) {
   };
 }
 
-function fakeDropbox({ corruptContentHash = false } = {}) {
+function fakeDropbox({ corruptContentHash = false, corruptReadback = false, failFinishAt = 0 } = {}) {
   const sessions = new Map();
   const completed = [];
   const requested = [];
@@ -44,6 +44,20 @@ function fakeDropbox({ corruptContentHash = false } = {}) {
     }
     assert.equal(params.headers.Authorization, `Bearer ${accessToken}`);
     const arg = JSON.parse(params.headers["Dropbox-API-Arg"]);
+    if (url.endsWith("/files/download")) {
+      const stored = completed.find(item => item.path_display === arg.path);
+      assert.ok(stored);
+      const remoteBytes = corruptReadback && arg.path.endsWith(".dump.fcenc")
+        ? Buffer.concat([stored.remoteBytes, Buffer.from("changed")]) : stored.remoteBytes;
+      return new Response(remoteBytes, {
+        status: 200,
+        headers: { "Dropbox-API-Result": JSON.stringify({
+          path_display: stored.path_display,
+          content_hash: stored.content_hash,
+          size: stored.remoteBytes.length,
+        }) },
+      });
+    }
     if (url.endsWith("/upload_session/start")) {
       const session_id = `synthetic-session-${++seq}`;
       sessions.set(session_id, { chunks: [], closed: false });
@@ -62,6 +76,9 @@ function fakeDropbox({ corruptContentHash = false } = {}) {
       return new Response(null, { status: 200 });
     }
     if (url.endsWith("/upload_session/finish")) {
+      if (failFinishAt && completed.length + 1 === failFinishAt) {
+        return new Response(JSON.stringify({ error_summary: "synthetic_failure" }), { status: 503 });
+      }
       const session = sessions.get(arg.cursor.session_id);
       assert.ok(session);
       assert.equal(session.closed, true);
@@ -77,7 +94,7 @@ function fakeDropbox({ corruptContentHash = false } = {}) {
       }
       const content_hash = corruptContentHash ? "0".repeat(64) : hash.digest("hex");
       const path_display = arg.commit.path;
-      completed.push({ path_display, remoteBytes });
+      completed.push({ path_display, remoteBytes, content_hash });
       return new Response(JSON.stringify({ path_display, content_hash, size: remoteBytes.length }), { status: 200 });
     }
     assert.fail(`Unexpected Dropbox route ${url}`);
@@ -110,16 +127,38 @@ test("only explicit private GitHub-runner approval and exact Supabase BR target 
   for (const changed of [
     { GITHUB_ACTIONS: "false" },
     { GITHUB_REPOSITORY: "bonecodesign/FRALDAScycle" },
+    { GITHUB_REPOSITORY: "bonecodesign/another-private-repository" },
     { GITHUB_REPOSITORY: "attacker/backup" },
     { NODE_ENV: "production" },
     { PRIVATE_BACKUP_RUNNER_APPROVED: undefined },
     { OFFSITE_BACKUP_UPLOAD_APPROVED: undefined },
     { PGSSLROOTCERT: "" },
     { RECOVERY_ARCHIVE_KEY_B64: "" },
+    { RECOVERY_ARCHIVE_KEY_B64: "not-a-32-byte-base64-key" },
+    { DATABASE_URL: "postgresql://postgres@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres?sslmode=verify-full" },
     { DATABASE_URL: "postgresql://postgres:synthetic@db.wrong.supabase.co:5432/postgres?sslmode=verify-full" },
     { DATABASE_URL: "postgresql://postgres:synthetic@db.urbrtnenrsjvgqjhfhdj.supabase.co:6543/postgres?sslmode=verify-full" },
     { DATABASE_URL: "postgresql://postgres:synthetic@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres?sslmode=prefer" },
   ]) assert.throws(() => validateBackupSource(configured(changed)), /PRIVATE_BACKUP_|verify-full/);
+});
+
+test("runner preflight requires a private regular PEM CA file before pg_dump", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "fc342-ca-"));
+  try {
+    const ca = join(dir, "supabase-ca.crt");
+    const pem = "-----BEGIN CERTIFICATE-----\nsynthetic-offline-fixture\n-----END CERTIFICATE-----\n";
+    await writeFile(ca, pem, { mode: 0o600 });
+    assert.equal((await validateBackupProtectionFiles(configured({ PGSSLROOTCERT: ca }))).project,
+      "urbrtnenrsjvgqjhfhdj");
+    await chmod(ca, 0o644);
+    await assert.rejects(validateBackupProtectionFiles(configured({ PGSSLROOTCERT: ca })),
+      /PRIVATE_BACKUP_CA_FILE_INVALID/);
+    await chmod(ca, 0o600);
+    const linked = join(dir, "linked-ca.crt");
+    await symlink(ca, linked);
+    await assert.rejects(validateBackupProtectionFiles(configured({ PGSSLROOTCERT: linked })),
+      /PRIVATE_BACKUP_CA_FILE_INVALID/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
 test("correct Dropbox 4 MiB block content_hash differs from plain SHA-256", async () => {
@@ -147,17 +186,18 @@ test("complete encrypted-only Dropbox upload validates two remote hashes and red
     assert.equal(result.status, "ENCRYPTED_OFFSITE_UPLOAD_COMPLETE");
     assert.equal(result.recoveryTestPerformed, false);
     assert.equal(api.completed.length, 2);
-    assert.equal(api.completed[0].path_display, result.archivePath);
+    assert.equal(api.completed[1].path_display, result.archivePath);
     assert.ok(result.archivePath.startsWith(`${DROPBOX_BACKUP_FOLDER}/fc-br-`));
-    assert.ok(api.completed[1].path_display.endsWith(".dump.fcenc.sha256"));
-    assert.equal(api.completed[0].remoteBytes.subarray(0, 8).toString(), "FCBKUP01");
-    assert.notDeepEqual(api.completed[0].remoteBytes.subarray(20, 120), contents.subarray(0, 100));
-    assert.equal(api.completed[1].remoteBytes.toString().trim(), result.archiveSha256);
+    assert.ok(api.completed[0].path_display.endsWith(".dump.fcenc.sha256"));
+    assert.equal(api.completed[1].remoteBytes.subarray(0, 8).toString(), "FCBKUP01");
+    assert.notDeepEqual(api.completed[1].remoteBytes.subarray(20, 120), contents.subarray(0, 100));
+    assert.equal(api.completed[0].remoteBytes.toString().trim(), result.archiveSha256);
     assert.equal(JSON.stringify(result).includes("synthetic"), false);
     assert.equal(JSON.stringify(result).includes(env.RECOVERY_ARCHIVE_KEY_B64), false);
     assert.equal(JSON.stringify(result).includes(env.DATABASE_URL), false);
     assert.equal(JSON.stringify(result).includes("test-refresh-token"), false);
     assert.equal(api.requested.filter(url => url.endsWith("append_v2")).length >= 3, true);
+    assert.equal(api.requested.filter(url => url.endsWith("/files/download")).length, 2);
   });
 });
 
@@ -177,6 +217,27 @@ test("remote Dropbox content hash mismatch fails closed and never records a comp
     const api = fakeDropbox({ corruptContentHash: true });
     await assert.rejects(uploadVerifiedArchive(env, { fetchImpl: api.fetchImpl }), /PRIVATE_BACKUP_REMOTE_HASH_MISMATCH/);
     assert.equal(api.completed.length, 1);
+  }, 128);
+});
+
+test("downloaded pair is independently rehashed and a changed readback fails closed", async () => {
+  await archiveFixture(async ({ env }) => {
+    const api = fakeDropbox({ corruptReadback: true });
+    await assert.rejects(uploadVerifiedArchive(env, { fetchImpl: api.fetchImpl }),
+      /PRIVATE_BACKUP_REMOTE_READBACK_MISMATCH/);
+    assert.equal(api.completed.length, 2);
+    assert.equal(api.requested.filter(url => url.endsWith("/files/download")).length, 2);
+  }, 128);
+});
+
+test("second upload failure leaves checksum only and never claims a complete backup", async () => {
+  await archiveFixture(async ({ env }) => {
+    const api = fakeDropbox({ failFinishAt: 2 });
+    await assert.rejects(uploadVerifiedArchive(env, { fetchImpl: api.fetchImpl }),
+      /PRIVATE_BACKUP_REMOTE_REQUEST_REJECTED/);
+    assert.equal(api.completed.length, 1);
+    assert.ok(api.completed[0].path_display.endsWith(".dump.fcenc.sha256"));
+    assert.equal(api.requested.some(url => url.endsWith("/files/download")), false);
   }, 128);
 });
 
