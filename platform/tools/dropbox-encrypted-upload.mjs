@@ -81,12 +81,19 @@ export async function localFileDigests(path) {
   let bytes = 0;
   try {
     while (true) {
-      const { bytesRead } = await file.read(buffer, 0, buffer.length, null);
-      if (bytesRead === 0) break;
-      const block = buffer.subarray(0, bytesRead);
+      // Consume complete 4 MiB blocks regardless of OS-level partial reads.
+      let filled = 0;
+      while (filled < buffer.length) {
+        const { bytesRead } = await file.read(buffer, filled, buffer.length - filled, null);
+        if (bytesRead === 0) break;
+        filled += bytesRead;
+      }
+      if (filled === 0) break;
+      const block = buffer.subarray(0, filled);
       fileHash.update(block);
       dropboxHash.update(createHash("sha256").update(block).digest());
-      bytes += bytesRead;
+      bytes += filled;
+      if (filled < buffer.length) break;
     }
   } finally { await file.close(); }
   return Object.freeze({ sha256: fileHash.digest("hex"), contentHash: dropboxHash.digest("hex"), size: bytes });
@@ -100,7 +107,10 @@ async function apiJson(url, { method = "POST", headers = {}, body = undefined } 
     throw failure("REMOTE_REQUEST_FAILED");
   }
   if (!response.ok) throw failure("REMOTE_REQUEST_REJECTED");
-  try { return await response.json(); } catch { throw failure("REMOTE_RESPONSE_INVALID"); }
+  try {
+    const bodyText = await response.text();
+    return bodyText ? JSON.parse(bodyText) : {};
+  } catch { throw failure("REMOTE_RESPONSE_INVALID"); }
 }
 
 async function dropboxAccessToken(env, fetchImpl) {
@@ -146,28 +156,23 @@ export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl =
   const sessionId = cursorResponse.session_id;
   const file = await open(path, "r");
   const buffer = Buffer.allocUnsafe(CONTENT_BLOCK_BYTES);
-  let offset = 0, result;
+  let offset = 0;
   try {
     while (offset < metadata.size) {
       const { bytesRead } = await file.read(buffer, 0, Math.min(buffer.length, metadata.size - offset), offset);
       if (bytesRead <= 0) throw failure("FILE_CHANGED");
-      const chunk = buffer.subarray(0, bytesRead);
-      const last = offset + bytesRead === metadata.size;
-      const args = {
-        cursor: { session_id: sessionId, offset },
-        ...(last ? { commit: {
-          path: remotePath,
-          mode: "add",
-          autorename: false,
-          mute: true,
-          strict_conflict: true,
-        } } : { close: false }),
-      };
-      result = await contentRequest(last ? "upload_session/finish" : "upload_session/append_v2",
-        token, args, chunk, fetchImpl);
+      // Dropbox append_v2 returns HTTP 200 with no body, even on success.
+      await contentRequest("upload_session/append_v2", token, {
+        cursor: { session_id: sessionId, offset }, close: false,
+      }, buffer.subarray(0, bytesRead), fetchImpl);
       offset += bytesRead;
     }
   } finally { await file.close(); }
+  // Finish with an empty body, committing precisely the received offset.
+  const result = await contentRequest("upload_session/finish", token, {
+    cursor: { session_id: sessionId, offset },
+    commit: { path: remotePath, mode: "add", autorename: false, mute: true, strict_conflict: true },
+  }, Buffer.alloc(0), fetchImpl);
   if (offset !== metadata.size || result?.path_display !== remotePath ||
       typeof result.content_hash !== "string") throw failure("UPLOAD_UNVERIFIED");
   const digest = await localFileDigests(path);
