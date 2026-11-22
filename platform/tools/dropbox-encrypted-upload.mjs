@@ -148,8 +148,13 @@ async function contentRequest(operation, token, argument, bytes, fetchImpl) {
 export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl = fetch }) {
   const metadata = await privateRegularFile(path);
   if (!required(token)) throw failure("DROPBOX_AUTH_MISSING");
-  if (!remotePath.startsWith(`${DROPBOX_BACKUP_FOLDER}/`) ||
-      /[\r\n]/.test(remotePath)) throw failure("REMOTE_PATH_INVALID");
+  // Only encrypted dumps and their SHA-256 sidecars at the approved top-level folder.
+  if (typeof remotePath !== "string" ||
+      !/^\/[A-Za-z0-9/._-]+$/.test(remotePath) ||
+      remotePath !== `${DROPBOX_BACKUP_FOLDER}/${basename(remotePath)}` ||
+      !/^fc-br-[A-Za-z0-9_-]+\.dump\.fcenc(\.sha256)?$/.test(basename(remotePath))) {
+    throw failure("REMOTE_PATH_INVALID");
+  }
 
   const cursorResponse = await contentRequest("upload_session/start", token, { close: false }, Buffer.alloc(0), fetchImpl);
   if (!required(cursorResponse.session_id)) throw failure("SESSION_FAILED");
@@ -174,7 +179,9 @@ export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl =
     commit: { path: remotePath, mode: "add", autorename: false, mute: true, strict_conflict: true },
   }, Buffer.alloc(0), fetchImpl);
   if (offset !== metadata.size || result?.path_display !== remotePath ||
-      typeof result.content_hash !== "string") throw failure("UPLOAD_UNVERIFIED");
+      result?.size !== metadata.size || typeof result.content_hash !== "string") {
+    throw failure("UPLOAD_UNVERIFIED");
+  }
   const digest = await localFileDigests(path);
   if (digest.size !== metadata.size || !matchesDigest(digest.contentHash, result.content_hash)) {
     throw failure("REMOTE_HASH_MISMATCH");
