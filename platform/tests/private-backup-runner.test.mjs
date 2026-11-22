@@ -36,7 +36,7 @@ test("private backup Bash runner is syntactically valid and does not store origi
   assert.match(contents, /source\/platform\/tools\/storage-binary-coverage-preflight\.mjs/);
   assert.ok(contents.indexOf("tools/storage-binary-coverage-preflight.mjs") <
     contents.indexOf("database/recovery.js backup"));
-  assert.match(contents, /STORAGE metadata rows but NOT file bytes/);
+  assert.match(contents, /Storage metadata rows but NOT file bytes/);
   assert.match(contents, /validateBackupProtectionFiles/);
   assert.match(contents, /--entrypoint pg_restore postgres:17-alpine --list/);
   assert.match(contents, /--network none --read-only/);
