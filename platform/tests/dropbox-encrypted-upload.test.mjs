@@ -46,23 +46,26 @@ function fakeDropbox({ corruptContentHash = false } = {}) {
     const arg = JSON.parse(params.headers["Dropbox-API-Arg"]);
     if (url.endsWith("/upload_session/start")) {
       const session_id = `synthetic-session-${++seq}`;
-      sessions.set(session_id, []);
+      sessions.set(session_id, { chunks: [], closed: false });
       assert.equal(params.body.length, 0);
       return new Response(JSON.stringify({ session_id }), { status: 200 });
     }
     if (url.endsWith("/upload_session/append_v2")) {
-      const chunks = sessions.get(arg.cursor.session_id);
-      assert.ok(chunks);
-      assert.equal(chunks.reduce((n, c) => n + c.length, 0), arg.cursor.offset);
-      chunks.push(Buffer.from(params.body));
-      assert.equal(arg.close, false);
+      const session = sessions.get(arg.cursor.session_id);
+      assert.ok(session);
+      assert.equal(session.closed, false);
+      assert.equal(session.chunks.reduce((n, c) => n + c.length, 0), arg.cursor.offset);
+      session.chunks.push(Buffer.from(params.body));
+      if (!arg.close) assert.equal(params.body.length, CONTENT_BLOCK_BYTES);
+      if (arg.close) session.closed = true;
       // The official append_v2 endpoint returns 200 with an empty body.
       return new Response(null, { status: 200 });
     }
     if (url.endsWith("/upload_session/finish")) {
-      const chunks = sessions.get(arg.cursor.session_id);
-      assert.ok(chunks);
-      const remoteBytes = Buffer.concat(chunks);
+      const session = sessions.get(arg.cursor.session_id);
+      assert.ok(session);
+      assert.equal(session.closed, true);
+      const remoteBytes = Buffer.concat(session.chunks);
       assert.equal(arg.cursor.offset, remoteBytes.length);
       assert.equal(params.body.length, 0);
       assert.equal(arg.commit.mode, "add");
