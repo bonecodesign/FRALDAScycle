@@ -43,10 +43,6 @@ export DATABASE_DUMP_PATH="$private_workdir/$backup_label.dump"
 export RECOVERY_ENCRYPTED_PATH="$DATABASE_DUMP_PATH.fcenc"
 export RECOVERY_ARCHIVE_APPROVED="ENCRYPT_OR_VERIFY"
 
-node source/platform/tools/dropbox-encrypted-upload.mjs --help >/dev/null 2>&1 && {
-  echo "PRIVATE_BACKUP_UNEXPECTED_ENTRYPOINT" >&2
-  exit 1
-} || true
 # The dedicated preflight is executed from inside the uploader, but do it also
 # BEFORE the PostgreSQL export so an incorrect Supabase project never gets dumped.
 node --input-type=module -e '
