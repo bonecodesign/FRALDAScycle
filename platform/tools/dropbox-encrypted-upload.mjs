@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { open, lstat, readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { isMainModule } from "../packages/contracts/main-module.js";
@@ -7,6 +8,7 @@ import { verifyBackupArchive } from "../database/recovery-archive.js";
 
 export const DROPBOX_BACKUP_FOLDER = "/FRALDA/Backups-Supabase-BR";
 export const FRALDACYCLE_PROJECT_REF = "urbrtnenrsjvgqjhfhdj";
+export const PRIVATE_BACKUP_REPOSITORY = "bonecodesign/fraldacycle-backups-private";
 export const CONTENT_BLOCK_BYTES = 4 * 1024 * 1024;
 
 function failure(reason) { return new Error(`PRIVATE_BACKUP_${reason}`); }
@@ -17,8 +19,7 @@ function required(value) {
 
 export function validateBackupSource(env) {
   if (env.GITHUB_ACTIONS !== "true" ||
-      env.GITHUB_REPOSITORY === "bonecodesign/FRALDAScycle" ||
-      !/^bonecodesign\/[A-Za-z0-9_.-]+$/.test(env.GITHUB_REPOSITORY || "") ||
+      env.GITHUB_REPOSITORY !== PRIVATE_BACKUP_REPOSITORY ||
       env.NODE_ENV === "production" ||
       env.PRIVATE_BACKUP_RUNNER_APPROVED !== "MANUAL_HOMOLOGATION" ||
       env.OFFSITE_BACKUP_UPLOAD_APPROVED !== "PRIVATE_RUNNER_MANUAL") {
@@ -41,8 +42,36 @@ export function validateBackupSource(env) {
   if (!required(env.PGSSLROOTCERT) || !required(env.RECOVERY_ARCHIVE_KEY_B64)) {
     throw failure("PROTECTION_UNAVAILABLE");
   }
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(env.RECOVERY_ARCHIVE_KEY_B64)) {
+    throw failure("PROTECTION_UNAVAILABLE");
+  }
+  const recoveryKey = Buffer.from(env.RECOVERY_ARCHIVE_KEY_B64, "base64");
+  if (recoveryKey.length !== 32 || recoveryKey.toString("base64") !== env.RECOVERY_ARCHIVE_KEY_B64) {
+    recoveryKey.fill(0);
+    throw failure("PROTECTION_UNAVAILABLE");
+  }
+  recoveryKey.fill(0);
+  if (!required(plan.env.PGPASSWORD)) throw failure("DATABASE_AUTH_UNAVAILABLE");
   // The CA is a file path, not a certificate pasted into the process command line.
   return Object.freeze({ project: FRALDACYCLE_PROJECT_REF, connectionMode: direct ? "direct" : "session-pooler" });
+}
+
+export async function validateBackupProtectionFiles(env) {
+  const source = validateBackupSource(env);
+  let metadata, certificate;
+  try {
+    metadata = await lstat(env.PGSSLROOTCERT);
+    if (!metadata.isFile() || metadata.size === 0 || metadata.size > 65_536 ||
+        (metadata.mode & 0o077) !== 0) throw failure("CA_FILE_INVALID");
+    certificate = await readFile(env.PGSSLROOTCERT, "utf8");
+  } catch (error) {
+    if (error?.message === "PRIVATE_BACKUP_CA_FILE_INVALID") throw error;
+    throw failure("CA_FILE_UNAVAILABLE");
+  }
+  if (!/^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/.test(certificate)) {
+    throw failure("CA_FILE_INVALID");
+  }
+  return source;
 }
 
 function validateArchivePath(path) {
@@ -73,30 +102,35 @@ function matchesDigest(first, second) {
 
 // Dropbox content_hash: SHA-256 of concatenated SHA-256 hashes of successive 4 MiB blocks.
 // This is NOT the SHA-256 of the whole file; both checks are required.
-export async function localFileDigests(path) {
-  const file = await open(path, "r");
+async function streamDigests(chunks) {
   const fileHash = createHash("sha256");
   const dropboxHash = createHash("sha256");
-  const buffer = Buffer.allocUnsafe(CONTENT_BLOCK_BYTES);
+  let blockHash = createHash("sha256");
+  let blockBytes = 0;
   let bytes = 0;
-  try {
-    while (true) {
-      // Consume complete 4 MiB blocks regardless of OS-level partial reads.
-      let filled = 0;
-      while (filled < buffer.length) {
-        const { bytesRead } = await file.read(buffer, filled, buffer.length - filled, null);
-        if (bytesRead === 0) break;
-        filled += bytesRead;
+  for await (const value of chunks) {
+    const chunk = Buffer.from(value);
+    fileHash.update(chunk);
+    bytes += chunk.length;
+    let offset = 0;
+    while (offset < chunk.length) {
+      const amount = Math.min(CONTENT_BLOCK_BYTES - blockBytes, chunk.length - offset);
+      blockHash.update(chunk.subarray(offset, offset + amount));
+      blockBytes += amount;
+      offset += amount;
+      if (blockBytes === CONTENT_BLOCK_BYTES) {
+        dropboxHash.update(blockHash.digest());
+        blockHash = createHash("sha256");
+        blockBytes = 0;
       }
-      if (filled === 0) break;
-      const block = buffer.subarray(0, filled);
-      fileHash.update(block);
-      dropboxHash.update(createHash("sha256").update(block).digest());
-      bytes += filled;
-      if (filled < buffer.length) break;
     }
-  } finally { await file.close(); }
+  }
+  if (blockBytes > 0) dropboxHash.update(blockHash.digest());
   return Object.freeze({ sha256: fileHash.digest("hex"), contentHash: dropboxHash.digest("hex"), size: bytes });
+}
+
+export function localFileDigests(path) {
+  return streamDigests(createReadStream(path));
 }
 
 async function apiJson(url, { method = "POST", headers = {}, body = undefined } = {}, fetchImpl = fetch) {
@@ -143,6 +177,35 @@ async function contentRequest(operation, token, argument, bytes, fetchImpl) {
     headers: uploadHeaders(token, argument),
     body: bytes,
   }, fetchImpl);
+}
+
+async function downloadAndVerify({ remotePath, expected, token, fetchImpl }) {
+  let response;
+  try {
+    response = await fetchImpl("https://content.dropboxapi.com/2/files/download", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Dropbox-API-Arg": JSON.stringify({ path: remotePath }),
+      },
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch { throw failure("REMOTE_READBACK_FAILED"); }
+  if (!response.ok || !response.body) throw failure("REMOTE_READBACK_FAILED");
+  let metadata;
+  try { metadata = JSON.parse(response.headers.get("Dropbox-API-Result") || ""); }
+  catch { throw failure("REMOTE_READBACK_INVALID"); }
+  let downloaded;
+  try { downloaded = await streamDigests(response.body); }
+  catch { throw failure("REMOTE_READBACK_FAILED"); }
+  if (metadata.path_display !== remotePath || metadata.size !== expected.bytes ||
+      !matchesDigest(metadata.content_hash, expected.contentHash) ||
+      downloaded.size !== expected.bytes ||
+      !matchesDigest(downloaded.contentHash, expected.contentHash) ||
+      !matchesDigest(downloaded.sha256, expected.sha256)) {
+    throw failure("REMOTE_READBACK_MISMATCH");
+  }
+  return Object.freeze({ path: remotePath, ...downloaded });
 }
 
 export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl = fetch }) {
@@ -212,18 +275,21 @@ export async function uploadVerifiedArchive(env = process.env, { fetchImpl = fet
   });
   if (!matchesDigest(authenticated.sha256, expectedSha)) throw failure("SOURCE_CHECKSUM");
   const token = await dropboxAccessToken(env, fetchImpl);
-  // Failure after the first upload may leave a partial pair; never claim success.
+  // Publish the small checksum first. If the second upload fails, only the
+  // checksum (not the encrypted database archive) remains as an incomplete pair.
+  const checksum = await uploadEncryptedFile({
+    path: checksumPath,
+    remotePath: `${DROPBOX_BACKUP_FOLDER}/${fileName}.sha256`,
+    token, fetchImpl,
+  });
   const archive = await uploadEncryptedFile({
     path: archivePath,
     remotePath: `${DROPBOX_BACKUP_FOLDER}/${fileName}`,
     token, fetchImpl,
   });
   if (!matchesDigest(archive.sha256, expectedSha)) throw failure("SOURCE_CHANGED");
-  const checksum = await uploadEncryptedFile({
-    path: checksumPath,
-    remotePath: `${DROPBOX_BACKUP_FOLDER}/${fileName}.sha256`,
-    token, fetchImpl,
-  });
+  await downloadAndVerify({ remotePath: checksum.path, expected: checksum, token, fetchImpl });
+  await downloadAndVerify({ remotePath: archive.path, expected: archive, token, fetchImpl });
   return Object.freeze({
     status: "ENCRYPTED_OFFSITE_UPLOAD_COMPLETE",
     archivePath: archive.path,

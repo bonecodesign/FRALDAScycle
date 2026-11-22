@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   encrypted-offsite:
-    if: ${{ github.event.repository.private && inputs.confirm == 'BACKUP_FRALDACYCLE_BR' }}
+    if: ${{ github.event.repository.private && github.repository == 'bonecodesign/fraldacycle-backups-private' && inputs.confirm == 'BACKUP_FRALDACYCLE_BR' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: backup-homologacao

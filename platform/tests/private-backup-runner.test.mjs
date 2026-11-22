@@ -10,6 +10,7 @@ test("private backup template is dormant, manual-only, secret-scoped and pinned"
   assert.match(yaml, /\bon:\s*\n\s+workflow_dispatch:/);
   assert.doesNotMatch(yaml, /^\s+(schedule|push|pull_request|repository_dispatch):/m);
   assert.match(yaml, /github\.event\.repository\.private/);
+  assert.match(yaml, /github\.repository == 'bonecodesign\/fraldacycle-backups-private'/);
   assert.match(yaml, /BACKUP_FRALDACYCLE_BR/);
   assert.match(yaml, /permissions:\s*\n\s+contents: read/);
   assert.match(yaml, /cancel-in-progress: false/);
@@ -27,9 +28,11 @@ test("private backup Bash runner is syntactically valid and does not store origi
   assert.equal(parsed.status, 0, parsed.stderr);
   const contents = await readFile(script, "utf8");
   assert.match(contents, /trap 'rm -rf -- "\$private_workdir"' EXIT/);
+  assert.match(contents, /GITHUB_REPOSITORY:-}" != "bonecodesign\/fraldacycle-backups-private"/);
   assert.match(contents, /NODE_ENV:-/);
   assert.match(contents, /pg_dump.*Docker|pg_dump.*postgres|--entrypoint pg_dump postgres:17-alpine/s);
   assert.match(contents, /source\/platform\/database\/recovery\.js backup/);
+  assert.match(contents, /validateBackupProtectionFiles/);
   assert.match(contents, /source\/platform\/database\/recovery-archive\.js encrypt/);
   assert.match(contents, /source\/platform\/database\/recovery-archive\.js verify/);
   assert.match(contents, /source\/platform\/tools\/dropbox-encrypted-upload\.mjs/);
