@@ -1,0 +1,64 @@
+# PRIVATE-REPOSITORY TEMPLATE ONLY.
+# Copy to the NEW PRIVATE REPO at .github/workflows/manual-offsite-backup.yml.
+# It MUST NOT be installed under .github/workflows of public FRALDAScycle.
+name: FraldaCycle BR - encrypted offsite backup (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type BACKUP_FRALDACYCLE_BR to authorize ONE backup'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fraldacycle-br-private-offsite-backup
+  cancel-in-progress: false
+
+jobs:
+  encrypted-offsite:
+    if: ${{ github.event.repository.private && inputs.confirm == 'BACKUP_FRALDACYCLE_BR' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: backup-homologacao
+    env:
+      NODE_ENV: homologation
+      PRIVATE_BACKUP_RUNNER_APPROVED: MANUAL_HOMOLOGATION
+      OFFSITE_BACKUP_UPLOAD_APPROVED: PRIVATE_RUNNER_MANUAL
+      # Set AFTER review/merge to the exact 40-character SHA of FRALDAScycle/main.
+      # A deliberately invalid placeholder makes this workflow inoperable as shipped.
+      FRALDACYCLE_SOURCE_SHA: REPLACE_WITH_REVIEWED_40_CHARACTER_SHA
+    steps:
+      - name: Fetch the reviewed, pinned public source (no PRs or moving branch)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ ! "$FRALDACYCLE_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "PINNED_SOURCE_SHA_REQUIRED" >&2
+            exit 1
+          fi
+          git init -q source
+          git -C source remote add origin https://github.com/bonecodesign/FRALDAScycle.git
+          git -C source fetch -q --depth=1 origin "$FRALDACYCLE_SOURCE_SHA"
+          git -C source checkout -q --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$FRALDACYCLE_SOURCE_SHA"
+          test -f source/platform/infra/private-backup-runner/run-private-backup.sh
+          test -f source/platform/tools/dropbox-encrypted-upload.mjs
+
+      - name: Export, encrypt, verify, then upload encrypted copies only
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.FC_BR_DATABASE_URL }}
+          FC_DB_CA_PEM: ${{ secrets.FC_BR_DB_CA_PEM }}
+          RECOVERY_ARCHIVE_KEY_B64: ${{ secrets.FC_BACKUP_ENCRYPTION_KEY_B64 }}
+          DROPBOX_APP_KEY: ${{ secrets.FC_DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.FC_DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.FC_DROPBOX_REFRESH_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          bash source/platform/infra/private-backup-runner/run-private-backup.sh
+
+# No schedule, upload-artifact, write permission, deployment, Supabase mutation,
+# pg_restore, secret printing, test customer creation or public application launch.
