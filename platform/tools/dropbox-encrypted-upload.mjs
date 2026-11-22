@@ -164,13 +164,21 @@ export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl =
   let offset = 0;
   try {
     while (offset < metadata.size) {
-      const { bytesRead } = await file.read(buffer, 0, Math.min(buffer.length, metadata.size - offset), offset);
-      if (bytesRead <= 0) throw failure("FILE_CHANGED");
-      // Dropbox append_v2 returns HTTP 200 with no body, even on success.
+      // Sequential Dropbox sessions require 4 MiB chunks, except the last
+      // append marked close=true. Handle partial filesystem reads explicitly.
+      const amount = Math.min(buffer.length, metadata.size - offset);
+      let filled = 0;
+      while (filled < amount) {
+        const { bytesRead } = await file.read(buffer, filled, amount - filled, offset + filled);
+        if (bytesRead <= 0) throw failure("FILE_CHANGED");
+        filled += bytesRead;
+      }
+      const last = offset + filled === metadata.size;
+      // Dropbox append_v2 returns HTTP 200 with an empty body.
       await contentRequest("upload_session/append_v2", token, {
-        cursor: { session_id: sessionId, offset }, close: false,
-      }, buffer.subarray(0, bytesRead), fetchImpl);
-      offset += bytesRead;
+        cursor: { session_id: sessionId, offset }, close: last,
+      }, buffer.subarray(0, filled), fetchImpl);
+      offset += filled;
     }
   } finally { await file.close(); }
   // Finish with an empty body, committing precisely the received offset.
