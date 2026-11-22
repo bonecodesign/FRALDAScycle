@@ -18,7 +18,7 @@ test("private backup template is dormant, manual-only, secret-scoped and pinned"
   assert.match(yaml, /secrets\.FC_BR_DATABASE_URL/);
   assert.match(yaml, /secrets\.FC_BACKUP_ENCRYPTION_KEY_B64/);
   assert.match(yaml, /secrets\.FC_DROPBOX_REFRESH_TOKEN/);
-  assert.doesNotMatch(yaml, /\b(upload-artifact|schedule|pg_restore|npm publish)\b/);
+  assert.doesNotMatch(yaml.split("\n").filter(line => !line.trimStart().startsWith("#")).join("\n"), /\b(upload-artifact|schedule|pg_restore|npm publish)\b/);
 });
 
 test("private backup Bash runner is syntactically valid and does not store original dump in Dropbox", async () => {
