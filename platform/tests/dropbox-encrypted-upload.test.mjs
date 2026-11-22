@@ -75,7 +75,7 @@ function fakeDropbox({ corruptContentHash = false } = {}) {
       const content_hash = corruptContentHash ? "0".repeat(64) : hash.digest("hex");
       const path_display = arg.commit.path;
       completed.push({ path_display, remoteBytes });
-      return new Response(JSON.stringify({ path_display, content_hash }), { status: 200 });
+      return new Response(JSON.stringify({ path_display, content_hash, size: remoteBytes.length }), { status: 200 });
     }
     assert.fail(`Unexpected Dropbox route ${url}`);
   };
