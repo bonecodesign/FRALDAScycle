@@ -60,7 +60,27 @@ set -Eeuo pipefail
 exec docker run --rm --network bridge --read-only   --tmpfs /tmp:rw,nosuid,noexec,size=64m   --security-opt no-new-privileges --cap-drop ALL   --user "$(id -u):$(id -g)"   --mount "type=bind,src=${FC_BACKUP_WORKDIR},dst=${FC_BACKUP_WORKDIR}"   --env PGHOST --env PGPORT --env PGUSER --env PGPASSWORD   --env PGDATABASE --env PGSSLMODE --env PGSSLROOTCERT   --entrypoint pg_dump postgres:17-alpine "$@"
 PGDUMP_WRAPPER
 chmod 700 "$private_workdir/bin/pg_dump"
+cat > "$private_workdir/bin/psql" <<'PSQL_WRAPPER'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+: "${FC_BACKUP_WORKDIR:?}"
+# Read-only inventory, no database URL/password on the process command line.
+exec docker run --rm --network bridge --read-only \
+  --tmpfs /tmp:rw,nosuid,noexec,size=64m \
+  --security-opt no-new-privileges --cap-drop ALL \
+  --user "$(id -u):$(id -g)" \
+  --mount "type=bind,src=${FC_BACKUP_WORKDIR},dst=${FC_BACKUP_WORKDIR},readonly" \
+  --env PGHOST --env PGPORT --env PGUSER --env PGPASSWORD \
+  --env PGDATABASE --env PGSSLMODE --env PGSSLROOTCERT \
+  --entrypoint psql postgres:17-alpine "$@"
+PSQL_WRAPPER
+chmod 700 "$private_workdir/bin/psql"
 export PATH="$private_workdir/bin:$PATH"
+
+# Block DB-only backups if Supabase Storage contains even a single bucket.
+# pg_dump covers Storage metadata rows but NOT file bytes in object storage.
+# The preflight uses SELECT EXISTS (no object names/data) over TLS verify-full.
+node source/platform/tools/storage-binary-coverage-preflight.mjs
 
 # No production switches, no application activation, no checkout of PR code.
 node source/platform/database/recovery.js backup
