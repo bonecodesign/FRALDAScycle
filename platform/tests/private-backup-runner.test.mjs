@@ -33,9 +33,14 @@ test("private backup Bash runner is syntactically valid and does not store origi
   assert.match(contents, /pg_dump.*Docker|pg_dump.*postgres|--entrypoint pg_dump postgres:17-alpine/s);
   assert.match(contents, /source\/platform\/database\/recovery\.js backup/);
   assert.match(contents, /validateBackupProtectionFiles/);
+  assert.match(contents, /--entrypoint pg_restore postgres:17-alpine --list/);
+  assert.match(contents, /--network none --read-only/);
+  assert.match(contents, /source\/platform\/tools\/backup-toc-coverage\.mjs/);
+  assert.ok(contents.indexOf("backup-toc-coverage.mjs") <
+    contents.indexOf("database/recovery-archive.js encrypt"));
   assert.match(contents, /source\/platform\/database\/recovery-archive\.js encrypt/);
   assert.match(contents, /source\/platform\/database\/recovery-archive\.js verify/);
   assert.match(contents, /source\/platform\/tools\/dropbox-encrypted-upload\.mjs/);
   assert.match(contents, /rm -f -- "\$DATABASE_DUMP_PATH"/);
-  assert.doesNotMatch(contents, /\bdocker push\b|\bnpm publish\b|\bpg_restore\b|\bset -x\b/);
+  assert.doesNotMatch(contents, /\bdocker push\b|\bnpm publish\b|--clean|--dbname|CONFIRM_DATABASE_RESTORE|\bset -x\b/);
 });

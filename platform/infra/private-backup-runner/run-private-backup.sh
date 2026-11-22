@@ -64,6 +64,20 @@ export PATH="$private_workdir/bin:$PATH"
 
 # No production switches, no application activation, no checkout of PR code.
 node source/platform/database/recovery.js backup
+
+# A successful pg_dump exit alone does NOT prove that Auth, Storage and app
+# tables were included. Inspect the custom archive with PostgreSQL 17, offline.
+# The container has no network, no database credentials and read-only access
+# to the directory. The TOC is local, mode 0600, and removed before encryption.
+docker run --rm --network none --read-only \
+  --security-opt no-new-privileges --cap-drop ALL \
+  --user "$(id -u):$(id -g)" \
+  --mount "type=bind,src=${FC_BACKUP_WORKDIR},dst=${FC_BACKUP_WORKDIR},readonly" \
+  --entrypoint pg_restore postgres:17-alpine --list "$DATABASE_DUMP_PATH" \
+  > "$private_workdir/archive.toc"
+node source/platform/tools/backup-toc-coverage.mjs "$private_workdir/archive.toc"
+rm -f -- "$private_workdir/archive.toc"
+
 node source/platform/database/recovery-archive.js encrypt
 node source/platform/database/recovery-archive.js verify
 
