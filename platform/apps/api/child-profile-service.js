@@ -108,8 +108,22 @@ export function createChildProfileService(repository, { featureEnabled = false, 
     async personalizationSignals(actor) {
       enabled(featureEnabled); requireFamilyAccount(actor);
       const rows = await repository.list(actor.id);
-      const bands = new Set(rows.filter(row => row.personalization_enabled&&!row.responsibility_suspended_at)
-        .map(row => childAgeBand(storedBirthDate(row.birth_date), now())));
+      const referenceDate = now();
+      const bands = new Set();
+      for (const row of rows) {
+        // A prior consent version, a suspended profile or a withdrawn
+        // personalization choice can never yield a derived age signal.
+        if (!row || row.personalization_enabled !== true ||
+            row.responsibility_suspended_at ||
+            row.consent_version !== CHILD_PROFILE_CONSENT_VERSION) continue;
+        try {
+          // Background age-limit cleanup may lag behind the child's 13th
+          // birthday. Invalid/aged-out dates must not create signals.
+          bands.add(childAgeBand(storedBirthDate(row.birth_date), referenceDate));
+        } catch (error) {
+          if (!(error instanceof TypeError || error instanceof RangeError)) throw error;
+        }
+      }
       return [...bands].sort().map(ageBand => ({ ageBand }));
     },
   });
