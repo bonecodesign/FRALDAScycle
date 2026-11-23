@@ -161,3 +161,29 @@ test("FIN-05: local payout preparation does not constitute provider settlement a
   assert.equal(checked.payoutAllowed, false,
     "Local payout preparation must never authorize a real disbursement");
 });
+
+
+test("FIN-04/07: missing or malformed settlement evidence fails closed before any external reconciliation", () => {
+  const base = fixture();
+  const incomplete = [
+    ["missing plan", { plan: null }, "plan_allocation_invalid"],
+    ["missing quote", { quote: null }, "quote_changed_or_unconfirmed"],
+    ["missing transaction", { transaction: null }, "transaction_invalid"],
+    ["missing payment", { payment: null }, "payment_not_confirmed"],
+    ["wrong settlement payer", { plan: { ...base.plan, payer_id: planId } }, "quote_changed_or_unconfirmed"],
+    ["unapproved authorization", { payment: { ...base.payment, status: "authorized" } }, "payment_not_confirmed"],
+    ["negative freight base", { plan: { ...base.plan, provider_amount_cents: -1 } }, "plan_allocation_invalid"],
+    ["nonintegral freight base", { plan: { ...base.plan, provider_amount_cents: 2000.5 } }, "plan_allocation_invalid"],
+    ["invalid product amount", { transaction: { ...base.transaction, amount_cents: -1 } }, "product_amount_invalid"],
+    ["overflowed sale plus freight", { transaction: { ...base.transaction, amount_cents: 2147483647 } }, "payment_split_mismatch"],
+    ["unknown paid cardinality", { paidCount: null }, "payment_cardinality_invalid"],
+  ];
+  for (const [scenario, change, expected] of incomplete) {
+    const result = freightSettlementReconciliation({ ...base, ...change });
+    assert.ok(result.blockers.includes(expected), scenario);
+    assert.equal(result.localMatched, false, scenario);
+    assert.equal(result.payoutAllowed, false, scenario);
+    assert.equal(result.providerReconciled, false, scenario);
+    assert.equal(result.externalChargeCreated, false, scenario);
+  }
+});

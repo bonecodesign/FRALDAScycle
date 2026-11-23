@@ -52,3 +52,14 @@ O contrato [`tests/finance-preactivation-reconciliation-matrix.test.mjs`](../../
 4. Manter todos os campos contratuais/comerciais pendentes e submeter o pacote FIN-01…07 a revisores reais, com critérios e pareceres versionados antes de qualquer ativação.
 
 **Matriz:** permanece `42 concluídos / 70 = 60%`. Teste sintético aprovado não promove requisitos financeiros.
+
+
+## Revisão de evidências em 23/11/2026 — FC-351
+
+A matriz **histórica** acima registra corretamente 42/70 na data de 09/11. A matriz oficial mais recente verificada na continuidade do projeto é **48/70 (68,57%)**, e o piloto continua **NO-GO**; nenhuma aprovação FIN-01 a FIN-07 decorre automaticamente de testes.
+
+A suíte existente `tests/finance-preactivation-reconciliation-matrix.test.mjs` já cobria 252 combinações de arredondamento, duplicidade de pagamentos, taxas desconhecidas, troca por duas pernas, doação institucional e bloqueios de repasse. **Não duplicar esses trabalhos.**
+
+FC-351 acrescenta 11 casos sintéticos de falha estrutural com dados ausentes ou adulterados: plano de frete, cotação, transação e pagamento inexistentes; pagador divergente; autorização sem captura; frete negativo ou fracionário; produto negativo; valor total superior ao limite suportado; e cardinalidade de pagamento não demonstrada. Cada caso exige erro de validação local, `payoutAllowed=false`, `providerReconciled=false` e `externalChargeCreated=false`. A evidência só pode ser tratada como aprovada depois da execução de CI no commit da alteração.
+
+**Não se infere contrato nem tarifa de Asaas/Lalamove, nem custo de processamento de frete (requisito 12 permanece em standby).** Nenhum método de pagamento, webhook, repasse ou fornecedor externo foi executado por esta mudança. Responsáveis jurídico, financeiro, contábil e de suporte continuam necessários aos portões FIN-01 a FIN-07; CNPJ permanece em branco.
