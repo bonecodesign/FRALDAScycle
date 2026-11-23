@@ -95,8 +95,13 @@ test("isolated PostgreSQL 17 database survives a real encrypted backup and resto
       assert.ok(ready, "disposable PostgreSQL 17 did not become ready");
     }
 
+    // RLS metadata and policy definitions must survive a logical dump/restore,
+    // not just the rows. This is synthetic; no real Supabase roles are copied.
     const seed = "CREATE TABLE public.fc_recovery_ci (id integer PRIMARY KEY, marker text NOT NULL); " +
-      "INSERT INTO public.fc_recovery_ci VALUES (1, 'synthetic-original'), (2, 'integrity-check');";
+      "INSERT INTO public.fc_recovery_ci VALUES (1, 'synthetic-original'), (2, 'integrity-check'); " +
+      "ALTER TABLE public.fc_recovery_ci ENABLE ROW LEVEL SECURITY; " +
+      "CREATE POLICY fc_recovery_ci_deny_all ON public.fc_recovery_ci " +
+      "FOR SELECT TO PUBLIC USING (false);";
     await docker("SEED", "exec", source, "psql", "-X", "-v", "ON_ERROR_STOP=1",
       "-U", "postgres", "-d", "postgres", "-c", seed);
 
@@ -164,7 +169,26 @@ test("isolated PostgreSQL 17 database survives a real encrypted backup and resto
       "SELECT id,marker FROM public.fc_recovery_ci ORDER BY id;");
     assert.equal(result.stdout.trim(),
       "1|synthetic-original\n2|integrity-check");
-    console.log("FC_ISOLATED_RECOVERY_SUCCEEDED: PG17 -> encrypted archive -> distinct PG17 (synthetic only)");
+
+    const rls = await docker("VERIFY_RLS_METADATA", "exec", target, "psql",
+      "-X", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-c",
+      "SELECT relrowsecurity, (SELECT count(*) FROM pg_policies " +
+      "WHERE schemaname='public' AND tablename='fc_recovery_ci' " +
+      "AND policyname='fc_recovery_ci_deny_all' AND cmd='SELECT') " +
+      "FROM pg_class WHERE oid='public.fc_recovery_ci'::regclass;");
+    assert.equal(rls.stdout.trim(), "t|1", "restore must retain RLS and the deny policy");
+
+    // A temporary unprivileged role exists ONLY in the restored database.
+    // Granting SELECT rules out a permissions error as the cause of zero rows.
+    await docker("RESTRICTED_ROLE", "exec", target, "psql",
+      "-X", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-c",
+      "CREATE ROLE fc_recovery_ci_reader; " +
+      "GRANT SELECT ON public.fc_recovery_ci TO fc_recovery_ci_reader;");
+    const denied = await docker("VERIFY_RLS_ENFORCED", "exec", target, "psql",
+      "-X", "-q", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-c",
+      "SET ROLE fc_recovery_ci_reader; SELECT count(*) FROM public.fc_recovery_ci;");
+    assert.equal(denied.stdout.trim(), "0", "restored RLS must hide all rows from a nonprivileged role");
+    console.log("FC_ISOLATED_RECOVERY_SUCCEEDED: PG17 encrypted restore + synthetic RLS enforcement");
   } finally {
     const cleanupErrors = [];
     for (const name of containers.reverse()) {
