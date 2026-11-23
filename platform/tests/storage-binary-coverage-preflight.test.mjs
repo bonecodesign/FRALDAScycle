@@ -15,6 +15,7 @@ function configured(ca) {
     NODE_ENV: "homologation",
     PRIVATE_BACKUP_RUNNER_APPROVED: "MANUAL_HOMOLOGATION",
     OFFSITE_BACKUP_UPLOAD_APPROVED: "PRIVATE_RUNNER_MANUAL",
+    FC_DROPBOX_ACCESS_POLICY: "APP_FOLDER_ONLY",
     DATABASE_URL: "postgresql://postgres:synthetic-test@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres?sslmode=verify-full",
     DATABASE_DUMP_PATH: "/private/synthetic.dump",
     RECOVERY_ARCHIVE_KEY_B64: randomBytes(32).toString("base64"),
