@@ -98,6 +98,10 @@ docker run --rm --network none --read-only \
 node source/platform/tools/backup-toc-coverage.mjs "$private_workdir/archive.toc"
 rm -f -- "$private_workdir/archive.toc"
 
+# FC-345: close the gap between the initial preflight and a long pg_dump.
+# A bucket/object created during export invalidates a DB-only backup.
+node source/platform/tools/storage-binary-coverage-preflight.mjs
+
 node source/platform/database/recovery-archive.js encrypt
 node source/platform/database/recovery-archive.js verify
 
@@ -105,6 +109,14 @@ node source/platform/database/recovery-archive.js verify
 # as early as possible. Run only on an ephemeral runner, never a shared workstation.
 rm -f -- "$DATABASE_DUMP_PATH" "$DATABASE_DUMP_PATH.sha256"
 
+# FC-345: re-check just before sending, since encryption can also take time.
+node source/platform/tools/storage-binary-coverage-preflight.mjs
+
 # Upload only .dump.fcenc and its checksum, with Dropbox-returned content hash verified.
 node source/platform/tools/dropbox-encrypted-upload.mjs
+
+# FC-345: a new Storage object created during Dropbox upload must not result
+# in a successful "complete backup" receipt. A failed postflight may leave a
+# verified encrypted pair in Dropbox: it is NOT a complete disaster backup.
+node source/platform/tools/storage-binary-coverage-preflight.mjs
 echo "PRIVATE_BACKUP_FINISHED_ENCRYPTED_OFFSITE"
