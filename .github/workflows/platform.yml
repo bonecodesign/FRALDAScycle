@@ -99,6 +99,12 @@ jobs:
         run: npm ci
       - name: Validate listing migrations and concurrent creation in PostgreSQL
         run: npm run test:listing-postgres
+      # FC-348: two disposable PostgreSQL 17 containers on an internal Docker
+      # network. No database secrets, hosted Supabase, Dropbox or host ports.
+      - name: Prove encrypted PostgreSQL backup restores synthetic rows in an isolated database
+        env:
+          FC_ISOLATED_RECOVERY_TEST: "true"
+        run: node --test tests/recovery-postgres-isolated.test.mjs
 
   wallet-postgres:
     if: github.event_name == 'pull_request'
