@@ -77,6 +77,7 @@ async function rehearse({ failAtGate = 0, blankSecret = false } = {}) {
     GITHUB_REPOSITORY: "bonecodesign/fraldacycle-backups-private",
     PRIVATE_BACKUP_RUNNER_APPROVED: "MANUAL_HOMOLOGATION",
     OFFSITE_BACKUP_UPLOAD_APPROVED: "PRIVATE_RUNNER_MANUAL",
+    FC_DROPBOX_ACCESS_POLICY: "APP_FOLDER_ONLY",
     DATABASE_URL: "postgresql://synthetic:dummy@db.invalid:5432/postgres",
     FC_DB_CA_PEM: "-----BEGIN CERTIFICATE-----\nsynthetic\n-----END CERTIFICATE-----",
     RECOVERY_ARCHIVE_KEY_B64: "TEST_ONLY_NOT_A_REAL_KEY",

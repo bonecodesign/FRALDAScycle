@@ -27,6 +27,8 @@ jobs:
       NODE_ENV: homologation
       PRIVATE_BACKUP_RUNNER_APPROVED: MANUAL_HOMOLOGATION
       OFFSITE_BACKUP_UPLOAD_APPROVED: PRIVATE_RUNNER_MANUAL
+      # Human MUST confirm Dropbox app's permission is App Folder, not Full Dropbox.
+      FC_DROPBOX_ACCESS_POLICY: APP_FOLDER_ONLY
       # Set AFTER review/merge to the exact 40-character SHA of FRALDAScycle/main.
       # A deliberately invalid placeholder makes this workflow inoperable as shipped.
       FRALDACYCLE_SOURCE_SHA: REPLACE_WITH_REVIEWED_40_CHARACTER_SHA

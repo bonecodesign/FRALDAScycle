@@ -8,7 +8,8 @@ if [[ "${GITHUB_ACTIONS:-}" != "true" ||
       "${GITHUB_REPOSITORY:-}" != "bonecodesign/fraldacycle-backups-private" ||
       "${NODE_ENV:-}" == "production" ||
       "${PRIVATE_BACKUP_RUNNER_APPROVED:-}" != "MANUAL_HOMOLOGATION" ||
-      "${OFFSITE_BACKUP_UPLOAD_APPROVED:-}" != "PRIVATE_RUNNER_MANUAL" ]]; then
+      "${OFFSITE_BACKUP_UPLOAD_APPROVED:-}" != "PRIVATE_RUNNER_MANUAL" ||
+      "${FC_DROPBOX_ACCESS_POLICY:-}" != "APP_FOLDER_ONLY" ]]; then
   echo "PRIVATE_BACKUP_RUNNER_NOT_AUTHORIZED" >&2
   exit 1
 fi

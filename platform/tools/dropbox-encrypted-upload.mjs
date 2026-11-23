@@ -6,7 +6,13 @@ import { isMainModule } from "../packages/contracts/main-module.js";
 import { createBackupPlan } from "../database/recovery.js";
 import { verifyBackupArchive } from "../database/recovery-archive.js";
 
-export const DROPBOX_BACKUP_FOLDER = "/FRALDA/Backups-Supabase-BR";
+// An App Folder-scoped Dropbox OAuth token sees its own /Apps/<app-name>
+// folder as the virtual API root. Keep backups directly in that app root:
+// there is no parent folder to create and no account-wide access required.
+// WARNING: this code cannot independently attest that a supplied OAuth token
+// has App Folder permissions. The account owner must verify it in Dropbox.
+export const DROPBOX_BACKUP_FOLDER = "";
+export const DROPBOX_APP_PERMISSION_POLICY = "APP_FOLDER_ONLY";
 export const FRALDACYCLE_PROJECT_REF = "urbrtnenrsjvgqjhfhdj";
 export const PRIVATE_BACKUP_REPOSITORY = "bonecodesign/fraldacycle-backups-private";
 export const CONTENT_BLOCK_BYTES = 4 * 1024 * 1024;
@@ -22,7 +28,8 @@ export function validateBackupSource(env) {
       env.GITHUB_REPOSITORY !== PRIVATE_BACKUP_REPOSITORY ||
       env.NODE_ENV === "production" ||
       env.PRIVATE_BACKUP_RUNNER_APPROVED !== "MANUAL_HOMOLOGATION" ||
-      env.OFFSITE_BACKUP_UPLOAD_APPROVED !== "PRIVATE_RUNNER_MANUAL") {
+      env.OFFSITE_BACKUP_UPLOAD_APPROVED !== "PRIVATE_RUNNER_MANUAL" ||
+      env.FC_DROPBOX_ACCESS_POLICY !== DROPBOX_APP_PERMISSION_POLICY) {
     throw failure("NOT_AUTHORIZED");
   }
   // Reuse the established libpq verification guard, not a second parser.
@@ -211,7 +218,10 @@ async function downloadAndVerify({ remotePath, expected, token, fetchImpl }) {
 export async function uploadEncryptedFile({ path, remotePath, token, fetchImpl = fetch }) {
   const metadata = await privateRegularFile(path);
   if (!required(token)) throw failure("DROPBOX_AUTH_MISSING");
-  // Only encrypted dumps and their SHA-256 sidecars at the approved top-level folder.
+  // Only encrypted dumps and their SHA-256 sidecars in the app's virtual root.
+  // A wrongly configured Full Dropbox OAuth token would instead see account
+  // root. Therefore the new App Folder permission must be confirmed in the
+  // Dropbox developer UI before any live secret is provisioned.
   if (typeof remotePath !== "string" ||
       !/^\/[A-Za-z0-9/._-]+$/.test(remotePath) ||
       remotePath !== `${DROPBOX_BACKUP_FOLDER}/${basename(remotePath)}` ||

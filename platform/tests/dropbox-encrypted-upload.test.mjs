@@ -18,6 +18,7 @@ function configured(overrides = {}) {
     NODE_ENV: "test",
     PRIVATE_BACKUP_RUNNER_APPROVED: "MANUAL_HOMOLOGATION",
     OFFSITE_BACKUP_UPLOAD_APPROVED: "PRIVATE_RUNNER_MANUAL",
+    FC_DROPBOX_ACCESS_POLICY: "APP_FOLDER_ONLY",
     PGSSLROOTCERT: "/private/ca.crt",
     RECOVERY_ARCHIVE_KEY_B64: randomBytes(32).toString("base64"),
     DATABASE_URL: "postgresql://postgres:synthetic@db.urbrtnenrsjvgqjhfhdj.supabase.co:5432/postgres?sslmode=verify-full",
@@ -119,6 +120,17 @@ async function archiveFixture(testFn, bytes = 4_300_000) {
   } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
+test("FC-347 requires explicitly declared App Folder restriction and uses virtual API root", () => {
+  assert.equal(DROPBOX_BACKUP_FOLDER, "", "App Folder virtual API root must be empty prefix");
+  assert.equal(validateBackupSource(configured()).project, "urbrtnenrsjvgqjhfhdj");
+  for (const mode of [undefined, "", "FULL_DROPBOX", "LEGACY_ROOT"]) {
+    assert.throws(() => validateBackupSource(configured({ FC_DROPBOX_ACCESS_POLICY: mode })),
+      /PRIVATE_BACKUP_NOT_AUTHORIZED/);
+  }
+  // Policy is a configuration assertion, not proof of what scopes the
+  // developer granted. Human review of the Dropbox App Folder is required.
+});
+
 test("only explicit private GitHub-runner approval and exact Supabase BR target pass", () => {
   assert.equal(validateBackupSource(configured()).connectionMode, "direct");
   assert.equal(validateBackupSource(configured({
@@ -188,6 +200,8 @@ test("complete encrypted-only Dropbox upload validates two remote hashes and red
     assert.equal(api.completed.length, 2);
     assert.equal(api.completed[1].path_display, result.archivePath);
     assert.ok(result.archivePath.startsWith(`${DROPBOX_BACKUP_FOLDER}/fc-br-`));
+    assert.match(result.archivePath, /^\/fc-br-[a-zA-Z0-9_-]+\.dump\.fcenc$/);
+    assert.equal(result.archivePath.startsWith("/FRALDA/"), false);
     assert.ok(api.completed[0].path_display.endsWith(".dump.fcenc.sha256"));
     assert.equal(api.completed[1].remoteBytes.subarray(0, 8).toString(), "FCBKUP01");
     assert.notDeepEqual(api.completed[1].remoteBytes.subarray(20, 120), contents.subarray(0, 100));

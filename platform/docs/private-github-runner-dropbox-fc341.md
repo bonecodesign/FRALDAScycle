@@ -1,5 +1,7 @@
 # FC-341 — Executor de backup privado no GitHub Actions (implantação assistida)
 
+> **Atualização de segurança FC-347:** as referências abaixo à pasta de raiz `/FRALDA/Backups-Supabase-BR` e à necessidade de OAuth **Full Dropbox** são históricas e **não se aplicam ao fluxo novo**. O novo executor utiliza somente o diretório virtual de uma app **App Folder** do Dropbox; veja [FC-347 — Dropbox App Folder](dropbox-app-folder-fc347.md). Não usar tokens Full Dropbox com a configuração nova. Nenhum aplicativo foi criado ou autorizado por este pacote.
+
 **Estado desta etapa:** modelo de workflow, script de exportação e integração Dropbox, testes com arquivos fictícios. **Não** houve criação de repositório privado, cadastro de credenciais, exportação PostgreSQL hospedada, upload real, agendamento ou teste de restauração. Matriz 48/70, piloto BH NO-GO.
 
 ## Por que um repositório separado?

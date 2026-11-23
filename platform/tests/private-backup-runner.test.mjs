@@ -19,6 +19,7 @@ test("private backup template is dormant, manual-only, secret-scoped and pinned"
   assert.match(yaml, /secrets\.FC_BR_DATABASE_URL/);
   assert.match(yaml, /secrets\.FC_BACKUP_ENCRYPTION_KEY_B64/);
   assert.match(yaml, /secrets\.FC_DROPBOX_REFRESH_TOKEN/);
+  assert.match(yaml, /FC_DROPBOX_ACCESS_POLICY: APP_FOLDER_ONLY/);
   assert.doesNotMatch(yaml.split("\n").filter(line => !line.trimStart().startsWith("#")).join("\n"), /\b(upload-artifact|schedule|pg_restore|npm publish)\b/);
 });
 
@@ -29,6 +30,7 @@ test("private backup Bash runner is syntactically valid and does not store origi
   const contents = await readFile(script, "utf8");
   assert.match(contents, /trap 'rm -rf -- "\$private_workdir"' EXIT/);
   assert.match(contents, /GITHUB_REPOSITORY:-}" != "bonecodesign\/fraldacycle-backups-private"/);
+  assert.match(contents, /FC_DROPBOX_ACCESS_POLICY:-}" != "APP_FOLDER_ONLY"/);
   assert.match(contents, /NODE_ENV:-/);
   assert.match(contents, /pg_dump.*Docker|pg_dump.*postgres|--entrypoint pg_dump postgres:17-alpine/s);
   assert.match(contents, /source\/platform\/database\/recovery\.js backup/);
