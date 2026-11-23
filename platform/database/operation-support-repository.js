@@ -249,19 +249,26 @@ export function createOperationSupportRepository(database) {
         return {id:changed.id,priority:changed.priority,firstResponseDueAt:changed.first_response_due_at,reused:false};
       });
     },
-    // Read-only attention queue, explicitly *not* an alert dispatch or auto-pause.
+    // Read-only attention queue. Page and aggregate counters must come from
+    // the SAME PostgreSQL statement/snapshot: two separate reads can disagree
+    // when a ticket is classified or answered in between.
+    // Never sends alerts, claims staffed coverage, or pauses operations.
     async supportAttention({limit=50}) {
       const result=await database.query(`SELECT id,protocol,category,subject,status,priority,first_response_due_at,created_at,
-        assignee_id,first_response_at FROM support_tickets
+        assignee_id,first_response_at,
+        count(*) OVER()::int AS overdue_total,
+        count(*) FILTER (WHERE priority='critical') OVER()::int AS critical_overdue
+        FROM support_tickets
         WHERE priority_classified_at IS NOT NULL AND first_response_at IS NULL
           AND status<>'resolved' AND first_response_due_at<=now()
         ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
           first_response_due_at ASC,id ASC LIMIT $1`,[limit]);
-      const counts=await database.query(`SELECT count(*)::int AS overdue_total,
-        count(*) FILTER(WHERE priority='critical')::int AS critical_overdue FROM support_tickets
-        WHERE priority_classified_at IS NOT NULL AND first_response_at IS NULL
-          AND status<>'resolved' AND first_response_due_at<=now()`);
-      return {items:result.rows,...counts.rows[0],externalDispatchAuthorized:false,automaticPauseAuthorized:false};
+      const items=result.rows.map(({overdue_total,critical_overdue,...ticket})=>ticket);
+      return {
+        items,overdue_total:result.rows[0]?.overdue_total??0,
+        critical_overdue:result.rows[0]?.critical_overdue??0,
+        externalDispatchAuthorized:false,automaticPauseAuthorized:false,
+      };
     },
     // Read-only duty candidate lookup. A nominated sector is NOT a staffed on-call shift.
     async supportEscalationRoster() {
