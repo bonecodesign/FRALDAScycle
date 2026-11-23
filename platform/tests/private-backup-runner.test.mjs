@@ -49,3 +49,37 @@ test("private backup Bash runner is syntactically valid and does not store origi
   assert.match(contents, /rm -f -- "\$DATABASE_DUMP_PATH"/);
   assert.doesNotMatch(contents, /\bdocker push\b|\bnpm publish\b|--clean|--dbname|CONFIRM_DATABASE_RESTORE|\bset -x\b/);
 });
+
+
+test("FC-345 guards Storage before and after the dump, before upload and after readback", async () => {
+  const contents = await readFile(new URL("run-private-backup.sh", folder), "utf8");
+  const lines = contents.split("\n").map(line => line.trim());
+  const probes = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] === "node source/platform/tools/storage-binary-coverage-preflight.mjs") probes.push(i);
+  }
+  assert.equal(probes.length, 4, "exactly four explicit Storage integrity gates required");
+
+  const at = text => {
+    const index = lines.findIndex(line => line === text);
+    assert.ok(index >= 0, `missing runner action: ${text}`);
+    return index;
+  };
+  const dump = at("node source/platform/database/recovery.js backup");
+  const toc = at('node source/platform/tools/backup-toc-coverage.mjs "$private_workdir/archive.toc"');
+  const encrypt = at("node source/platform/database/recovery-archive.js encrypt");
+  const verify = at("node source/platform/database/recovery-archive.js verify");
+  const transfer = at("node source/platform/tools/dropbox-encrypted-upload.mjs");
+  const success = at('echo "PRIVATE_BACKUP_FINISHED_ENCRYPTED_OFFSITE"');
+
+  assert.ok(probes[0] < dump, "first gate before pg_dump");
+  assert.ok(dump < toc && toc < probes[1] && probes[1] < encrypt,
+    "second gate after the dump and TOC inspection, before encryption");
+  assert.ok(encrypt < verify && verify < probes[2] && probes[2] < transfer,
+    "third gate immediately before the Dropbox transfer");
+  assert.ok(transfer < probes[3] && probes[3] < success,
+    "post-transfer gate must pass before reporting backup success");
+  assert.match(contents, /^set -Eeuo pipefail$/m);
+  assert.match(contents, /trap 'rm -rf -- "\$private_workdir"' EXIT/);
+  assert.doesNotMatch(contents, /\bpg_restore --clean\b|\bset -x\b/);
+});
