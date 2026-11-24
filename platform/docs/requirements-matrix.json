@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-17",
+  "updatedAt": "2026-11-23",
   "baseline": "28b5870dc7873e5874424c9ba9ee4489e578faf6",
   "denominator": 70,
   "requirements": [
@@ -47,9 +47,11 @@
         "tests/wallet-payment-allocation.test.mjs",
         "tests/wallet-marketplace-payment-postgres.test.mjs",
         "docs/courier-wallet-preactivation.md",
-        "docs/requirement-02-logistics-commission.md"
+        "docs/requirement-02-logistics-commission.md",
+        "tests/finance-preactivation-reconciliation-matrix.test.mjs",
+        "docs/finance/preactivation-reconciliation-evidence-2026-11-09.md"
       ],
-      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha. O reembolso preserva a proporção das origens: carteira integral conclui localmente sem fornecedor; composição mista solicita ao provedor somente sua parcela e credita a carteira apenas após confirmação exata por webhook ou reconciliação; integração financeira real continua ausente.",
+      "evidence": "CI do commit 9491eae: testes automatizados; escopo e limites em beta-inspection-2026-10-05.md. Etapa 07/11/2026: cenários adicionais de conservação e arredondamento, vínculo de frete ao repasse, conciliação local e supervisão financeira em testes; sem evidência de execução externa. Fundação de carteira adiciona livro em centavos, saldos disponível/reservado, crédito idempotente somente com evidência reconciliada, saque mínimo de R$ 20 em janela móvel de sete dias e decisão independente 3 → 4 → 5. Fila neutra do provedor separa autorização, tentativas temporárias, aceite, confirmação e retorno terminal. Compras por entregador reservam saldo atomicamente, aceitam cobertura integral ou mista, cobram externamente apenas o restante, mantêm o chat bloqueado até liquidação e restauram a reserva em falha. O reembolso preserva a proporção das origens: carteira integral conclui localmente sem fornecedor; composição mista solicita ao provedor somente sua parcela e credita a carteira apenas após confirmação exata por webhook ou reconciliação; integração financeira real continua ausente. FC-351 (23/11/2026), PR #350, CI 5/5: 11 cenários sintéticos adicionais de evidência financeira ausente ou inválida demonstram bloqueio de conciliação local e repasse. Não há split, tarifa nem repasse externo homologado.",
       "reason": "Comissão de 5% calculada, persistida e vinculada ao repasse local, com divergências e supervisão; cobrança, tarifa financeira, split homologado, reconciliação externa e repasse real permanecem pendentes."
     },
     {
@@ -267,9 +269,10 @@
         "apps/api/freight-settlement-service.js",
         "apps/api/admin-handler.js",
         "tests/exchange-difference-accounting.test.mjs",
-        "docs/requirement-10-exchange-difference-accounting.md"
+        "docs/requirement-10-exchange-difference-accounting.md",
+        "tests/finance-preactivation-reconciliation-matrix.test.mjs"
       ],
-      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida. Complemento 07/11/2026: conferência contábil administrativa somente leitura com valores declarados, duas taxas independentes de 2,5%, direção e valor da diferença; testes unitários e de HTTP/PostgreSQL sujeitos à aprovação do CI. Nota de escopo 07/11/2026: as evidências de retenção são de registros de conciliação financeira da troca; prazos jurídicos gerais de dados pessoais não são considerados aprovados.",
+      "evidence": "Prova local em 02/11/2026: o painel técnico de nível mínimo 2 mantém no máximo 30 execuções e mostra somente horário, resultado e quantidade anonimizada. A execução manual exige que uma pessoa de nível exato 3 solicite e uma pessoa distinta de nível exato 4 revise, ajuste o limite e autorize; a autorização não executa diretamente. Retenção real permanece bloqueada até aprovação jurídica/privacidade reconhecida. Complemento 07/11/2026: conferência contábil administrativa somente leitura com valores declarados, duas taxas independentes de 2,5%, direção e valor da diferença; testes unitários e de HTTP/PostgreSQL sujeitos à aprovação do CI. Nota de escopo 07/11/2026: as evidências de retenção são de registros de conciliação financeira da troca; prazos jurídicos gerais de dados pessoais não são considerados aprovados. FC-351 (23/11/2026), PR #350, CI 5/5: prova adicional de negação segura quando o plano, a cotação, o pagamento ou a cardinalidade de capturas estão inconsistentes. Não comprova liquidação ou estorno de troca com provedor real.",
       "reason": "Cálculo, obrigações separadas, revisão contábil, disputa, outbox, conciliação e retenção locais preparados. Cobrança, garantia/retenção e repasse externos continuam dependentes de contratação/homologação do processador."
     },
     {
@@ -621,9 +624,11 @@
         "apps/app/family-profile.js",
         "tests/family-profile-foundation.test.mjs",
         "tests/child-profile-http-postgres.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+        "docs/family-profile-foundation-beta.md",
+        "tests/child-personalization-age-signals.test.mjs",
+        "docs/fc354-child-age-signal-consent-guard.md"
       ],
-      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: minimiza perfis, registra consentimento separado, governa disputas e limita acesso humano emergencial a dupla aprovação independente, leitura por 15 minutos, marca-d'água e auditoria sem copiar nascimento.",
+      "evidence": "Fundação inativa testada por HTTP/PostgreSQL: minimiza perfis, registra consentimento separado, governa disputas e limita acesso humano emergencial a dupla aprovação independente, leitura por 15 minutos, marca-d'água e auditoria sem copiar nascimento. FC-354 (23/11/2026), PR #353, CI 5/5 após repetição do job de navegador: derivação de faixa só para consentimento infantil vigente, opt-in explícito, perfil não suspenso e idade válida; dados fora da idade ou inválidos deixam de produzir sinal. Recurso permanece desligado por padrão.",
       "reason": "Minimização técnica preparada e feature desligada; revisão jurídica/de privacidade continua obrigatória antes de qualquer coleta ou uso."
     },
     {
@@ -663,9 +668,11 @@
         "apps/api/child-profile-handler.js",
         "tests/account-consent-policy.test.mjs",
         "tests/family-profile-foundation.test.mjs",
-        "docs/family-profile-foundation-beta.md"
+        "docs/family-profile-foundation-beta.md",
+        "tests/child-personalization-age-signals.test.mjs",
+        "docs/fc355-child-marketing-metadata-aliases.md"
       ],
-      "evidence": "Sinais internos contêm somente faixas etárias únicas; contrato específico exige consentimento FC-FAMILY-MARKETING-1, marca o compartilhamento externo como proibido e bloqueia recursivamente nascimento, emoji, identificadores de perfil e a própria faixa etária no payload de entrega a fornecedor. Testes negativos sintéticos cobrem campos diretos e aninhados; não existe rota ou integração real de parceiro.",
+      "evidence": "Sinais internos contêm somente faixas etárias únicas; contrato específico exige consentimento FC-FAMILY-MARKETING-1, marca o compartilhamento externo como proibido e bloqueia recursivamente nascimento, emoji, identificadores de perfil e a própria faixa etária no payload de entrega a fornecedor. Testes negativos sintéticos cobrem campos diretos e aninhados; não existe rota ou integração real de parceiro. FC-354/355 (23/11/2026), PRs #353/#354 com CI 5/5: consentimento/idade são revalidados na seleção interna e aliases de nascimento, identificador, emoji e faixa em PT/EN são barrados nos metadados de saída, inclusive aninhados. Não houve parceiro ou campanha real; PRIV-06 permanece pendente.",
       "reason": "Seleção interna e fronteira externa fail-closed foram preparadas, mas coleta, validade jurídica do consentimento condicionado, contrato, fornecedor e revisão de privacidade permanecem bloqueados."
     },
     {
@@ -1078,8 +1085,8 @@
         "tests/postgres-beta.test.mjs",
         "docs/beta-validation-2026-10-05.md"
       ],
-  "evidence": "Pagamento, entrega e aprovação geram avisos internos idempotentes e fila externa para e-mail verificado com payload restrito a canal e evento; disputa e segurança permanecem cobertas por seus fluxos específicos. Testes unitários e PostgreSQL cobrem geração, elegibilidade, minimização e transporte sintético.",
-  "reason": "Geração automática, fila externa minimizada e transporte protegido estão preparados localmente. Fornecedor, SDK, credenciais, templates e homologação da entrega externa continuam pendentes."
+      "evidence": "Pagamento, entrega e aprovação geram avisos internos idempotentes e fila externa para e-mail verificado com payload restrito a canal e evento; disputa e segurança permanecem cobertas por seus fluxos específicos. Testes unitários e PostgreSQL cobrem geração, elegibilidade, minimização e transporte sintético.",
+      "reason": "Geração automática, fila externa minimizada e transporte protegido estão preparados localmente. Fornecedor, SDK, credenciais, templates e homologação da entrega externa continuam pendentes."
     },
     {
       "id": 50,
@@ -1113,9 +1120,11 @@
         "tests/local-cancellation-support.test.mjs",
         "config/support-channel-readiness.v1.json",
         "tools/support-channel-readiness.mjs",
-        "tests/support-channel-readiness.test.mjs"
+        "tests/support-channel-readiness.test.mjs",
+        "tests/support-attention-single-snapshot.test.mjs",
+        "docs/fc353-support-attention-single-snapshot.md"
       ],
-      "evidence": "Conversa assíncrona por protocolo e operação interna permanecem locais. O manifesto FC de canais registra e valida, sem credenciais, que domínio, remetente, provedor de e-mail, WhatsApp de emergência, escala humana, privacidade, acessibilidade e exercício real continuam ausentes; qualquer alegação antecipada falha fechada.",
+      "evidence": "Conversa assíncrona por protocolo e operação interna permanecem locais. O manifesto FC de canais registra e valida, sem credenciais, que domínio, remetente, provedor de e-mail, WhatsApp de emergência, escala humana, privacidade, acessibilidade e exercício real continuam ausentes; qualquer alegação antecipada falha fechada. FC-353 (23/11/2026), PR #352, CI 5/5: fila e contadores de tickets vencidos em SELECT único, evitando divergências entre leitura paginada e total. É exclusivamente prévia interna, sem canal de suporte externo, plantão, disparo ou SLA real.",
       "reason": "E-mail oficial, WhatsApp de emergência, equipe real e homologação ainda ausentes; despacho externo permanece proibido."
     },
     {
@@ -1255,9 +1264,12 @@
         "docs/recovery-activation-runbook.md",
         "tools/beta-recovery-check.mjs",
         "tests/postgres-beta.test.mjs",
-        "docs/beta-recovery-validation.md"
+        "docs/beta-recovery-validation.md",
+        "tests/recovery-postgres-isolated.test.mjs",
+        "docs/real-isolated-recovery-fc348.md",
+        "docs/recovery-synthetic-rls-fc349.md"
       ],
-      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita. Em 10/11/2026, o portão de recuperação passou a fixar para o piloto backup a cada 60 minutos, RPO de 60 minutos, RTO de 240 minutos, retenção imutável de 30 dias e ensaio mensal; ele recusa metas inseguras, campos desconhecidos e alegações prematuras de prontidão. Testes usam somente transporte e dados sintéticos. Não há prova de retenção, criptografia ou restauração no provedor real.",
+      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita. Em 10/11/2026, o portão de recuperação passou a fixar para o piloto backup a cada 60 minutos, RPO de 60 minutos, RTO de 240 minutos, retenção imutável de 30 dias e ensaio mensal; ele recusa metas inseguras, campos desconhecidos e alegações prematuras de prontidão. Testes usam somente transporte e dados sintéticos. Não há prova de retenção, criptografia ou restauração no provedor real. FC-347/348/349 (22-23/11/2026), PRs #347-349, CI 5/5: código limita intenção de armazenamento ao App Folder do Dropbox; dois PostgreSQL 17 fictícios e isolados passaram por dump criptografado, restauração SQL e conferência de política RLS. Não houve backup do Supabase-BR, upload externo, WORM, backup periódico nem prova RPO/RTO.",
       "reason": "Fundação local, objetivos mensuráveis, runbook e adaptador de armazenamento protegido estão preparados. Bucket, KMS, cofre, acesso operacional, agenda e recuperação em infraestrutura real ainda não foram homologados."
     },
     {
@@ -1290,9 +1302,10 @@
         "tests/secret-operations-governance.test.mjs",
         "docs/secret-operations-activation-runbook.md",
         "docs/production-runbook.md",
-        "tests/observability.test.mjs"
+        "tests/observability.test.mjs",
+        "docs/recovery-synthetic-rls-fc349.md"
       ],
-      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática. Em 10/11/2026, um inventário executável passou a exigir cobertura de toda chave aceita pelo runtime, rotação padrão em até 90 dias, banco em até 180 dias, revogação emergencial em até 60 minutos e aprovação 3→4→5. Novas chaves sem política, prazos enfraquecidos e alegações prematuras de ativação falham nos testes. Identidades e cofre reais continuam pendentes.",
+      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática. Em 10/11/2026, um inventário executável passou a exigir cobertura de toda chave aceita pelo runtime, rotação padrão em até 90 dias, banco em até 180 dias, revogação emergencial em até 60 minutos e aprovação 3→4→5. Novas chaves sem política, prazos enfraquecidos e alegações prematuras de ativação falham nos testes. Identidades e cofre reais continuam pendentes. FC-347/349 (22-23/11/2026) reforçam intenção de menor privilégio no App Folder do backup e ensaio de restauração de RLS com identidade restrita, sem expor segredos. Não comprovam permissões OAuth reais, cofre, rotação, TLS da API hospedada, CA oficial ou autenticação do executor.",
       "reason": "Allowlist, separação por serviço, inventário completo, prazos e contrato de rotação/revogação estão preparados; identidades, cofre, logs e exercício real ainda não foram homologados."
     },
     {
@@ -1339,9 +1352,11 @@
         "apps/api/institution-access-service.js",
         "apps/app/institution-access.html",
         "tools/beta-institution-access-check.mjs",
-        "docs/institution-access-beta.md"
+        "docs/institution-access-beta.md",
+        "tests/institution-receipt-readiness-fail-closed.test.mjs",
+        "docs/fc352-institution-receipt-safe-denial.md"
       ],
-      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras. Em 14/11/2026, a ativação do piloto passou a exigir referências auditáveis separadas para documentos, representante e capacidade; PostgreSQL conserva essas referências em registro mínimo e a auditoria registra apenas que elas existem, sem copiar documento ou referência privada.",
+      "evidence": "PR #81, commit b58cadd: CI 278 testes, 83 verificações, sintaxe 109; PostgreSQL e Chrome 154 com aceite/conferência via teclado e quatro larguras. Em 14/11/2026, a ativação do piloto passou a exigir referências auditáveis separadas para documentos, representante e capacidade; PostgreSQL conserva essas referências em registro mínimo e a auditoria registra apenas que elas existem, sem copiar documento ou referência privada. FC-352 (23/11/2026), PR #351, CI 5/5: comprovante institucional ausente ou malformado, validações temporais inconsistentes e casos operacionais pendentes falham fechado; retirada fica sob responsabilidade da instituição, sem repasse. Autoridade institucional e coleta física reais ainda não homologadas.",
       "reason": "Ativação individual exige atestação e referências explícitas de documentos, representante e capacidade; estado e autoridade continuam revalidados sob trava. Conferência humana e capacidade real pendentes."
     },
     {
