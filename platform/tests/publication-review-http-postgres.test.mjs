@@ -126,8 +126,21 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
         const response=await get(reviewPath,token);
         assert.equal(response.status,token===null?401:403,token??'without login');
       }
+      // FC-359: preview itself (not only final approval) must verify every
+      // synthetic photo before disclosing any signed read URL to a moderator.
+      mediaReady=false;
+      const readsBeforeBlocked=calls.filter(item=>item.action==='signedProofRead').length;
+      const blockedPreview=await get(reviewPath,'moderator');
+      assert.equal(blockedPreview.status,409);
+      assert.equal((await blockedPreview.json()).error.code,'media_not_ready');
+      assert.equal(calls.filter(item=>item.action==='signedProofRead').length,readsBeforeBlocked,
+        'unprocessed media must not receive review URLs');
+      mediaReady=true;
+      const callIndex=calls.length;
       const opened=await get(reviewPath,'moderator');
       const openedBody=await opened.json();
+      assert.deepEqual(calls.slice(callIndex).map(item=>item.action),['verify','signedProofRead'],
+        'review preview must re-verify media BEFORE signing');
       assert.equal(opened.status,200,JSON.stringify(openedBody));
       assert.equal(opened.headers.get('cache-control'),'no-store');
       assert.equal(openedBody.listing.status,'review');
@@ -196,7 +209,9 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
       const duplicatePurchase=await post(publicPath+'/transactions','buyer',{itemUnits:1});
       assert.equal(duplicatePurchase.status,409);
       assert.equal((await database.query('SELECT count(*)::int AS n FROM transactions WHERE listing_id=$1',[id])).rows[0].n,1);
-      assert.equal(calls.filter(item=>item.action==='verify').length,3);
+      // FC-359 adds two required preview checks: one denied GET before any
+      // signed URL, then one verified GET before the existing approval checks.
+      assert.equal(calls.filter(item=>item.action==='verify').length,5);
       console.log('FC-309 passed: authenticated HTTP create -> independent review -> catalog -> reserve -> unpaid chat blocked; media provider simulated.');
     }finally{
       if(api?.listening)await new Promise(resolve=>api.close(resolve));

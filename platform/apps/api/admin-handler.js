@@ -26,6 +26,39 @@ const routeSectors=Object.freeze([
 ]);
 export function requireAdminRouteSector(user,pathname){const match=routeSectors.find(([prefix])=>pathname.startsWith(prefix));if(match)requireAdminSector(user,match[1]);return user;}
 
+// A moderator must never receive a signed preview of raw/unprocessed media.
+// Verify the COMPLETE current batch before issuing any temporary read link.
+// This is technical proof only; a human must still inspect every image.
+export async function verifiedListingReviewMedia(provider, detail, reviewerId) {
+  if (typeof provider?.verifyListingMedia !== 'function' ||
+      typeof provider?.signedProofRead !== 'function') {
+    throw new AuthError('media_provider_unavailable', 503, 'Mídia de revisão indisponível.');
+  }
+  if (detail?.listing?.status !== 'review') {
+    throw new AuthError('listing_review_conflict', 409, 'O anúncio não está mais aguardando revisão.');
+  }
+  const ownerId = detail.listing.seller_id;
+  const rows = detail.media;
+  if (typeof ownerId !== 'string' || !ownerId ||
+      !Array.isArray(rows) || rows.length < 1 || rows.length > 8 ||
+      rows.some(row => !row || typeof row.storage_key !== 'string' ||
+        !row.storage_key.startsWith(`listings/${ownerId}/`) ||
+        row.storage_key.includes('..')) ||
+      new Set(rows.map(row => row.storage_key)).size !== rows.length) {
+    throw new AuthError('listing_media_required', 409, 'As fotos do anúncio precisam ser conferidas novamente.');
+  }
+  const keys = rows.map(row => row.storage_key);
+  const proof = await provider.verifyListingMedia(ownerId, keys);
+  if (proof?.verified !== true || proof.count !== keys.length) {
+    throw new AuthError('media_not_ready', 409, 'Nem todas as fotos estão confirmadas para revisão.');
+  }
+  return Promise.all(rows.map(async row => ({
+    ...row,
+    ...(await provider.signedProofRead(reviewerId, row.storage_key)),
+    storage_key: undefined,
+  })));
+}
+
 export async function handleAdmin(request, response, {
   url, headers, requestId, authService, adminService, realtimeService, operationalControlService, operationalIncidentService, incidentRoleService, supportDutyService, staffAccessService, paymentService, freightSettlementService, marketplaceProviders, exchangeRetentionStatusService, exchangeRetentionRequestService, childProfileResponsibilityService, childDataEmergencyAccessService, authorityRequestService, userContentRetentionService, courierWalletService,
 }) {
@@ -268,11 +301,8 @@ export async function handleAdmin(request, response, {
   const listingReview = url.pathname.match(/^\/v1\/admin\/listings\/([0-9a-f-]{36})\/review$/i);
   if (listingReview && request.method === "GET") {
     requireSectorScope(user, "admin:moderate");
-    if (!marketplaceProviders) throw new AuthError("media_provider_unavailable", 503, "Mídia de revisão indisponível.");
     const detail = await adminService.listingReviewDetail(user, listingReview[1]);
-    const media = await Promise.all(detail.media.map(async item => ({
-      ...item, ...(await marketplaceProviders.signedProofRead(user.id, item.storage_key)), storage_key: undefined,
-    })));
+    const media = await verifiedListingReviewMedia(marketplaceProviders, detail, user.id);
     const reviewContext = adminService.issueReviewContext(user, detail, media);
     sendJson(response, 200, { listing: detail.listing, media, reviewContext, requestId }, { ...headers, "cache-control": "no-store" });
     return true;
