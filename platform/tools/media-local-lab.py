@@ -66,12 +66,17 @@ def incoming_jpeg(image):
 
 
 def decode_and_reencode(data):
-    with Image.open(io.BytesIO(data)) as img:
-        img.load()
+    # Enforce input limits before allocating decoded pixels or walking frames.
+    if not isinstance(data, bytes) or not 1 <= len(data) <= 10_000_000:
+        raise ValueError('invalid input byte count')
+    with Image.open(io.BytesIO(data), formats=('JPEG', 'PNG', 'WEBP')) as img:
         if img.format not in ('JPEG', 'PNG', 'WEBP'):
             raise ValueError('invalid image type')
         if img.width < 1 or img.height < 1 or img.width > 1600 or img.height > 1600:
             raise ValueError('invalid image dimensions')
+        if getattr(img, 'is_animated', False) or getattr(img, 'n_frames', 1) != 1:
+            raise ValueError('multiple frames not supported')
+        img.load()
         input_had_exif = bool(img.getexif())
         input_had_gps = bool(img.getexif().get_ifd(0x8825))
         converted = img.convert('RGB')

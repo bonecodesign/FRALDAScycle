@@ -13,6 +13,7 @@ on:
       - "platform/tools/media-local-chain.mjs"
       - "platform/tests/media-local-chain.test.mjs"
       - "platform/tools/media-local-lab.py"
+      - "platform/tests/media_decode_preflight_test.py"
       - "platform/tools/media-local-batches.mjs"
       - "platform/tests/media-local-batches.test.mjs"
   workflow_dispatch:
@@ -71,6 +72,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all:             Pillow==11.3.0 numpy==2.2.6 opencv-python-headless==4.12.0.88             pytesseract==0.3.13 qrcode==8.2
+      - name: Verify actual image decoder preflight and static-only policy
+        working-directory: platform
+        shell: bash
+        run: python tests/media_decode_preflight_test.py
       - name: Execute complete synthetic source AV to WebP output AV OCR QR gate
         working-directory: platform
         shell: bash
