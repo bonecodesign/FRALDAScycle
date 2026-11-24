@@ -85,6 +85,16 @@
       "alternative": "cloudinary",
       "reason": "Cloudflare R2 permanece como candidato de armazenamento S3 compatível. Armazenamento e upload assinado, isoladamente, não implementam nem comprovam a cadeia exigida de conversão WebP, remoção de EXIF, antimalware, OCR, QR Code, regra de contatos e revisão humana independente. Um processador homologado e fluxo de moderação deverão complementar o armazenamento antes de qualquer ativação.",
       "costModel": "R2 Standard inclui franquia pública e cobra armazenamento e operações; validar custo projetado com o volume de imagens do beta.",
+      "evaluationPlan": {
+        "status": "optional-local-first-not-homologated",
+        "maximumNewSpendingBrl": 0,
+        "localCandidates": ["sharp", "clamav", "tesseract", "zxing"],
+        "order": "test-locally-before-official-provider-selection",
+        "newPaidServicesAllowed": false,
+        "automaticProviderProvisioningAllowed": false,
+        "localTestsDoNotGrantProductionApproval": true,
+        "nextDecision": "Depois dos testes locais documentados, comparar fornecedores e submeter escolha oficial a nova autorização."
+      },
       "blockingChecks": [
         "signed-upload",
         "content-type",
