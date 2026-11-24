@@ -47,7 +47,7 @@ test('FC-366: three artificial listings, six photos, concurrent peak exactly 2 a
     s.signedPreviewUrlsIssued===0 && !s.publicationAuthorized));
   assert.equal(result.operationalReleaseAllowed,false);
   assert.equal(result.officialMediaGatesPromoted,false);
-  assert.doesNotMatch(JSON.stringify(result),/ocr|eicar-test-file|99999-0000/i);
+  assert.doesNotMatch(JSON.stringify(result),/Contato:|Eicar-Test-Signature|99999-0000/i);
 });
 
 test('FC-366: timeout, scanner failure or foreign/incorrect owner fails WHOLE listing',async()=>{
