@@ -209,7 +209,9 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
       const duplicatePurchase=await post(publicPath+'/transactions','buyer',{itemUnits:1});
       assert.equal(duplicatePurchase.status,409);
       assert.equal((await database.query('SELECT count(*)::int AS n FROM transactions WHERE listing_id=$1',[id])).rows[0].n,1);
-      assert.equal(calls.filter(item=>item.action==='verify').length,3);
+      // FC-359 adds two required preview checks: one denied GET before any
+      // signed URL, then one verified GET before the existing approval checks.
+      assert.equal(calls.filter(item=>item.action==='verify').length,5);
       console.log('FC-309 passed: authenticated HTTP create -> independent review -> catalog -> reserve -> unpaid chat blocked; media provider simulated.');
     }finally{
       if(api?.listening)await new Promise(resolve=>api.close(resolve));
