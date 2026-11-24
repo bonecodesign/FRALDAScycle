@@ -68,3 +68,64 @@ test("external marketing delivery fails closed on child profile or derived age d
   ]) assert.throws(() => externalMarketingDeliveryPayload({ ...base, metadata }),
     error => error.code === "child_profile_data_forbidden_in_marketing_delivery");
 });
+
+
+test("PRIV-06: marketing boundary rejects child-field aliases in nested metadata", () => {
+  const consent = { enabled: true, noticeVersion: FAMILY_MARKETING_NOTICE_VERSION };
+  const base = {
+    consent, campaignId: "family-privacy-synthetic", channel: "email",
+    recipient: "adult@example.test", templateId: "privacy-template-v1",
+  };
+  const aliases = [
+    "date_of_birth", "Birth-Date", "dateOfBirth", "BIRTHDATE", "DOB",
+    "child_dob", "child_birth_date", "babyBirthDate", "child-id",
+    "child_profile_id", "childProfileIds", "child-profiles",
+    "AGE_BAND", "age-bands", "ChildAgeBand", "child_age",
+    "profile_id", "ProfileID", "family_profile", "childEmoji",
+    "faixa_etaria", "Faixa Etária", "Data_Nascimento",
+    "dataDeNascimento", "idade_criança", "perfil-infantil", "ID_CRIANÇA",
+  ];
+  for (const alias of aliases) {
+    const metadata = {
+      locale: "pt-BR", categories: [{ marketing: { audience: { [alias]: "synthetic-rejected" } } }],
+    };
+    assert.throws(
+      () => externalMarketingDeliveryPayload({ ...base, metadata }),
+      error => error.code === "child_profile_data_forbidden_in_marketing_delivery" &&
+        error.path.endsWith("." + alias),
+      `metadata must reject alias ${alias}`,
+    );
+  }
+  const accepted = {
+    locale: "pt-BR", campaignContext: [{ color: "green", tags: ["weekly", "general"] }],
+    audienceType: "adults", messageCategory: "promotional",
+  };
+  assert.deepEqual(externalMarketingDeliveryPayload({ ...base, metadata: accepted }).metadata, accepted);
+});
+
+test("PRIV-06: cyclic, class-backed and overdeep metadata fail without external delivery", () => {
+  const base = {
+    consent: { enabled: true, noticeVersion: FAMILY_MARKETING_NOTICE_VERSION },
+    campaignId: "family-privacy-synthetic", channel: "email",
+    recipient: "adult@example.test", templateId: "privacy-template-v1",
+  };
+  const self = { locale: "pt-BR" }; self.loop = self;
+  const arr = []; arr.push(arr);
+  let deep = { locale: "pt-BR" };
+  for (let i = 0; i < 36; i++) deep = { wrapper: deep };
+  for (const metadata of [
+    self, { nested: arr }, { birthday: new Date("2026-01-01") },
+    { detail: new Map([["birthDate", "synthetic"]]) }, { detail: new Date("2026-01-01") },
+    deep,
+  ]) {
+    assert.throws(
+      () => externalMarketingDeliveryPayload({ ...base, metadata }),
+      error => error.code === "invalid_marketing_delivery" ||
+        error.code === "child_profile_data_forbidden_in_marketing_delivery",
+    );
+  }
+  // The same plain metadata referenced in two branches is not a cycle.
+  const common = { locale: "pt-BR" };
+  const shared = { header: common, footer: common };
+  assert.deepEqual(externalMarketingDeliveryPayload({ ...base, metadata: shared }).metadata, shared);
+});

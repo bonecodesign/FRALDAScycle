@@ -3,10 +3,20 @@ const NAVIGATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const ENGAGEMENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 export const FAMILY_MARKETING_NOTICE_VERSION = "FC-FAMILY-MARKETING-1";
 
+// Normalize known variants before the external-provider boundary: camelCase,
+// snake_case, kebab-case, upper-case and Portuguese/English field aliases.
+// This is not a classifier for opaque free-text values.
 const CHILD_PROFILE_KEYS = new Set([
-  "ageBand", "ageBands", "birthDate", "birth_date", "childProfileId",
-  "child_profile_id", "emoji", "familyProfile", "profileId", "profile_id",
+  "ageband", "agebands", "childage", "childageband", "childagebands",
+  "birthdate", "birthday", "dateofbirth", "dob", "childbirthdate", "childdob",
+  "babybirthdate", "babyid", "childid", "childprofileid", "childprofileids",
+  "childprofile", "childprofiles", "emoji", "childemoji", "familyprofile",
+  "familyprofiles", "profileid", "profileids", "datanascimento",
+  "datadenascimento", "faixaetaria", "idadecrianca", "perfilinfantil",
+  "idcrianca",
 ]);
+const normalizedKey = key => key.normalize("NFKD")
+  .replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 
 function instant(value) {
   const timestamp = value == null ? NaN : Date.parse(value);
@@ -38,21 +48,33 @@ function assertFamilyMarketingConsent(consent) {
   }
 }
 
-function assertNoChildProfileData(value, path = "payload") {
+function invalidMetadata() {
+  const error = new Error("invalid_marketing_delivery");
+  error.code = "invalid_marketing_delivery";
+  throw error;
+}
+function assertNoChildProfileData(value, path = "payload", ancestors = new WeakSet(), depth = 0) {
   if (value == null || typeof value !== "object") return;
+  // External JSON payloads must not contain cycles, class instances (e.g.
+  // Date or Map) or unbounded nesting which bypass object-key inspection.
+  if (depth > 32 || ancestors.has(value) ||
+      (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype &&
+        Object.getPrototypeOf(value) !== null)) invalidMetadata();
+  ancestors.add(value);
   if (Array.isArray(value)) {
-    value.forEach((item, index) => assertNoChildProfileData(item, `${path}[${index}]`));
-    return;
-  }
-  for (const [key, nested] of Object.entries(value)) {
-    if (CHILD_PROFILE_KEYS.has(key)) {
-      const error = new Error("child_profile_data_forbidden_in_marketing_delivery");
-      error.code = "child_profile_data_forbidden_in_marketing_delivery";
-      error.path = `${path}.${key}`;
-      throw error;
+    value.forEach((item, index) => assertNoChildProfileData(item, `${path}[${index}]`, ancestors, depth + 1));
+  } else {
+    for (const [key, nested] of Object.entries(value)) {
+      if (CHILD_PROFILE_KEYS.has(normalizedKey(key))) {
+        const error = new Error("child_profile_data_forbidden_in_marketing_delivery");
+        error.code = "child_profile_data_forbidden_in_marketing_delivery";
+        error.path = `${path}.${key}`;
+        throw error;
+      }
+      assertNoChildProfileData(nested, `${path}.${key}`, ancestors, depth + 1);
     }
-    assertNoChildProfileData(nested, `${path}.${key}`);
   }
+  ancestors.delete(value);
 }
 
 export function internalFamilyMarketingEligibility({ consent, ageBands }) {
