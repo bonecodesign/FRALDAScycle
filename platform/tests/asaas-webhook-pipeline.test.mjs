@@ -14,3 +14,46 @@ test('failed renewal records grace state without automatic retry',async()=>{let 
 test('expired grace cancels provider recurrence without attempting another charge',async()=>{const finished=[],cancelled=[];const repository={acquireExpiredRenewals:async()=>[{id:'local-1',user_id:'user-1',provider_subscription_id:'sub-1'}],finishExpiredCancellation:async value=>finished.push(value)};const client={cancelSubscription:async id=>cancelled.push(id)};assert.deepEqual(await cancelExpiredPremiumRenewals({repository,client}),{checked:1,cancelled:1,failed:0,automaticChargeRetries:0});assert.deepEqual(cancelled,['sub-1']);assert.deepEqual(finished,[{id:'local-1',userId:'user-1',succeeded:true}]);});
 test('provider cancellation failure is recoverable and never charges',async()=>{const finished=[];const repository={acquireExpiredRenewals:async()=>[{id:'local-1',user_id:'user-1',provider_subscription_id:'sub-1'}],finishExpiredCancellation:async value=>finished.push(value)};const client={cancelSubscription:async()=>{throw Object.assign(new Error('down'),{code:'asaas_unavailable'});}};assert.deepEqual(await cancelExpiredPremiumRenewals({repository,client}),{checked:1,cancelled:0,failed:1,automaticChargeRetries:0});assert.deepEqual(finished,[{id:'local-1',userId:'user-1',succeeded:false,failureCode:'asaas_unavailable'}]);});
 test('inbox schema and repository cannot mutate payment or transaction state',async()=>{const [migration,repository]=await Promise.all([readFile(new URL('../database/migrations/073_asaas_webhook_inbox.sql',import.meta.url),'utf8'),readFile(new URL('../database/asaas-webhook-repository.js',import.meta.url),'utf8')]);assert.match(migration,/financial activation is approved/);assert.doesNotMatch(repository,/UPDATE\s+(payment_intents|transactions)/i);assert.match(repository,/ON CONFLICT\(event_id\) DO NOTHING/);assert.match(repository,/SKIP LOCKED/);});
+
+
+test('FC-370: mismatched Premium payment evidence cannot activate benefits, alter grace or fail a subscription',async()=>{
+  const baseline={provider:'asaas',paymentId:'pay-premium',reference:'premium:local',status:'RECEIVED',value:14.9,subscriptionId:'sub-provider',dueDate:'2030-01-02'};
+  for(const state of ['provider_pending','active','renewal_failed']){
+    for(const status of ['RECEIVED','CONFIRMED','OVERDUE','REFUNDED','CHARGEBACK_REQUESTED']){
+      for(const mismatch of [{reference:'premium:other'},{value:14.91},{value:14.901}]){
+        const finished=[],effects=[];
+        const repository={recover:async()=>0,acquire:async()=>[{event_id:'evt-premium',payment_id:'pay-premium',intent_id:null,payload_sha256:'a'.repeat(64)}],
+          subscriptionContext:async()=>({id:'sub-local',user_id:'user-local',local_reference:'premium:local',amount_cents:1490,status:state}),
+          activateSubscription:async()=>effects.push('activate'),failSubscriptionPayment:async()=>effects.push('fail-initial'),
+          failSubscriptionRenewal:async()=>effects.push('fail-renewal'),finish:async value=>finished.push(value)};
+        const result=await reconcileAsaasInbox({repository,client:{getPayment:async()=>({...baseline,status,...mismatch})},
+          premiumBillingService:{applyReconciled:async()=>effects.push('billing')}});
+        assert.deepEqual(effects,[],JSON.stringify({state,status,mismatch}));
+        assert.deepEqual(result,{recovered:0,checked:1,reconciled:0,blocked:1,financialTransitions:0});
+        assert.equal(finished.length,1);
+        assert.equal(finished[0].evidence.matched,false);
+        assert.equal(finished[0].evidence.financialTransitionAllowed,false);
+        assert.ok(finished[0].evidence.blockers.some(x=>['reference_mismatch','amount_mismatch','provider_amount_invalid'].includes(x)));
+      }
+    }
+  }
+});
+
+test('FC-370: wrong payment identity or provider is blocked before subscription lookup or any mutation',async()=>{
+  for(const intent_id of [null,'intent-local']){
+    for(const change of [{paymentId:'pay-other'},{paymentId:null},{provider:'other'}]){
+      const finished=[],effects=[];
+      const repository={recover:async()=>0,acquire:async()=>[{event_id:'evt-local',payment_id:'pay-local',intent_id,reference:'premium:local',amount_cents:1490}],
+        subscriptionContext:async()=>effects.push('lookup'),activateSubscription:async()=>effects.push('activate'),
+        failSubscriptionPayment:async()=>effects.push('fail'),failSubscriptionRenewal:async()=>effects.push('renewal'),
+        finish:async value=>finished.push(value)};
+      const result=await reconcileAsaasInbox({repository,client:{getPayment:async()=>({provider:'asaas',paymentId:'pay-local',reference:'premium:local',status:'RECEIVED',value:14.9,subscriptionId:'sub-provider',...change})},
+        premiumBillingService:{applyReconciled:async()=>effects.push('billing')}});
+      assert.deepEqual(effects,[]);
+      assert.deepEqual(result,{recovered:0,checked:1,reconciled:0,blocked:1,financialTransitions:0});
+      assert.equal(finished[0].failureCode,'provider_payment_identity_mismatch');
+      assert.equal(finished[0].evidence.paymentId,'pay-local');
+      assert.equal(finished[0].evidence.financialTransitionAllowed,false);
+    }
+  }
+});

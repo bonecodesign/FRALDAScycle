@@ -12,6 +12,13 @@ export async function reconcileAsaasInbox({repository,client,premiumBillingServi
   for(const item of items){
     try{
       const providerPayment=await client.getPayment(item.payment_id);
+      // A response for another payment must not select a subscription or
+      // trigger any local effect, even if its amount/reference happen to match.
+      if(typeof item.payment_id!=='string'||!item.payment_id||
+         providerPayment?.paymentId!==item.payment_id||providerPayment.provider!=='asaas'){
+        await repository.finish({eventId:item.event_id,status:'blocked',evidence:{paymentId:item.payment_id,blockers:['provider_payment_identity_mismatch'],financialTransitionAllowed:false},failureCode:'provider_payment_identity_mismatch'});
+        blocked++;continue;
+      }
       let expected=item.intent_id?{reference:item.reference,amountCents:item.amount_cents}:null,subscription=null;
       if(!expected&&providerPayment.subscriptionId){
         subscription=await repository.subscriptionContext(providerPayment.subscriptionId);
@@ -22,6 +29,12 @@ export async function reconcileAsaasInbox({repository,client,premiumBillingServi
         blocked++;continue;
       }
       let evidence=reconcileAsaasPayment({expected,providerPayment});
+      // A candidate status alone is not proof. Stop before EVERY Premium
+      // side effect, including failure/grace changes, on unmatched evidence.
+      if(!evidence.matched){
+        await repository.finish({eventId:item.event_id,status:'blocked',evidence,failureCode:evidence.blockers.join(',')});
+        blocked++;continue;
+      }
       if(subscription&&evidence.candidateStatus==='paid'){
         if(!premiumBillingService)throw Object.assign(new Error('premium_billing_not_configured'),{code:'premium_billing_not_configured'});
         const period=paidPeriod(providerPayment.dueDate);
