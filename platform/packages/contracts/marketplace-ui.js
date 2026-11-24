@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from "./api-client.js";
+import { sendSignedBrowserPhoto } from "./browser-media-upload-policy.js";
 import { renderSafeErrorState } from "./safe-error-state.js";
 
 export function money(cents, kind) {
@@ -187,13 +188,9 @@ export async function uploadListingMedia(file) {
     method: "POST",
     body: { contentType: file.type, sizeBytes: file.size },
   });
-  const response = await fetch(upload.uploadUrl, {
-    method: "PUT",
-    headers: { "content-type": file.type, ...upload.headers },
-    body: file,
-  });
-  if (!response.ok) throw new ApiError("upload_failed", "Não foi possível enviar a foto.", response.status);
-  return upload.storageKey;
+  // A signed response is not permission for the browser to follow arbitrary
+  // redirects or attach its cookies to the destination for a selected photo.
+  return sendSignedBrowserPhoto(file, upload);
 }
 
 export async function geocodeLocation(address) {
