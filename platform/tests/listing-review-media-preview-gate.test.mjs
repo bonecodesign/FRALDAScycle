@@ -47,7 +47,7 @@ test('FC-359: both images verified as a complete batch BEFORE either temporary U
 test('FC-359: unavailable, invalid or partial processing blocks ALL signed URLs', async () => {
   for (const options of [
     {verified:false,count:2}, {verified:true,count:1},
-    {verified:null,count:2}, {verified:true,count:undefined},
+    {verified:null,count:2}, {verified:true,count:null},
     {error:Object.assign(new Error('Imagem sintética pendente'),{code:'media_not_ready',status:409})},
   ]) {
     const {provider,calls} = providerFixture(options);
