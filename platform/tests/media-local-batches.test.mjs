@@ -208,10 +208,12 @@ test('FC-369: caller mutation during a scan cannot remove unsafe photos or subst
   const batches=[listing('listing-a','owner-a',['synthetic-clean','synthetic-phone']),
     listing('listing-b','owner-b',['synthetic-clean'])];
   const result=await evaluateConcurrentSyntheticListings(batches,options(async job=>{
-    batches[0].id='listing-replaced';
-    batches[0].ownerId='owner-replaced';
-    batches[0].photos.splice(1);
-    batches.pop();
+    if(job.case==='synthetic-clean' && job.listingId==='listing-a'){
+      batches[0].id='listing-replaced';
+      batches[0].ownerId='owner-replaced';
+      batches[0].photos.splice(1);
+      batches.pop();
+    }
     return fakeWorker(job);
   },{maxConcurrent:1}));
   assert.equal(result.processedPhotoCount,3);
