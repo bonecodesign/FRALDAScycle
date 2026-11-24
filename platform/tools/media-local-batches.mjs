@@ -15,8 +15,14 @@ const CASES = new Set(['synthetic-clean','synthetic-phone','synthetic-qr','synth
 const ORDER = ['input-av','image-decoder','webp-no-exif','output-av','ocr','qr','content-policy'];
 const ID = /^[a-z][a-z0-9-]{1,45}$/;
 const CLEAN = 'local-only-pass-requires-human-review';
-const BLOCKED = new Set(['blocked-external-contact','blocked-qr-code',
-  'blocked-threat-before-decoding','blocked-image-decoder']);
+const EXPECTED_DECISION = Object.freeze({
+  'synthetic-clean':CLEAN,
+  'synthetic-phone':'blocked-external-contact',
+  'synthetic-qr':'blocked-qr-code',
+  'synthetic-eicar':'blocked-threat-before-decoding',
+  'synthetic-corrupted':'blocked-image-decoder',
+});
+const validId = value => typeof value === 'string' && ID.test(value);
 
 function validateAvSelfTest(av) {
   const expected = ['engineAndSigtool','dailySignatureFileRecent',
@@ -29,29 +35,40 @@ function validateAvSelfTest(av) {
   }
 }
 
-function validateArtificialListings(listings) {
+function snapshotArtificialListings(listings) {
   if (!Array.isArray(listings) || listings.length < 1 || listings.length > 8) {
     throw new TypeError('Artificial listing batch count must be 1–8');
   }
   const ids = new Set();
   const photos = new Set();
   let total = 0;
+  const snapshot = [];
   for (const listing of listings) {
-    if (!ID.test(listing?.id ?? '') || !ID.test(listing?.ownerId ?? '') ||
-        ids.has(listing.id) || !Array.isArray(listing.photos) ||
-        listing.photos.length < 1 || listing.photos.length > 8) {
+    const {id, ownerId, photos: inputPhotos} = listing ?? {};
+    if (!validId(id) || !validId(ownerId) ||
+        ids.has(id) || !Array.isArray(inputPhotos) ||
+        inputPhotos.length < 1 || inputPhotos.length > 8) {
       throw new TypeError('Invalid artificial listing or photo count');
     }
-    ids.add(listing.id);
-    for (const photo of listing.photos) {
-      if (!ID.test(photo?.id ?? '') || photos.has(photo.id) || !CASES.has(photo.case)) {
+    ids.add(id);
+    const listingPhotos = [];
+    for (const photo of inputPhotos) {
+      const {id: photoId, case: fixtureCase} = photo ?? {};
+      if (!validId(photoId) || photos.has(photoId) || !CASES.has(fixtureCase)) {
         throw new TypeError('Duplicate, unsafe or non-artificial photo');
       }
-      photos.add(photo.id);
+      photos.add(photoId);
       total++;
+      if (total > 16 || listingPhotos.length >= 8)
+        throw new TypeError('Artificial photo limit exceeded');
+      listingPhotos.push(Object.freeze({id:photoId,case:fixtureCase}));
     }
+    if (listingPhotos.length === 0 || snapshot.length >= 8)
+      throw new TypeError('Invalid artificial listing snapshot');
+    snapshot.push(Object.freeze({id,ownerId,photos:Object.freeze(listingPhotos)}));
   }
-  if (total > 16) throw new TypeError('No more than 16 artificial photos per batch');
+  if (!snapshot.length) throw new TypeError('Empty artificial listing snapshot');
+  return Object.freeze(snapshot);
 }
 
 /** The caller must use the real-scanner child process for real evidence.
@@ -61,14 +78,14 @@ function validateArtificialListings(listings) {
 export async function evaluateConcurrentSyntheticListings(
   listings, {processPhoto, avSelfTest, maxConcurrent = 2, photoTimeoutMs = 90000} = {},
 ) {
-  validateArtificialListings(listings);
+  const snapshot = snapshotArtificialListings(listings);
   validateAvSelfTest(avSelfTest);
   if (typeof processPhoto !== 'function' || !Number.isInteger(maxConcurrent) ||
       maxConcurrent < 1 || maxConcurrent > 2 || !Number.isSafeInteger(photoTimeoutMs) ||
       photoTimeoutMs < 1 || photoTimeoutMs > 90000) {
     throw new RangeError('Unsafe artificial batch worker or concurrency/timeout limit');
   }
-  const jobs = listings.flatMap(listing => listing.photos.map(photo => ({
+  const jobs = snapshot.flatMap(listing => listing.photos.map(photo => ({
     listingId:listing.id, ownerId:listing.ownerId, photoId:photo.id, case:photo.case,
   })));
   let next = 0, active = 0, peak = 0, retired = 0;
@@ -92,13 +109,14 @@ export async function evaluateConcurrentSyntheticListings(
           }),
         ]);
         // Make sure workers cannot substitute the result of another listing,
-        // photo or owner. Never accept "published" as a local decision.
-        if (value?.listingId !== job.listingId || value.ownerId !== job.ownerId ||
-            value.photoId !== job.photoId || value.case !== job.case ||
-            ![CLEAN,...BLOCKED].includes(value.decision)) {
-          throw new Error('Untrusted result or mismatched artificial owner/photo');
+        // photo or owner, or a decision contradicting the fixed fixture.
+        const {listingId, ownerId, photoId, case: fixtureCase, decision} = value ?? {};
+        if (listingId !== job.listingId || ownerId !== job.ownerId ||
+            photoId !== job.photoId || fixtureCase !== job.case ||
+            decision !== EXPECTED_DECISION[job.case]) {
+          throw new Error('Untrusted result or mismatched artificial owner/photo/decision');
         }
-        results.set(job.photoId, value.decision);
+        results.set(job.photoId, decision);
       } catch {
         // Never leak raw OCR, scanner stdout or process errors into reports.
         results.set(job.photoId, 'scan-error');
@@ -112,7 +130,7 @@ export async function evaluateConcurrentSyntheticListings(
     }
   }
   await Promise.all(Array.from({length:Math.min(maxConcurrent,jobs.length)},()=>worker()));
-  const summaries = listings.map(listing => {
+  const summaries = snapshot.map(listing => {
     const decisions = listing.photos.map(p => results.get(p.id));
     const failed = decisions.some(x => !x || x === 'scan-error');
     return Object.freeze({
