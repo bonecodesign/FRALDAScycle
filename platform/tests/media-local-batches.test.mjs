@@ -187,3 +187,51 @@ test('FC-367: surviving worker can finish independent listings without replacing
     ]);
   } finally {late?.();}
 });
+
+
+test('FC-369: fixture decisions must match the expected case, even with correct identity',async()=>{
+  const unsafe=['synthetic-phone','synthetic-qr','synthetic-eicar','synthetic-corrupted'];
+  for(const fixtureCase of unsafe){
+    const result=await evaluateConcurrentSyntheticListings(
+      [listing('listing-a','owner-a',['synthetic-clean',fixtureCase])],
+      options(async job=>({...job,decision:clean})));
+    assert.equal(result.summaries[0].status,'blocked-batch-error',fixtureCase);
+    assert.equal(result.summaries[0].publicationAuthorized,false);
+  }
+  const wrongReason=await evaluateConcurrentSyntheticListings(
+    [listing('listing-a','owner-a',['synthetic-qr'])],
+    options(async job=>({...job,decision:'blocked-external-contact'})));
+  assert.equal(wrongReason.summaries[0].status,'blocked-batch-error');
+});
+
+test('FC-369: caller mutation during a scan cannot remove unsafe photos or substitute listing identity',async()=>{
+  const batches=[listing('listing-a','owner-a',['synthetic-clean','synthetic-phone']),
+    listing('listing-b','owner-b',['synthetic-clean'])];
+  const result=await evaluateConcurrentSyntheticListings(batches,options(async job=>{
+    batches[0].id='listing-replaced';
+    batches[0].ownerId='owner-replaced';
+    batches[0].photos.splice(1);
+    batches.pop();
+    return fakeWorker(job);
+  },{maxConcurrent:1}));
+  assert.equal(result.processedPhotoCount,3);
+  assert.deepEqual(result.summaries.map(x=>[x.listingId,x.artificialPhotoCount,x.status]),[
+    ['listing-a',2,'blocked-batch'],
+    ['listing-b',1,'local-only-review-required'],
+  ]);
+  assert.ok(result.summaries.every(x=>!x.publicationAuthorized));
+});
+
+test('FC-369: non-string identities are rejected before any worker starts',async()=>{
+  let calls=0;
+  for(const field of ['listing','owner','photo']){
+    const batch=listing('listing-a','owner-a',['synthetic-clean']);
+    const spoof={toString:()=> 'plausible-id'};
+    if(field==='listing') batch.id=spoof;
+    if(field==='owner') batch.ownerId=spoof;
+    if(field==='photo') batch.photos[0].id=spoof;
+    await assert.rejects(evaluateConcurrentSyntheticListings([batch],
+      options(async job=>{calls++;return fakeWorker(job);})));
+  }
+  assert.equal(calls,0);
+});
