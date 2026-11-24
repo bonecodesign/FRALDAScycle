@@ -71,19 +71,24 @@ export async function evaluateConcurrentSyntheticListings(
   const jobs = listings.flatMap(listing => listing.photos.map(photo => ({
     listingId:listing.id, ownerId:listing.ownerId, photoId:photo.id, case:photo.case,
   })));
-  let next = 0, active = 0, peak = 0;
+  let next = 0, active = 0, peak = 0, retired = 0;
   const results = new Map();
   async function worker() {
     while (next < jobs.length) {
       const job = jobs[next++];
       active++;
       peak = Math.max(peak, active);
-      let timer;
+      let timer, timedOut = false;
+      const controller = new AbortController();
       try {
         const value = await Promise.race([
-          Promise.resolve().then(() => processPhoto(Object.freeze({...job}))),
+          Promise.resolve().then(() => processPhoto(Object.freeze({...job}), controller.signal)),
           new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error('synthetic photo timed out')), photoTimeoutMs);
+            timer = setTimeout(() => {
+              timedOut = true;
+              reject(new Error('synthetic photo timed out'));
+              controller.abort();
+            }, photoTimeoutMs);
           }),
         ]);
         // Make sure workers cannot substitute the result of another listing,
@@ -101,6 +106,9 @@ export async function evaluateConcurrentSyntheticListings(
         clearTimeout(timer);
         active--;
       }
+      // A timed-out worker may ignore cancellation. Never reuse its slot in
+      // this run: otherwise the real number of live tasks could exceed the cap.
+      if (timedOut) { retired++; return; }
     }
   }
   await Promise.all(Array.from({length:Math.min(maxConcurrent,jobs.length)},()=>worker()));
@@ -121,7 +129,9 @@ export async function evaluateConcurrentSyntheticListings(
     id:'FC-366',
     status:'synthetic-multilisting-test-not-homologated',
     newSpendingBrl:0,
-    processedPhotoCount:jobs.length,
+    processedPhotoCount:results.size,
+    unscheduledPhotoCount:jobs.length-results.size,
+    retiredWorkerCount:retired,
     peakConcurrentWorkers:peak,
     maxConcurrentWorkers:maxConcurrent,
     summaries:Object.freeze(summaries),
@@ -138,12 +148,12 @@ export async function evaluateConcurrentSyntheticListings(
 /** Real child process: returns only a verified artificial decision, never OCR.
  * The image, OCR and scan output are retained exclusively in child memory.
  */
-async function processSyntheticPhoto(job) {
+async function processSyntheticPhoto(job, signal) {
   if (!CASES.has(job.case)) throw new Error('Non-artificial image request blocked');
   const script = fileURLToPath(new URL('./media-local-chain.py',import.meta.url));
   const {stdout} = await execFileAsync(process.env.PYTHON || 'python3',
     [script,'--case',job.case], {
-      encoding:'utf8', timeout:90000,maxBuffer:1024*1024,
+      encoding:'utf8', timeout:90000,maxBuffer:1024*1024, signal,
       windowsHide:true,
     });
   const parsed=JSON.parse(stdout);

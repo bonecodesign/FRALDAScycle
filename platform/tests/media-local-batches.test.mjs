@@ -131,3 +131,59 @@ test('FC-366: eight safe artificial images stay review-only and worker limit 1 r
   assert.equal(result.summaries[0].status,'local-only-review-required');
   assert.equal(result.summaries[0].publicationAuthorized,false);
 });
+
+
+test('FC-367: uncooperative timed-out workers never receive replacement work',async()=>{
+  const batches=[
+    listing('listing-a','owner-a',['synthetic-clean']),
+    listing('listing-b','owner-b',['synthetic-clean']),
+    listing('listing-c','owner-c',['synthetic-clean','synthetic-clean']),
+  ];
+  const pending=[];
+  let started=0;
+  const result=await evaluateConcurrentSyntheticListings(batches,options((job,signal)=>{
+    started++;
+    return new Promise(resolve=>pending.push({job,signal,resolve}));
+  },{photoTimeoutMs:10}));
+  assert.equal(started,2);
+  assert.equal(result.peakConcurrentWorkers,2);
+  assert.equal(result.retiredWorkerCount,2);
+  assert.equal(result.processedPhotoCount,2);
+  assert.equal(result.unscheduledPhotoCount,2);
+  assert.ok(pending.every(x=>x.signal.aborted));
+  assert.ok(result.summaries.every(s=>s.status==='blocked-batch-error' &&
+    !s.anyPhotoReleased && !s.publicationAuthorized));
+  for(const {job,resolve} of pending) resolve({...job,decision:clean});
+  await Promise.resolve();
+  assert.equal(started,2);
+  assert.ok(result.summaries.every(s=>s.status==='blocked-batch-error'));
+});
+
+test('FC-367: surviving worker can finish independent listings without replacing a timed-out slot',async()=>{
+  const batches=[
+    listing('listing-a','owner-a',['synthetic-clean']),
+    listing('listing-b','owner-b',Array(8).fill('synthetic-clean')),
+  ];
+  let live=0,peak=0;
+  let late;
+  try {
+    const result=await evaluateConcurrentSyntheticListings(batches,options(async (job,signal)=>{
+      live++;peak=Math.max(peak,live);
+      try {
+        if(job.listingId==='listing-a'){
+          await new Promise(resolve=>{late=resolve;});
+          assert.equal(signal.aborted,true);
+        } else {
+          await new Promise(resolve=>setTimeout(resolve,2));
+        }
+        return fakeWorker(job);
+      } finally {live--;}
+    },{photoTimeoutMs:40}));
+    assert.equal(peak,2);
+    assert.equal(result.retiredWorkerCount,1);
+    assert.equal(result.unscheduledPhotoCount,0);
+    assert.deepEqual(result.summaries.map(s=>s.status),[
+      'blocked-batch-error','local-only-review-required',
+    ]);
+  } finally {late?.();}
+});
