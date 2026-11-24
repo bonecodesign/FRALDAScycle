@@ -13,6 +13,8 @@ on:
       - "platform/tools/media-local-chain.mjs"
       - "platform/tests/media-local-chain.test.mjs"
       - "platform/tools/media-local-lab.py"
+      - "platform/tools/media-local-batches.mjs"
+      - "platform/tests/media-local-batches.test.mjs"
   workflow_dispatch:
 
 permissions:
@@ -78,3 +80,13 @@ jobs:
           # This invokes real ClamAV on source AND converted images. It
           # never returns production "clean" and fails closed if AV is missing.
           node tools/media-local-chain.mjs
+      - name: Exercise bounded concurrent real-AV artificial listing batches
+        working-directory: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/media-local-batches.test.mjs
+          # Six artificial images in 3 listings; no external media service,
+          # data, approval or reusable clean attestation. Both source
+          # and WebP are scanned using real ClamAV in up to 2 workers.
+          node tools/media-local-batches.mjs

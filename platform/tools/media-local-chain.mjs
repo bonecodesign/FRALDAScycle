@@ -13,6 +13,56 @@ const EXPECTED = ['synthetic-clean','synthetic-phone','synthetic-qr','synthetic-
 const ORDER = ['input-av','image-decoder','webp-no-exif','output-av','ocr','qr','content-policy'];
 const SHA = /^[a-f0-9]{64}$/;
 
+
+/** Validate one *synthetic* case. Never accept a provider attestation here. */
+export function evaluateSyntheticImageCase(c, name) {
+  if (!EXPECTED.includes(name) || c?.case !== name || !SHA.test(c.inputSha256) ||
+      !['clean','eicar-detected','scan-error'].includes(c.inputAntivirus)) {
+    throw new Error('Unverified synthetic image or source scan');
+  }
+  if (name === 'synthetic-eicar') {
+    if (c.inputAntivirus !== 'eicar-detected' || c.decoded !== false || c.converted !== false ||
+        c.outputAntivirus !== 'not-attempted' || c.ocr !== null || c.qrDetected !== null ||
+        c.outputSha256 !== null || c.metadata !== null) {
+      throw new Error('Synthetic EICAR must be blocked at first AV boundary');
+    }
+    return Object.freeze({case:name,decision:'blocked-threat-before-decoding'});
+  }
+  if (c.inputAntivirus !== 'clean') throw new Error('Synthetic image input AV incomplete');
+  if (name === 'synthetic-corrupted') {
+    if (c.decoded !== false || c.converted !== false || c.outputAntivirus !== 'not-attempted' ||
+        c.ocr !== null || c.qrDetected !== null || c.metadata !== null || c.outputSha256 !== null) {
+      throw new Error('Invalid synthetic image must fail before conversion');
+    }
+    return Object.freeze({case:name,decision:'blocked-image-decoder'});
+  }
+  const m=c.metadata;
+  if (c.decoded !== true || c.converted !== true || c.outputAntivirus !== 'clean' ||
+      !SHA.test(c.outputSha256) || c.inputSha256 === c.outputSha256 ||
+      !m || m.inputHadExif !== true || m.inputHadGps !== true ||
+      m.outputNoExif !== true || m.outputNoGps !== true || m.type !== 'WEBP' ||
+      !Number.isInteger(m.width) || m.width < 1 || m.width > 1600 ||
+      !Number.isInteger(m.height) || m.height < 1 || m.height > 1600 ||
+      !Number.isInteger(m.bytes) || m.bytes < 1 || m.bytes > 10_000_000 ||
+      typeof c.ocr !== 'string' || typeof c.qrDetected !== 'boolean') {
+    throw new Error('Synthetic WebP, EXIF, output AV or OCR/QR evidence incomplete');
+  }
+  const contactReasons = detectProhibitedContent(c.ocr);
+  if (name === 'synthetic-clean' && (contactReasons.length || c.qrDetected)) {
+    throw new Error('Synthetic benign listing unexpectedly blocked');
+  }
+  if (name === 'synthetic-phone' && (!contactReasons.includes('phone') || c.qrDetected)) {
+    throw new Error('OCR missed synthetic external contact');
+  }
+  if (name === 'synthetic-qr' && !c.qrDetected) {
+    throw new Error('QR reader missed synthetic QR');
+  }
+  return Object.freeze({
+    case:name,decision:name === 'synthetic-clean' ? 'local-only-pass-requires-human-review' :
+      name === 'synthetic-phone' ? 'blocked-external-contact' : 'blocked-qr-code',
+  });
+}
+
 export function evaluateSyntheticImageChain(raw, avSelfTest) {
   if (avSelfTest?.status !== 'local-eicar-self-test-passed-not-homologated' ||
       avSelfTest?.actualAvScannerExecuted !== true ||
@@ -29,60 +79,7 @@ export function evaluateSyntheticImageChain(raw, avSelfTest) {
   if (byName.size !== EXPECTED.length || EXPECTED.some(x => !byName.has(x))) {
     throw new Error('Unexpected or duplicate image chain cases');
   }
-  const audit = [];
-  for (const name of EXPECTED) {
-    const c = byName.get(name);
-    if (!SHA.test(c.inputSha256) || !['clean','eicar-detected','scan-error'].includes(c.inputAntivirus)) {
-      throw new Error('Unverified source scan in synthetic chain');
-    }
-    const isRejectedBeforeDecoding = name === 'synthetic-eicar';
-    const isBadImage = name === 'synthetic-corrupted';
-    if (isRejectedBeforeDecoding) {
-      if (c.inputAntivirus !== 'eicar-detected' || c.decoded !== false || c.converted !== false ||
-          c.outputAntivirus !== 'not-attempted' || c.ocr !== null || c.qrDetected !== null ||
-          c.outputSha256 !== null || c.metadata !== null) {
-        throw new Error('EICAR must be blocked at the first AV boundary');
-      }
-      audit.push({ case: name, decision:'blocked-threat-before-decoding' });
-      continue;
-    }
-    if (c.inputAntivirus !== 'clean') throw new Error('Synthetic image input AV check incomplete');
-    if (isBadImage) {
-      if (c.decoded !== false || c.converted !== false || c.outputAntivirus !== 'not-attempted' ||
-          c.ocr !== null || c.qrDetected !== null || c.metadata !== null ||
-          c.outputSha256 !== null) {
-        throw new Error('Invalid synthetic image must fail before conversion');
-      }
-      audit.push({ case: name, decision:'blocked-image-decoder' });
-      continue;
-    }
-    const m=c.metadata;
-    if (c.decoded !== true || c.converted !== true || c.outputAntivirus !== 'clean' ||
-        !SHA.test(c.outputSha256) || c.inputSha256 === c.outputSha256 ||
-        !m || m.inputHadExif !== true || m.inputHadGps !== true ||
-        m.outputNoExif !== true || m.outputNoGps !== true || m.type !== 'WEBP' ||
-        !Number.isInteger(m.width) || m.width < 1 || m.width > 1600 ||
-        !Number.isInteger(m.height) || m.height < 1 || m.height > 1600 ||
-        !Number.isInteger(m.bytes) || m.bytes < 1 || m.bytes > 10_000_000 ||
-        typeof c.ocr !== 'string' || typeof c.qrDetected !== 'boolean') {
-      throw new Error('Image, output AV or WebP/EXIF confirmation failed');
-    }
-    const contactReasons = detectProhibitedContent(c.ocr);
-    if (name === 'synthetic-clean' && (contactReasons.length || c.qrDetected)) {
-      throw new Error('False block on synthetic benign listing');
-    }
-    if (name === 'synthetic-phone' && (!contactReasons.includes('phone') || c.qrDetected)) {
-      throw new Error('OCR failed to detect synthetic external contact');
-    }
-    if (name === 'synthetic-qr' && !c.qrDetected) {
-      throw new Error('QR scanner failed to detect synthetic QR code');
-    }
-    audit.push({
-      case:name,
-      decision:name==='synthetic-clean'?'local-only-pass-requires-human-review':(
-        name==='synthetic-phone'?'blocked-external-contact':'blocked-qr-code'),
-    });
-  }
+  const audit = EXPECTED.map(name => evaluateSyntheticImageCase(byName.get(name), name));
   return Object.freeze({
     id:'FC-365',
     testType:'real-scanner-and-image-libraries-on-artificial-files-only',
