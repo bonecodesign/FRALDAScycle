@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 // Browser automation only: this is NOT a human accessibility audit, physical
 // device certification, live media-provider test or authorization to launch.
 export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOrigin}){
-  const widths=[320,375,768,1280],layouts=[];
+  const widths=[320,375,768,1280],layouts=[],keyboardPaths=[];
   const navigate=async(path,selector)=>{
     await call('Page.navigate',{url:surfaceOrigin+path});
     await until(()=>evaluate(`document.readyState==='complete' && location.pathname===${JSON.stringify(path)} && Boolean(document.querySelector(${JSON.stringify(selector)}))`),'load '+path);
@@ -45,6 +45,7 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   await press('#publish-next');
   assert.match(await evaluate(`document.querySelector('.publish-error')?.textContent`),/Informe o valor/);
   assert.equal(await evaluate('location.pathname'),'/app/publish-5');
+  assert.equal(await evaluate("document.activeElement === document.querySelector('.publish-error')"),true,'validation must move focus to the error');
   await evaluate(`document.getElementById('publish-price').focus()`);
   await call('Input.insertText',{text:'37,90'});
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).priceCents`),3790,'typed price is not replaced by a demo amount');
@@ -58,6 +59,7 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   await press('#publish-next');
   assert.equal(await evaluate('location.pathname'),'/app/publish-7','location must not be skipped');
   assert.match(await evaluate(`document.querySelector('.publish-error').textContent`),/cidade e UF|CEP válido/);
+  assert.equal(await evaluate("document.activeElement === document.querySelector('.publish-error')"),true,'location validation must move focus to the error');
   for(let step=1;step<=8;step++){
     await navigate('/app/publish-'+step,'[data-publish-step="'+step+'"]');
     await until(()=>evaluate(`document.querySelector('.screen-title-row .badge')?.textContent==='Rascunho nesta aba'`),'publication route initialized');
@@ -85,6 +87,42 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
       layouts.push({step,viewport:width,overflow:false,labels:true});
     }
   }
+  // Unlike the earlier targeted focus checks, this traversal uses actual Tab
+  // events from a freshly loaded document, not DOM focus() calls.
+  for(const width of [375,1280]){
+    await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+    for(let step=1;step<=8;step++){
+      await navigate('/app/publish-'+step,'[data-publish-step="'+step+'"]');
+      await stepReady(step);
+      await key('Tab','Tab',9);
+      assert.equal(await evaluate("document.activeElement === document.querySelector('.skip-link')"),true,`Skip link first at ${step}/${width}`);
+      await key('Enter','Enter',13);
+      assert.equal(await evaluate("document.activeElement === document.getElementById('main')"),true,`Skip link reaches main at ${step}/${width}`);
+      const expected=await evaluate(`(() => {
+        const area=document.querySelector('#publish-content');
+        const controls=[...area.querySelectorAll('a[href],button,input,select,textarea')];
+        return controls.map((el,i)=>({el,i})).filter(({el})=>
+          !el.disabled && el.type!=='hidden' && el.tabIndex>=0 && el.getClientRects().length &&
+          getComputedStyle(el).visibility!=='hidden' &&
+          (el.type!=='radio'||el.checked||!controls.some(other=>other.type==='radio'&&other.name===el.name&&other.checked))
+        ).map(({i})=>i);
+      })()`);
+      assert.ok(expected.length>0,`No keyboard controls at ${step}/${width}`);
+      const visited=[];
+      for(let n=0;n<60;n++){
+        await key('Tab','Tab',9);
+        const current=await evaluate(`(() => {
+          const active=document.activeElement;
+          if(active===document.body||active===document.querySelector('.skip-link'))return 'end';
+          return [...document.querySelectorAll('#publish-content a[href],#publish-content button,#publish-content input,#publish-content select,#publish-content textarea')].indexOf(active);
+        })()`);
+        if(current==='end')break;
+        if(current>=0)visited.push(current);
+      }
+      assert.deepEqual(visited,expected,`Tab order at step ${step}/${width}`);
+      keyboardPaths.push({step,viewport:width,controls:visited.length});
+    }
+  }
   await navigate('/app/publish-8','[data-publish-step="8"]');
   await stepReady(8);
   await until(()=>evaluate(`document.querySelector('.review-product')!==null`),'review renders');
@@ -92,6 +130,9 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   await press('#publish-submit');
   await until(()=>evaluate(`Boolean(document.querySelector('#publication-issues'))`),'missing-media validation');
   assert.match(await evaluate(`document.querySelector('#publication-issues').textContent`),/foto/i);
+  assert.equal(await evaluate("document.activeElement === document.getElementById('publication-issues')"),true,'review errors receive focus');
+  await key('Tab','Tab',9);
+  assert.equal(await evaluate("document.activeElement === document.querySelector('#publication-issues a')"),true,'Tab reaches the first actionable correction');
   assert.equal(await evaluate(`sessionStorage.getItem('fc.lastListingId')`),null);
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).priceCents`),3790);
   await navigate('/app/search','#app-search-submit');
@@ -111,5 +152,5 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   assert.equal(await evaluate(`document.querySelector('#msg').disabled && document.querySelector('#chat-form button[type="submit"]').disabled`),true);
   assert.equal(await evaluate(`document.getElementById('transaction-contact').disabled`),true);
   await evaluate(`sessionStorage.removeItem('fc.publishDraft');sessionStorage.removeItem('fc.publishAttempt');sessionStorage.removeItem('fc.publishMediaKey')`);
-  return {browserAutomation:true,viewportChecks:layouts.length,layouts,priceCents:3790,mediaRequired:true,searchNegativeQuery:true,chatUnpaidBlocked:true,humanValidation:false,screenReader:false,physicalDevices:false,successfulPublication:false};
+  return {browserAutomation:true,viewportChecks:layouts.length,layouts,keyboardPaths,keyboardPathsChecked:keyboardPaths.length,priceCents:3790,mediaRequired:true,searchNegativeQuery:true,chatUnpaidBlocked:true,humanValidation:false,screenReader:false,physicalDevices:false,successfulPublication:false};
 }
