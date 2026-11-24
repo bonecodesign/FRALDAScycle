@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "FC-363",
+  "executedAt": "2026-11-24",
+  "environment": "isolated-assistant-local-container-not-user-device",
+  "newSpendingBrl": 0,
+  "scanner": {
+    "clamavAvailable": false,
+    "sigtoolAvailable": false,
+    "dailySignatureDatabaseAvailable": false,
+    "actualAvScanPerformed": false
+  },
+  "attemptedInstall": false,
+  "packageIndexRefresh": {
+    "attempted": true,
+    "result": "failed-dns-resolution-for-deb.debian.org",
+    "packagesDownloaded": 0
+  },
+  "offlineScriptExecution": {
+    "status": "blocked-no-antivirus-clearance",
+    "exitCode": 2,
+    "checks": {
+      "engineAndSigtool": "blocked",
+      "dailySignatureFileRecent": "blocked",
+      "signatureMetadataInspected": "blocked",
+      "benignSyntheticImage": "blocked",
+      "eicarHarmlessTestDetected": "blocked"
+    }
+  },
+  "mockedAcceptanceRuleTests": {
+    "count": 4,
+    "passed": 4,
+    "realScannerUsed": false
+  },
+  "officialCriteriaPromoted": false,
+  "antivirusHomologated": false,
+  "realImagesUsed": false,
+  "providerActivated": false,
+  "releaseAllowed": false,
+  "nextAction": "Run optional local self-test only when ClamAV+sigtool and recent signed daily definitions already exist in an authorized isolated environment; then separately perform provider/human homologation."
+}
