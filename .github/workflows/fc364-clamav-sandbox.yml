@@ -1,0 +1,59 @@
+name: FC-364 Real ClamAV sandbox (public standard runner)
+
+# Opt-in real AV check: only a PR touching this workflow or this AV lab.
+# Standard GitHub-hosted Linux runners are free for PUBLIC repositories.
+# No self-hosted/larger runner, secrets, caches, artifacts or production side effects.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/fc364-clamav-sandbox.yml"
+      - "platform/tools/media-local-antivirus-lab.mjs"
+      - "platform/tests/media-local-antivirus-lab.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fc364-clamav-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-clamav:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Install ClamAV only in the temporary free public runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends clamav clamav-freshclam
+          # Avoid the background updater holding the database lock.
+          sudo systemctl stop clamav-freshclam.service 2>/dev/null || true
+          command -v clamscan
+          command -v sigtool
+          command -v freshclam
+      - name: Update official ClamAV signatures (fail closed if denied)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A network problem or upstream rate limit is a BLOCKED result,
+          # not permission to scan with stale/missing definitions.
+          timeout 420s sudo freshclam --stdout
+          test -f /var/lib/clamav/daily.cvd -o -f /var/lib/clamav/daily.cld
+      - name: Exercise real, isolated clean-image and harmless EICAR scans
+        working-directory: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/media-local-antivirus-lab.test.mjs
+          # Returns exit 2 if real scan, signatures or results are invalid.
+          # Never prints raw scan text or claims production readiness.
+          node tools/media-local-antivirus-lab.mjs
