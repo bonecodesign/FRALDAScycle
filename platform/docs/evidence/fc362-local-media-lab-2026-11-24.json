@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "FC-362",
+  "observedOn": "2026-11-24",
+  "environment": "isolated-assistant-local-container-not-user-device",
+  "evidenceType": "local-synthetic-tool-experiment",
+  "newSpendingBrl": 0,
+  "status": "partial-not-homologated",
+  "contentRuleVersion": "FC-CONTENT-1",
+  "toolsObserved": {
+    "pillow": "12.3.0",
+    "opencv": "4.13.0",
+    "tesseract": "tesseract 5.5.0",
+    "sharpExecuted": false,
+    "zxingExecuted": false
+  },
+  "checks": {
+    "syntheticJpegToWebp": "passed",
+    "syntheticExifRemoval": "passed",
+    "syntheticGpsRemoval": "passed",
+    "syntheticPhoneOcrAndCurrentModerationRule": "passed",
+    "syntheticQrDetection": "passed",
+    "harmlessProductNotFlagged": "passed",
+    "corruptImageRejected": "passed",
+    "excessiveDimensionRejected": "passed",
+    "antivirusScan": "blocked-not-executed",
+    "realProvider": "not-tested",
+    "observedHumanReview": "not-tested"
+  },
+  "inputCount": 3,
+  "artificialFixtureHashes": [
+    {
+      "case": "clean-packaged-product",
+      "inputSha256": "58644d0a5925f94d08c26bc529a8a66fbf78fb6b46e08371188f911c274cd53c",
+      "processedSha256": "ad89076880a2439163d0860972c247b45b3731ef916d25d43c6ec37d62cd56d4",
+      "processedBytes": 10138
+    },
+    {
+      "case": "synthetic-contact",
+      "inputSha256": "4fbd21e5a1dc7b0c4c0581ef9801e35e5a8185896a928b1cbb3531156aabb98d",
+      "processedSha256": "56520a7a884fb68ca455d837b9dd1426a0447bd2c7c4b05dc1529a149039cbbb",
+      "processedBytes": 9844
+    },
+    {
+      "case": "synthetic-qr",
+      "inputSha256": "bd3d9311f9d7e9e5c34c1020df8241be4895b9832b1421505eddcf664dab21f5",
+      "processedSha256": "c137fcf68e062b5021badcff4f161f9b119d56bf8af1973688e3d39433817154",
+      "processedBytes": 11982
+    }
+  ],
+  "rawOcrTextPersisted": false,
+  "qrPayloadPersisted": false,
+  "realImageProcessed": false,
+  "providerUsed": false,
+  "cloudServiceActivated": false,
+  "operationalReleaseAllowed": false,
+  "officialCriteriaPromoted": false,
+  "note": "Antivirus, real storage immutability, actual provider security and human image review remain unproven. No hosted tests or source images are included."
+}
