@@ -22,6 +22,10 @@ function setupPublishValidation(){
   window.addEventListener('pageshow',event=>{if(event.persisted)location.reload()});
   const step=Number(content.dataset.publishStep);const next=document.getElementById('publish-next');const error=content.querySelector('.publish-error');
   const draft=readDraft();
+  // A validation failure must leave a keyboard user at the error, not at
+  // the end of the form. A subsequent Tab reaches the navigation controls.
+  error.tabIndex=-1;
+  const showError=message=>{error.textContent=message;error.focus()};
   const badge=content.querySelector('.screen-title-row .badge');if(badge)badge.textContent='Rascunho nesta aba';
   let institutionPicker=null;
   if(step===4&&draft.kind==='donation'){
@@ -89,7 +93,7 @@ function setupPublishValidation(){
       }catch(problem){if(current===generation){saveDraft({resolvedLocation:null});status.textContent=problem.message}}
       finally{consult.disabled=false}
     });
-    next.addEventListener('click',event=>{try{publicationLocationFields(readDraft())}catch(problem){event.stopImmediatePropagation();error.textContent=problem.message}});
+    next.addEventListener('click',event=>{try{publicationLocationFields(readDraft())}catch(problem){event.stopImmediatePropagation();showError(problem.message)}});
   }
   const upload=content.querySelector('.upload-zone');
   if(step===3&&upload){
@@ -101,7 +105,7 @@ function setupPublishValidation(){
     window.addEventListener('pagehide',()=>mounted.dispose(),{once:true});
   }
   if(!next)return;
-  const fail=message=>{error.textContent=message;content.querySelector('.publish-step')?.classList.add('has-error')};
+  const fail=message=>{showError(message);content.querySelector('.publish-step')?.classList.add('has-error')};
   next.addEventListener('click',event=>{if(institutionPicker&&!institutionPicker.validate()){event.stopImmediatePropagation();fail('Escolha uma instituição habilitada que aceite a condição do pacote.')} });
   next.addEventListener('click',()=>{let message='';if(step===2&&(!document.getElementById('app-diaper-model')?.value||!/^\d+$/.test(document.getElementById('app-diaper-quantity')?.value)))message='Escolha o modelo e informe a quantidade de unidades.';if(step===3&&content.querySelector('.upload-zone')?.dataset.ready!=='true')message='Adicione pelo menos uma foto do produto.';if(step===4){const condition=content.querySelector('input[name="condition"]:checked')?.value;const attested=document.querySelector('#app-open-package-attestation input')?.checked;if(!content.querySelector('.form-group input')?.value.trim()||!content.querySelector('textarea')?.value.trim())message='Informe a validade e a descrição do produto.';else if(condition==='open'&&!attested)message='Confirme as condições sanitárias do pacote aberto.'}if(step===5&&(readDraft().kind||'sale')==='sale'&&parsePrice(content.querySelector('.proposal-value')?.value)===null)message='Informe o valor do anúncio.';if(step===7){const inputs=content.querySelectorAll('.form-group input');if((inputs[0]?.value.replace(/\D/g,'').length||0)!==8||!inputs[1]?.value.trim())message='Informe um CEP válido e o bairro.'}if(message)return fail(message);error.textContent='';next.disabled=true;next.innerHTML='<span class="inline-spinner"></span> Salvando...';setTimeout(()=>{location.pathname=`/app/publish-${step+1}`},400)})
 }
@@ -121,7 +125,7 @@ publish?.addEventListener("click", async () => {
     const issues=validatePublicationDraft(draft,{mediaKeys:mediaKey?[mediaKey]:[]});
     if(issues.length){
       const step=publishContent.querySelector?.('.publish-step');
-      if(step){let host=step.querySelector('#publication-issues');if(!host){host=document.createElement('section');host.id='publication-issues';step.append(host)}renderPublicationIssues(host,issues);}
+      if(step){let host=step.querySelector('#publication-issues');if(!host){host=document.createElement('section');host.id='publication-issues';step.append(host)}renderPublicationIssues(host,issues);host.tabIndex=-1;host.focus();}
       throw new Error(issues[0].message);
     }
     const text=publicationText(draft);
@@ -145,13 +149,17 @@ publish?.addEventListener("click", async () => {
     const state=document.createElement('section');state.className='ui-state success-state';
     const heading=document.createElement('h1');heading.textContent=result.listing.status==='review'?'Anúncio enviado para revisão':'Anúncio recebido';
     const explanation=document.createElement('p');explanation.textContent=result.listing.status==='review'?'Seu anúncio ainda não está visível no catálogo. Acompanhe a análise em Meus anúncios.':'Consulte o estado do anúncio em Meus anúncios.';
-    const link=document.createElement('a');link.href='/app/profile-ads';link.textContent='Acompanhar meus anúncios';state.append(heading,explanation,link);publishContent.replaceChildren(state);
+    const link=document.createElement('a');link.href='/app/profile-ads';link.textContent='Acompanhar meus anúncios';state.append(heading,explanation,link);publishContent.replaceChildren(state);heading.tabIndex=-1;heading.focus();
     notify(heading.textContent);
   } catch (error) {
     publicationAttemptFailed(sessionStorage,'fc.publishAttempt',error);
     notify(error.status === 401 ? "Entre na sua conta para publicar." : error.message);
     publish.disabled = false;
     publish.textContent = "Enviar para revisão";
+    if(!publishContent.querySelector('#publication-issues')?.contains(document.activeElement)){
+      const message=publishContent.querySelector('.publish-error');
+      if(message){message.textContent=error.status===401?'Entre na sua conta para publicar.':error.message;message.focus()}
+    }
     if (error.status === 401) location.pathname = "/app/login";
   }
 });
