@@ -149,6 +149,54 @@ test("media verification rejects missing, foreign, mutable and unprocessed image
   await assert.rejects(providers.verifyListingMedia("user-1", ["listings/other/one.webp"]), error => error.code === "invalid_media");
 });
 
+test("FC-360: processor cannot return raw OCR, QR/barcode contents or EXIF/GPS even with clean flags", async () => {
+  const key = "listings/synthetic-owner/clean.webp";
+  const ready = {
+    storageKey:key,ownerId:"synthetic-owner",exists:true,processed:true,
+    immutable:true,contentType:"image/webp",exifRemoved:true,
+    scanStatus:"clean",contactScanStatus:"clear",contactRuleVersion:"FC-CONTENT-1",
+    ocrTextStored:false,qrCodeDetected:false,contactReasons:[],
+    sizeBytes:4096,width:640,height:480,
+  };
+  const sensitive = [
+    {ocrText:"email@synthetic.test"},
+    {ocr_text:null},
+    {recognizedText:"(31) 99999-0000"},
+    {analysis:{detected_text:"synthetic contact"}},
+    {analysis:{ocr:{text_annotations:["synthetic text"]}}},
+    {qrPayload:"https://synthetic.test"},
+    {analysis:{barCodeValue:"synthetic"}},
+    {exif:{GPSLatitude:-19.9}},
+    {details:{GPS_longitude:-43.9}},
+    {OriginalImage:"synthetic-base64-image"},
+    {nested:[{RAW_OCR:"synthetic"}]},
+    {meta: { deeply: { EXIF_DATA: {} } }},
+  ];
+  let requests=0;
+  for (const extra of sensitive) {
+    const provider=createMarketplaceProviders(configured, async (_url,opts)=>{
+      requests += 1;
+      assert.equal(JSON.parse(opts.body).storeOcrText,false);
+      return response({...ready,...extra});
+    });
+    await assert.rejects(
+      provider.verifyListingMedia("synthetic-owner",[key]),
+      error => error.code === "media_not_ready" && error.status === 409 &&
+        !JSON.stringify(error).includes("synthetic contact") &&
+        !String(error.message).includes("email@"),
+      JSON.stringify(extra),
+    );
+  }
+  assert.equal(requests,sensitive.length);
+  const accepted = createMarketplaceProviders(configured,async()=>response({
+    ...ready,processorVersion:"synthetic-v1",scanId:"fake-id-not-evidence",
+    checks:{ocrPassed:true,qrPassed:true,antimalwarePassed:true},
+  }));
+  assert.deepEqual(await accepted.verifyListingMedia("synthetic-owner",[key]),
+    {verified:true,count:1});
+  // Boolean claims alone do not prove a scanner was actually executed.
+});
+
 test("geocoding returns only approximate validated coordinates", async () => {
   const providers = createMarketplaceProviders(configured, async () => response({
     latitude: -19.9167, longitude: -43.9345, city: "Belo Horizonte", state: "mg",
