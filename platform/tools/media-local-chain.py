@@ -96,6 +96,15 @@ def main():
          b"PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"),
         ("synthetic-corrupted", b"synthetic-not-a-real-image"),
     ]
+    # FC-366: the bounded Node laboratory can run one artificial case per
+    # child process. It uses a fixed allowlist, never a user-selected file.
+    if len(sys.argv) == 3 and sys.argv[1] == "--case":
+        selected = sys.argv[2]
+        if selected not in {name for name, _ in test}:
+            raise ValueError("Unknown synthetic case")
+        test = [(name, blob) for name, blob in test if name == selected]
+    elif len(sys.argv) != 1:
+        raise ValueError("Only built-in synthetic cases are allowed")
     data = {
         "schemaVersion": 1,
         "pipelineOrder": ["input-av", "image-decoder", "webp-no-exif", "output-av", "ocr", "qr", "content-policy"],
