@@ -118,6 +118,7 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
         })()`);
         if(current==='end')break;
         if(current>=0)visited.push(current);
+        else if(visited.length>0)break;
       }
       assert.deepEqual(visited,expected,`Tab order at step ${step}/${width}`);
       keyboardPaths.push({step,viewport:width,controls:visited.length});
