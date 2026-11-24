@@ -47,7 +47,7 @@ function hasUnnecessaryMediaEvidence(value, ancestors = new WeakSet(), depth = 0
   ancestors.add(value);
   try {
     for (const [key, nested] of Object.entries(value)) {
-      const normalized = key.normalize('NFKD').replace(/\\p{M}/gu, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const normalized = key.normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
       if (forbiddenMediaEvidenceKeys.has(normalized) ||
           hasUnnecessaryMediaEvidence(nested, ancestors, depth + 1, budget)) return true;
     }
