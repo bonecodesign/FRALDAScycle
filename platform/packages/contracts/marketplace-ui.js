@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from "./api-client.js";
+import { renderSafeErrorState } from "./safe-error-state.js";
 
 export function money(cents, kind) {
   if (kind === "donation") return "Doação";
@@ -40,9 +41,9 @@ export function renderListingCard(item, surface) {
   const condition = `<span class="badge info">${listingCondition(item)}</span>`;
   const status = listingStatus(item);
   if (surface === "site") {
-    return `<article class="product-card" data-live-listing="${item.id}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span>${condition}${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
+    return `<article class="product-card" data-live-listing="${escapeHtml(item.id)}"><div class="product-image approved-product-stage"><img class="approved-product" src="/source/assets/approved/${approvedAsset(item)}" alt=""></div><div class="product-body"><span class="badge">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span>${condition}${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><div class="price">${money(item.price_cents, item.kind)}</div><a class="button secondary block small" href="${href}">Ver detalhes</a></div></article>`;
   }
-  return `<a class="phone-card" data-live-listing="${item.id}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span> ${condition} ${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${item.id}" aria-label="Favoritar">♡</button></a>`;
+  return `<a class="phone-card" data-live-listing="${escapeHtml(item.id)}" href="${href}"><img class="phone-thumb" src="/source/assets/approved/${approvedAsset(item)}" alt=""><div><span class="result-deal">${item.kind === "sale" ? "Venda" : item.kind === "exchange" ? "Troca" : "Doação"}</span> ${condition} ${status}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.size ?? "Tamanho não informado")} · ${Number(item.quantity)} unidades${proximity}</p><strong>${money(item.price_cents, item.kind)}</strong></div><button class="favorite" type="button" data-live-favorite="${escapeHtml(item.id)}" aria-label="Favoritar">♡</button></a>`;
 }
 
 export async function loadLiveSearch({ surface, query = "", kind = "", size = "", category = "", latitude = null, longitude = null, radiusKm = null }) {
@@ -125,7 +126,10 @@ export async function renderAppSearch() {
       results.innerHTML = items.length ? `<div class="section-head compact"><h2>${items.length} resultados</h2><span class="muted">Dados reais</span></div><div class="phone-list">${markup}</div>` : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum item encontrado</h2><p>Tente outro termo ou tamanho.</p></div>';
       bindFavoriteButtons(results);
     } catch (error) {
-      results.innerHTML = `<div class="ui-state error-state"><h2>Não foi possível buscar</h2><p>${error.message}</p></div>`;
+      renderSafeErrorState(results, {
+        heading: "Não foi possível buscar",
+        message: error?.message,
+      });
     } finally { button.disabled = false; button.textContent = "Buscar novamente"; }
   }, true);
 }
