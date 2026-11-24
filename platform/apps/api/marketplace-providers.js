@@ -29,6 +29,34 @@ function httpsUrl(value, field) {
   }
 }
 
+// Reject raw OCR, barcode/QR contents and EXIF/GPS in a provider's
+// verification envelope, even when it also claims "ocrTextStored: false".
+// The provider must return only scan decisions and bounded technical proof,
+// never recognized contact text or image/location content.
+const forbiddenMediaEvidenceKeys = new Set([
+  'ocrtext', 'rawocr', 'recognizedtext', 'detectedtext', 'extractedtext',
+  'textannotations', 'fulltextannotation', 'rawtext',
+  'qrpayload', 'qrcontent', 'qrcodevalue', 'qrvalue', 'qrdata',
+  'barcodevalue', 'barcodedata', 'barcodetext',
+  'exif', 'exifdata', 'gps', 'gpsdata', 'gpslatitude', 'gpslongitude',
+  'originalimage', 'rawimage', 'imagebase64', 'base64image',
+]);
+function hasUnnecessaryMediaEvidence(value, ancestors = new WeakSet(), depth = 0, budget = { nodes: 0 }) {
+  if (value === null || typeof value !== 'object') return false;
+  if (depth > 16 || ++budget.nodes > 256 || ancestors.has(value)) return true;
+  ancestors.add(value);
+  try {
+    for (const [key, nested] of Object.entries(value)) {
+      const normalized = key.normalize('NFKD').replace(/\\p{M}/gu, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      if (forbiddenMediaEvidenceKeys.has(normalized) ||
+          hasUnnecessaryMediaEvidence(nested, ancestors, depth + 1, budget)) return true;
+    }
+    return false;
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 async function providerRequest(endpoint, secret, payload, fetchImpl, timeoutMs) {
   const controller = new AbortController();
   let timer;
@@ -95,7 +123,8 @@ export function createMarketplaceProviders(config, fetchImpl = fetch, { timeoutM
           operation: "verify-listing-media", ownerId, storageKey,
           contactRuleVersion:CONTENT_RULE_VERSION,requireOcr:true,requireQrDetection:true,storeOcrText:false,
         }, fetchImpl, timeoutMs);
-        if (result?.storageKey !== storageKey || result.ownerId !== ownerId ||
+        if (hasUnnecessaryMediaEvidence(result) ||
+            result?.storageKey !== storageKey || result.ownerId !== ownerId ||
             result.exists !== true || result.processed !== true || result.immutable !== true ||
             result.contentType !== "image/webp" || result.exifRemoved !== true || result.scanStatus !== "clean" ||
             result.contactScanStatus !== "clear" || result.contactRuleVersion !== CONTENT_RULE_VERSION ||
