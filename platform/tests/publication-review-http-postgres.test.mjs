@@ -126,8 +126,21 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
         const response=await get(reviewPath,token);
         assert.equal(response.status,token===null?401:403,token??'without login');
       }
+      // FC-359: preview itself (not only final approval) must verify every
+      // synthetic photo before disclosing any signed read URL to a moderator.
+      mediaReady=false;
+      const readsBeforeBlocked=calls.filter(item=>item.action==='signedProofRead').length;
+      const blockedPreview=await get(reviewPath,'moderator');
+      assert.equal(blockedPreview.status,409);
+      assert.equal((await blockedPreview.json()).error.code,'media_not_ready');
+      assert.equal(calls.filter(item=>item.action==='signedProofRead').length,readsBeforeBlocked,
+        'unprocessed media must not receive review URLs');
+      mediaReady=true;
+      const callIndex=calls.length;
       const opened=await get(reviewPath,'moderator');
       const openedBody=await opened.json();
+      assert.deepEqual(calls.slice(callIndex).map(item=>item.action),['verify','signedProofRead'],
+        'review preview must re-verify media BEFORE signing');
       assert.equal(opened.status,200,JSON.stringify(openedBody));
       assert.equal(opened.headers.get('cache-control'),'no-store');
       assert.equal(openedBody.listing.status,'review');
