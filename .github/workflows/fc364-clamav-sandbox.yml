@@ -9,6 +9,10 @@ on:
       - ".github/workflows/fc364-clamav-sandbox.yml"
       - "platform/tools/media-local-antivirus-lab.mjs"
       - "platform/tests/media-local-antivirus-lab.test.mjs"
+      - "platform/tools/media-local-chain.py"
+      - "platform/tools/media-local-chain.mjs"
+      - "platform/tests/media-local-chain.test.mjs"
+      - "platform/tools/media-local-lab.py"
   workflow_dispatch:
 
 permissions:
@@ -34,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends clamav clamav-freshclam
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends clamav clamav-freshclam tesseract-ocr tesseract-ocr-eng
           # Avoid the background updater holding the database lock.
           sudo systemctl stop clamav-freshclam.service 2>/dev/null || true
           command -v clamscan
@@ -57,3 +61,20 @@ jobs:
           # Returns exit 2 if real scan, signatures or results are invalid.
           # Never prints raw scan text or claims production readiness.
           node tools/media-local-antivirus-lab.mjs
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install pinned open-source synthetic image test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all:             Pillow==11.3.0 numpy==2.2.6 opencv-python-headless==4.12.0.88             pytesseract==0.3.13 qrcode==8.2
+      - name: Execute complete synthetic source AV to WebP output AV OCR QR gate
+        working-directory: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/media-local-chain.test.mjs
+          # This invokes real ClamAV on source AND converted images. It
+          # never returns production "clean" and fails closed if AV is missing.
+          node tools/media-local-chain.mjs
