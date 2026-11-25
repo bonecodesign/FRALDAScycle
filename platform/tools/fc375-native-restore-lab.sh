@@ -26,26 +26,14 @@ local_port() {
 import json,sys,urllib.parse
 root=json.load(open(sys.argv[1]))
 assert root.get("runtime")=="native"
-ports=set()
-def visit(value):
-    if isinstance(value,dict):
-        for v in value.values(): visit(v)
-    elif isinstance(value,list):
-        for v in value: visit(v)
-    elif isinstance(value,str) and value.startswith(("postgres://","postgresql://")):
-        u=urllib.parse.urlsplit(value)
-        if u.hostname in ("localhost","127.0.0.1","::1") and u.port and u.path=="/postgres" and u.username=="postgres":
-            ports.add(u.port)
-visit(root)
-if len(ports)!=1:
-    # The default local database port is used only when the live SQL identity
-    # is subsequently verified; never attempt a hosted connection.
-    if not ports:
-        import tomllib
-        port=tomllib.load(open("supabase/config.toml","rb"))["db"].get("port",54322)
-        ports.add(port)
-    else: raise SystemExit("FC375_AMBIGUOUS_LOCAL_DB_PORT")
-print(ports.pop())
+endpoint=root["endpoints"]["database.sql"]
+u=urllib.parse.urlsplit(root["env"]["DB_URL"])
+assert endpoint["address"] in ("127.0.0.1","::1","localhost")
+assert u.hostname in ("127.0.0.1","::1","localhost")
+assert u.port==endpoint["port"] and u.username=="postgres" and u.path=="/postgres"
+assert u.password=="postgres", "unexpected ephemeral database password"
+assert 1024<=u.port<=65535
+print(u.port)
 PY
 }
 stage=source_port
@@ -63,7 +51,16 @@ client_version="$(/usr/lib/postgresql/17/bin/pg_dump --version)"
 echo "FC375_CLIENT_PG17=PASS"
 psql_local() { psql -X -qAt -v ON_ERROR_STOP=1 "$@"; }
 assert_local() {
-  test "$(psql_local -c "SELECT current_setting('server_version_num')::int/10000=17 AND inet_server_addr() IN ('127.0.0.1'::inet,'::1'::inet)")" = t
+  # Native's local listener can forward through a Unix socket, for which
+  # inet_server_addr() is NULL. The exact loopback endpoint was verified
+  # against the freshly started Native stack above, without fallback.
+  local check
+  check="$(psql_local -c "SELECT current_setting('server_version_num')::int/10000,coalesce(inet_server_addr() IN ('127.0.0.1'::inet,'::1'::inet),true),to_regclass('auth.users') IS NOT NULL,to_regclass('storage.objects') IS NOT NULL")"
+  if [[ "$check" != '17|t|t|t' ]]; then
+    printf 'FC375_LOCAL_IDENTITY_CHECK=%s\n' "$check" >&2
+    return 1
+  fi
+  echo "FC375_LOCAL_NATIVE_PG17_IDENTITY=PASS"
 }
 managed_digest() {
   psql_local -c "SELECT md5(coalesce(string_agg(jsonb_build_array(n.nspname,c.relname,c.relkind,c.relrowsecurity,pg_get_userbyid(c.relowner))::text,E'\n' ORDER BY n.nspname,c.relname),'')) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('auth','storage') AND c.relkind IN ('r','p','v','m','S')"
