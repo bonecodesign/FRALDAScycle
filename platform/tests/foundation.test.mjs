@@ -293,7 +293,7 @@ test("transfers payment-gated operational chat without proposal or reservation r
 test("transfers protected payment wallet refund and dispute journeys", async () => {
   const routes = [
     ["payment", /Escolha o método/],
-    ["payment-success", /Pagamento aprovado!/],
+    ["payment-success", /Confirmação do pagamento/],
     ["wallet", /Saldo e extrato/],
     ["wallet-cards", /Meus cartões/],
     ["refund", /Solicitar reembolso/],

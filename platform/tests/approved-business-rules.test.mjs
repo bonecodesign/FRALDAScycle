@@ -45,7 +45,7 @@ test("keeps chat operational and gated by confirmed payment", async () => {
   assert.doesNotMatch(runtime, /fc\.paymentConfirmed/);
   assert.match(runtime, /Chat bloqueado/);
   assert.match(runtime, /preço e as condições não podem ser alterados/i);
-  assert.match(finance, /fc\.paymentConfirmed/);
+  assert.doesNotMatch(finance, /setItem\([^\n]*fc\.paymentConfirmed/);
 });
 
 test("publication price step does not require acceptance of proposals", async () => {
