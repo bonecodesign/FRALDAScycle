@@ -16,17 +16,43 @@ test ! -e supabase/.temp/project-ref
 while IFS= read -r variable; do unset "$variable"; done < <(compgen -v | grep '^PG' || true)
 unset DATABASE_URL RESTORE_DATABASE_URL SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD
 export PGHOST=127.0.0.1 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres PGSSLMODE=disable
-export PGPORT="$(python3 -c 'import tomllib;print(tomllib.load(open("supabase/config.toml","rb"))["db"]["port"])')"
-pgbin=''
-while IFS= read -r path; do
-  if [[ -x "$path" && -x "$(dirname "$path")/pg_restore" && -x "$(dirname "$path")/psql" ]]; then
-    pgbin="$(dirname "$path")"; break
-  fi
-done < <(find "$home/cache/stack" -name pg_dump)
-test -n "$pgbin"
-export PATH="$pgbin:$PATH"
-export LD_LIBRARY_PATH="$pgbin/../lib:$pgbin/../lib64"
-pg_dump --version | grep -E ' 17\.' >/dev/null
+# Native may choose its own port; derive it from CLI local status rather
+# than assuming [db].port exists. Never print status (contains local keys).
+local_port() {
+  supabase stack status --output-format json > "$workspace/local-status.json"
+  python3 - "$workspace/local-status.json" <<'PY'
+import json,sys,urllib.parse
+root=json.load(open(sys.argv[1]))
+assert root.get("runtime")=="native"
+ports=set()
+def visit(value):
+    if isinstance(value,dict):
+        for v in value.values(): visit(v)
+    elif isinstance(value,list):
+        for v in value: visit(v)
+    elif isinstance(value,str) and value.startswith(("postgres://","postgresql://")):
+        u=urllib.parse.urlsplit(value)
+        if u.hostname in ("localhost","127.0.0.1","::1") and u.port and u.path=="/postgres" and u.username=="postgres":
+            ports.add(u.port)
+visit(root)
+if len(ports)!=1:
+    # The default local database port is used only when the live SQL identity
+    # is subsequently verified; never attempt a hosted connection.
+    if not ports:
+        import tomllib
+        port=tomllib.load(open("supabase/config.toml","rb"))["db"].get("port",54322)
+        ports.add(port)
+    else: raise SystemExit("FC375_AMBIGUOUS_LOCAL_DB_PORT")
+print(ports.pop())
+PY
+}
+PGPORT="$(local_port)"
+export PGPORT
+# Ubuntu's host client is independent of the Native runtime's bundled libc.
+# Never export a foreign LD_LIBRARY_PATH across the entire shell.
+unset LD_LIBRARY_PATH
+export PATH="/usr/lib/postgresql/17/bin:$PATH"
+pg_dump --version | grep -E ' 17\\.' >/dev/null
 psql_local() { psql -X -qAt -v ON_ERROR_STOP=1 "$@"; }
 assert_local() {
   test "$(psql_local -c "SELECT current_setting('server_version_num')::int/10000=17 AND inet_server_addr() IN ('127.0.0.1'::inet,'::1'::inet)")" = t
@@ -94,8 +120,9 @@ p.write_text(s)
 assert tomllib.loads(s)["db"]["major_version"]==17
 PY
 test ! -e supabase/.temp/project-ref
-supabase stack start --runtime native > "$workspace/target-start.log" 2>&1
-export PGPORT="$(python3 -c 'import tomllib;print(tomllib.load(open("supabase/config.toml","rb"))["db"]["port"])')"
+supabase stack start --runtime native --eager > "$workspace/target-start.log" 2>&1
+PGPORT="$(local_port)"
+export PGPORT
 assert_local
 test "$(psql_local -c "SELECT to_regclass('public.fc375_fixture') IS NULL")" = t
 test "$(psql_local -c "SELECT to_regclass('auth.users') IS NOT NULL AND to_regclass('storage.objects') IS NOT NULL")" = t
