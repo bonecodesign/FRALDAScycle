@@ -7,10 +7,73 @@ async function loadOwnOffers(){try{const {items}=await apiRequest('/v1/account/l
 void loadOwnOffers();
 manage.querySelector('fieldset').insertAdjacentHTML('beforeend','<label>Motivo para recusa ou cancelamento <textarea name="reason" minlength="10" maxlength="1000"></textarea></label><div class="action-pair"><button class="button secondary" type="button" id="exchange-refuse">Recusar proposta</button><button class="button secondary" type="button" id="exchange-cancel">Confirmar cancelamento bilateral</button></div>');
 const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value/100);
-const show=exchange=>{const difference=exchange.difference_obligation;status.textContent=`Estado: ${exchange.status} · versão ${exchange.version}`+(exchange.legs?.length?` · pernas: ${exchange.legs.map(x=>`${x.leg} ${x.status}`).join(', ')}`:'')+(exchange.fee_obligations?.length?` · taxas: ${exchange.fee_obligations.map(x=>money(x.feeCents)).join(' e ')} (não cobradas)`:'')+(difference?` · diferença: ${money(difference.amountCents)} (${difference.status})`:'' );sessionStorage.setItem('fc.activeTransactionId',exchange.transaction_id);};
-propose.addEventListener('submit',async e=>{e.preventDefault();try{const requesterDeclaredValueCents=parsePrice(propose.elements.requesterDeclaredValue.value);if(requesterDeclaredValueCents===null)throw new Error('Informe o valor declarado do seu pacote.');const data=await apiRequest('/v1/exchanges',{method:'POST',body:{requestedListingId:propose.elements.requestedListingId.value.trim(),offeredListingId:propose.elements.offeredListingId.value.trim(),requesterDeclaredValueCents,confirmed:propose.elements.confirmed.checked}});manage.elements.transactionId.value=data.exchange.transaction_id;show(data.exchange);}catch(error){status.textContent=error.message;}});
-document.getElementById('exchange-load').addEventListener('click',async()=>{try{show((await apiRequest('/v1/exchanges/'+encodeURIComponent(manage.elements.transactionId.value.trim()))).exchange);}catch(error){status.textContent=error.message;}});
-manage.addEventListener('submit',async e=>{e.preventDefault();try{const ownerDeclaredValueCents=parsePrice(manage.elements.ownerDeclaredValue.value);if(ownerDeclaredValueCents===null)throw new Error('Informe o valor declarado do pacote que você oferece.');show((await apiRequest('/v1/exchanges/'+encodeURIComponent(manage.elements.transactionId.value.trim())+'/accept',{method:'POST',body:{expectedVersion:Number(manage.elements.expectedVersion.value),ownerDeclaredValueCents,confirmed:manage.elements.confirmed.checked}})).exchange);}catch(error){status.textContent=error.message;}});
-async function decision(action){try{const data=await apiRequest('/v1/exchanges/'+encodeURIComponent(manage.elements.transactionId.value.trim())+'/'+action,{method:'POST',body:{expectedVersion:Number(manage.elements.expectedVersion.value),reason:manage.elements.reason.value.trim(),confirmed:manage.elements.confirmed.checked}});show(data.exchange);if(action==='cancel'&&!data.exchange.counterpartConfirmed)status.textContent+=' · aguardando confirmação da outra parte';}catch(error){status.textContent=error.message;}}
+
+// Only the server decides exchange state. Serialize local actions so a delayed
+// read or duplicate activation cannot replace a newer response.
+let actionPending=false;
+async function runAction(action){
+  if(actionPending)return;
+  actionPending=true;
+  const controls=[...propose.querySelectorAll('button'),...manage.querySelectorAll('button'),manage.elements.transactionId,manage.elements.expectedVersion];
+  const previous=controls.map(control=>control.disabled);
+  controls.forEach(control=>{control.disabled=true});
+  status.setAttribute('aria-busy','true');
+  try{await action();}
+  catch(error){status.textContent=error?.message||'Não foi possível concluir a operação.';}
+  finally{
+    controls.forEach((control,i)=>{control.disabled=previous[i]});
+    status.setAttribute('aria-busy','false');
+    actionPending=false;
+  }
+}
+function show(exchange,expectedId){
+  if(!exchange||typeof exchange.transaction_id!=='string'||!exchange.transaction_id.trim()||
+      !Number.isSafeInteger(exchange.version)||exchange.version<1||
+      (expectedId!==undefined&&exchange.transaction_id!==expectedId)){
+    throw new Error('Resposta da operação inválida. Consulte a troca novamente.');
+  }
+  const difference=exchange.difference_obligation;
+  const message=`Estado: ${exchange.status} · versão ${exchange.version}`+
+    (exchange.legs?.length?` · pernas: ${exchange.legs.map(x=>`${x.leg} ${x.status}`).join(', ')}`:'')+
+    (exchange.fee_obligations?.length?` · taxas: ${exchange.fee_obligations.map(x=>money(x.feeCents)).join(' e ')} (não cobradas)`:'')+
+    (difference?` · diferença: ${money(difference.amountCents)} (${difference.status})`:'');
+  sessionStorage.setItem('fc.activeTransactionId',exchange.transaction_id);
+  manage.elements.transactionId.value=exchange.transaction_id;
+  manage.elements.expectedVersion.value=String(exchange.version);
+  // Every new decision requires a fresh explicit confirmation.
+  manage.elements.confirmed.checked=false;
+  status.textContent=message;
+}
+propose.addEventListener('submit',e=>{
+  e.preventDefault();
+  return runAction(async()=>{
+    const requesterDeclaredValueCents=parsePrice(propose.elements.requesterDeclaredValue.value);
+    if(requesterDeclaredValueCents===null)throw new Error('Informe o valor declarado do seu pacote.');
+    const data=await apiRequest('/v1/exchanges',{method:'POST',body:{requestedListingId:propose.elements.requestedListingId.value.trim(),offeredListingId:propose.elements.offeredListingId.value.trim(),requesterDeclaredValueCents,confirmed:propose.elements.confirmed.checked}});
+    show(data.exchange);
+    propose.elements.confirmed.checked=false;
+  });
+});
+document.getElementById('exchange-load').addEventListener('click',()=>runAction(async()=>{
+  const id=manage.elements.transactionId.value.trim();
+  show((await apiRequest('/v1/exchanges/'+encodeURIComponent(id))).exchange,id);
+}));
+manage.addEventListener('submit',e=>{
+  e.preventDefault();
+  return runAction(async()=>{
+    const ownerDeclaredValueCents=parsePrice(manage.elements.ownerDeclaredValue.value);
+    if(ownerDeclaredValueCents===null)throw new Error('Informe o valor declarado do pacote que você oferece.');
+    const id=manage.elements.transactionId.value.trim();
+    show((await apiRequest('/v1/exchanges/'+encodeURIComponent(id)+'/accept',{method:'POST',body:{expectedVersion:Number(manage.elements.expectedVersion.value),ownerDeclaredValueCents,confirmed:manage.elements.confirmed.checked}})).exchange,id);
+  });
+});
+function decision(action){
+  return runAction(async()=>{
+    const id=manage.elements.transactionId.value.trim();
+    const data=await apiRequest('/v1/exchanges/'+encodeURIComponent(id)+'/'+action,{method:'POST',body:{expectedVersion:Number(manage.elements.expectedVersion.value),reason:manage.elements.reason.value.trim(),confirmed:manage.elements.confirmed.checked}});
+    show(data.exchange,id);
+    if(action==='cancel'&&!data.exchange.counterpartConfirmed)status.textContent+=' · aguardando confirmação da outra parte';
+  });
+}
 document.getElementById('exchange-refuse').addEventListener('click',()=>decision('refuse'));
 document.getElementById('exchange-cancel').addEventListener('click',()=>decision('cancel'));
