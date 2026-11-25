@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 import { publicationText } from '../packages/contracts/publication-review.js';
 import { publicationLocationFields } from '../packages/contracts/publication-draft-assets.js';
-import { validatePublicationDraft } from '../packages/contracts/publication-validation.js';
+import { validatePublicationDraft,renderPublicationIssues } from '../packages/contracts/publication-validation.js';
 import { listingPrice } from '../packages/contracts/commercial-rules.js';
 import { preparePublicationAttempt,publicationAttemptFailed } from '../packages/contracts/publication-attempt.js';
 
@@ -14,15 +14,28 @@ async function appHarness(publishListing, withPhoto=true, draft={kind:'sale',pri
   if(withPhoto)values.set('fc.publishMediaKey','listings/owner/photo.webp');
   let click;
   const button={disabled:false,addEventListener(event,handler){click=handler}};
-  const content={replaceChildren(state){this.state=state}};
+  let activeElement=null;
+  const element=()=>({
+    children:[],append(...children){this.children.push(...children)},
+    replaceChildren(...children){this.children=children},
+    setAttribute(name,value){this[name]=value},
+    focus(){activeElement=this},
+    contains(child){return child===this||this.children.some(node=>node.contains?.(child))},
+  });
+  const step=element(),errorMessage=element();
+  step.querySelector=selector=>selector==='#publication-issues'?step.children.find(node=>node.id==='publication-issues')||null:null;
+  const content={
+    replaceChildren(state){this.state=state},
+    querySelector(selector){return selector==='.publish-step'?step:selector==='.publish-error'?errorMessage:step.querySelector(selector)},
+  };
   const notices=[];
   const context={
-    document:{getElementById(){return null},querySelector(selector){return selector==='#publish-submit'?button:content},createElement(){return {append(...children){this.children=children}}}},
+    document:{get activeElement(){return activeElement},getElementById(){return null},querySelector(selector){return selector==='#publish-submit'?button:content},createElement:element},
     sessionStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)},
     publishListing,publicationText,publicationLocationFields,validatePublicationDraft,preparePublicationAttempt,publicationAttemptFailed,listingPrice,notify:message=>notices.push(message),location:{},
   };
-  vm.runInNewContext(source,context);
-  return {click,button,content,values,notices};
+  vm.runInNewContext('const renderPublicationIssues = '+renderPublicationIssues.toString()+';\n'+source,context);
+  return {click,button,content,values,notices,get activeElement(){return activeElement}};
 }
 
 test('missing photo prevents submission and preserves the draft',async()=>{
@@ -33,6 +46,7 @@ test('missing photo prevents submission and preserves the draft',async()=>{
   assert.equal(app.button.disabled,false);
   assert.ok(app.values.has('fc.publishDraft'));
   assert.match(app.notices[0],/Adicione uma foto/);
+  assert.equal(app.activeElement,app.content.querySelector('#publication-issues'));
 });
 
 test('donation submission requires and passes the chosen institution; sale excludes it',async()=>{
@@ -80,6 +94,7 @@ test('pending submission cannot be repeated; review receipt clears only successf
   assert.equal(heading.textContent,'Anúncio enviado para revisão');
   assert.match(explanation.textContent,/ainda não está visível/);
   assert.equal(link.href,'/app/profile-ads');
+  assert.equal(app.activeElement,heading);
 });
 
 test('processing failure retains photo and draft for retry without success screen',async()=>{
@@ -89,6 +104,8 @@ test('processing failure retains photo and draft for retry without success scree
   assert.ok(app.values.has('fc.publishMediaKey'));
   assert.equal(app.content.state,undefined);
   assert.equal(app.button.disabled,false);
+  assert.equal(app.activeElement,app.content.querySelector('.publish-error'));
+  assert.equal(app.activeElement.textContent,'Foto em processamento');
 });
 
 test('submitted title and description match the review text and never substitute example product data',async()=>{
