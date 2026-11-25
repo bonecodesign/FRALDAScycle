@@ -62,12 +62,50 @@ jobs:
           chmod 755 "$workspace/stage/supabase"
           tar --numeric-owner --owner=0 --group=0 -czf "$out/fc394-native-tools.tar.gz" -C "$workspace/stage" supabase -C "$SUPABASE_HOME" cache/stack
           (cd "$out"; sha256sum fc394-native-tools.tar.gz > SHA256SUMS; sha256sum -c SHA256SUMS)
-          echo 'FC394_TOOLKIT_PACKAGED=PASS'
-      - name: Upload only official executables and checksum
+          # Transport maximum is 512 MiB per ZIP; fixed 200 MiB chunks.
+          cd "$out"
+          split --bytes=200M --numeric-suffixes=0 --suffix-length=2 fc394-native-tools.tar.gz toolkit.part-
+          test -f toolkit.part-00
+          test -f toolkit.part-01
+          test -f toolkit.part-02
+          test ! -e toolkit.part-03
+          sha256sum toolkit.part-00 toolkit.part-01 toolkit.part-02 > PART-SHA256SUMS
+          sha256sum -c PART-SHA256SUMS
+          expected="$(cut -d ' ' -f 1 SHA256SUMS)"
+          actual="$(cat toolkit.part-00 toolkit.part-01 toolkit.part-02 | sha256sum | cut -d ' ' -f 1)"
+          test "$expected" = "$actual"
+          echo "FC394_TOOLKIT_SPLIT_VERIFIED=PASS sha256=$expected"
+          rm fc394-native-tools.tar.gz
+      - name: Upload toolkit part 00
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: fc394-native-toolkit
-          path: ${{ runner.temp }}/fc394-toolkit/
+          name: fc394-native-toolkit-part-00
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-00
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Upload toolkit part 01
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fc394-native-toolkit-part-01
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-01
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Upload toolkit part 02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fc394-native-toolkit-part-02
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-02
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
