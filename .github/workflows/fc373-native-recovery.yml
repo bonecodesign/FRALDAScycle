@@ -1,0 +1,74 @@
+name: FC-373 Supabase Native recovery tooling
+# Public standard runner, tools ONLY. No hosted project credentials, no
+# production data, no upload-artifact/cache, no scheduled run or deployment.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/fc373-native-recovery.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fc373-native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-tools:
+    if: github.repository == 'bonecodesign/FRALDAScycle' && !github.event.repository.private
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "3.2.0"
+      - name: Prepare official native runtime in a new unlinked workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD DATABASE_URL
+          export SUPABASE_EXPERIMENTAL_STACK=1
+          export SUPABASE_HOME="$RUNNER_TEMP/fc373-supabase-home"
+          workspace="$(mktemp -d "$RUNNER_TEMP/fc373-native-XXXXXXXX")"
+          mkdir -m 700 "$SUPABASE_HOME"
+          cd "$workspace"
+          cleanup() {
+            supabase stop > "$workspace/stop.log" 2>&1 || true
+            rm -rf -- "$workspace" "$SUPABASE_HOME"
+          }
+          trap cleanup EXIT
+          test "$(supabase --version)" = "3.2.0"
+          supabase init > init.log 2>&1
+          python3 - <<'PY'
+          import pathlib, re, tomllib
+          path=pathlib.Path("supabase/config.toml")
+          config=path.read_text()
+          config,n=re.subn(r'(?m)^major_version\s*=\s*\d+\s*$', 'major_version = 17', config)
+          assert n == 1
+          path.write_text(config)
+          assert tomllib.loads(config)["db"]["major_version"] == 17
+          PY
+          test ! -e supabase/.temp/project-ref
+          supabase stack prepare --help | grep -q -- '--runtime'
+          supabase start --help | grep -q -- '--runtime'
+          echo "FC373_CLI_PIN_AND_UNLINKED_PG17_CONFIG=PASS"
+          if ! supabase stack prepare --runtime native > prepare.log 2>&1; then
+            echo "::error::FC373_NATIVE_PREPARE_FAILED (private local log discarded)"
+            exit 1
+          fi
+          test -d "$SUPABASE_HOME/cache/stack"
+          count="$(find "$SUPABASE_HOME/cache/stack" -type f | wc -l)"
+          test "$count" -gt 0
+          echo "FC373_OFFICIAL_NATIVE_TOOL_PREPARATION=PASS files=$count"
+          if ! supabase start --runtime native > start.log 2>&1; then
+            echo "::error::FC373_NATIVE_START_FAILED (private local log discarded)"
+            exit 1
+          fi
+          supabase stack status --output-format json > status.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open("status.json"))
+          assert data.get("runtime") == "native", "Native runtime not confirmed"
+          print("FC373_NATIVE_RUNTIME=PASS")
+          PY
+          echo "FC373_HOSTED_BACKUP_NOT_EXECUTED"
+          echo "FC373_HOSTED_RESTORE_NOT_EXECUTED"
