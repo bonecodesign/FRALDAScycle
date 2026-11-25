@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/fc373-native-recovery.yml"
+      - "platform/tools/fc375-native-restore-lab.sh"
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,6 +18,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1, resolved in run 45518516391
         with:
           version: "3.2.0"
@@ -72,5 +76,9 @@ jobs:
           assert data.get("runtime") == "native", "Native runtime not confirmed"
           print("FC373_NATIVE_RUNTIME=PASS")
           PY
+          # New compatibility exercise: native PG17 archive with synthetic public
+          # rows, restored only in a second local database. Auth/Storage in
+          # the running Supabase instance remain untouched.
+          bash "$GITHUB_WORKSPACE/platform/tools/fc375-native-restore-lab.sh" "$workspace" "$SUPABASE_HOME"
           echo "FC373_HOSTED_BACKUP_NOT_EXECUTED"
           echo "FC373_HOSTED_RESTORE_NOT_EXECUTED"
