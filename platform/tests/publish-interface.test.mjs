@@ -32,9 +32,9 @@ async function appHarness(publishListing, withPhoto=true, draft={kind:'sale',pri
   const context={
     document:{get activeElement(){return activeElement},getElementById(){return null},querySelector(selector){return selector==='#publish-submit'?button:content},createElement:element},
     sessionStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)},
-    publishListing,publicationText,publicationLocationFields,validatePublicationDraft,renderPublicationIssues,preparePublicationAttempt,publicationAttemptFailed,listingPrice,notify:message=>notices.push(message),location:{},
+    publishListing,publicationText,publicationLocationFields,validatePublicationDraft,preparePublicationAttempt,publicationAttemptFailed,listingPrice,notify:message=>notices.push(message),location:{},
   };
-  vm.runInNewContext(source,context);
+  vm.runInNewContext('const renderPublicationIssues = '+renderPublicationIssues.toString()+';\n'+source,context);
   return {click,button,content,values,notices,get activeElement(){return activeElement}};
 }
 
