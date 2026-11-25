@@ -58,7 +58,9 @@ unset LD_LIBRARY_PATH
 export PATH="/usr/lib/postgresql/17/bin:$PATH"
 stage=client_version
 echo "FC375_STAGE=$stage"
-pg_dump --version | grep -E ' 17\\.' >/dev/null
+client_version="$(/usr/lib/postgresql/17/bin/pg_dump --version)"
+[[ "$client_version" =~ ^pg_dump[[:space:]]\(PostgreSQL\)[[:space:]]17[.] ]]
+echo "FC375_CLIENT_PG17=PASS"
 psql_local() { psql -X -qAt -v ON_ERROR_STOP=1 "$@"; }
 assert_local() {
   test "$(psql_local -c "SELECT current_setting('server_version_num')::int/10000=17 AND inet_server_addr() IN ('127.0.0.1'::inet,'::1'::inet)")" = t
