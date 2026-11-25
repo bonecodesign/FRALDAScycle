@@ -77,8 +77,8 @@ jobs:
           print("FC373_NATIVE_RUNTIME=PASS")
           PY
           # New compatibility exercise: native PG17 archive with synthetic public
-          # rows, restored only in a second local database. Auth/Storage in
-          # the running Supabase instance remain untouched.
+          # rows, restored only in a fresh, separately initialized local Native
+          # instance. Its managed Auth/Storage relations remain untouched.
           bash "$GITHUB_WORKSPACE/platform/tools/fc375-native-restore-lab.sh" "$workspace" "$SUPABASE_HOME"
           echo "FC373_HOSTED_BACKUP_NOT_EXECUTED"
           echo "FC373_HOSTED_RESTORE_NOT_EXECUTED"
