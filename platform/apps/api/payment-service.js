@@ -93,6 +93,22 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       }
     },
 
+    async intentStatus(buyerId, transactionId, intentId) {
+      const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if(!uuid.test(transactionId??'')||!uuid.test(intentId??'')) {
+        throw new PaymentError('invalid_payment_reference',422,'Referência de pagamento inválida.');
+      }
+      const row=await repository.intentStatus({buyerId,transactionId,intentId});
+      if(!row||row.id!==intentId.toLowerCase()||row.transaction_id!==transactionId.toLowerCase()){
+        throw new PaymentError('payment_not_found',404,'Pagamento não encontrado.');
+      }
+      const allowed=['provider_pending','pending','authorized','paid','failed','cancelled','refunded','disputed'];
+      if(!allowed.includes(row.status)||!Number.isSafeInteger(row.amount_cents)||row.amount_cents<0){
+        throw new PaymentError('payment_status_unavailable',503,'Estado financeiro indisponível.');
+      }
+      return {payment:{id:row.id,transactionId:row.transaction_id,status:row.status,amountCents:row.amount_cents,currency:'BRL'}};
+    },
+
     async checkoutPreview(buyerId, transactionId) {
       if (!/^[0-9a-f-]{36}$/i.test(String(transactionId ?? ""))) {
         throw new PaymentError("invalid_transaction", 422, "Transação inválida.");
