@@ -27,13 +27,26 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal(full.intent.status,'paid');assert.equal(full.intent.providerChargeCents,0);assert.equal(externalCalls.length,0);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[0]])).rows[0].n,1);
 
-  const mixed=await service.createIntent(ids.courier,{transactionId:transactions[1],idempotencyKey:'wallet-marketplace-mixed-0001',method:'pix',walletAmountCents:2000});
+  const mixedInput={transactionId:transactions[1],idempotencyKey:'wallet-marketplace-mixed-0001',method:'pix',walletAmountCents:2000};
+  const race=await Promise.allSettled([service.createIntent(ids.courier,mixedInput),service.createIntent(ids.courier,{...mixedInput,idempotencyKey:'wallet-marketplace-race-0002'})]);
+  assert.equal(race.filter(x=>x.status==='fulfilled').length,1);
+  assert.equal(race.find(x=>x.status==='rejected').reason.code,'payment_attempt_conflict');
+  const mixed=race.find(x=>x.status==='fulfilled').value;
+  const winnerKey=externalCalls[0].idempotencyKey;
+  assert.equal(externalCalls.length,1);
+  assert.equal((await service.createIntent(ids.courier,{...mixedInput,idempotencyKey:winnerKey})).reused,true);
+  await assert.rejects(service.createIntent(ids.seller,{...mixedInput,idempotencyKey:winnerKey}),error=>error.code==='transaction_not_found');
+  await assert.rejects(service.createIntent(ids.courier,{...mixedInput,idempotencyKey:winnerKey,walletAmountCents:1000}),error=>error.code==='payment_attempt_conflict');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_intents WHERE transaction_id=$1',[transactions[1]])).rows[0].n,1);
   assert.equal(mixed.intent.walletAmountCents,2000);assert.equal(mixed.intent.providerChargeCents,2000);assert.deepEqual({amount:externalCalls[0].amountCents,platform:externalCalls[0].platformFeeCents,seller:externalCalls[0].sellerAmountCents},{amount:2000,platform:160,seller:1840});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].n,0);
   const settled=await repository.processWebhook({id:'wallet-marketplace-paid-event-0001',type:'payment.paid',providerReference:'provider-1',amountCents:2000,occurredAt:new Date(),payloadHash:Buffer.from('wallet-marketplace-paid')});
   assert.equal(settled.status,'paid');assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[1]])).rows[0].status,'paid');
 
   await assert.rejects(service.createIntent(ids.courier,{transactionId:transactions[2],idempotencyKey:'wallet-marketplace-failure-0001',method:'pix',walletAmountCents:1000}),error=>error.code==='provider_offline');
+  // A failure may be ambiguous at the provider; no new key can charge again.
+  await assert.rejects(service.createIntent(ids.courier,{transactionId:transactions[2],idempotencyKey:'wallet-marketplace-after-failure-0002',method:'pix',walletAmountCents:1000}),error=>error.code==='payment_attempt_conflict');
+  assert.equal(externalCalls.length,2);
   const failed=(await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[2]])).rows[0];assert.equal(failed.status,'released');
   const balance=await wallet.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:3000,reserved:0});
 
