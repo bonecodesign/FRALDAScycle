@@ -123,6 +123,16 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
       WHERE id=$1 AND status='submitted' RETURNING *`,[cancellationId,failureCode])).rows[0];if(refund)await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata)
       VALUES($1,'refund.execution.failed','supported_cancellation',$2,$3::jsonb)`,[actorId,cancellationId,JSON.stringify({failureCode})]);return refund;});},
 
+    // Read-only, buyer-scoped status. Never return provider payloads or secrets.
+    async intentStatus({ buyerId, transactionId, intentId }) {
+      const result = await database.query(`
+        SELECT p.id,p.transaction_id,p.status,p.amount_cents
+        FROM payment_intents p JOIN transactions t ON t.id=p.transaction_id
+        WHERE p.id=$1 AND p.transaction_id=$2 AND p.buyer_id=$3 AND t.buyer_id=$3
+      `,[intentId,transactionId,buyerId]);
+      return result.rows[0] ?? null;
+    },
+
     async checkoutPreview({ buyerId, transactionId }) {
       const result = await database.query(`
         SELECT t.id, t.status, t.amount_cents, l.kind,u.role AS buyer_role,
