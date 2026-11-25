@@ -24,6 +24,21 @@ jobs:
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1, resolved in run 45518516391
         with:
           version: "3.2.0"
+      - name: Ensure PostgreSQL 17 host client (temporary standard runner)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -x /usr/lib/postgresql/17/bin/pg_dump ]]; then
+            sudo apt-get update -qq
+            if ! apt-cache show postgresql-client-17 >/dev/null 2>&1; then
+              sudo install -d -m 0755 /usr/share/postgresql-common/pgdg
+              sudo curl --fail --silent --show-error --location https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+              echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/fc375-pgdg.list >/dev/null
+              sudo apt-get update -qq
+            fi
+            sudo apt-get install -y -qq --no-install-recommends postgresql-client-17
+          fi
+          /usr/lib/postgresql/17/bin/pg_dump --version
       - name: Prepare official native runtime in a new unlinked workspace
         shell: bash
         run: |
@@ -61,7 +76,7 @@ jobs:
           grep -F -- '--runtime' start-help.txt >/dev/null
           echo "FC373_CLI_PIN_AND_UNLINKED_PG17_CONFIG=PASS"
           # start downloads the verified official tools on first execution.
-          if ! supabase stack start --runtime native > start.log 2>&1; then
+          if ! supabase stack start --runtime native --eager > start.log 2>&1; then
             echo "::error::FC373_NATIVE_START_FAILED (private local log discarded)"
             exit 1
           fi
