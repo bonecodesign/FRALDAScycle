@@ -111,8 +111,48 @@ async function setupRealPayments(){
 // Loading a result route is never proof of settlement. Server authorization
 // remains the source of truth for chat and all subsequent actions.
 
+async function setupPaymentStatus(){
+  const panel=document.getElementById('payment-success-content');
+  if(!panel)return;
+  const message=document.getElementById('payment-status-message');
+  const amount=document.getElementById('payment-status-amount');
+  const refresh=document.getElementById('payment-status-refresh');
+  if(!message||!amount||!refresh)return;
+  const labels=Object.freeze({
+    provider_pending:'Solicitação registrada. Aguardando envio ao provedor.',
+    pending:'Pagamento pendente. Aguarde a confirmação.',
+    authorized:'Pagamento autorizado. A confirmação financeira ainda está pendente.',
+    paid:'Pagamento confirmado pelo servidor.',
+    failed:'Pagamento não confirmado. Consulte o suporte antes de tentar novamente.',
+    cancelled:'Pagamento cancelado.',
+    refunded:'Pagamento reembolsado.',
+    disputed:'Pagamento em contestação.',
+  });
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  let busy=false;
+  async function load(){
+    if(busy)return;
+    busy=true;refresh.disabled=true;panel.setAttribute('aria-busy','true');
+    message.textContent='Consultando a situação do pagamento…';amount.textContent='';
+    try{
+      const tx=sessionStorage.getItem('fc.activeTransactionId'),id=sessionStorage.getItem('fc.paymentIntentId');
+      if(!uuid.test(tx??'')||!uuid.test(id??''))throw Error('missing');
+      const {payment}=await apiRequest('/v1/transactions/'+encodeURIComponent(tx)+'/payments/'+encodeURIComponent(id)+'/status');
+      if(payment?.id!==id.toLowerCase()||payment.transactionId!==tx.toLowerCase()||payment.currency!=='BRL'||
+        !Object.hasOwn(labels,payment.status)||!Number.isSafeInteger(payment.amountCents)||payment.amountCents<0||
+        sessionStorage.getItem('fc.activeTransactionId')!==tx||sessionStorage.getItem('fc.paymentIntentId')!==id)throw Error('invalid');
+      message.textContent=labels[payment.status];
+      if(payment.status==='paid')amount.textContent='Valor confirmado: '+paymentMoney(payment.amountCents);
+    }catch{message.textContent='Não foi possível confirmar a situação do pagamento. Atualize a consulta ou procure o suporte.';}
+    finally{busy=false;refresh.disabled=false;panel.setAttribute('aria-busy','false');}
+  }
+  refresh.addEventListener('click',load);
+  await load();
+}
+
 setupPaymentFlow();
 void setupRealPayments();
+void setupPaymentStatus();
 void setupWallet();
 setupRealPaymentCases();
 setupWalletLogisticsExtras();
