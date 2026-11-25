@@ -195,8 +195,19 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
         billingCpf = verifyBillingCpf(input?.billingCpf, identity.cpf_fingerprint, cpfHmacSecret);
       }
 
+      const requestedWalletAmount=Number(input?.walletAmountCents??0);
+      if(!Number.isSafeInteger(requestedWalletAmount)||requestedWalletAmount<0){
+        throw new PaymentError('wallet_amount_unavailable',409,'O saldo selecionado não está disponível.');
+      }
       const context = await repository.context({ buyerId, transactionId, idempotencyKey });
-      if (context.existing) return { intent: publicIntent(context.intent), reused: true };
+      if(context.existing){
+        const prior=context.intent;
+        if(prior?.buyer_id!==buyerId||prior.transaction_id!==transactionId.toLowerCase()||
+           prior.method!==method||Number(prior.wallet_amount_cents??0)!==requestedWalletAmount||input.deliveryRequested){
+          throw new PaymentError('payment_attempt_conflict',409,'A tentativa anterior não corresponde ao pagamento solicitado.');
+        }
+        return {intent:publicIntent(prior),reused:true};
+      }
       const transaction = context.transaction;
       if (!transaction) throw new PaymentError("transaction_not_found", 404, "Transação não encontrada.");
       if (!PAYABLE_STATUSES.has(transaction.status)) throw new PaymentError("transaction_not_payable", 409, "Esta transação não pode ser paga.");
