@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-23",
+  "updatedAt": "2026-11-25",
   "baseline": "28b5870dc7873e5874424c9ba9ee4489e578faf6",
   "denominator": 70,
   "requirements": [
@@ -1076,7 +1076,7 @@
         "tests/notification-device-service.test.mjs",
         "tests/incident-critical-notification.test.mjs",
         "database/migrations/172_required_operational_notices.sql",
-    "database/migrations/176_required_operational_notification_kind.sql",
+        "database/migrations/176_required_operational_notification_kind.sql",
         "tests/paid-party-contact-http-postgres.test.mjs",
         "tests/logistics.test.mjs",
         "tests/receipt-records.test.mjs",
@@ -1269,8 +1269,8 @@
         "docs/real-isolated-recovery-fc348.md",
         "docs/recovery-synthetic-rls-fc349.md"
       ],
-      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita. Em 10/11/2026, o portão de recuperação passou a fixar para o piloto backup a cada 60 minutos, RPO de 60 minutos, RTO de 240 minutos, retenção imutável de 30 dias e ensaio mensal; ele recusa metas inseguras, campos desconhecidos e alegações prematuras de prontidão. Testes usam somente transporte e dados sintéticos. Não há prova de retenção, criptografia ou restauração no provedor real. FC-347/348/349 (22-23/11/2026), PRs #347-349, CI 5/5: código limita intenção de armazenamento ao App Folder do Dropbox; dois PostgreSQL 17 fictícios e isolados passaram por dump criptografado, restauração SQL e conferência de política RLS. Não houve backup do Supabase-BR, upload externo, WORM, backup periódico nem prova RPO/RTO.",
-      "reason": "Fundação local, objetivos mensuráveis, runbook e adaptador de armazenamento protegido estão preparados. Bucket, KMS, cofre, acesso operacional, agenda e recuperação em infraestrutura real ainda não foram homologados."
+      "evidence": "Backup local privado, publicação atômica, checksum e restauração continuam comprovados. O adaptador externo inativo revalida integridade e exige HTTPS, não sobrescrita, KMS, checksum do provedor, Object Lock e retenção explícita. Em 10/11/2026, o portão de recuperação passou a fixar para o piloto backup a cada 60 minutos, RPO de 60 minutos, RTO de 240 minutos, retenção imutável de 30 dias e ensaio mensal; ele recusa metas inseguras, campos desconhecidos e alegações prematuras de prontidão. Testes usam somente transporte e dados sintéticos. Naquela etapa não havia prova de retenção, criptografia ou restauração no provedor real. FC-347/348/349 (22-23/11/2026), PRs #347-349, CI 5/5: código limita intenção de armazenamento ao App Folder do Dropbox; dois PostgreSQL 17 fictícios e isolados passaram por dump criptografado, restauração SQL e conferência de política RLS. Até FC-349 não houve backup do Supabase-BR, upload externo, WORM, backup periódico nem prova RPO/RTO. Atualização FC-397/404 (25/11/2026), evidências privadas registradas e referenciadas pela issue #339: recuperação lógica do escopo histórico em PostgreSQL Native isolado (173 migrações, 204/204 tabelas de origem, 517/517 registros, 20/20 sequências, 30/30 categorias no escopo original, 25/30 sem filtro, 18/18 testes funcionais sintéticos). Redundância dos seis componentes cifrados em GitHub privado e Dropbox, conferida por hashes do provedor contra bytes locais, e descriptografia autenticada registrada 6/6. Sem download binário independente do Dropbox. FC-399, PR #375, CI 5/5, reforça os limites aprovados. Não é pg_dump nativo do hospedado, prova de paridade integral de metadados, custódia independente da chave, WORM, RPO/RTO medidos, agendamento ou alertas.",
+      "reason": "Recuperação lógica histórica e redundância externa dos seis componentes registradas. Faltam exportação nativa hospedada, validação suplementar integral, custódia independente da chave, controles de armazenamento/KMS/cofre/operadores, retenção imutável, rotina e alertas verificados, RPO/RTO medidos e revisão independente. Sem promoção de estado ou liberação."
     },
     {
       "id": 58,
@@ -1305,7 +1305,7 @@
         "tests/observability.test.mjs",
         "docs/recovery-synthetic-rls-fc349.md"
       ],
-      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática. Em 10/11/2026, um inventário executável passou a exigir cobertura de toda chave aceita pelo runtime, rotação padrão em até 90 dias, banco em até 180 dias, revogação emergencial em até 60 minutos e aprovação 3→4→5. Novas chaves sem política, prazos enfraquecidos e alegações prematuras de ativação falham nos testes. Identidades e cofre reais continuam pendentes. FC-347/349 (22-23/11/2026) reforçam intenção de menor privilégio no App Folder do backup e ensaio de restauração de RLS com identidade restrita, sem expor segredos. Não comprovam permissões OAuth reais, cofre, rotação, TLS da API hospedada, CA oficial ou autenticação do executor.",
+      "evidence": "O adaptador do cofre aceita somente HTTPS e chaves secretas permitidas. Manifesto versionado limita chaves por serviço; governança recusa escopos desconhecidos e o plano de rotação não recebe valores, exige sobreposição limitada e proíbe revogação automática. Em 10/11/2026, um inventário executável passou a exigir cobertura de toda chave aceita pelo runtime, rotação padrão em até 90 dias, banco em até 180 dias, revogação emergencial em até 60 minutos e aprovação 3→4→5. Novas chaves sem política, prazos enfraquecidos e alegações prematuras de ativação falham nos testes. Identidades e cofre reais continuam pendentes. FC-347/349 (22-23/11/2026) reforçam intenção de menor privilégio no App Folder do backup e ensaio de restauração de RLS com identidade restrita, sem expor segredos. Não comprovam permissões OAuth reais, cofre, rotação, TLS da API hospedada, CA oficial ou autenticação do executor. FC-403/404 (25/11/2026): transporte de ZIP previamente cifrado por Actions privado, sem segredos do banco ou token OAuth no runner; envio ao Dropbox via conector autorizado. Evidência de segregação do transporte, não de configuração dos seis Secrets, custódia independente da chave, TLS verify-full da API hospedada, escopos App Folder ou rotação real. Não promove o requisito.",
       "reason": "Allowlist, separação por serviço, inventário completo, prazos e contrato de rotação/revogação estão preparados; identidades, cofre, logs e exercício real ainda não foram homologados."
     },
     {
