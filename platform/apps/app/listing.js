@@ -18,6 +18,13 @@ function showError(message) {
 }
 
 async function beginPurchase(listing, itemUnits, button, feedback) {
+  if (button.disabled) return;
+  const availableUnits = availablePackageUnits(listing);
+  if (listing.status !== 'published' || listing.kind !== 'sale' ||
+      !Number.isInteger(itemUnits) || itemUnits < 1 || itemUnits > availableUnits) {
+    feedback.textContent = 'Quantidade indisponível. Atualize o anúncio e tente novamente.';
+    return;
+  }
   button.disabled = true;
   button.textContent = 'Iniciando operação…';
   feedback.textContent = '';
@@ -38,6 +45,13 @@ async function beginPurchase(listing, itemUnits, button, feedback) {
   }
 }
 
+// The database constrains package stock to 1..5. A malformed or missing
+// availability response must never create an unbounded selector or permit a purchase.
+function availablePackageUnits(listing) {
+  const value = listing.available_units??listing.stock_units;
+  return Number.isInteger(value) && value >= 0 && value <= 5 ? value : 0;
+}
+
 async function loadListing() {
   if (!listingId) return showError('Anúncio não selecionado. Volte à busca e escolha um item disponível.');
   try {
@@ -51,7 +65,7 @@ async function loadListing() {
       ? 'Pacote fechado'
       : listing.kind === 'donation' && listing.package_condition === 'open' ? 'Pacote aberto' : 'Condição não confirmada';
     article.append(element('p', condition + ' · ' + (listing.size ?? 'Tamanho não informado') + ' · ' + Number(listing.quantity) + ' fraldas por pacote'));
-    const availableUnits=Math.max(0,Number(listing.available_units??listing.stock_units??1));
+    const availableUnits=availablePackageUnits(listing);
     article.append(element('p',availableUnits===1?'1 pacote disponível':`${availableUnits} pacotes disponíveis`,'muted'));
     if (listing.kind === 'donation') {
       article.append(element('p', 'Doações são encaminhadas à instituição indicada. Pacotes abertos só são aceitos quando as unidades estão sem uso e a higiene foi confirmada.', 'notice'));
@@ -63,7 +77,9 @@ async function loadListing() {
     }
 
     const feedback = element('p', '', 'field-error');
-    if (listing.status === 'published' && listing.kind === 'sale') {
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    if (listing.status === 'published' && listing.kind === 'sale' && availableUnits > 0) {
       const quantityLabel=element('label','Quantidade de pacotes','form-group');
       const selector=document.createElement('select');selector.className='input';selector.setAttribute('aria-label','Quantidade de pacotes');
       for(let units=1;units<=availableUnits;units++){const option=document.createElement('option');option.value=String(units);option.textContent=String(units);selector.append(option)}
@@ -72,7 +88,7 @@ async function loadListing() {
       button.type = 'button';
       button.addEventListener('click', () => void beginPurchase(listing, Number(selector.value), button, feedback));
       article.append(button);
-    } else if (listing.status === 'published' && listing.kind === 'exchange') {
+    } else if (listing.status === 'published' && listing.kind === 'exchange' && availableUnits > 0) {
       const link = element('a', 'Escolher meu anúncio para propor a troca', 'button primary block');
       link.href = `/app/exchange?requestedListingId=${encodeURIComponent(listing.id)}`;
       article.append(link);
