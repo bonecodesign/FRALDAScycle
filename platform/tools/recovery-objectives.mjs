@@ -18,10 +18,11 @@ export function validateRecoveryObjectives(value) {
     const o = value.objectives;
     for (const key of objectiveKeys) if (!Number.isInteger(o[key]) || o[key] < 1) errors.push(`objectives.${key} must be a positive integer`);
     if (o.backupIntervalMinutes > o.rpoMinutes) errors.push("backup interval cannot exceed RPO");
-    if (o.rpoMinutes > 1440) errors.push("RPO cannot exceed 24 hours");
-    if (o.rtoMinutes > 1440) errors.push("RTO cannot exceed 24 hours");
+    if (o.backupIntervalMinutes > 60) errors.push("backup interval cannot exceed 60 minutes");
+    if (o.rpoMinutes > 60) errors.push("RPO cannot exceed 60 minutes");
+    if (o.rtoMinutes > 240) errors.push("RTO cannot exceed 240 minutes");
     if (o.immutableRetentionDays < 30 || o.immutableRetentionDays > 365) errors.push("immutable retention must be between 30 and 365 days");
-    if (o.restoreDrillIntervalDays > 90) errors.push("restore drill interval cannot exceed 90 days");
+    if (o.restoreDrillIntervalDays > 30) errors.push("restore drill interval cannot exceed 30 days");
   }
   const gates = ["externalStorageProvisioned", "kmsProvisioned", "vaultProvisioned", "operatorAccessApproved", "scheduledBackupVerified", "externalRestoreVerified", "alertsVerified"];
   if (!exactKeys(value.activationGates, gates) || gates.some((key) => value.activationGates[key] !== false)) errors.push("all external activation gates must remain false before provisioning");

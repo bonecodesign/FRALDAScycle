@@ -55,3 +55,26 @@ test("recovery objectives reject optimistic external gates and invalid time targ
     assert.equal(validateRecoveryObjectives(candidate).valid, false, key);
   }
 });
+
+test("approved pilot maximums cannot be weakened even together", async () => {
+  const { manifest } = await inspectRecoveryObjectives();
+  for (const patch of [
+    { backupIntervalMinutes: 61, rpoMinutes: 61 },
+    { rpoMinutes: 61 },
+    { rtoMinutes: 241 },
+    { restoreDrillIntervalDays: 31 },
+  ]) {
+    const candidate = structuredClone(manifest);
+    Object.assign(candidate.objectives, patch);
+    assert.equal(validateRecoveryObjectives(candidate).valid, false, JSON.stringify(patch));
+  }
+});
+
+test("stricter pilot targets remain valid without claiming activation", async () => {
+  const { manifest } = await inspectRecoveryObjectives();
+  Object.assign(manifest.objectives, {
+    backupIntervalMinutes: 30, rpoMinutes: 45, rtoMinutes: 120,
+    immutableRetentionDays: 60, restoreDrillIntervalDays: 15,
+  });
+  assert.equal(validateRecoveryObjectives(manifest).valid, true);
+});
