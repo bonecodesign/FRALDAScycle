@@ -67,7 +67,14 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       if (reason.length < 2 || reason.length > 80) throw new PaymentError("invalid_case_reason", 422, "Selecione um motivo válido.");
       if (details.length < 10 || details.length > 2000) throw new PaymentError("invalid_case_details", 422, "Descreva a situação com pelo menos 10 caracteres.");
       const context = await repository.caseContext({ requesterId, intentId, idempotencyKey });
-      if (context.existing) return { paymentCase: context.paymentCase, reused: true };
+      if(context.existing){
+        const prior=context.paymentCase;
+        if(prior?.requester_id!==requesterId||prior.payment_intent_id!==intentId.toLowerCase()||
+           prior.kind!==kind||prior.reason!==reason||prior.details!==details){
+          throw new PaymentError('payment_case_conflict',409,'A solicitação anterior não corresponde aos dados informados.');
+        }
+        return {paymentCase:{id:prior.id,status:prior.status},reused:true};
+      }
       const intent = context.intent;
       if (!intent) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
       if (!intent.provider_reference) throw new PaymentError("payment_not_submitted", 409, "Pagamento ainda não foi enviado ao provedor.");
@@ -77,6 +84,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       if (!allowed) throw new PaymentError("payment_case_not_allowed", 409, "Esta solicitação não está disponível para o pagamento.");
       const created = await repository.createCase({
         requesterId, intentId, kind, idempotencyKey, reason, details,
+        expectedProviderReference:intent.provider_reference,expectedAmountCents:intent.amount_cents,
       });
       try {
         const remote = await provider.createCase({
@@ -86,7 +94,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
         const attached = await repository.attachCaseProvider({
           caseId: created.id, providerReference: remote.providerReference, status: remote.status,
         });
-        return { paymentCase: attached, reused: false };
+        return { paymentCase: {id:attached.id,status:attached.status}, reused: false };
       } catch (error) {
         await repository.markCaseFailure({ caseId: created.id, failureCode: error.code ?? "provider_error" });
         throw error;
