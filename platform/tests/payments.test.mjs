@@ -145,11 +145,13 @@ test("payment persistence updates transaction and audit atomically", async () =>
     method: "pix", amountCents: 10_000, platformFeeCents: 800,
     deliveryFeeCents: 500, sellerAmountCents: 8_700,
   });
-  assert.equal(statements.length, 4);
+  assert.equal(statements.length, 5);
   assert.match(statements[0].text, /FOR UPDATE/);
-  assert.match(statements[1].text, /INSERT INTO payment_intents/);
-  assert.match(statements[2].text, /status = 'payment_pending'/);
-  assert.match(statements[3].text, /payment\.intent\.created/);
+  assert.match(statements[1].text, /SELECT id FROM payment_intents WHERE transaction_id/);
+  assert.match(statements[2].text, /INSERT INTO payment_intents/);
+  assert.match(statements[2].text, /ON CONFLICT \(idempotency_key\) DO NOTHING/);
+  assert.match(statements[3].text, /status = 'payment_pending'/);
+  assert.match(statements[4].text, /payment\.intent\.created/);
 });
 
 test("payment HTTP endpoint requires an authenticated buyer", async (context) => {
