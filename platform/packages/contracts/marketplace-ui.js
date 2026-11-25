@@ -107,31 +107,53 @@ function currentCoordinates() {
   });
 }
 
-export async function renderAppSearch() {
-  const results = document.querySelector("#app-search-results");
-  const button = document.querySelector("#app-search-submit");
-  const input = document.querySelector("#app-search-input");
+export async function renderAppSearch({ root = document, search = loadLiveSearch, coordinates = currentCoordinates } = {}) {
+  const results = root.querySelector("#app-search-results");
+  const button = root.querySelector("#app-search-submit");
+  const input = root.querySelector("#app-search-input");
+  const type = root.querySelector("#app-filter-type");
+  const size = root.querySelector("#app-filter-size");
   if (!results || !button || !input) return;
+  let generation = 0;
+  root.querySelector("#app-filter-reset")?.addEventListener("click", () => {
+    generation += 1;
+    input.value = "";
+    if (type) type.value = "";
+    if (size) size.value = "";
+    button.disabled = false;
+    button.textContent = "Buscar anúncios";
+    results.setAttribute("aria-busy", "false");
+    results.innerHTML = '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Faça uma busca</h2><p>Os resultados serão consultados diretamente no marketplace.</p></div>';
+    input.focus();
+  });
   button.addEventListener("click", async (event) => {
     event.stopImmediatePropagation();
+    if (button.disabled) return;
+    const request = ++generation;
+    const filters = { surface: "app", query: input.value.trim(), kind: type?.value, size: size?.value };
     button.disabled = true;
+    results.setAttribute("aria-busy", "true");
     results.innerHTML = '<div class="ui-state loading-state" role="status"><div class="skeleton-stack"><i></i><i></i><i></i></div><p>Buscando itens próximos...</p></div>';
     try {
-      const coordinates = await currentCoordinates();
-      const { items, markup } = await loadLiveSearch({
-        surface: "app", query: input.value.trim(),
-        kind: document.querySelector("#app-filter-type")?.value,
-        size: document.querySelector("#app-filter-size")?.value,
-        ...coordinates,
-      });
+      const location = await coordinates();
+      if (request !== generation) return;
+      const { items, markup } = await search({ ...filters, ...location });
+      if (request !== generation) return;
       results.innerHTML = items.length ? `<div class="section-head compact"><h2>${items.length} resultados</h2><span class="muted">Dados reais</span></div><div class="phone-list">${markup}</div>` : '<div class="ui-state empty-state"><div class="state-icon">⌕</div><h2>Nenhum item encontrado</h2><p>Tente outro termo ou tamanho.</p></div>';
       bindFavoriteButtons(results);
     } catch (error) {
+      if (request !== generation) return;
       renderSafeErrorState(results, {
         heading: "Não foi possível buscar",
         message: error?.message,
       });
-    } finally { button.disabled = false; button.textContent = "Buscar novamente"; }
+    } finally {
+      if (request === generation) {
+        button.disabled = false;
+        button.textContent = "Buscar novamente";
+        results.setAttribute("aria-busy", "false");
+      }
+    }
   }, true);
 }
 
