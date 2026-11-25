@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1, resolved in run 45518516391
         with:
           version: "3.2.0"
       - name: Prepare official native runtime in a new unlinked workspace
@@ -32,12 +32,14 @@ jobs:
           mkdir -m 700 "$SUPABASE_HOME"
           cd "$workspace"
           cleanup() {
-            supabase stop > "$workspace/stop.log" 2>&1 || true
+            supabase stack stop > "$workspace/stop.log" 2>&1 || true
             rm -rf -- "$workspace" "$SUPABASE_HOME"
           }
           trap cleanup EXIT
           test "$(supabase --version)" = "3.2.0"
+          echo "FC373_CLI_VERSION=PASS"
           supabase init > init.log 2>&1
+          echo "FC373_INIT=PASS"
           python3 - <<'PY'
           import pathlib, re, tomllib
           path=pathlib.Path("supabase/config.toml")
@@ -48,21 +50,21 @@ jobs:
           assert tomllib.loads(config)["db"]["major_version"] == 17
           PY
           test ! -e supabase/.temp/project-ref
-          supabase stack prepare --help | grep -q -- '--runtime'
-          supabase start --help | grep -q -- '--runtime'
+          # Capture full help before checking flags: avoid grep -q / SIGPIPE
+          # under pipefail, and use explicit stack commands rather than aliases.
+          supabase stack start --help > start-help.txt 2>&1
+          cat start-help.txt
+          grep -F -- '--runtime' start-help.txt >/dev/null
           echo "FC373_CLI_PIN_AND_UNLINKED_PG17_CONFIG=PASS"
-          if ! supabase stack prepare --runtime native > prepare.log 2>&1; then
-            echo "::error::FC373_NATIVE_PREPARE_FAILED (private local log discarded)"
+          # start downloads the verified official tools on first execution.
+          if ! supabase stack start --runtime native > start.log 2>&1; then
+            echo "::error::FC373_NATIVE_START_FAILED (private local log discarded)"
             exit 1
           fi
           test -d "$SUPABASE_HOME/cache/stack"
           count="$(find "$SUPABASE_HOME/cache/stack" -type f | wc -l)"
           test "$count" -gt 0
           echo "FC373_OFFICIAL_NATIVE_TOOL_PREPARATION=PASS files=$count"
-          if ! supabase start --runtime native > start.log 2>&1; then
-            echo "::error::FC373_NATIVE_START_FAILED (private local log discarded)"
-            exit 1
-          fi
           supabase stack status --output-format json > status.json
           python3 - <<'PY'
           import json
