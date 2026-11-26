@@ -88,6 +88,34 @@ jobs:
           printf 'FC-434 runner logical CPUs: '; getconf _NPROCESSORS_ONLN
           awk '/^MemTotal:/ {print "FC-434 runner memory KiB: " $2}' /proc/meminfo
           /usr/bin/time -f 'FC-434 sequential elapsed_s=%e user_cpu_s=%U system_cpu_s=%S max_single_process_rss_kib=%M exit=%x' node tools/media-local-chain.mjs
+      - name: FC-435 measure aggregate media memory under a constrained synthetic host envelope
+        working-directory: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Separate disposable cgroup, not the planned VPS or a production SLA.
+          # Execute repository code as the ordinary runner, never as root.
+          # One CPU of quota and 2 GiB total memory (including children/cache).
+          test "$(stat -fc %T /sys/fs/cgroup)" = cgroup2fs
+          sudo systemd-run --wait --pipe --collect \
+            --uid="$(id -u)" --gid="$(id -g)" --working-directory="$PWD" \
+            --setenv="PATH=$PATH" --setenv="PYTHON=$(command -v python)" \
+            --property=CPUQuota=100% --property=MemoryMax=2G \
+            --property=MemorySwapMax=0 --property=RuntimeMaxSec=180 \
+            /bin/bash -eu -c '
+              cg=$(sed -n "s/^0:://p" /proc/self/cgroup)
+              test -n "$cg"
+              dir="/sys/fs/cgroup$cg"
+              test "$(cat "$dir/memory.max")" = 2147483648
+              test "$(cat "$dir/memory.swap.max")" = 0
+              awk "\$1 != \$2 {exit 1}" "$dir/cpu.max"
+              test -r "$dir/memory.peak"
+              printf "FC-435 memory.max bytes: "; cat "$dir/memory.max"
+              printf "FC-435 cpu.max: "; cat "$dir/cpu.max"
+              /usr/bin/time -f "FC-435 elapsed_s=%e exit=%x" node tools/media-local-chain.mjs
+              printf "FC-435 aggregate memory.peak bytes: "; cat "$dir/memory.peak"
+              awk "/^oom / || /^oom_kill / {print \"FC-435 memory.events \" \$0; if (\$2 != 0) bad=1} END {exit bad}" "$dir/memory.events"
+            '
       - name: Exercise bounded concurrent real-AV artificial listing batches
         working-directory: platform
         shell: bash
