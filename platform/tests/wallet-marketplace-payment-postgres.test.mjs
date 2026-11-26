@@ -54,6 +54,16 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   const wrongAmount={...earlyEvent,id:'wallet-marketplace-wrong-amount-0001',amountCents:1999,payloadHash:Buffer.from('wrong-amount')};
   assert.deepEqual(await repository.processWebhook(wrongAmount),{amountMismatch:true});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[wrongAmount.id])).rows[0].n,0);
+  // FC-423: model an inconsistent reservation without a real financial operation.
+  const priorBalance=await wallet.summary(ids.courier);
+  await db.query('UPDATE courier_wallet_accounts SET reserved_cents=0 WHERE courier_id=$1',[ids.courier]);
+  assert.deepEqual(await repository.processWebhook(earlyEvent),{stateConflict:true});
+  assert.equal((await db.query('SELECT status FROM payment_intents WHERE id=$1',[mixed.intent.id])).rows[0].status,'pending');
+  assert.equal((await db.query('SELECT status FROM transactions WHERE id=$1',[transactions[1]])).rows[0].status,'payment_pending');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[earlyEvent.id])).rows[0].n,0);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].n,0);
+  assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE payment_intent_id=$1',[mixed.intent.id])).rows[0].status,'reserved');
+  await db.query('UPDATE courier_wallet_accounts SET reserved_cents=$2 WHERE courier_id=$1',[ids.courier,priorBalance.reserved_cents]);
   const settled=await repository.processWebhook(earlyEvent);
   assert.deepEqual(await repository.processWebhook(earlyEvent),{duplicate:true});
   assert.deepEqual(await repository.processWebhook({...earlyEvent,payloadHash:Buffer.from('changed-content')}),{eventConflict:true});
