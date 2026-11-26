@@ -256,7 +256,7 @@ test("duplicate financial webhook is acknowledged without repeating side effects
   let calls = 0;
   const repository = createPaymentRepository({
     async transaction(operation) {
-      return operation({ async query() { calls += 1; return { rows: [] }; } });
+      return operation({ async query() { calls += 1; return { rows: calls===1?[]:[{payload_hash:Buffer.from("hash")}] }; } });
     },
     async query() { return { rows: [] }; },
   });
@@ -265,7 +265,7 @@ test("duplicate financial webhook is acknowledged without repeating side effects
     amountCents: 10_000, occurredAt: new Date(), payloadHash: Buffer.from("hash"),
   });
   assert.deepEqual(result, { duplicate: true });
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
 });
 
 test("signed payment webhook endpoint is public to the provider but never unsigned", async (context) => {
@@ -580,4 +580,15 @@ test("checkout breakdown route requires authentication and does not expose cache
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+});
+
+test("FC-418: repeated webhook identifier with changed content is rejected",async()=>{
+  const calls=[];
+  const repo=createPaymentRepository({transaction:async operation=>operation({async query(sql){calls.push(sql);return{rows:calls.length===1?[]:[{payload_hash:Buffer.from("original")}]}}})});
+  const event={id:"same-event",type:"payment.paid",providerReference:"pay",amountCents:100,occurredAt:new Date(),payloadHash:Buffer.from("changed")};
+  assert.deepEqual(await repo.processWebhook(event),{eventConflict:true});
+  assert.equal(calls.length,2);
+  assert.match(calls[1],/SELECT payload_hash/);
+  const service=createPaymentService({async processWebhook(){return{eventConflict:true}}},{});
+  await assert.rejects(service.processWebhook(event),e=>e.status===409&&e.code==="payment_event_conflict");
 });
