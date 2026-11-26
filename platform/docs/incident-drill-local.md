@@ -6,13 +6,13 @@ Este roteiro prepara uma sessão interna com dados fictícios. Sua existência n
 
 O modelo interno mínimo foi aprovado em 29 de outubro de 2026 e está registrado em `docs/decisions/FC-DEC-2026-10-29-responsaveis-incidentes.md`: fundador na triagem e decisão final, responsável técnico pela contenção e recuperação, substituto técnico e observador independente. As quatro funções não podem ser acumuladas na sessão validada. O exercício deve ocorrer antes do piloto e, depois, a cada seis meses, com execução extraordinária após mudanças materiais ou incidentes altos/críticos. Nomes, aceites e exercício humano continuam pendentes.
 
-Na fase inicial, a retomada exige aprovação conjunta do fundador e do responsável técnico. A futura autonomia do responsável técnico permanece inativa até dois exercícios humanos aprovados, 90 dias de piloto sem incidente crítico e decisão formal do fundador. A autonomia volta a ser suspensa diante dos gatilhos definidos na decisão operacional.
+Na fase inicial, a retomada exige proposta do nível 3, revisão independente do nível 4 e autorização final do fundador nível 5, com confirmação reforçada individual. A futura autonomia do responsável técnico permanece inativa até dois exercícios humanos aprovados, 90 dias de piloto sem incidente crítico e decisão formal do fundador. A autonomia volta a ser suspensa diante dos gatilhos definidos na decisão operacional.
 
 Na fase madura, o fundador é avisado imediatamente sobre incidente crítico, em até duas horas sobre incidente alto e por relatório em até 24 horas sobre incidente médio ou baixo. Incidente crítico suspende a autonomia técnica e restaura a aprovação conjunta.
 
 O canal crítico previsto é painel interno, e-mail e WhatsApp oficial. No WhatsApp, um botão pode iniciar bloqueio preventivo; qualquer retomada abre a área autenticada da FraldaCycle e exige segundo fator e as aprovações vigentes. Texto livre nunca autoriza ação operacional. Até a contratação e homologação do canal oficial, o WhatsApp permanece inativo.
 
-O painel técnico `/admin/operations` já registra incidentes, atribuição, contenção, monitoramento, resolução e histórico. Também pausa separadamente novas cobranças, reembolsos e preparação de repasses, sem editar saldo ou executar transferência. Aprovação conjunta, segundo fator e WhatsApp permanecem gates posteriores.
+O painel técnico `/admin/operations` já registra incidentes, atribuição, contenção, monitoramento, resolução e histórico. Também pausa separadamente novas cobranças, reembolsos e preparação de repasses, sem editar saldo ou executar transferência. A sequência local de três aprovações e o segundo fator por e-mail sintético estão implementados; a homologação humana, a entrega real de e-mail e o WhatsApp permanecem pendentes.
 
 ## Preparação
 
@@ -49,7 +49,7 @@ O exercício abrange três cenários independentes: falha de pagamento com suspe
 
 ### Retomada com aprovação conjunta
 
-A retomada operacional começa com proposta autenticada de um responsável interno entre os níveis 2 e 4. A proposta não altera o estado pausado. Somente o fundador nível 5, em sessão separada e com nova confirmação por senha e código de e-mail, pode autorizar ou rejeitar. O fundador não pode propor e autorizar a mesma retomada; mudança concorrente de versão invalida a solicitação.
+A retomada operacional começa com proposta autenticada de nível 3, seguida de revisão independente de nível 4 e autorização final de nível 5. As três contas são distintas e cada etapa consome sua própria confirmação por senha e código de e-mail. Proposta e revisão não alteram o estado pausado; ausência, recusa ou conflito de versão bloqueiam a retomada. O observador independente não opera os controles. A escala real e a composição dos papéis no exercício precisam de validação humana prévia.
 
 As funções de responsável técnico, substituto técnico e observador independente são nomeadas pelo fundador com autenticação reforçada. Cada função exige uma pessoa distinta e só fica ativa após aceite pessoal, também com senha e código por e-mail. Nenhuma pessoa é preenchida automaticamente.
 
@@ -65,7 +65,7 @@ Nos testes automatizados, identidades, grants e controles são inteiramente sint
 
 Depois do ensaio, `createIncidentDrillEvidence` em `apps/api/incident-drill-evidence.js` pode empacotar o registro validado com um resumo SHA-256 determinístico. `verifyIncidentDrillEvidence` detecta alteração posterior do conteúdo. O envelope declara seus próprios limites: é evidência técnica local e não comprova sessão humana, go-live ou operação externa. Na sessão real, preserve também participantes, observação e aceite pelos canais internos aprovados; o hash não substitui esses registros.
 
-`assessIncidentDrillSignoff` em `apps/api/incident-drill-signoff.js` mantém esse limite verificável. O exercício humano só fica `complete` quando há evidência técnica íntegra, aceite individual e datado para triagem, responsável técnico e substituto, observador independente e decisão formal. Papéis acumulados, observação ausente, evidência alterada ou achado alto/crítico aberto impedem uma decisão `passed`. Mesmo completo, o resultado retorna `launchAuthorized: false`: o lançamento possui portão próprio e não é autorizado pelo ensaio.
+`assessIncidentDrillSignoff` em `apps/api/incident-drill-signoff.js` mantém esse limite verificável. O exercício humano só fica `complete` quando há evidência técnica íntegra, aceite individual e datado para triagem, responsável técnico e substituto, observador independente e decisão formal. Papéis acumulados, observação ausente, evidência alterada ou achado alto/crítico aberto impedem uma decisão `passed`. O aceite de triagem deve identificar o fundador; a referência da decisão final e da autorização da retomada na evidência deve coincidir com esse aceite. Esta verificação é estrutural, não autenticação. O resultado `complete` avalia o registro individual de um cenário: os três cenários obrigatórios devem ser comprovados separadamente antes de considerar o exercício completo. Mesmo completo, o resultado retorna `launchAuthorized: false`: o lançamento possui portão próprio e não é autorizado pelo ensaio.
 
 | Campo | Resultado da sessão |
 | --- | --- |
