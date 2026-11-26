@@ -125,7 +125,15 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
       assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].n,0);
     }else{
       await db.query("INSERT INTO transaction_contact_access(transaction_id,payment_intent_id,revoked_at,revoked_by,revocation_reason) VALUES($1,$2,now(),$3,'synthetic-review')",[transactionId,intent.id,admin]);
-      assert.equal((await repository.completeWalletPayment({intentId:intent.id,buyerId:ids.courier,idempotencyKey:key})).status,'paid');
+      // The interrupted local payment is recovered through the same public service request.
+      const input={transactionId,idempotencyKey:key,method:'wallet',walletAmountCents:1000};
+      const before=await wallet.summary(ids.courier),providerCount=externalCalls.length;
+      const recovered=await Promise.all([service.createIntent(ids.courier,input),service.createIntent(ids.courier,input)]);
+      assert.ok(recovered.every(result=>result.reused&&result.intent.status==='paid'&&result.intent.id===intent.id));
+      const after=await wallet.summary(ids.courier);
+      assert.equal(after.available_cents,before.available_cents);assert.equal(after.reserved_cents,before.reserved_cents-1000);
+      assert.equal(externalCalls.length,providerCount);
+      assert.equal((await db.query("SELECT count(*)::int AS n FROM courier_wallet_entries e JOIN courier_wallet_purchase_allocations a ON a.id=e.source_id WHERE a.payment_intent_id=$1 AND e.kind='purchase_debit'",[intent.id])).rows[0].n,1);
       assert.equal((await db.query('SELECT revocation_reason FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].revocation_reason,'synthetic-review');
     }
   }
