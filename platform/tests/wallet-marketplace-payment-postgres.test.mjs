@@ -43,6 +43,14 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_intents WHERE transaction_id=$1',[transactions[1]])).rows[0].n,1);
   assert.equal(mixed.intent.walletAmountCents,2000);assert.equal(mixed.intent.providerChargeCents,2000);assert.deepEqual({amount:externalCalls[0].amountCents,platform:externalCalls[0].platformFeeCents,seller:externalCalls[0].sellerAmountCents},{amount:2000,platform:160,seller:1840});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].n,0);
+  // FC-422: a delayed local failure cannot release a live external payment reservation.
+  const beforeLateFailure=await wallet.summary(ids.courier);
+  await repository.markProviderFailure({intentId:mixed.intent.id,failureCode:'synthetic_late_error'});
+  const afterLateFailure=await wallet.summary(ids.courier);
+  assert.equal(afterLateFailure.available_cents,beforeLateFailure.available_cents);
+  assert.equal(afterLateFailure.reserved_cents,beforeLateFailure.reserved_cents);
+  assert.equal((await db.query('SELECT status FROM payment_intents WHERE id=$1',[mixed.intent.id])).rows[0].status,'pending');
+  assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE payment_intent_id=$1',[mixed.intent.id])).rows[0].status,'reserved');
   const wrongAmount={...earlyEvent,id:'wallet-marketplace-wrong-amount-0001',amountCents:1999,payloadHash:Buffer.from('wrong-amount')};
   assert.deepEqual(await repository.processWebhook(wrongAmount),{amountMismatch:true});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[wrongAmount.id])).rows[0].n,0);
