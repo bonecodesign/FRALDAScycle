@@ -77,6 +77,11 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       }
       const intent = context.intent;
       if (!intent) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
+      // Direct provider cases cannot reconcile the internal wallet share.
+      // Route wallet-funded or inconsistent compositions through support.
+      if(intent.wallet_amount_cents!==0||intent.provider_charge_cents!==intent.amount_cents){
+        throw new PaymentError('payment_case_requires_support',409,'Pagamento com carteira ou composição financeira divergente exige análise do suporte.');
+      }
       if (!intent.provider_reference) throw new PaymentError("payment_not_submitted", 409, "Pagamento ainda não foi enviado ao provedor.");
       const allowed = kind === "refund"
         ? ["paid", "authorized"].includes(intent.status)
