@@ -1,0 +1,111 @@
+name: FC-394 Offline Native toolkit
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fc394-native-toolkit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    if: github.repository == 'bonecodesign/FRALDAScycle' && !github.event.repository.private && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
+        with:
+          version: '3.2.0'
+      - name: Prepare unlinked Native tools only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          unset SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD DATABASE_URL
+          export SUPABASE_EXPERIMENTAL_STACK=1
+          export SUPABASE_HOME="$RUNNER_TEMP/fc394-tool-home"
+          workspace="$(mktemp -d "$RUNNER_TEMP/fc394-native-XXXXXXXX")"
+          mkdir -m 700 "$SUPABASE_HOME"
+          cd "$workspace"
+          cleanup() {
+            supabase stack stop > "$workspace/stop.log" 2>&1 || true
+            rm -rf -- "$workspace" "$SUPABASE_HOME"
+          }
+          trap cleanup EXIT
+          test "$(supabase --version)" = '3.2.0'
+          supabase init > init.log 2>&1
+          python3 - <<'PY'
+          import pathlib, re, tomllib
+          p=pathlib.Path('supabase/config.toml')
+          s,n=re.subn(r'(?m)^major_version\s*=\s*\d+\s*$', 'major_version = 17',p.read_text())
+          assert n==1
+          p.write_text(s)
+          assert tomllib.loads(s)['db']['major_version']==17
+          PY
+          test ! -e supabase/.temp/project-ref
+          supabase stack start --runtime native --eager > start.log 2>&1
+          supabase stack status --output-format json > status.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json'))
+          assert s['runtime']=='native'
+          assert s['endpoints']['database.sql']['address'] in ('127.0.0.1','::1','localhost')
+          print('FC394_NATIVE_LOCAL=PASS')
+          PY
+          supabase stack stop > stop.log 2>&1
+          test -d "$SUPABASE_HOME/cache/stack"
+          test -n "$(find "$SUPABASE_HOME/cache/stack" -type f -name postgres -print -quit)"
+          test -z "$(find "$SUPABASE_HOME/cache/stack" -type f \( -name PG_VERSION -o -name postmaster.pid -o -name pg_control -o -name '*.pgp' -o -name '*.asc' \) -print -quit)"
+          out="$RUNNER_TEMP/fc394-toolkit"
+          mkdir -m 700 "$out"
+          mkdir "$workspace/stage"
+          cp -L "$(command -v supabase)" "$workspace/stage/supabase"
+          chmod 755 "$workspace/stage/supabase"
+          tar --numeric-owner --owner=0 --group=0 -czf "$out/fc394-native-tools.tar.gz" -C "$workspace/stage" supabase -C "$SUPABASE_HOME" cache/stack
+          (cd "$out"; sha256sum fc394-native-tools.tar.gz > SHA256SUMS; sha256sum -c SHA256SUMS)
+          # Transport maximum is 512 MiB per ZIP; fixed 200 MiB chunks.
+          cd "$out"
+          split --bytes=200M --numeric-suffixes=0 --suffix-length=2 fc394-native-tools.tar.gz toolkit.part-
+          test -f toolkit.part-00
+          test -f toolkit.part-01
+          test -f toolkit.part-02
+          test ! -e toolkit.part-03
+          sha256sum toolkit.part-00 toolkit.part-01 toolkit.part-02 > PART-SHA256SUMS
+          sha256sum -c PART-SHA256SUMS
+          expected="$(cut -d ' ' -f 1 SHA256SUMS)"
+          actual="$(cat toolkit.part-00 toolkit.part-01 toolkit.part-02 | sha256sum | cut -d ' ' -f 1)"
+          test "$expected" = "$actual"
+          echo "FC394_TOOLKIT_SPLIT_VERIFIED=PASS sha256=$expected"
+          rm fc394-native-tools.tar.gz
+      - name: Upload toolkit part 00
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fc394-native-toolkit-part-00
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-00
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Upload toolkit part 01
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fc394-native-toolkit-part-01
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-01
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Upload toolkit part 02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fc394-native-toolkit-part-02
+          path: |
+            ${{ runner.temp }}/fc394-toolkit/toolkit.part-02
+            ${{ runner.temp }}/fc394-toolkit/SHA256SUMS
+            ${{ runner.temp }}/fc394-toolkit/PART-SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
