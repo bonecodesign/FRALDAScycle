@@ -4,6 +4,8 @@ import {createHmac} from 'node:crypto';
 import {createPaymentProvider} from '../apps/api/payment-provider.js';
 import {createPaymentService} from '../apps/api/payment-service.js';
 import {createPaymentRepository} from '../database/payment-repository.js';
+import {createLogisticsService} from '../apps/api/logistics-service.js';
+import {createLogisticsRepository} from '../database/logistics-repository.js';
 import {createApiServer} from '../apps/api/server.js';
 import {loadConfig} from '../apps/api/config.js';
 import {createAdminService} from '../apps/api/admin-service.js';
@@ -21,6 +23,8 @@ const ids={
   moderator:'a3090000-0000-4000-8000-000000000003',
   outsider:'a3090000-0000-4000-8000-000000000004',
   key:'a3090000-0000-4000-8000-000000000005',
+  courier:'a3090000-0000-4000-8000-000000000006',
+  logisticsReviewer:'a3090000-0000-4000-8000-000000000007',
 };
 const mediaKey='listings/'+ids.seller+'/fc309-synthetic.webp';
 
@@ -41,11 +45,18 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
         "($4,'fc309-outsider@example.test','synthetic-inactive','Visitante fictício','customer',NULL,NULL)",
         [ids.seller,ids.buyer,ids.moderator,ids.outsider],
       );
+      await database.query(
+        "INSERT INTO users(id,email,password_hash,display_name,role,staff_access_level,staff_sector) VALUES "+
+        "($1,'fc432-courier@example.test','synthetic-inactive','Entregador fictício','courier',NULL,NULL),"+
+        "($2,'fc432-reviewer@example.test','synthetic-inactive','Revisor logístico fictício','admin',4,'logistics')",
+        [ids.courier,ids.logisticsReviewer]);
       const actors={
         seller:{id:ids.seller,role:'customer',adultDeclared:true,sessionId:'fc309-seller'},
         buyer:{id:ids.buyer,role:'customer',adultDeclared:true,sessionId:'fc309-buyer'},
         moderator:{id:ids.moderator,role:'moderator',staffSector:'moderation',staffAccessLevel:2,sessionId:'fc309-reviewer'},
         outsider:{id:ids.outsider,role:'customer',adultDeclared:true,sessionId:'fc309-outsider'},
+        courier:{id:ids.courier,role:'courier',adultDeclared:true,sessionId:'fc432-courier'},
+        logisticsReviewer:{id:ids.logisticsReviewer,role:'admin',staffSector:'logistics',staffAccessLevel:4,sessionId:'fc432-reviewer'},
       };
       let mediaReady=true;
       const calls=[];
@@ -80,8 +91,14 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
         providerCalls++;
         return new Response(JSON.stringify({reference:'fc431-synthetic-payment',status:'paid'}),{status:201});
       }});
+      let logisticsCalls=0;
+      const logisticsProvider={async createShipment(){
+        logisticsCalls++;
+        return {providerReference:'fc432-synthetic-delivery',status:'awaiting_pickup',estimatedDeliveryAt:null};
+      }};
       api=createApiServer({
         config,
+        logisticsService:createLogisticsService(createLogisticsRepository(database),logisticsProvider,null),
         paymentProvider,
         paymentService:createPaymentService(createPaymentRepository(database),paymentProvider),
         authService:{async session(token){return actors[token]??null;}},
@@ -251,6 +268,10 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
       for(const token of ['buyer','seller']){
         assert.equal((await (await get(accessPath,token)).json()).allowed,false);
       }
+      const shipmentInput={transactionId,mode:'partner',insured:false,idempotencyKey:'fc432-synthetic-shipment'};
+      const prematureShipment=await post('/v1/shipments','buyer',shipmentInput);
+      assert.equal(prematureShipment.status,409);
+      assert.equal(logisticsCalls,0);
       const event={id:'fc431-synthetic-paid-event',type:'payment.paid',createdAt:new Date().toISOString(),
         data:{reference:'fc431-synthetic-payment',amountCents:3790}};
       const sendEvent=(payload,signed=true)=>{
@@ -278,6 +299,65 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
       assert.equal((await database.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].n,1);
       assert.equal(providerCalls,1);
       console.log('FC-431: HTTP publication, reservation, synthetic payment, signed confirmation and protected chat access on the same purchase; no real provider.');
+      // FC-432: the same confirmed transaction, without inserting paid fixtures.
+      // Delivery, proof and addresses are synthetic; no freight charge is enabled.
+      const shipmentResponse=await post('/v1/shipments','buyer',shipmentInput);
+      const shipmentBody=await shipmentResponse.json();
+      assert.equal(shipmentResponse.status,201,JSON.stringify(shipmentBody));
+      assert.equal(shipmentBody.shipment.freightChargeAvailable,false);
+      assert.equal(shipmentBody.shipment.freightCents,null);
+      const shipmentPath='/v1/shipments/'+shipmentBody.shipment.id;
+      assert.equal((await post('/v1/shipments','buyer',shipmentInput)).status,200);
+      assert.equal(logisticsCalls,1);
+      assert.equal((await post(shipmentPath+'/assign','outsider',{})).status,403);
+      const assigned=await post(shipmentPath+'/assign','courier',{});
+      assert.equal(assigned.status,200);
+      assert.equal((await assigned.json()).shipment.status,'assigned');
+      const addressResponse=await post('/v1/addresses','buyer',{
+        label:'Fixture FC-432',postalCode:'00000000',street:'Rua fictícia FC-432',number:'S/N',
+        district:'Bairro fictício',city:'Belo Horizonte',state:'MG'});
+      assert.equal(addressResponse.status,201);
+      const addressId=(await addressResponse.json()).address.id;
+      const share={addressId,confirmed:true,noticeVersion:'FC-ADDRESS-1'};
+      assert.equal((await post(shipmentPath+'/addresses','buyer',{...share,confirmed:false})).status,422);
+      assert.equal((await post(shipmentPath+'/addresses','buyer',share)).status,201);
+      assert.equal((await get(shipmentPath+'/addresses','outsider')).status,404);
+      const addressList=await get(shipmentPath+'/addresses','courier');
+      assert.equal(addressList.status,200);
+      assert.equal((await addressList.json()).items.length,1);
+      assert.equal((await post(shipmentPath+'/receipt','buyer',{approved:true})).status,409);
+      const proofInput={mediaKey:'synthetic/fc432-proof',recipientName:'Recebedor fictício',latitude:0,longitude:0};
+      assert.equal((await post(shipmentPath+'/proof','courier',proofInput)).status,409);
+      const collection={confirmed:true,noticeVersion:'FC-COLLECTION-1'};
+      assert.equal((await post(shipmentPath+'/collection','buyer',collection)).status,403);
+      const collected=await post(shipmentPath+'/collection','courier',collection);
+      assert.equal(collected.status,201);
+      assert.equal((await collected.json()).collection.status,'picked_up');
+      assert.equal((await post(shipmentPath+'/collection','courier',collection)).status,200);
+      const proof=await post(shipmentPath+'/proof','courier',proofInput);
+      assert.equal(proof.status,201);
+      assert.equal((await proof.json()).proof.duplicate,false);
+      const before=await get(shipmentPath+'/settlement-status','seller');
+      assert.equal(before.status,200);
+      assert.equal((await before.json()).settlement.requirementsMet,false);
+      assert.equal((await post(shipmentPath+'/receipt','seller',{approved:true})).status,404);
+      assert.equal((await post(shipmentPath+'/receipt','buyer',{approved:true})).status,201);
+      const validation={validated:true,reason:'Validação independente de comprovante exclusivamente fictício.'};
+      assert.equal((await post(shipmentPath+'/proof/validate','moderator',validation)).status,403);
+      assert.equal((await post(shipmentPath+'/proof/validate','logisticsReviewer',validation)).status,201);
+      const after=await get(shipmentPath+'/settlement-status','seller');
+      assert.equal(after.status,200);
+      const settlement=(await after.json()).settlement;
+      assert.equal(settlement.requirementsMet,true);
+      assert.equal(settlement.payoutAllowed,false);
+      assert.equal(settlement.payoutStatus,'not_configured');
+      assert.equal((await get(shipmentPath+'/settlement-status','outsider')).status,404);
+      assert.equal((await database.query('SELECT status FROM transactions WHERE id=$1',[transactionId])).rows[0].status,'in_delivery');
+      assert.equal((await database.query('SELECT count(*)::int AS n FROM seller_payout_obligations WHERE transaction_id=$1',[transactionId])).rows[0].n,0);
+      assert.equal((await database.query('SELECT count(*)::int AS n FROM courier_payout_obligations WHERE shipment_id=$1',[shipmentBody.shipment.id])).rows[0].n,0);
+      assert.equal(providerCalls,1);
+      assert.equal(logisticsCalls,1);
+      console.log('FC-432: same synthetic HTTP purchase reaches collection, proof, buyer approval and independent review; freight and external payout remain disabled.');
     }finally{
       if(api?.listening)await new Promise(resolve=>api.close(resolve));
       await database.close();
