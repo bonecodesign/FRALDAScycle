@@ -137,16 +137,21 @@ export function createAdminRepository(database) {
       return { summary, items };
     }); },
     async financeSnapshot({ actorUserId, limit = 50, offset = 0 }) { return database.transaction(async client => {
+      // Provisional operational triage threshold only; not a payment expiry,
+      // financial authorization, or evidence that an external charge failed.
+      const overduePending="p.status IN('pending','authorized','provider_pending') AND p.created_at<=now()-interval '120 minutes'";
       const summary=(await client.query(`SELECT count(*)::integer AS payment_count,
         COALESCE(sum(p.amount_cents) FILTER(WHERE p.status='paid'),0)::bigint AS paid_volume_cents,
         count(*) FILTER(WHERE p.status='paid')::integer AS paid_count,
         count(*) FILTER(WHERE p.status IN('pending','authorized','provider_pending'))::integer AS pending_count,
-        count(*) FILTER(WHERE p.status IN('failed','cancelled','refunded') OR EXISTS(
+        count(*) FILTER(WHERE ${overduePending})::integer AS overdue_pending_count,
+        count(*) FILTER(WHERE p.status IN('failed','cancelled','refunded','disputed') OR (${overduePending}) OR EXISTS(
           SELECT 1 FROM payment_cases pc WHERE pc.payment_intent_id=p.id AND pc.status NOT IN('rejected','completed','failed')
         ))::integer AS exception_count
         FROM payment_intents p`)).rows[0];
       const items=(await client.query(`SELECT p.id,p.transaction_id,p.method,p.amount_cents,p.platform_fee_cents,p.delivery_fee_cents,p.seller_amount_cents,p.status,p.created_at,
         (SELECT count(*)::integer FROM payment_cases pc WHERE pc.payment_intent_id=p.id AND pc.status NOT IN('rejected','completed','failed')) AS open_cases,
+        (${overduePending}) AS overdue_pending,
         cpo.status AS courier_payout_status,cpo.courier_amount_cents
         FROM payment_intents p LEFT JOIN courier_payout_obligations cpo ON cpo.payment_intent_id=p.id
         ORDER BY p.created_at DESC,p.id LIMIT $1 OFFSET $2`,[limit,offset])).rows;
