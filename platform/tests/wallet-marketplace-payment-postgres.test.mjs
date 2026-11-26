@@ -27,6 +27,9 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal(full.intent.status,'paid');assert.equal(full.intent.providerChargeCents,0);assert.equal(externalCalls.length,0);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[0]])).rows[0].n,1);
 
+  const earlyEvent={id:'wallet-marketplace-paid-event-0001',type:'payment.paid',providerReference:'provider-1',amountCents:2000,occurredAt:new Date(),payloadHash:Buffer.from('wallet-marketplace-paid')};
+  assert.deepEqual(await repository.processWebhook(earlyEvent),{missing:true});
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[earlyEvent.id])).rows[0].n,0);
   const mixedInput={transactionId:transactions[1],idempotencyKey:'wallet-marketplace-mixed-0001',method:'pix',walletAmountCents:2000};
   const race=await Promise.allSettled([service.createIntent(ids.courier,mixedInput),service.createIntent(ids.courier,{...mixedInput,idempotencyKey:'wallet-marketplace-race-0002'})]);
   assert.equal(race.filter(x=>x.status==='fulfilled').length,1);
@@ -40,7 +43,13 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_intents WHERE transaction_id=$1',[transactions[1]])).rows[0].n,1);
   assert.equal(mixed.intent.walletAmountCents,2000);assert.equal(mixed.intent.providerChargeCents,2000);assert.deepEqual({amount:externalCalls[0].amountCents,platform:externalCalls[0].platformFeeCents,seller:externalCalls[0].sellerAmountCents},{amount:2000,platform:160,seller:1840});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].n,0);
-  const settled=await repository.processWebhook({id:'wallet-marketplace-paid-event-0001',type:'payment.paid',providerReference:'provider-1',amountCents:2000,occurredAt:new Date(),payloadHash:Buffer.from('wallet-marketplace-paid')});
+  const wrongAmount={...earlyEvent,id:'wallet-marketplace-wrong-amount-0001',amountCents:1999,payloadHash:Buffer.from('wrong-amount')};
+  assert.deepEqual(await repository.processWebhook(wrongAmount),{amountMismatch:true});
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[wrongAmount.id])).rows[0].n,0);
+  const settled=await repository.processWebhook(earlyEvent);
+  assert.deepEqual(await repository.processWebhook(earlyEvent),{duplicate:true});
+  assert.deepEqual(await repository.processWebhook({...earlyEvent,payloadHash:Buffer.from('changed-content')}),{eventConflict:true});
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[earlyEvent.id])).rows[0].n,1);
   assert.equal(settled.status,'paid');assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[1]])).rows[0].status,'paid');
 
   await assert.rejects(service.createIntent(ids.courier,{transactionId:transactions[2],idempotencyKey:'wallet-marketplace-failure-0001',method:'pix',walletAmountCents:1000}),error=>error.code==='provider_offline');
