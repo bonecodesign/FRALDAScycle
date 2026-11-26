@@ -1,5 +1,6 @@
-import { loadConfig } from "../apps/api/config.js";
-import { resolveRuntimeEnv } from "../apps/api/secrets.js";
+import { readFile } from "node:fs/promises";
+import { resolveRuntimeEnv, validateSecretsProviderConfig } from "../apps/api/secrets.js";
+import { validateExternalProviderEndpoint } from "../apps/api/external-provider-endpoint.js";
 import { isMainModule } from "../packages/contracts/main-module.js";
 import { createDatabase } from "../database/client.js";
 import { createNotificationRepository } from "../database/notification-repository.js";
@@ -111,7 +112,37 @@ export async function runNotificationBatch(repository, config, fetchImpl = fetch
 }
 
 export async function loadNotificationConfig(env = process.env, options = {}) {
-  return loadConfig(await resolveRuntimeEnv(env, options));
+  const manifest = JSON.parse(await readFile(new URL("../config/secret-access.v1.json", import.meta.url), "utf8"));
+  const scope = manifest.services?.notifications;
+  if (!Array.isArray(scope) || scope.length !== 2 ||
+      !scope.includes("DATABASE_URL") || !scope.includes("NOTIFICATION_WEBHOOK_SECRET")) {
+    throw new Error("Notification secret scope is invalid");
+  }
+  const provider = validateSecretsProviderConfig(env);
+  if (provider?.keys.some(key => !scope.includes(key))) {
+    throw new Error("Notification worker requested a secret outside its scope");
+  }
+  const resolved = await resolveRuntimeEnv(env, options);
+  const url = resolved.NOTIFICATION_WEBHOOK_URL ?? null;
+  const secret = resolved.NOTIFICATION_WEBHOOK_SECRET ?? null;
+  if (Boolean(url) !== Boolean(secret)) {
+    throw new Error("NOTIFICATION_WEBHOOK_URL and NOTIFICATION_WEBHOOK_SECRET must be configured together");
+  }
+  if (resolved.NODE_ENV === "production") {
+    for (const key of ["DATABASE_URL", "NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"]) {
+      if (!resolved[key]) throw new Error(`Missing required production configuration: ${key}`);
+    }
+  }
+  // Use the same PostgreSQL transport controls as the API, but do not
+  // require or return its session secret or unrelated provider settings.
+  return Object.freeze({
+    databaseUrl: resolved.DATABASE_URL ?? null,
+    databaseSsl: resolved.DATABASE_SSL === "true",
+    databaseSslCa: resolved.DATABASE_SSL_CA ?? null,
+    supabaseInfrastructureEnabled: resolved.SUPABASE_INFRASTRUCTURE_ENABLED === "true",
+    notificationWebhookUrl: url == null ? null : validateExternalProviderEndpoint(url, "NOTIFICATION_WEBHOOK_URL"),
+    notificationWebhookSecret: secret,
+  });
 }
 
 async function main() {
