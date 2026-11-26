@@ -382,7 +382,7 @@ test("refund and dispute service authorizes the buyer and reuses idempotent case
       }
       return { existing: false, intent: {
         id: "intent-1", provider_reference: "provider-payment-1",
-        status: "paid", amount_cents: 10_000,
+        status: "paid", amount_cents: 10_000, wallet_amount_cents:0,provider_charge_cents:10_000,
       } };
     },
     async createCase(input) { calls.push(input); return { id: "case-1", ...input }; },
@@ -415,7 +415,7 @@ test("refund and dispute persistence creates case and audit in one transaction",
   const client = {
     async query(text, values) {
       statements.push({ text, values });
-      if (/FOR UPDATE OF p/.test(text)) return { rows: [{ id:"intent-1",status:"paid",provider_reference:"provider-payment-1",amount_cents:10000 }] };
+      if (/FOR UPDATE OF p/.test(text)) return { rows: [{ id:"intent-1",status:"paid",provider_reference:"provider-payment-1",amount_cents:10000,wallet_amount_cents:0,provider_charge_cents:10000 }] };
       if (/INSERT INTO payment_cases/.test(text)) return { rows: [{ id: "case-1", status: "provider_pending" }] };
       return { rows: [] };
     },
