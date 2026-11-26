@@ -9,13 +9,13 @@ const evidence = createIncidentDrillEvidence({
   roles: { triage: "Triagem interna", technical: "Responsável técnico", substitute: "Substituto técnico" },
   internalChannel: "canal-interno-sintético",
   containment: { domain: "payments", version: 2, auditAction: "operations.paused", reason: "Contenção sintética confirmada no ambiente local." },
-  recovery: { authorized: true, authorizedBy: "Responsável interno", recoveredAt: "2026-10-23T10:10:00.000Z", auditAction: "operations.resumed", criterion: "Jornada sintética aprovada sem efeito externo." },
+  recovery: { authorized: true, authorizedBy: "internal:founder", recoveredAt: "2026-10-23T10:10:00.000Z", auditAction: "operations.resumed", criterion: "Jornada sintética aprovada sem efeito externo." },
   findings: ["Bloqueio de novos compromissos confirmado."],
 });
 const complete = {
   evidence, humanObserved: true,
   roleAcceptances: [
-    { role: "triage", participantRef: "internal:triage", accepted: true, acceptedAt: "2026-10-23T09:00:00Z" },
+    { role: "triage", participantRef: "internal:founder", accepted: true, acceptedAt: "2026-10-23T09:00:00Z" },
     { role: "technical", participantRef: "internal:technical", accepted: true, acceptedAt: "2026-10-23T09:01:00Z" },
     { role: "substitute", participantRef: "internal:substitute", accepted: true, acceptedAt: "2026-10-23T09:02:00Z" },
   ],
@@ -30,6 +30,25 @@ test("requires human roles, independent observation and a formal decision", () =
     status: "complete", launchAuthorized: false, blockers: [],
     notice: "Exercício humano registrado; a autorização de lançamento permanece em portão separado.",
   });
+});
+
+test("FC-440: only the accepted founder may sign the exercise decision", () => {
+  for (const decidedByRef of ["internal:technical", "internal:substitute", "internal:observer", "internal:unrelated"]) {
+    const result = assessIncidentDrillSignoff({ ...complete, decision: { ...complete.decision, decidedByRef } }, clock);
+    assert.equal(result.status, "pending");
+    assert.ok(result.blockers.includes("founder_decision_identity_required"));
+    assert.equal(result.launchAuthorized, false);
+  }
+});
+
+test("FC-440: valid evidence authorized by another person cannot complete founder signoff", () => {
+  const otherEvidence = createIncidentDrillEvidence({
+    ...evidence.record, recovery: { ...evidence.record.recovery, authorizedBy: "internal:technical" },
+  });
+  const result = assessIncidentDrillSignoff({ ...complete, evidence: otherEvidence }, clock);
+  assert.equal(result.status, "pending");
+  assert.ok(result.blockers.includes("founder_decision_identity_required"));
+  assert.equal(result.launchAuthorized, false);
 });
 
 test("technical automation alone cannot complete the human exercise", () => {
