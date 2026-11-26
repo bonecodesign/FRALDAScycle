@@ -237,6 +237,13 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
            prior.method!==method||Number(prior.wallet_amount_cents??0)!==requestedWalletAmount||input.deliveryRequested){
           throw new PaymentError('payment_attempt_conflict',409,'A tentativa anterior não corresponde ao pagamento solicitado.');
         }
+        // Only an entirely local, previously reserved payment can be resumed here.
+        // External payments must be reconciled, never submitted again on replay.
+        if(method==='wallet'&&prior.status==='provider_pending'&&prior.provider_charge_cents===0&&
+           requestedWalletAmount>0&&requestedWalletAmount===Number(prior.amount_cents)){
+          const paid=await repository.completeWalletPayment({intentId:prior.id,buyerId,idempotencyKey});
+          return {intent:publicIntent(paid),reused:true};
+        }
         return {intent:publicIntent(prior),reused:true};
       }
       const transaction = context.transaction;
