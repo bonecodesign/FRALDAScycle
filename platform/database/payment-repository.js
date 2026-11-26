@@ -344,29 +344,40 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     },
 
     async processWebhook(event) {
-      return database.transaction(async (client) => {
+      // A rejected event must not consume its idempotency key. The sentinel
+      // belongs to this call only; the database wrapper rolls back on throw.
+      const rejected=new Error('financial webhook requires reconciliation');
+      let rejection=null;
+      try{return await database.transaction(async (client) => {
         const inserted = await client.query(
           `INSERT INTO payment_webhook_events
              (id, event_type, provider_reference, occurred_at, payload_hash)
            VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING RETURNING id`,
           [event.id, event.type, event.providerReference, event.occurredAt, event.payloadHash],
         );
-        if (!inserted.rows[0]) return { duplicate: true };
+        if (!inserted.rows[0]) {
+          const prior=(await client.query('SELECT payload_hash FROM payment_webhook_events WHERE id=$1',[event.id])).rows[0];
+          if(!prior||!Buffer.isBuffer(prior.payload_hash)||!Buffer.isBuffer(event.payloadHash)||!prior.payload_hash.equals(event.payloadHash)){
+            return {eventConflict:true};
+          }
+          return {duplicate:true};
+        }
         const found = await client.query(
           `SELECT p.id, p.transaction_id, p.amount_cents, p.provider_charge_cents, p.wallet_amount_cents, p.status,
-             a.id AS allocation_id,a.status AS allocation_status
-           FROM payment_intents p LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
-           WHERE p.provider_reference = $1 FOR UPDATE OF p`,
+             a.id AS allocation_id,a.status AS allocation_status,t.status AS transaction_status
+           FROM payment_intents p JOIN transactions t ON t.id=p.transaction_id
+           LEFT JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id
+           WHERE p.provider_reference = $1 FOR UPDATE OF p,t`,
           [event.providerReference],
         );
         const intent = found.rows[0];
-        if (!intent) return { missing: true };
+        if (!intent) {rejection={missing:true};throw rejected;}
         const supportedRefund=event.type==='payment.refunded'?(await client.query(`SELECT id,refund_amount_cents,wallet_refund_cents,provider_refund_cents,status
           FROM supported_cancellations
           WHERE payment_intent_id=$1 AND status='submitted' FOR UPDATE`,[intent.id])).rows[0]:null;
         if(supportedRefund)supportedRefund.allocation_id=intent.allocation_id;
         const expectedAmount=supportedRefund?(supportedRefund.provider_refund_cents??supportedRefund.refund_amount_cents):(intent.provider_charge_cents??intent.amount_cents);
-        if (expectedAmount !== event.amountCents) return { amountMismatch: true };
+        if (expectedAmount !== event.amountCents) {rejection={amountMismatch:true};throw rejected;}
 
         const intentStatus = {
           "payment.authorized": "authorized", "payment.paid": "paid",
@@ -377,6 +388,20 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
             (intent.status === "disputed" && !["disputed", "refunded"].includes(intentStatus)) ||
             (intent.status === "paid" && ["authorized", "failed"].includes(intentStatus))) {
           return { ignored: true, status: intent.status };
+        }
+        // A confirmed payment must never revive a cancelled transaction or
+        // consume a released wallet reservation. Reconciliation is required.
+        if(event.type==='payment.paid'){
+          if(['failed','cancelled'].includes(intent.status)||
+             (intent.wallet_amount_cents>0&&!['reserved','paid'].includes(intent.allocation_status))){
+            rejection={stateConflict:true};throw rejected;
+          }
+          if(intent.status==='paid'&&intent.transaction_status==='paid'){
+            return {ignored:true,status:'paid'};
+          }
+          if(!['initiated','payment_pending'].includes(intent.transaction_status)){
+            rejection={stateConflict:true};throw rejected;
+          }
         }
         const transactionStatus = {
           "payment.authorized": "payment_pending", "payment.paid": "paid",
@@ -419,10 +444,8 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           await client.query(
             `INSERT INTO transaction_contact_access(transaction_id,payment_intent_id)
              SELECT t.id,$2 FROM transactions t JOIN listings l ON l.id=t.listing_id
-             WHERE t.id=$1 AND l.kind='sale'
-             ON CONFLICT (transaction_id) DO UPDATE SET
-               payment_intent_id=EXCLUDED.payment_intent_id,unlocked_at=now(),
-               revoked_at=NULL,revoked_by=NULL,revocation_reason=NULL`,
+             WHERE t.id=$1 AND l.kind='sale' AND t.status='paid'
+             ON CONFLICT (transaction_id) DO NOTHING`,
             [intent.transaction_id,intent.id],
           );
         }
@@ -458,7 +481,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           [intent.id, JSON.stringify({ eventId: event.id, eventType: event.type })],
         );
         return { duplicate: false, status: intentStatus, supportedRefundCompleted:Boolean(supportedRefund) };
-      });
+      });}catch(error){if(error===rejected&&rejection)return rejection;throw error;}
     },
 
     async markProviderFailure({ intentId, failureCode }) {

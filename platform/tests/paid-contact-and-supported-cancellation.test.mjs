@@ -13,12 +13,14 @@ function database(answer){const calls=[];const client={async query(sql,values){c
 
 test('paid webhook unlocks structured contact for sales in the financial transaction',async()=>{
   const db=database(sql=>/INSERT INTO payment_webhook_events/.test(sql)?[{id:'event'}]
-    :/SELECT p.id, p.transaction_id/.test(sql)?[{id:'intent',transaction_id:tx,amount_cents:10000,status:'pending'}]:[]);
+    :/SELECT p.id, p.transaction_id/.test(sql)?[{id:'intent',transaction_id:tx,amount_cents:10000,status:'pending',transaction_status:'payment_pending'}]:[]);
   const result=await createPaymentRepository(db).processWebhook({id:'event',type:'payment.paid',providerReference:'provider',occurredAt:new Date().toISOString(),payloadHash:'hash',amountCents:10000});
   assert.equal(result.status,'paid');
   const grant=db.calls.find(({sql})=>/INSERT INTO transaction_contact_access/.test(sql));
   assert.deepEqual(grant.values,[tx,'intent']);
   assert.match(grant.sql,/l\.kind='sale'/);
+  assert.match(grant.sql,/ON CONFLICT \(transaction_id\) DO NOTHING/);
+  assert.doesNotMatch(grant.sql,/revoked_at=NULL/);
 });
 
 test('contact exposes only verified channels and audits channel names without values',async()=>{
@@ -85,4 +87,21 @@ test('chat interface requires an explicit versioned choice before sharing own ch
   assert.match(html,/Autorizar meu e-mail verificado/);assert.match(html,/Autorizar meu telefone verificado/);
   assert.match(controller,/expectedVersion:authorizationVersion/);assert.match(controller,/method:'PUT'/);
   assert.match(controller,/authorization\.revoked/);
+});
+
+test('FC-419: late paid events cannot revive cancelled purchases or released wallet funds',async()=>{
+  for(const state of [
+    {status:'pending',transaction_status:'cancelled',wallet_amount_cents:0},
+    {status:'failed',transaction_status:'payment_pending',wallet_amount_cents:0},
+    {status:'pending',transaction_status:'payment_pending',wallet_amount_cents:2000,allocation_status:'released'},
+  ]){
+    const db=database(sql=>/INSERT INTO payment_webhook_events/.test(sql)?[{id:'late'}]:/SELECT p.id, p.transaction_id/.test(sql)?[{id:'intent',transaction_id:tx,amount_cents:10000,...state}]:[]);
+    assert.deepEqual(await createPaymentRepository(db).processWebhook({id:'late',type:'payment.paid',providerReference:'provider',occurredAt:new Date(),payloadHash:Buffer.from('late'),amountCents:10000}),{stateConflict:true});
+    assert.equal(db.calls.length,2);
+  }
+});
+test('FC-419: repeated paid state with another event identifier has no further side effects',async()=>{
+  const db=database(sql=>/INSERT INTO payment_webhook_events/.test(sql)?[{id:'another'}]:/SELECT p.id, p.transaction_id/.test(sql)?[{id:'intent',transaction_id:tx,amount_cents:10000,status:'paid',transaction_status:'paid',wallet_amount_cents:0}]:[]);
+  assert.deepEqual(await createPaymentRepository(db).processWebhook({id:'another',type:'payment.paid',providerReference:'provider',occurredAt:new Date(),payloadHash:Buffer.from('another'),amountCents:10000}),{ignored:true,status:'paid'});
+  assert.equal(db.calls.length,2);
 });
