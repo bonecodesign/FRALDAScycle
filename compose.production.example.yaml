@@ -14,7 +14,8 @@ services:
     build:
       context: ./platform
       dockerfile: Dockerfile
-    env_file: ${FRALDACYCLE_ENV_FILE:-platform/.env.production}
+    # Do not inherit the API environment: use an independently scoped vault identity.
+    env_file: ${FRALDACYCLE_NOTIFICATION_ENV_FILE:-platform/.env.notifications.production}
     command: ["node", "workers/notifications.js"]
     restart: unless-stopped
 
