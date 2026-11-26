@@ -21,7 +21,7 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   const wallet=createCourierWalletRepository(db),hash='a'.repeat(64);
   await wallet.creditConfirmedPayout({courierId:ids.courier,payoutId:ids.payout,amountCents:15000,providerReferenceHash:hash,evidenceSha256:'b'.repeat(64),idempotencyKey:'wallet-marketplace-credit-0001'});
   const repository=createPaymentRepository(db);let externalCalls=[];
-  const service=createPaymentService(repository,{async createIntent(input){externalCalls.push(input);if(input.idempotencyKey==='wallet-marketplace-failure-0001')throw Object.assign(new Error('offline'),{code:'provider_offline'});return{providerReference:`provider-${externalCalls.length}`,status:'pending',checkout:{}};}});
+  const service=createPaymentService(repository,{async createIntent(input){externalCalls.push(input);if(input.idempotencyKey==='wallet-marketplace-failure-0001')throw Object.assign(new Error('offline'),{code:'provider_offline'});return{providerReference:`provider-${externalCalls.length}`,status:'paid',checkout:{}};}});
 
   const full=await service.createIntent(ids.courier,{transactionId:transactions[0],idempotencyKey:'wallet-marketplace-full-0001',method:'wallet',walletAmountCents:10000});
   assert.equal(full.intent.status,'paid');assert.equal(full.intent.providerChargeCents,0);assert.equal(externalCalls.length,0);
@@ -35,6 +35,9 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal(race.filter(x=>x.status==='fulfilled').length,1);
   assert.equal(race.find(x=>x.status==='rejected').reason.code,'payment_attempt_conflict');
   const mixed=race.find(x=>x.status==='fulfilled').value;
+  // A synchronous paid reply must remain pending until the signed event is processed.
+  assert.equal(mixed.intent.status,'pending');
+  assert.equal((await db.query('SELECT status FROM transactions WHERE id=$1',[transactions[1]])).rows[0].status,'payment_pending');
   const winnerKey=externalCalls[0].idempotencyKey;
   assert.equal(externalCalls.length,1);
   assert.equal((await service.createIntent(ids.courier,{...mixedInput,idempotencyKey:winnerKey})).reused,true);
@@ -70,6 +73,8 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[earlyEvent.id])).rows[0].n,1);
   assert.equal(settled.status,'paid');assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[1]])).rows[0].status,'paid');
   await db.query("UPDATE transaction_contact_access SET revoked_at=now(),revoked_by=$2,revocation_reason='synthetic-review' WHERE transaction_id=$1",[transactions[1],ids.courier]);
+  await assert.rejects(repository.attachProvider({intentId:mixed.intent.id,providerReference:'synthetic-late-reference',status:'authorized',checkoutPayload:{}}),error=>error.code==='payment_provider_state_conflict');
+  assert.equal((await db.query('SELECT status FROM payment_intents WHERE id=$1',[mixed.intent.id])).rows[0].status,'paid');
   const repeatPaid={...earlyEvent,id:'wallet-marketplace-paid-second-id',payloadHash:Buffer.from('second-paid')};
   assert.deepEqual(await repository.processWebhook(repeatPaid),{ignored:true,status:'paid'});
   assert.equal((await db.query('SELECT revocation_reason FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].revocation_reason,'synthetic-review');
