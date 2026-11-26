@@ -94,6 +94,10 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         WHERE c.id=$1 FOR UPDATE OF c,p`,[cancellationId])).rows[0];
       if(!row)throw Object.assign(new Error('Decisão de reembolso não encontrada.'),{code:'supported_refund_not_found',status:404});
       if(row.execution_idempotency_key){if(row.execution_idempotency_key!==idempotencyKey)throw Object.assign(new Error('A execução já possui outra chave.'),{code:'refund_execution_conflict',status:409});return{refund:row,reused:true};}
+      // Both refund paths serialize on the same payment intent row.
+      // A prior external case may have moved money even after a local failure.
+      const externalCase=await client.query('SELECT id FROM payment_cases WHERE payment_intent_id=$1 LIMIT 1',[row.payment_intent_id]);
+      if(externalCase.rows.length)throw Object.assign(new Error('Existe uma solicitação financeira anterior. Concilie o caso antes de executar o reembolso.'),{code:'refund_cross_path_conflict',status:409});
       const composition=row.allocation_id?proportionalWalletRefund({grossCents:Number(row.allocation_gross_cents),walletCents:Number(row.allocation_wallet_cents),refundCents:Number(row.refund_amount_cents)}):{walletRefundCents:0,externalRefundCents:Number(row.refund_amount_cents)};
       if(row.status!=='provider_pending'||(composition.externalRefundCents>0&&!row.payment_provider_reference)||row.refund_amount_cents<0)throw Object.assign(new Error('Reembolso não está pronto para execução.'),{code:'supported_refund_not_ready',status:409});
       const grant=await stepUpRepository.consume(client,{grantId,userId:actorId,purpose:'refund_execution'});if(!grant)throw Object.assign(new Error('Confirmação financeira inválida ou expirada.'),{code:'refund_step_up_required',status:409});
@@ -292,6 +296,10 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         // Failed/ambiguous attempts require support reconciliation first.
         const prior=await client.query('SELECT id FROM payment_cases WHERE payment_intent_id=$1 AND kind=$2::payment_case_kind LIMIT 1',[input.intentId,input.kind]);
         if(prior.rows.length)throw Object.assign(new Error('Já existe uma solicitação deste tipo. Acompanhe a operação pelo suporte.'),{code:'payment_case_conflict',status:409});
+        // A supported cancellation may already have reserved or returned funds.
+        // Never bypass its financial snapshot, including ambiguous failures.
+        const assisted=await client.query('SELECT id FROM supported_cancellations WHERE payment_intent_id=$1 LIMIT 1',[input.intentId]);
+        if(assisted.rows.length)throw Object.assign(new Error('Existe um cancelamento assistido. Acompanhe a conciliação pelo suporte.'),{code:'refund_cross_path_conflict',status:409});
         const created = await client.query(
           `INSERT INTO payment_cases
              (payment_intent_id, requester_id, kind, idempotency_key, reason, details)
