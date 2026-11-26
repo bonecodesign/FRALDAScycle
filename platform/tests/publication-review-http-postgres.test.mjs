@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHmac} from 'node:crypto';
+import {createPaymentProvider} from '../apps/api/payment-provider.js';
+import {createPaymentService} from '../apps/api/payment-service.js';
+import {createPaymentRepository} from '../database/payment-repository.js';
 import {createApiServer} from '../apps/api/server.js';
 import {loadConfig} from '../apps/api/config.js';
 import {createAdminService} from '../apps/api/admin-service.js';
@@ -60,8 +64,26 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
           return {readUrl:'https://media.example.test/opaque-synthetic-review',expiresAt:new Date(Date.now()+120000).toISOString()};
         },
       };
+      // Only synthetic provider responses; fetchImpl never performs network I/O.
+      const webhookSecret='fc431-fixture-only-not-a-production-secret';
+      const config=loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000',
+        PAYMENT_PROVIDER_URL:'https://payments.example.test',
+        PAYMENT_PROVIDER_SECRET:'fixture-only',
+        PAYMENT_WEBHOOK_SECRET:webhookSecret});
+      let providerCalls=0;
+      const paymentProvider=createPaymentProvider(config,{async fetchImpl(url,options){
+        assert.equal(String(url),'https://payments.example.test/intents');
+        assert.equal(options.method,'POST');
+        const body=JSON.parse(options.body);
+        assert.equal(body.amountCents,3790);
+        assert.equal(body.currency,'BRL');
+        providerCalls++;
+        return new Response(JSON.stringify({reference:'fc431-synthetic-payment',status:'paid'}),{status:201});
+      }});
       api=createApiServer({
-        config:loadConfig({NODE_ENV:'test',RATE_LIMIT_MAX:'1000'}),
+        config,
+        paymentProvider,
+        paymentService:createPaymentService(createPaymentRepository(database),paymentProvider),
         authService:{async session(token){return actors[token]??null;}},
         marketplaceService:createMarketplaceService(createMarketplaceRepository(database),null,mediaProvider),
         adminService:createAdminService(createAdminRepository(database),mediaProvider,{
@@ -212,7 +234,50 @@ test('FC-309 joins authenticated HTTP creation, independent review, search, rese
       // FC-359 adds two required preview checks: one denied GET before any
       // signed URL, then one verified GET before the existing approval checks.
       assert.equal(calls.filter(item=>item.action==='verify').length,5);
-      console.log('FC-309 passed: authenticated HTTP create -> independent review -> catalog -> reserve -> unpaid chat blocked; media provider simulated.');
+      // FC-431: continue the very same HTTP purchase without seeding paid state.
+      const paymentInput={transactionId,idempotencyKey:'fc431-synthetic-payment-key',method:'pix'};
+      const payment=await post('/v1/payments/intents','buyer',paymentInput);
+      const paymentBody=await payment.json();
+      assert.equal(payment.status,201,JSON.stringify(paymentBody));
+      assert.equal(paymentBody.intent.status,'pending');
+      assert.equal(paymentBody.intent.amountCents,3790);
+      const paymentId=paymentBody.intent.id;
+      const statusPath='/v1/transactions/'+transactionId+'/payments/'+paymentId+'/status';
+      assert.equal((await (await get(statusPath,'buyer')).json()).payment.status,'pending');
+      assert.equal((await get(statusPath,'outsider')).status,404);
+      assert.equal((await post('/v1/payments/intents','buyer',paymentInput)).status,200);
+      assert.equal(providerCalls,1);
+      const accessPath='/v1/transactions/'+transactionId+'/chat-access';
+      for(const token of ['buyer','seller']){
+        assert.equal((await (await get(accessPath,token)).json()).allowed,false);
+      }
+      const event={id:'fc431-synthetic-paid-event',type:'payment.paid',createdAt:new Date().toISOString(),
+        data:{reference:'fc431-synthetic-payment',amountCents:3790}};
+      const sendEvent=(payload,signed=true)=>{
+        const body=JSON.stringify(payload),timestamp=String(Math.floor(Date.now()/1000));
+        const signature=createHmac('sha256',webhookSecret).update(timestamp+'.'+body).digest('hex');
+        return fetch(origin+'/v1/payments/webhooks',{method:'POST',headers:{
+          'content-type':'application/json','x-payment-timestamp':timestamp,
+          'x-payment-signature':signed?'v1='+signature:'v1='+'0'.repeat(64)},body});
+      };
+      assert.equal((await sendEvent(event,false)).status,401);
+      const wrong=await sendEvent({...event,data:{...event.data,amountCents:3789}});
+      assert.equal(wrong.status,409);
+      assert.equal((await wrong.json()).error.code,'payment_amount_mismatch');
+      assert.equal((await (await get(accessPath,'buyer')).json()).allowed,false);
+      assert.equal((await database.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[event.id])).rows[0].n,0);
+      const confirmed=await sendEvent(event);
+      assert.equal(confirmed.status,200);
+      assert.equal((await confirmed.json()).status,'paid');
+      assert.equal((await (await sendEvent(event)).json()).duplicate,true);
+      assert.equal((await (await get(statusPath,'buyer')).json()).payment.status,'paid');
+      for(const token of ['buyer','seller']){
+        assert.equal((await (await get(accessPath,token)).json()).allowed,true);
+      }
+      assert.equal((await get(accessPath,'outsider')).status,404);
+      assert.equal((await database.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].n,1);
+      assert.equal(providerCalls,1);
+      console.log('FC-431: HTTP publication, reservation, synthetic payment, signed confirmation and protected chat access on the same purchase; no real provider.');
     }finally{
       if(api?.listening)await new Promise(resolve=>api.close(resolve));
       await database.close();
