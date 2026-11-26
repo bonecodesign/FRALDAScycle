@@ -161,10 +161,11 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     async context({ buyerId, transactionId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
-          `SELECT id, transaction_id, method, amount_cents, platform_fee_cents,
-                  delivery_fee_cents, seller_amount_cents,wallet_amount_cents,provider_charge_cents,provider_reference,status,checkout_payload
-           FROM payment_intents WHERE idempotency_key = $1`,
-          [idempotencyKey],
+          `SELECT p.id,p.transaction_id,p.buyer_id,p.method,p.amount_cents,p.platform_fee_cents,
+                  p.delivery_fee_cents,p.seller_amount_cents,p.wallet_amount_cents,p.provider_charge_cents,p.provider_reference,p.status,p.checkout_payload
+           FROM payment_intents p JOIN transactions t ON t.id=p.transaction_id
+           WHERE p.idempotency_key=$1 AND p.transaction_id=$2 AND p.buyer_id=$3 AND t.buyer_id=$3`,
+          [idempotencyKey,transactionId,buyerId],
         );
         if (existing.rows[0]) return { existing: true, intent: existing.rows[0] };
         const transaction = await client.query(
@@ -191,17 +192,23 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
           FOR UPDATE`,
           [input.transactionId,input.buyerId]);
         if (!eligibility.rows[0]) throw Object.assign(new Error("Transação indisponível ou frete ainda sem liquidação homologada."), {code:"transaction_not_payable",status:409});
+        // The transaction row lock serializes payment creation for this purchase.
+        // Query AFTER acquiring it, using a fresh READ COMMITTED statement.
+        // Even a failed/uncertain intent requires reconciliation before a new key.
+        const prior=await client.query('SELECT id FROM payment_intents WHERE transaction_id=$1 LIMIT 1',[input.transactionId]);
+        if(prior.rows.length)throw Object.assign(new Error('Já existe uma tentativa de pagamento. Consulte a operação antes de tentar novamente.'),{code:'payment_attempt_conflict',status:409});
         if(input.walletAmountCents>0){const wallet=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1 FOR UPDATE',[input.buyerId])).rows[0];if(!wallet||wallet.available_cents<input.walletAmountCents)throw Object.assign(new Error('Saldo da carteira insuficiente.'),{code:'wallet_insufficient_balance',status:409});}
         const created = await client.query(
           `INSERT INTO payment_intents
              (transaction_id, buyer_id, idempotency_key, method, amount_cents,
               platform_fee_cents, delivery_fee_cents, seller_amount_cents,wallet_amount_cents)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-           ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
+           ON CONFLICT (idempotency_key) DO NOTHING
            RETURNING *`,
           [input.transactionId, input.buyerId, input.idempotencyKey, input.method,
            input.amountCents, input.platformFeeCents, input.deliveryFeeCents, input.sellerAmountCents,input.walletAmountCents],
         );
+        if(!created.rows[0])throw Object.assign(new Error('Não foi possível reservar a tentativa. Consulte a operação antes de tentar novamente.'),{code:'payment_attempt_conflict',status:409});
         if(input.walletAmountCents>0){
           await client.query('UPDATE courier_wallet_accounts SET available_cents=available_cents-$2,reserved_cents=reserved_cents+$2,version=version+1,updated_at=now() WHERE courier_id=$1',[input.buyerId,input.walletAmountCents]);
           const allocation=(await client.query(`INSERT INTO courier_wallet_purchase_allocations(transaction_id,payment_intent_id,courier_id,gross_cents,wallet_cents,external_cents,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[input.transactionId,created.rows[0].id,input.buyerId,input.amountCents,input.walletAmountCents,input.providerChargeCents,`wallet-purchase:${input.idempotencyKey}`])).rows[0];
