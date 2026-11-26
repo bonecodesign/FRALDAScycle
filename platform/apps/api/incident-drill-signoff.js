@@ -20,6 +20,7 @@ export function assessIncidentDrillSignoff(input, clock = Date.now) {
 
   const acceptances = Array.isArray(input?.roleAcceptances) ? input.roleAcceptances : [];
   const acceptedRefs = new Set();
+  let founderRef;
   for (const role of REQUIRED_ROLES) {
     const matching = acceptances.filter(item => item?.role === role);
     if (matching.length !== 1 || matching[0]?.accepted !== true || !REF.test(String(matching[0]?.participantRef ?? "")) ||
@@ -28,6 +29,7 @@ export function assessIncidentDrillSignoff(input, clock = Date.now) {
       blockers.push(`${role}_acceptance_required`);
     } else {
       acceptedRefs.add(matching[0].participantRef);
+      if (role === "triage") founderRef = matching[0].participantRef;
     }
   }
   if (acceptedRefs.size !== REQUIRED_ROLES.length) blockers.push("distinct_role_holders_required");
@@ -46,6 +48,13 @@ export function assessIncidentDrillSignoff(input, clock = Date.now) {
       (Number.isFinite(observedAt) && Date.parse(String(input?.decision?.decidedAt ?? "")) < observedAt) ||
       String(input?.decision?.rationale ?? "").trim().length < 20) {
     blockers.push("formal_decision_required");
+  }
+  // The approved triage role belongs to the founder, who alone records the final decision.
+  // Bind both recovery and signoff to that same accepted reference; this is structural
+  // consistency, not proof of real identity or human attendance.
+  if (!founderRef || input?.decision?.decidedByRef !== founderRef ||
+      (verifiedEvidence && input.evidence.record.recovery.authorizedBy !== founderRef)) {
+    blockers.push("founder_decision_identity_required");
   }
   const unresolved = (Array.isArray(input?.findings) ? input.findings : [])
     .filter(item => ["high", "critical"].includes(item?.severity) && item?.status !== "resolved");
