@@ -25,14 +25,28 @@ function unavailable(error) {
   return "Dados operacionais indisponíveis nesta consulta. Nenhum valor demonstrativo foi exibido.";
 }
 
+function financeReviewLabel(item) {
+  const reasons=[];
+  if(item.overdue_pending===true)reasons.push('Pendente há 2h ou mais');
+  if(item.status==='disputed')reasons.push('Pagamento em disputa');
+  if(item.status==='failed')reasons.push('Falha — conciliar antes de repetir');
+  if(Number(item.open_cases)>0)reasons.push('Ocorrências abertas: '+integer(item.open_cases));
+  return reasons.join(' · ')||'—';
+}
+
 async function loadFinance() {
   const status = document.getElementById("finance-status");
   if (!status) return;
   const refresh = document.getElementById("finance-refresh");
   const body = document.getElementById("finance-ledger");
   const empty = document.getElementById("finance-empty");
+  if(refresh.disabled)return;
   refresh.disabled = true;
   status.textContent = "Consultando dados financeiros…";
+  // Clear prior figures while loading, including after access revocation.
+  const metrics=["finance-payment-count","finance-paid-volume","finance-paid-count","finance-pending-count","finance-exception-count","finance-overdue-count"];
+  for(const id of metrics)document.getElementById(id).textContent="—";
+  body.replaceChildren();empty.hidden=true;
   try {
     const result = await apiRequest("/v1/admin/finance-snapshot?limit=50");
     const summary = result.summary ?? {};
@@ -41,19 +55,21 @@ async function loadFinance() {
     document.getElementById("finance-paid-count").textContent = integer(summary.paid_count);
     document.getElementById("finance-pending-count").textContent = integer(summary.pending_count);
     document.getElementById("finance-exception-count").textContent = integer(summary.exception_count);
+    document.getElementById("finance-overdue-count").textContent = Number.isSafeInteger(summary.overdue_pending_count)&&summary.overdue_pending_count>=0?integer(summary.overdue_pending_count):"Não informado";
     body.replaceChildren();
     for (const item of result.items ?? []) {
       const row = document.createElement("tr");
       cell(row, item.id); cell(row, label(item.method)); cell(row, label(item.status));
       cell(row, currency(item.amount_cents)); cell(row, currency(item.platform_fee_cents));
-      cell(row, currency(item.seller_amount_cents)); cell(row, integer(item.open_cases));
+      cell(row, currency(item.seller_amount_cents)); cell(row, financeReviewLabel(item));
       cell(row, item.courier_payout_status ? `${label(item.courier_payout_status)} · ${currency(item.courier_amount_cents)}` : "Não registrada");
       body.append(row);
     }
     empty.hidden = body.rows.length > 0;
     status.textContent = `Consulta concluída: ${integer(body.rows.length)} registro(s) exibido(s).`;
   } catch (error) {
-    body.replaceChildren(); empty.hidden = false; status.textContent = unavailable(error);
+    for(const id of metrics)document.getElementById(id).textContent="—";
+    body.replaceChildren(); empty.hidden = true; status.textContent = unavailable(error);
   } finally { refresh.disabled = false; }
 }
 
