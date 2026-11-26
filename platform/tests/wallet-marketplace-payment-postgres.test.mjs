@@ -51,12 +51,23 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.deepEqual(await repository.processWebhook({...earlyEvent,payloadHash:Buffer.from('changed-content')}),{eventConflict:true});
   assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[earlyEvent.id])).rows[0].n,1);
   assert.equal(settled.status,'paid');assert.equal((await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[1]])).rows[0].status,'paid');
+  await db.query("UPDATE transaction_contact_access SET revoked_at=now(),revoked_by=$2,revocation_reason='synthetic-review' WHERE transaction_id=$1",[transactions[1],ids.courier]);
+  const repeatPaid={...earlyEvent,id:'wallet-marketplace-paid-second-id',payloadHash:Buffer.from('second-paid')};
+  assert.deepEqual(await repository.processWebhook(repeatPaid),{ignored:true,status:'paid'});
+  assert.equal((await db.query('SELECT revocation_reason FROM transaction_contact_access WHERE transaction_id=$1',[transactions[1]])).rows[0].revocation_reason,'synthetic-review');
 
   await assert.rejects(service.createIntent(ids.courier,{transactionId:transactions[2],idempotencyKey:'wallet-marketplace-failure-0001',method:'pix',walletAmountCents:1000}),error=>error.code==='provider_offline');
   // A failure may be ambiguous at the provider; no new key can charge again.
   await assert.rejects(service.createIntent(ids.courier,{transactionId:transactions[2],idempotencyKey:'wallet-marketplace-after-failure-0002',method:'pix',walletAmountCents:1000}),error=>error.code==='payment_attempt_conflict');
   assert.equal(externalCalls.length,2);
   const failed=(await db.query('SELECT status FROM courier_wallet_purchase_allocations WHERE transaction_id=$1',[transactions[2]])).rows[0];assert.equal(failed.status,'released');
+  // Synthetic provider reference models a late confirmation after local failure.
+  await db.query("UPDATE payment_intents SET provider_reference='synthetic-late-provider' WHERE transaction_id=$1",[transactions[2]]);
+  const late={id:'wallet-marketplace-late-paid',type:'payment.paid',providerReference:'synthetic-late-provider',amountCents:2000,occurredAt:new Date(),payloadHash:Buffer.from('late-paid')};
+  assert.deepEqual(await repository.processWebhook(late),{stateConflict:true});
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM payment_webhook_events WHERE id=$1',[late.id])).rows[0].n,0);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactions[2]])).rows[0].n,0);
+  assert.equal((await db.query('SELECT status FROM payment_intents WHERE transaction_id=$1',[transactions[2]])).rows[0].status,'failed');
   const balance=await wallet.summary(ids.courier);assert.deepEqual({available:balance.available_cents,reserved:balance.reserved_cents},{available:3000,reserved:0});
 
   const tickets=['77777777-7777-4777-8777-777777777771','77777777-7777-4777-8777-777777777772'];
