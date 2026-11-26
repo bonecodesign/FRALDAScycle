@@ -19,7 +19,7 @@ Estas decisões não autorizam contratação, provisionamento, publicação exte
 - Dados: PostgreSQL e Redis sem exposição pública.
 - Imagens: armazenamento externo compatível com S3 e distribuição por CDN.
 - Disponibilidade interna pretendida: 99,5% ao mês no piloto.
-- Recuperação: RTO de até 4 horas e RPO de até 6 horas.
+- Recuperação: RTO de até 4 horas e RPO de até 60 minutos, conforme política de recuperação vigente.
 - Infraestrutura-base: teto planejado de R$ 300 por mês.
 - Operação tecnológica fixa: teto planejado de R$ 300 por mês.
 - Total tecnológico fixo: até R$ 600 por mês, sem custos variáveis por transação.
@@ -108,25 +108,27 @@ Diretrizes:
 
 ## 4. Backups e recuperação
 
+**Atualização FC-436 (26/11/2026):** os alvos de agosto de 2026 foram substituídos pelos objetivos técnicos vigentes em [`config/recovery-objectives.v1.json`](../config/recovery-objectives.v1.json) e pelo [runbook de ativação](recovery-activation-runbook.md). Esta atualização apenas harmoniza a referência; não comprova a execução hospedada, não altera as metas atuais nem autoriza recursos.
+
 | Indicador | Meta do piloto |
 | --- | --- |
-| RPO | até 6 horas |
+| RPO | até 60 minutos |
 | RTO | até 4 horas |
-| Retenção operacional | 30 dias |
-| Teste de restauração | trimestral |
+| Retenção imutável | 30 dias |
+| Teste de restauração | a cada 30 dias; observação humana independente ao menos trimestral |
 
 Política:
 
-- backup do PostgreSQL a cada 6 horas;
+- backup do PostgreSQL a cada 60 minutos;
 - cópia completa diária;
-- retenção diária por 30 dias;
+- retenção imutável por 30 dias, com armazenamento e controles ainda sujeitos a homologação;
 - cópia mensal por 12 meses;
 - backups criptografados e armazenados fora do VPS;
 - backup semanal da Hostinger como camada adicional;
 - snapshot antes de atualização crítica;
 - versionamento ou proteção contra exclusão no armazenamento de imagens;
-- restauração trimestral em ambiente isolado;
-- alerta para falha de backup;
+- restauração a cada 30 dias em ambiente isolado, com observação humana independente ao menos trimestral;
+- alerta para falha de backup ou atraso superior a 60 minutos;
 - código versionado e releases identificáveis;
 - restauração seguida de validação dos fluxos essenciais.
 
@@ -184,7 +186,7 @@ Limites:
 | Disco | 70% | 85% |
 | Erros da API | 2% por 5 min | 5% por 5 min |
 | Latência comum | acima de 500 ms | acima de 1,5 s |
-| Backup atrasado | 8 horas | 12 horas |
+| Backup atrasado | superior a 60 minutos: alertar e investigar | Falha de recuperação/RPO comprometido: escalar conforme runbook |
 | Certificado | 30 dias | 7 dias |
 | Indisponibilidade | 2 minutos | 5 minutos |
 
