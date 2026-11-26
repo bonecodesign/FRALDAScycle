@@ -15,7 +15,7 @@ function database() {
     if (/FROM listings l JOIN users u/.test(sql)) return { rows: [{ id: "listing-real", title: "Pacote real", seller_name: "Conta real", status: "published" }] };
     if (/active_user_count/.test(sql)) return { rows: [{ active_user_count: 3, transaction_count: 2, paid_volume_cents: "5000", shipment_count: 1 }] };
     if (/FROM transactions t JOIN listings/.test(sql)) return { rows: [{ id: "transaction-real", kind: "sale", status: "completed" }] };
-    if (/FROM payment_intents p$/.test(sql.trim())) return { rows: [{ payment_count: 2, paid_volume_cents: "5000", paid_count: 1, pending_count: 1, exception_count: 0 }] };
+    if (/FROM payment_intents p$/.test(sql.trim())) return { rows: [{ payment_count: 2, paid_volume_cents: "5000", paid_count: 1, pending_count: 1, overdue_pending_count: 1, exception_count: 1 }] };
     if (/FROM payment_intents p/.test(sql)) return { rows: [{ id: "payment-real", amount_cents: 5000, status: "paid" }] };
     if (/FROM shipments$/.test(sql.trim())) return { rows: [{ shipment_count: 1, awaiting_pickup_count: 0, assigned_count: 0, in_transit_count: 1, delivered_count: 0, exception_count: 0 }] };
     if (/FROM shipments s/.test(sql)) return { rows: [{ id: "shipment-real", status: "in_transit" }] };
@@ -62,7 +62,15 @@ test("finance snapshot returns persisted rows and audits the real administrator"
   const db = database();
   const result = await createAdminRepository(db).financeSnapshot({ actorUserId: "admin-1", limit: 20, offset: 0 });
   assert.equal(result.summary.paid_volume_cents, "5000");
+  assert.equal(result.summary.overdue_pending_count, 1);
   assert.equal(result.items[0].id, "payment-real");
+  assert.match(db.calls[0].sql,/overdue_pending_count/);
+  assert.match(db.calls[0].sql,/'refunded','disputed'/);
+  for(const call of db.calls.slice(0,2)){
+    assert.match(call.sql,/p.created_at<=now\(\)-interval '120 minutes'/);
+    assert.doesNotMatch(call.sql,/provider_reference|checkout_payload|billingCpf/);
+  }
+  assert.match(db.calls[1].sql,/AS overdue_pending/);
   const audit = db.calls.find(({ sql }) => /admin\.finance_snapshot\.read/.test(sql));
   assert.equal(audit.values[0], "admin-1");
   assert.match(db.calls[1].sql, /payment_cases/);
