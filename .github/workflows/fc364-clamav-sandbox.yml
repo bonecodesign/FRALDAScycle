@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends clamav clamav-freshclam tesseract-ocr tesseract-ocr-eng
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends clamav clamav-freshclam tesseract-ocr tesseract-ocr-eng time
           # Avoid the background updater holding the database lock.
           sudo systemctl stop clamav-freshclam.service 2>/dev/null || true
           command -v clamscan
@@ -84,7 +84,10 @@ jobs:
           node --test tests/media-local-chain.test.mjs
           # This invokes real ClamAV on source AND converted images. It
           # never returns production "clean" and fails closed if AV is missing.
-          node tools/media-local-chain.mjs
+          # FC-434: report only numeric resource metrics, not raw OCR or input data.
+          printf 'FC-434 runner logical CPUs: '; getconf _NPROCESSORS_ONLN
+          awk '/^MemTotal:/ {print "FC-434 runner memory KiB: " $2}' /proc/meminfo
+          /usr/bin/time -f 'FC-434 sequential elapsed_s=%e user_cpu_s=%U system_cpu_s=%S max_single_process_rss_kib=%M exit=%x' node tools/media-local-chain.mjs
       - name: Exercise bounded concurrent real-AV artificial listing batches
         working-directory: platform
         shell: bash
@@ -94,4 +97,5 @@ jobs:
           # Six artificial images in 3 listings; no external media service,
           # data, approval or reusable clean attestation. Both source
           # and WebP are scanned using real ClamAV in up to 2 workers.
-          node tools/media-local-batches.mjs
+          # GNU time peak RSS is not aggregate concurrent memory or a production SLA.
+          /usr/bin/time -f 'FC-434 concurrent elapsed_s=%e user_cpu_s=%U system_cpu_s=%S max_single_process_rss_kib=%M exit=%x' node tools/media-local-batches.mjs
