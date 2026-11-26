@@ -253,13 +253,19 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     });},
 
     async attachProvider({ intentId, providerReference, status, checkoutPayload }) {
+      if(typeof providerReference!=='string'||!providerReference.trim()||!['pending','authorized','paid'].includes(status)){
+        throw Object.assign(new Error('Resposta financeira inconsistente; solicite conciliação.'),{code:'payment_provider_state_conflict',status:409});
+      }
+      // The initial reply is not the atomic financial confirmation.
+      const attachedStatus=status==='paid'?'pending':status;
       const result = await database.query(
         `UPDATE payment_intents
          SET provider_reference = $2, status = $3::payment_intent_status,
              checkout_payload = $4::jsonb, updated_at = now()
-         WHERE id = $1 RETURNING *`,
-        [intentId, providerReference, status, JSON.stringify(checkoutPayload ?? {})],
+         WHERE id = $1 AND status='provider_pending' AND provider_reference IS NULL RETURNING *`,
+        [intentId, providerReference, attachedStatus, JSON.stringify(checkoutPayload ?? {})],
       );
+      if(result.rowCount!==1)throw Object.assign(new Error('A tentativa financeira mudou; solicite conciliação.'),{code:'payment_provider_state_conflict',status:409});
       return result.rows[0];
     },
 
