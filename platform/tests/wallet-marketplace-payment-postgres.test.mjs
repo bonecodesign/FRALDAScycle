@@ -107,5 +107,27 @@ test('courier wallet funds full and mixed Marketplace payments without releasing
   assert.equal(mixedRefunded.supportedRefundCompleted,true);assert.equal((await wallet.summary(ids.courier)).available_cents,15000);
   const allocations=(await db.query('SELECT transaction_id,wallet_refunded_cents,external_refunded_cents,status FROM courier_wallet_purchase_allocations WHERE transaction_id=ANY($1::uuid[]) ORDER BY transaction_id',[transactions.slice(0,2)])).rows;
   assert.deepEqual(allocations.map(row=>[row.wallet_refunded_cents,row.external_refunded_cents,row.status]),[[10000,0,'refunded'],[2000,2000,'refunded']]);
+  // FC-424: two isolated synthetic purchases, one cancelled and one with revoked contact.
+  for(const suffix of ['4','5']){
+    const listingId='44444444-4444-4444-8444-44444444444'+suffix;
+    const transactionId='55555555-5555-4555-8555-55555555555'+suffix;
+    const key='wallet-marketplace-state-000'+suffix;
+    await db.query(`INSERT INTO listings(id,seller_id,title,description,category,brand,model,package_condition,quantity,kind,price_cents,status) VALUES($1,$2,'Anúncio sintético FC-424','Descrição sintética exclusiva para carteira.','infant','Marca','Modelo','sealed',1,'sale',1000,'unavailable')`,[listingId,ids.seller]);
+    await db.query(`INSERT INTO transactions(id,listing_id,buyer_id,seller_id,status,amount_cents) VALUES($1,$2,$3,$4,'initiated',1000)`,[transactionId,listingId,ids.courier,ids.seller]);
+    const intent=await repository.createIntent({buyerId:ids.courier,transactionId,idempotencyKey:key,method:'wallet',amountCents:1000,platformFeeCents:80,deliveryFeeCents:0,sellerAmountCents:920,walletAmountCents:1000,providerChargeCents:0});
+    if(suffix==='4'){
+      await db.query("UPDATE transactions SET status='cancelled' WHERE id=$1",[transactionId]);
+      const before=await wallet.summary(ids.courier);
+      await assert.rejects(repository.completeWalletPayment({intentId:intent.id,buyerId:ids.courier,idempotencyKey:key}),error=>error.code==='wallet_payment_state_conflict');
+      const after=await wallet.summary(ids.courier);
+      assert.equal(after.available_cents,before.available_cents);assert.equal(after.reserved_cents,before.reserved_cents);
+      assert.equal((await db.query('SELECT status FROM payment_intents WHERE id=$1',[intent.id])).rows[0].status,'provider_pending');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].n,0);
+    }else{
+      await db.query("INSERT INTO transaction_contact_access(transaction_id,payment_intent_id,revoked_at,revoked_by,revocation_reason) VALUES($1,$2,now(),$3,'synthetic-review')",[transactionId,intent.id,admin]);
+      assert.equal((await repository.completeWalletPayment({intentId:intent.id,buyerId:ids.courier,idempotencyKey:key})).status,'paid');
+      assert.equal((await db.query('SELECT revocation_reason FROM transaction_contact_access WHERE transaction_id=$1',[transactionId])).rows[0].revocation_reason,'synthetic-review');
+    }
+  }
  }finally{await db.close();}});
 });

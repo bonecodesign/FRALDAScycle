@@ -237,17 +237,18 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     },
 
     async completeWalletPayment({intentId,buyerId,idempotencyKey}){return database.transaction(async client=>{
-      const intent=(await client.query(`SELECT p.*,a.id AS allocation_id,a.wallet_cents,a.status AS allocation_status FROM payment_intents p JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id WHERE p.id=$1 AND p.buyer_id=$2 FOR UPDATE OF p,a`,[intentId,buyerId])).rows[0];
+      const intent=(await client.query(`SELECT p.*,a.id AS allocation_id,a.wallet_cents,a.status AS allocation_status,t.status AS transaction_status FROM payment_intents p JOIN courier_wallet_purchase_allocations a ON a.payment_intent_id=p.id JOIN transactions t ON t.id=p.transaction_id AND t.buyer_id=p.buyer_id WHERE p.id=$1 AND p.buyer_id=$2 AND a.courier_id=p.buyer_id AND a.transaction_id=t.id FOR UPDATE OF p,a,t`,[intentId,buyerId])).rows[0];
       if(!intent||intent.method!=='wallet'||intent.provider_charge_cents!==0)throw Object.assign(new Error('Pagamento integral pela carteira inválido.'),{code:'wallet_payment_invalid',status:409});
-      if(intent.status==='paid')return intent;if(intent.status!=='provider_pending'||intent.allocation_status!=='reserved')throw Object.assign(new Error('Pagamento não pode ser concluído.'),{code:'wallet_payment_state_conflict',status:409});
+      if(intent.status==='paid')return intent;if(intent.status!=='provider_pending'||intent.allocation_status!=='reserved'||intent.transaction_status!=='payment_pending')throw Object.assign(new Error('Pagamento não pode ser concluído.'),{code:'wallet_payment_state_conflict',status:409});
       const debit=await client.query('UPDATE courier_wallet_accounts SET reserved_cents=reserved_cents-$2,version=version+1,updated_at=now() WHERE courier_id=$1 AND reserved_cents>=$2',[buyerId,intent.wallet_cents]);
       if(debit.rowCount!==1)throw Object.assign(new Error('Saldo reservado inconsistente.'),{code:'wallet_balance_conflict',status:409});
       const balance=(await client.query('SELECT available_cents,reserved_cents FROM courier_wallet_accounts WHERE courier_id=$1',[buyerId])).rows[0];
       await client.query(`INSERT INTO courier_wallet_entries(courier_id,kind,amount_cents,available_after_cents,reserved_after_cents,source_type,source_id,idempotency_key) VALUES($1,'purchase_debit',$2,$3,$4,'marketplace_purchase',$5,$6)`,[buyerId,intent.wallet_cents,balance.available_cents,balance.reserved_cents,intent.allocation_id,createHash('sha256').update(`purchase-paid:${idempotencyKey}`).digest('hex')]);
       await client.query("UPDATE courier_wallet_purchase_allocations SET status='paid',updated_at=now() WHERE id=$1",[intent.allocation_id]);
       const paid=(await client.query("UPDATE payment_intents SET status='paid',updated_at=now() WHERE id=$1 RETURNING *",[intent.id])).rows[0];
-      await client.query("UPDATE transactions SET status='paid',updated_at=now() WHERE id=$1 AND status='payment_pending'",[intent.transaction_id]);
-      await client.query(`INSERT INTO transaction_contact_access(transaction_id,payment_intent_id,wallet_purchase_allocation_id) VALUES($1,$2,$3) ON CONFLICT(transaction_id) DO UPDATE SET payment_intent_id=EXCLUDED.payment_intent_id,wallet_purchase_allocation_id=EXCLUDED.wallet_purchase_allocation_id,unlocked_at=now(),revoked_at=NULL,revoked_by=NULL,revocation_reason=NULL`,[intent.transaction_id,intent.id,intent.allocation_id]);
+      const purchase=await client.query("UPDATE transactions SET status='paid',updated_at=now() WHERE id=$1 AND status='payment_pending'",[intent.transaction_id]);
+      if(purchase.rowCount!==1)throw Object.assign(new Error('Transação não pode ser concluída.'),{code:'wallet_payment_state_conflict',status:409});
+      await client.query(`INSERT INTO transaction_contact_access(transaction_id,payment_intent_id,wallet_purchase_allocation_id) SELECT t.id,$2,$3 FROM transactions t JOIN listings l ON l.id=t.listing_id WHERE t.id=$1 AND t.status='paid' AND l.kind='sale' ON CONFLICT(transaction_id) DO NOTHING`,[intent.transaction_id,intent.id,intent.allocation_id]);
       await client.query(`INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,metadata) VALUES($1,'payment.wallet.completed','payment_intent',$2,$3::jsonb)`,[buyerId,intent.id,JSON.stringify({walletAmountCents:intent.wallet_cents,externalChargeCreated:false})]);return paid;
     });},
 
