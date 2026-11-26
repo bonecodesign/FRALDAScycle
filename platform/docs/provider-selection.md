@@ -56,6 +56,20 @@ Para pagamentos e logística, “recomendada” agora significa **escolhida pelo
 - Sentry: https://sentry.io/pricing/
 - Doppler: https://www.doppler.com/pricing
 
+## FC-429 — Stripe: apoio técnico atual e possibilidade financeira futura (25/11/2026)
+
+Direção autorizada pelo fundador: utilizar a documentação e as ferramentas de pesquisa do plugin Stripe como apoio ao desenvolvimento e considerar Stripe como candidato futuro para pagamentos e administração financeira. **Não substitui a escolha vigente de Asaas/Lalamove para homologação do piloto.** Não iniciar uma segunda integração completa nem criar contas, produtos, preços, cobranças, credenciais ou sandbox por esta decisão. Nenhuma consulta a dados financeiros de outro projeto.
+
+A avaliação futura deverá demonstrar:
+- Connect: elegibilidade de vendedores pessoas físicas no Brasil, Pix/cartão em BRL, tarifas, repasses, estornos e disputas.
+- Pagamento protegido: cobrança e transferência separadas como possibilidade de liberação após entrega e confirmação; Stripe não oferece escrow jurídico. Validar prazo, responsabilidade por saldo negativo e enquadramento legal, sem presumir segregação de fundos disponível no Brasil.
+- Preservação da comissão de venda de 8%, tarifa de processamento suportada pelo vendedor, regras de troca e logística existentes; item 12 permanece standby.
+- Billing para Premium de R$ 14,90/mês, Radar e relatórios como possibilidades de reduzir trabalho operacional; custos, tributação, privacidade e supervisão humana sujeitos a homologação.
+
+Referências oficiais: https://docs.stripe.com/connect/separate-charges-and-transfers ; https://docs.stripe.com/connect/manual-payouts ; https://docs.stripe.com/payments/payment-methods/payment-method-connect-support ; https://docs.stripe.com/connect/funds-segregation ; https://stripe.com/br/pricing .
+
+Utilização atual restrita à pesquisa técnica e planejamento, sem novos custos contratados nem acesso a contas de produção. Testes de sandbox externo, implementação, contratação, alterações de configuração e ativação dependem de autorizações próprias. Matriz oficial permanece 48/70, piloto 16/21 e NO-GO; não promover requisito pela disponibilidade do plugin.
+
 ## Próximo portão
 
 Nenhuma integração avança automaticamente. O próximo estado permitido é “diligência aprovada”, com respostas comerciais, jurídicas, de segurança e privacidade anexadas fora do repositório e sem segredos. Somente depois pode existir sandbox; produção permanece bloqueada até a homologação integral.
