@@ -271,21 +271,24 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
         platformFeeCents, deliveryFeeCents, sellerAmountCents,walletAmountCents:funding.walletCents,providerChargeCents:funding.externalCents,
       });
       if(funding.fullyCoveredByWallet){const paid=await repository.completeWalletPayment({intentId:created.id,buyerId,idempotencyKey});return{intent:publicIntent(paid),reused:false};}
+      let remote;
       try {
-        const remote = await provider.createIntent({
+        remote = await provider.createIntent({
           id: created.id, idempotencyKey, method, paymentMethodToken, amountCents:funding.externalCents,
           billingCpf,
           platformFeeCents:providerFunding.externalPlatformCents,deliveryFeeCents,sellerAmountCents:providerFunding.externalSellerCents,
         });
-        const attached = await repository.attachProvider({
-          intentId: created.id, providerReference: remote.providerReference,
-          status: remote.status, checkoutPayload: remote.checkout,
-        });
-        return { intent: publicIntent(attached), reused: false };
       } catch (error) {
         await repository.markProviderFailure({ intentId: created.id, failureCode: error.code ?? "provider_error" });
         throw error;
       }
+      // A provider reply may represent a real charge. A subsequent database
+      // error is not proof of a failed charge and must not release the reservation.
+      const attached = await repository.attachProvider({
+        intentId: created.id, providerReference: remote.providerReference,
+        status: remote.status==='paid'?'pending':remote.status, checkoutPayload: remote.checkout,
+      });
+      return { intent: publicIntent(attached), reused: false };
     },
   });
 }
