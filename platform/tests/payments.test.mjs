@@ -380,11 +380,11 @@ test("refund and dispute service authorizes the buyer and reuses idempotent case
   const repository = {
     async caseContext({ idempotencyKey }) {
       if (idempotencyKey === "existing-case-key-0001") {
-        return { existing: true, paymentCase: { id: "case-existing", status: "submitted" } };
+        return { existing: true, paymentCase: { id: "case-existing", status: "submitted", requester_id:"buyer-1", payment_intent_id:"intent-1", kind:"refund", reason:"customer_request", details:"Produto não foi entregue no prazo combinado." } };
       }
       return { existing: false, intent: {
         id: "intent-1", provider_reference: "provider-payment-1",
-        status: "paid", amount_cents: 10_000,
+        status: "paid", amount_cents: 10_000, wallet_amount_cents:0,provider_charge_cents:10_000,
       } };
     },
     async createCase(input) { calls.push(input); return { id: "case-1", ...input }; },
@@ -417,6 +417,7 @@ test("refund and dispute persistence creates case and audit in one transaction",
   const client = {
     async query(text, values) {
       statements.push({ text, values });
+      if (/FOR UPDATE OF p/.test(text)) return { rows: [{ id:"intent-1",status:"paid",provider_reference:"provider-payment-1",amount_cents:10000,wallet_amount_cents:0,provider_charge_cents:10000 }] };
       if (/INSERT INTO payment_cases/.test(text)) return { rows: [{ id: "case-1", status: "provider_pending" }] };
       return { rows: [] };
     },
@@ -429,12 +430,16 @@ test("refund and dispute persistence creates case and audit in one transaction",
     intentId: "intent-1", requesterId: "buyer-1", kind: "dispute",
     idempotencyKey: "dispute-repository-0001", reason: "not_received",
     details: "O produto não chegou e o rastreio não atualiza.",
+    expectedProviderReference:"provider-payment-1",expectedAmountCents:10000,
   });
-  assert.equal(statements.length, 2);
-  assert.match(statements[0].text, /INSERT INTO payment_cases/);
-  assert.match(statements[1].text, /INSERT INTO audit_events/);
-  assert.equal(statements[1].values[1], "payment.dispute.requested");
-  assert.equal(statements[1].values[3].includes("não chegou"), false);
+  assert.equal(statements.length, 5);
+  assert.match(statements[0].text, /FOR UPDATE OF p/);
+  assert.match(statements[1].text, /SELECT id FROM payment_cases/);
+  assert.match(statements[2].text, /SELECT id FROM supported_cancellations/);
+  assert.match(statements[3].text, /INSERT INTO payment_cases/);
+  assert.match(statements[4].text, /INSERT INTO audit_events/);
+  assert.equal(statements[4].values[1], "payment.dispute.requested");
+  assert.equal(statements[4].values[3].includes("não chegou"), false);
 });
 
 test("payment provider submits cases with authentication and idempotency", async () => {

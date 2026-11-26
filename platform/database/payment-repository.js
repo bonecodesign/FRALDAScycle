@@ -94,6 +94,10 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         WHERE c.id=$1 FOR UPDATE OF c,p`,[cancellationId])).rows[0];
       if(!row)throw Object.assign(new Error('Decisão de reembolso não encontrada.'),{code:'supported_refund_not_found',status:404});
       if(row.execution_idempotency_key){if(row.execution_idempotency_key!==idempotencyKey)throw Object.assign(new Error('A execução já possui outra chave.'),{code:'refund_execution_conflict',status:409});return{refund:row,reused:true};}
+      // Both refund paths serialize on the same payment intent row.
+      // A prior external case may have moved money even after a local failure.
+      const externalCase=await client.query('SELECT id FROM payment_cases WHERE payment_intent_id=$1 LIMIT 1',[row.payment_intent_id]);
+      if(externalCase.rows.length)throw Object.assign(new Error('Existe uma solicitação financeira anterior. Concilie o caso antes de executar o reembolso.'),{code:'refund_cross_path_conflict',status:409});
       const composition=row.allocation_id?proportionalWalletRefund({grossCents:Number(row.allocation_gross_cents),walletCents:Number(row.allocation_wallet_cents),refundCents:Number(row.refund_amount_cents)}):{walletRefundCents:0,externalRefundCents:Number(row.refund_amount_cents)};
       if(row.status!=='provider_pending'||(composition.externalRefundCents>0&&!row.payment_provider_reference)||row.refund_amount_cents<0)throw Object.assign(new Error('Reembolso não está pronto para execução.'),{code:'supported_refund_not_ready',status:409});
       const grant=await stepUpRepository.consume(client,{grantId,userId:actorId,purpose:'refund_execution'});if(!grant)throw Object.assign(new Error('Confirmação financeira inválida ou expirada.'),{code:'refund_step_up_required',status:409});
@@ -260,15 +264,18 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
     async caseContext({ requesterId, intentId, idempotencyKey }) {
       return database.transaction(async (client) => {
         const existing = await client.query(
-          `SELECT id, payment_intent_id, kind, reason, details, provider_reference, status
-           FROM payment_cases WHERE idempotency_key = $1`,
-          [idempotencyKey],
+          `SELECT c.id,c.payment_intent_id,c.requester_id,c.kind,c.reason,c.details,c.status
+           FROM payment_cases c JOIN payment_intents p ON p.id=c.payment_intent_id
+           JOIN transactions t ON t.id=p.transaction_id
+           WHERE c.idempotency_key=$1 AND c.payment_intent_id=$2 AND c.requester_id=$3
+             AND p.buyer_id=$3 AND t.buyer_id=$3`,
+          [idempotencyKey,intentId,requesterId],
         );
         if (existing.rows[0]) return { existing: true, paymentCase: existing.rows[0] };
         const intent = await client.query(
-          `SELECT p.id, p.provider_reference, p.status, p.amount_cents, t.buyer_id, t.status AS transaction_status
+          `SELECT p.id, p.provider_reference, p.status, p.amount_cents,p.wallet_amount_cents,p.provider_charge_cents, t.buyer_id, t.status AS transaction_status
            FROM payment_intents p JOIN transactions t ON t.id = p.transaction_id
-           WHERE p.id = $1 AND t.buyer_id = $2 FOR UPDATE OF p`,
+           WHERE p.id = $1 AND p.buyer_id = $2 AND t.buyer_id = $2 FOR UPDATE OF p`,
           [intentId, requesterId],
         );
         return { existing: false, intent: intent.rows[0] ?? null };
@@ -277,14 +284,38 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
 
     async createCase(input) {
       return database.transaction(async (client) => {
+        // Recheck ownership and eligibility under a row lock; the earlier
+        // context transaction has already ended.
+        const locked=(await client.query(`
+          SELECT p.id,p.status,p.provider_reference,p.amount_cents,p.wallet_amount_cents,p.provider_charge_cents
+          FROM payment_intents p JOIN transactions t ON t.id=p.transaction_id
+          WHERE p.id=$1 AND p.buyer_id=$2 AND t.buyer_id=$2 FOR UPDATE OF p
+        `,[input.intentId,input.requesterId])).rows[0];
+        if(!locked)throw Object.assign(new Error('Pagamento não encontrado.'),{code:'payment_not_found',status:404});
+        if(locked.wallet_amount_cents!==0||locked.provider_charge_cents!==locked.amount_cents){
+          throw Object.assign(new Error('Pagamento com carteira ou composição financeira divergente exige análise do suporte.'),{code:'payment_case_requires_support',status:409});
+        }
+        const eligible=input.kind==='refund'?['paid','authorized']:input.kind==='dispute'?['paid','authorized','disputed']:[];
+        if(!eligible.includes(locked.status)||!locked.provider_reference||
+           locked.provider_reference!==input.expectedProviderReference||locked.amount_cents!==input.expectedAmountCents)
+          throw Object.assign(new Error('A situação financeira mudou. Consulte o pagamento novamente.'),{code:'payment_case_conflict',status:409});
+        // A new key cannot repeat an existing request of the same kind.
+        // Failed/ambiguous attempts require support reconciliation first.
+        const prior=await client.query('SELECT id FROM payment_cases WHERE payment_intent_id=$1 AND kind=$2::payment_case_kind LIMIT 1',[input.intentId,input.kind]);
+        if(prior.rows.length)throw Object.assign(new Error('Já existe uma solicitação deste tipo. Acompanhe a operação pelo suporte.'),{code:'payment_case_conflict',status:409});
+        // A supported cancellation may already have reserved or returned funds.
+        // Never bypass its financial snapshot, including ambiguous failures.
+        const assisted=await client.query('SELECT id FROM supported_cancellations WHERE payment_intent_id=$1 LIMIT 1',[input.intentId]);
+        if(assisted.rows.length)throw Object.assign(new Error('Existe um cancelamento assistido. Acompanhe a conciliação pelo suporte.'),{code:'refund_cross_path_conflict',status:409});
         const created = await client.query(
           `INSERT INTO payment_cases
              (payment_intent_id, requester_id, kind, idempotency_key, reason, details)
            VALUES ($1,$2,$3::payment_case_kind,$4,$5,$6)
-           ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
+           ON CONFLICT (idempotency_key) DO NOTHING
            RETURNING *`,
           [input.intentId, input.requesterId, input.kind, input.idempotencyKey, input.reason, input.details],
         );
+        if(!created.rows[0])throw Object.assign(new Error('Não foi possível registrar uma nova solicitação. Consulte o suporte.'),{code:'payment_case_conflict',status:409});
         await client.query(
           `INSERT INTO audit_events (actor_user_id, action, entity_type, entity_id, metadata)
            VALUES ($1, $2, 'payment_case', $3, $4::jsonb)`,
