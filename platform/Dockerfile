@@ -10,6 +10,7 @@ COPY database ./database
 COPY workers ./workers
 COPY packages ./packages
 COPY config/launch-preparation.v1.json ./config/launch-preparation.v1.json
+COPY config/secret-access.v1.json ./config/secret-access.v1.json
 COPY docs/legal ./docs/legal
 USER node
 EXPOSE 4200
