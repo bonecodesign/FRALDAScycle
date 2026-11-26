@@ -178,6 +178,7 @@ export function createPaymentService(repository, provider, { cpfHmacSecret = nul
       const result = await repository.processWebhook(event);
       if (result.missing) throw new PaymentError("payment_not_found", 404, "Pagamento não encontrado.");
       if (result.amountMismatch) throw new PaymentError("payment_amount_mismatch", 409, "Valor do evento financeiro não confere.");
+      if(result.eventConflict)throw new PaymentError('payment_event_conflict',409,'Identificador de evento financeiro já utilizado com conteúdo divergente.');
       return { accepted: true, duplicate: Boolean(result.duplicate), status: result.status ?? null,
         ...(result.ignored ? { ignored: true } : {}) };
     },
