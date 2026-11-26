@@ -41,6 +41,11 @@ function databaseEnvironment(value) {
   } catch { throw new Error("Database URL contains invalid percent encoding"); }
   if (!username) throw new Error("Database URL must include username");
   if (!database) throw new Error("Database URL must include host and database name");
+  // pg_restore --dbname accepts a libpq connection string, not just a name.
+  // Do not let a decoded URL path override the validated host, database or TLS.
+  if (database.includes("=") || /^postgres(?:ql)?:\/\//i.test(database) || /[\x00-\x1f\x7f]/.test(database)) {
+    throw new Error("Database URL must contain a literal database name, not connection parameters");
+  }
   const port = Number(url.port || "5432");
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("Database URL port is invalid");
