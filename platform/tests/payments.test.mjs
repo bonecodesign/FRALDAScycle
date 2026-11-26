@@ -430,13 +430,14 @@ test("refund and dispute persistence creates case and audit in one transaction",
     details: "O produto não chegou e o rastreio não atualiza.",
     expectedProviderReference:"provider-payment-1",expectedAmountCents:10000,
   });
-  assert.equal(statements.length, 4);
+  assert.equal(statements.length, 5);
   assert.match(statements[0].text, /FOR UPDATE OF p/);
   assert.match(statements[1].text, /SELECT id FROM payment_cases/);
-  assert.match(statements[2].text, /INSERT INTO payment_cases/);
-  assert.match(statements[3].text, /INSERT INTO audit_events/);
-  assert.equal(statements[3].values[1], "payment.dispute.requested");
-  assert.equal(statements[3].values[3].includes("não chegou"), false);
+  assert.match(statements[2].text, /SELECT id FROM supported_cancellations/);
+  assert.match(statements[3].text, /INSERT INTO payment_cases/);
+  assert.match(statements[4].text, /INSERT INTO audit_events/);
+  assert.equal(statements[4].values[1], "payment.dispute.requested");
+  assert.equal(statements[4].values[3].includes("não chegou"), false);
 });
 
 test("payment provider submits cases with authentication and idempotency", async () => {
