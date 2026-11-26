@@ -262,7 +262,7 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         );
         if (existing.rows[0]) return { existing: true, paymentCase: existing.rows[0] };
         const intent = await client.query(
-          `SELECT p.id, p.provider_reference, p.status, p.amount_cents, t.buyer_id, t.status AS transaction_status
+          `SELECT p.id, p.provider_reference, p.status, p.amount_cents,p.wallet_amount_cents,p.provider_charge_cents, t.buyer_id, t.status AS transaction_status
            FROM payment_intents p JOIN transactions t ON t.id = p.transaction_id
            WHERE p.id = $1 AND p.buyer_id = $2 AND t.buyer_id = $2 FOR UPDATE OF p`,
           [intentId, requesterId],
@@ -276,11 +276,14 @@ export function createPaymentRepository(database,{stepUpRepository=null}={}) {
         // Recheck ownership and eligibility under a row lock; the earlier
         // context transaction has already ended.
         const locked=(await client.query(`
-          SELECT p.id,p.status,p.provider_reference,p.amount_cents
+          SELECT p.id,p.status,p.provider_reference,p.amount_cents,p.wallet_amount_cents,p.provider_charge_cents
           FROM payment_intents p JOIN transactions t ON t.id=p.transaction_id
           WHERE p.id=$1 AND p.buyer_id=$2 AND t.buyer_id=$2 FOR UPDATE OF p
         `,[input.intentId,input.requesterId])).rows[0];
         if(!locked)throw Object.assign(new Error('Pagamento não encontrado.'),{code:'payment_not_found',status:404});
+        if(locked.wallet_amount_cents!==0||locked.provider_charge_cents!==locked.amount_cents){
+          throw Object.assign(new Error('Pagamento com carteira ou composição financeira divergente exige análise do suporte.'),{code:'payment_case_requires_support',status:409});
+        }
         const eligible=input.kind==='refund'?['paid','authorized']:input.kind==='dispute'?['paid','authorized','disputed']:[];
         if(!eligible.includes(locked.status)||!locked.provider_reference||
            locked.provider_reference!==input.expectedProviderReference||locked.amount_cents!==input.expectedAmountCents)
