@@ -34,8 +34,8 @@ test('FC-415: ownership and status are rechecked under row lock before insertion
 });
 test('FC-415: existing same-kind case or global key conflict stops before audit/provider',async()=>{
   const h=harness([[locked],[prior]]);await assert.rejects(h.repo.createCase(createInput),e=>e.code==='payment_case_conflict');assert.equal(h.calls.length,2);
-  const collision=harness([[locked],[],[]]);await assert.rejects(collision.repo.createCase(createInput),e=>e.code==='payment_case_conflict');assert.equal(collision.calls.length,3);
-  assert.match(collision.calls[2].sql,/ON CONFLICT \(idempotency_key\) DO NOTHING/);
+  const collision=harness([[locked],[],[],[]]);await assert.rejects(collision.repo.createCase(createInput),e=>e.code==='payment_case_conflict');assert.equal(collision.calls.length,4);
+  assert.match(collision.calls[3].sql,/ON CONFLICT \(idempotency_key\) DO NOTHING/);
   assert.doesNotMatch(collision.calls.map(c=>c.sql).join('\n'),/INSERT INTO audit_events/);
 });
 
@@ -56,4 +56,29 @@ test('FC-416: direct cases refuse mixed, wallet-only or inconsistent funding bef
     }
   }
   assert.equal(creates,0);assert.equal(external,0);
+});
+
+test('FC-417: assisted cancellation blocks a new direct refund or dispute before insertion',async()=>{
+  for(const kind of ['refund','dispute']){
+    for(const status of ['provider_pending','submitted','completed','failed']){
+      const h=harness([[locked],[],[{id:'assisted',status}]]);
+      await assert.rejects(h.repo.createCase({...createInput,kind}),e=>e.code==='refund_cross_path_conflict'&&e.status===409);
+      assert.equal(h.calls.length,3);assert.match(h.calls[0].sql,/FOR UPDATE OF p/);
+      assert.match(h.calls[2].sql,/SELECT id FROM supported_cancellations WHERE payment_intent_id=\$1/);
+      assert.deepEqual(h.calls[2].args,[id]);
+      assert.doesNotMatch(h.calls.map(c=>c.sql).join('\n'),/INSERT INTO payment_cases|INSERT INTO audit_events/);
+    }
+  }
+});
+test('FC-417: an existing external case prevents assisted execution before step-up or provider submission',async()=>{
+  for(const status of ['provider_pending','submitted','under_review','approved','rejected','completed','failed']){
+    const calls=[];let grants=0,external=0;
+    const decision={id:'cancel-1',payment_intent_id:id,status:'provider_pending',refund_amount_cents:4000,payment_provider_reference:'remote-1'};
+    const repository=createPaymentRepository({transaction:async fn=>fn({async query(sql,args){calls.push({sql,args});return{rows:calls.length===1?[decision]:[{id:'external-case',status}]}}})},{stepUpRepository:{async consume(){grants++;return{id:'grant'}}}});
+    const service=createPaymentService(repository,{async createCase(){external++;throw Error('unexpected provider call')}});
+    await assert.rejects(service.executeSupportedRefund({id:'finance',role:'admin',staffAccessLevel:3},id,{confirmed:true,idempotencyKey:id,grantId:id}),e=>e.code==='refund_cross_path_conflict'&&e.status===409);
+    assert.equal(calls.length,2);assert.match(calls[0].sql,/FOR UPDATE OF c,p/);assert.match(calls[1].sql,/SELECT id FROM payment_cases WHERE payment_intent_id=\$1/);
+    assert.deepEqual(calls[1].args,[id]);assert.equal(grants,0);assert.equal(external,0);
+    assert.doesNotMatch(calls.map(c=>c.sql).join('\n'),/UPDATE supported_cancellations SET|INSERT INTO audit_events/);
+  }
 });
