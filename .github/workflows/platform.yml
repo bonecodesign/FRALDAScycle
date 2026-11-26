@@ -130,10 +130,27 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - name: Validate production topology
+      - name: Validate production topology and notification environment separation
         env:
           FRALDACYCLE_ENV_FILE: platform/.env.example
-        run: docker compose -f compose.production.example.yaml config --quiet
+        run: |
+          set -euo pipefail
+          notification_env=$(mktemp)
+          trap 'rm -f "$notification_env"' EXIT
+          # Only artificial values. Never render private environment files in CI.
+          printf '%s\n' 'NODE_ENV=production' 'DATABASE_URL=postgresql://worker@localhost/isolated' 'NOTIFICATION_WEBHOOK_URL=https://notify.example.test/deliver' 'NOTIFICATION_WEBHOOK_SECRET=synthetic-notification-secret' > "$notification_env"
+          export FRALDACYCLE_NOTIFICATION_ENV_FILE="$notification_env"
+          docker compose -f compose.production.example.yaml config --quiet
+          docker compose -f compose.production.example.yaml config --format json | python3 -c '
+          import json, sys
+          services = json.load(sys.stdin)["services"]
+          api = services["api"]["environment"]
+          worker = services["notifications-worker"]["environment"]
+          assert "SESSION_SECRET" in api
+          assert set(worker) == {"NODE_ENV", "DATABASE_URL", "NOTIFICATION_WEBHOOK_URL", "NOTIFICATION_WEBHOOK_SECRET"}
+          assert worker["NOTIFICATION_WEBHOOK_SECRET"] == "synthetic-notification-secret"
+          print("FC-439: distinct notification container environment verified; no credential values logged")
+          '
       - name: Build API image
         run: docker build --file platform/Dockerfile --tag fraldacycle-api:ci platform
       - name: Build approved surfaces

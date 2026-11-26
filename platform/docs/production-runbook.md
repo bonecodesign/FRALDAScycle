@@ -47,7 +47,7 @@ O manifesto `config/secret-access.v1.json` separa as chaves mínimas de API, not
 
 ## Empacotamento reproduzível
 
-O arquivo `compose.production.example.yaml` define API, worker de notificações, Site, App e Admin em processos independentes. Copie-o para a ferramenta de orquestração escolhida e injete `platform/.env.production` pelo cofre de segredos; esse arquivo real nunca deve entrar no Git.
+O arquivo `compose.production.example.yaml` define API, worker de notificações, Site, App e Admin em processos independentes. Copie-o para a ferramenta de orquestração escolhida e injete `platform/.env.production` pelo cofre de segredos; esse arquivo real nunca deve entrar no Git. Para o worker de notificações, use um arquivo privado distinto (`FRALDACYCLE_NOTIFICATION_ENV_FILE`, padrão `platform/.env.notifications.production`), sem reutilizar o arquivo ou o token do cofre da API. Injete exclusivamente a conexão própria do banco, os parâmetros TLS/CA necessários e a configuração de notificações; quando usar cofre, solicite somente `DATABASE_URL` e `NOTIFICATION_WEBHOOK_SECRET` com identidade de serviço própria. Nenhum arquivo real ou valor secreto deve ser versionado. Os demais workers opcionais ainda exigem revisão de escopo e isolamento antes da ativação; a separação de arquivos não comprova permissões reais do cofre ou do PostgreSQL.
 
 As três superfícies usam a mesma imagem parametrizada por `SURFACE`, preservando os arquivos aprovados e expondo somente suas rotas oficiais.
 
