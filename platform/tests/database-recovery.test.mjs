@@ -177,6 +177,26 @@ test("database URLs reject ignored options and normalize encoded database names 
   }
 });
 
+test("FC-437: recovery rejects database paths that libpq could reinterpret as connection parameters", () => {
+  for (const database of ["host=other.example.test dbname=other", "postgresql://other.example.test/other", "postgres://other.example.test/other", "db\0name", "db\nname"]) {
+    const url = `postgresql://operator:synthetic-secret@localhost/${encodeURIComponent(database)}`;
+    const safeError = error => /literal database name/.test(error.message) && !error.message.includes("synthetic-secret");
+    assert.throws(() => createBackupPlan({ DATABASE_URL: url, DATABASE_DUMP_PATH: "./synthetic.dump" }), safeError);
+    assert.throws(() => createRestorePlan({
+      CONFIRM_DATABASE_RESTORE: "RESTORE",
+      RESTORE_DATABASE_URL: url,
+      DATABASE_DUMP_PATH: "./synthetic.dump",
+    }), safeError);
+  }
+  const plan = createRestorePlan({
+    CONFIRM_DATABASE_RESTORE: "RESTORE",
+    RESTORE_DATABASE_URL: "postgresql://operator@localhost/fralda%20cycle",
+    DATABASE_DUMP_PATH: "./synthetic.dump",
+  });
+  assert.equal(plan.env.PGDATABASE, "fralda cycle");
+  assert.equal(plan.args[plan.args.indexOf("--dbname") + 1], "fralda cycle");
+});
+
 test("database URLs reject malformed encoded components and fragments", () => {
   for (const DATABASE_URL of [
     "postgresql://user:pass@db.internal/db%ZZ",
