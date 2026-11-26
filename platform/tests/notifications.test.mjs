@@ -41,6 +41,49 @@ test("notification worker resolves vault credentials before configuring delivery
   }), /provider rejected/);
 });
 
+test("FC-438: notifications reject unrelated vault keys before network access", async () => {
+  for (const key of ["SESSION_SECRET", "PAYMENT_PROVIDER_SECRET", "MEDIA_PROVIDER_SECRET"]) {
+    await assert.rejects(loadNotificationConfig({
+      SECRETS_PROVIDER_URL: "https://vault.example.test/resolve",
+      SECRETS_PROVIDER_TOKEN: "synthetic-token",
+      SECRETS_PROVIDER_KEYS: `DATABASE_URL,${key}`,
+    }, { fetchImpl() { assert.fail("Out-of-scope vault request"); } }), /outside its scope/);
+  }
+});
+
+test("FC-438: production notifications need only their own secrets and preserve database TLS settings", async () => {
+  const env = {
+    NODE_ENV: "production",
+    DATABASE_SSL: "true",
+    DATABASE_SSL_CA: "synthetic-certificate",
+    SUPABASE_INFRASTRUCTURE_ENABLED: "true",
+    NOTIFICATION_WEBHOOK_URL: "https://notify.example.test/deliver",
+    SECRETS_PROVIDER_URL: "https://vault.example.test/resolve",
+    SECRETS_PROVIDER_TOKEN: "synthetic-token",
+    SECRETS_PROVIDER_KEYS: "DATABASE_URL,NOTIFICATION_WEBHOOK_SECRET",
+  };
+  const config = await loadNotificationConfig(env, {
+    async fetchImpl(_url, options) {
+      assert.deepEqual(JSON.parse(options.body).keys, ["DATABASE_URL", "NOTIFICATION_WEBHOOK_SECRET"]);
+      return Response.json({ secrets: { DATABASE_URL: "postgresql://worker@db.example.test/isolated", NOTIFICATION_WEBHOOK_SECRET: "synthetic-notify-secret" } });
+    },
+  });
+  assert.deepEqual(config, {
+    databaseUrl: "postgresql://worker@db.example.test/isolated",
+    databaseSsl: true,
+    databaseSslCa: "synthetic-certificate",
+    supabaseInfrastructureEnabled: true,
+    notificationWebhookUrl: env.NOTIFICATION_WEBHOOK_URL,
+    notificationWebhookSecret: "synthetic-notify-secret",
+  });
+  assert.equal(Object.hasOwn(config, "sessionSecret"), false);
+  await assert.rejects(loadNotificationConfig({ NODE_ENV: "production" }), /Missing required production configuration: DATABASE_URL/);
+  await assert.rejects(loadNotificationConfig({
+    NODE_ENV: "production", DATABASE_URL: "postgresql://worker@localhost/isolated",
+    NOTIFICATION_WEBHOOK_URL: "http://notify.example.test", NOTIFICATION_WEBHOOK_SECRET: "synthetic-secret",
+  }), /HTTPS/);
+});
+
 test("identity notifications are queued without exposing provider details", async () => {
   const queued = [];
   const service = createNotificationService({
