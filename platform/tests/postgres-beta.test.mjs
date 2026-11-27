@@ -99,6 +99,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const browserTransaction=await seedBrowserCommunication(database,currentSession.id,user);
       const { createPremiumRepository } = await import('../database/premium-repository.js');
       const { createPremiumService } = await import('../apps/api/premium-service.js');
+      const { createAdminService } = await import('../apps/api/admin-service.js');
       const premiumService = createPremiumService(createPremiumRepository(database));
       const extraSession = await authService.login(fixture);
       const { createAdminRepository } = await import('../database/admin-repository.js');
@@ -124,7 +125,25 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const moderationRepository=createModerationRepository(database);
       const moderationService=createModerationService(moderationRepository);
       const communicationsService=createCommunicationsService(createCommunicationsRepository(database),moderationRepository);
-      const marketplaceService=createMarketplaceService(createMarketplaceRepository(database),moderationRepository);
+      const syntheticPublicationMediaKey=`listings/${currentSession.id}/synthetic-browser-publication.webp`;
+      // Test-only provider: accepts one already processed synthetic WebP key.
+      // It has no network, credentials, external storage, or real media.
+      const syntheticMediaProvider=Object.freeze({
+        async verifyListingMedia(ownerId,keys){
+          assert.equal(ownerId,currentSession.id);
+          assert.deepEqual(keys,[syntheticPublicationMediaKey]);
+          return {verified:true,count:1};
+        },
+        async signedListingRead(ownerId,{storageKey}){
+          assert.equal(ownerId,currentSession.id);assert.equal(storageKey,syntheticPublicationMediaKey);
+          return this.signedProofRead(ownerId,storageKey);
+        },
+        async signedProofRead(_requesterId,storageKey){
+          assert.equal(storageKey,syntheticPublicationMediaKey);
+          return {readUrl:'https://synthetic.invalid/fraldacycle-test.webp',expiresAt:new Date(Date.now()+120_000).toISOString()};
+        },
+      });
+      const marketplaceService=createMarketplaceService(createMarketplaceRepository(database),moderationRepository,syntheticMediaProvider);
       const {createLogisticsRepository}=await import('../database/logistics-repository.js');
       const {createLogisticsService}=await import('../apps/api/logistics-service.js');
       const {createAddressChangeService}=await import('../apps/api/address-change-service.js');
@@ -172,7 +191,8 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
       const courierFixture={email:'browser-courier@example.test',displayName:'Entregador fictício navegador',password:'synthetic-only-courier-password-v1',adultConfirmed:true,adultDeclarationVersion:'FC-AGE-1'};
       await authService.register(courierFixture);await database.query("UPDATE users SET role='courier' WHERE email=$1",[courierFixture.email]);const courierSession=await authService.login(courierFixture);
       const browserDonation={listingId:browserDonationListing,donorSessionToken:donorSession.token,courierSessionToken:courierSession.token};
-      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', RATE_LIMIT_MAX: '1000', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,institutionService:createInstitutionService(createInstitutionRepository(database)),donationService });
+      const adminService=createAdminService(createAdminRepository(database),syntheticMediaProvider,{reviewSecret:'synthetic-browser-review-context-secret-0123456789'});
+      const api = createApiServer({ config: loadConfig({ NODE_ENV: 'test', RATE_LIMIT_MAX: '1000', CORS_ORIGINS: surfaceOrigin+','+adminOrigin }), authService, accountConsentService: service, premiumService,moderationService,communicationsService,marketplaceService,marketplaceProviders:syntheticMediaProvider,adminService,logisticsService,addressChangeService,privacyRequestService,reviewModerationService,institutionAccessService,institutionService:createInstitutionService(createInstitutionRepository(database)),donationService });
       await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests`)).status,401);
       assert.equal((await fetch(`http://127.0.0.1:${api.address().port}/v1/privacy-requests/erase`,{method:'POST',headers:{cookie:`fc_session=${session.token}`,'content-type':'application/json'},body:'{}'})).status,404);
@@ -208,7 +228,7 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
         let output = ''; let errors = '';
         browser.stdout.on('data', chunk => { output += chunk; });
         browser.stderr.on('data', chunk => { errors += chunk; });
-        browser.stdin.end(JSON.stringify({ authFixture, loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token }));
+        browser.stdin.end(JSON.stringify({ authFixture, loginFixture:{email:fixture.email,password:fixture.password,userId:currentSession.id}, surfaceOrigin, apiOrigin: `http://127.0.0.1:${api.address().port}`, sessionToken: session.token,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken:adminSession.token,syntheticPublicationMediaKey }));
         const code = await new Promise((resolve, reject) => { browser.once('error', reject); browser.once('exit', resolve); });
         assert.equal(code, 0, errors);
         const result = JSON.parse(output);
@@ -223,7 +243,19 @@ test('PostgreSQL beta validates immutable migrations, upgrade data and real pref
         assert.equal(result.publication.mediaRequired,true);
         assert.equal(result.publication.searchNegativeQuery,true);
         assert.equal(result.publication.chatUnpaidBlocked,true);
-        assert.equal(result.publication.successfulPublication,false);
+        assert.equal(result.publication.syntheticMedia,true);
+        assert.equal(result.publication.successfulPublication,true);
+        assert.match(result.publication.listingId,/^[0-9a-f-]{36}$/i);
+        const pendingListing=await adminService.listingReviewDetail(browserAdmin,result.publication.listingId);
+        assert.equal(pendingListing.listing.status,'review');
+        const reviewMedia=await Promise.all(pendingListing.media.map(item=>syntheticMediaProvider.signedProofRead(browserAdmin.id,item.storage_key)));
+        const reviewContext=adminService.issueReviewContext(browserAdmin,pendingListing,reviewMedia);
+        const approved=await adminService.reviewListing(browserAdmin,result.publication.listingId,{outcome:'published',reason:'Mídia sintética processada e anúncio fictício conferido.',confirmed:true,reviewContext});
+        assert.equal(approved.status,'published');
+        const search=await marketplaceService.search({query:'Pampers',kind:'sale'});
+        assert.ok(search.some(item=>item.id===result.publication.listingId));
+        const negotiation=await marketplaceService.startTransaction(user,result.publication.listingId,{itemUnits:1});
+        assert.equal(negotiation.status,'initiated');
         assert.equal(result.publication.humanValidation,false);
         assert.equal(result.publication.screenReader,false);
         assert.equal(result.publication.physicalDevices,false);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 // Browser automation only: this is NOT a human accessibility audit, physical
 // device certification, live media-provider test or authorization to launch.
-export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOrigin}){
+export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOrigin,syntheticMediaKey=null}){
   const widths=[320,375,768,1280],layouts=[],keyboardPaths=[];
   const navigate=async(path,selector)=>{
     await call('Page.navigate',{url:surfaceOrigin+path});
@@ -33,6 +33,15 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   await stepReady(3);
   await until(()=>evaluate(`Boolean(document.querySelector('.upload-zone'))`),'publication upload control');
   assert.equal(await evaluate(`document.getElementById('publish-next').disabled`),true,'no photo means no advance');
+  // The integrated PostgreSQL/browser rehearsal injects only a pre-processed
+  // synthetic media reference. It never weakens the UI rule that a real run
+  // must upload and validate a photo before publication.
+  if(syntheticMediaKey){
+    await evaluate(`sessionStorage.setItem('fc.publishMediaKey',${JSON.stringify(syntheticMediaKey)})`);
+    await navigate('/app/publish-3','[data-publish-step="3"]');
+    await stepReady(3);
+    await until(()=>evaluate(`document.getElementById('publish-next').disabled===false`),'synthetic media reference restores publication readiness');
+  }
   await navigate('/app/publish-4','[data-publish-step="4"]');
   await stepReady(4);
   await evaluate(`document.querySelector('#publish-expiry').focus()`);
@@ -128,13 +137,21 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   await stepReady(8);
   await until(()=>evaluate(`document.querySelector('.review-product')!==null`),'review renders');
   assert.equal(await evaluate(`document.querySelector('.review-product .price')?.textContent.includes('37,90')`),true);
+  let successfulPublication=false,listingId=null;
   await press('#publish-submit');
-  await until(()=>evaluate(`Boolean(document.querySelector('#publication-issues'))`),'missing-media validation');
-  assert.match(await evaluate(`document.querySelector('#publication-issues').textContent`),/foto/i);
-  assert.equal(await evaluate("document.activeElement === document.getElementById('publication-issues')"),true,'review errors receive focus');
-  await key('Tab','Tab',9);
-  assert.equal(await evaluate("document.activeElement === document.querySelector('#publication-issues a')"),true,'Tab reaches the first actionable correction');
-  assert.equal(await evaluate(`sessionStorage.getItem('fc.lastListingId')`),null);
+  if(syntheticMediaKey){
+    await until(()=>evaluate(`document.querySelector('.success-state h1')?.textContent.includes('Anúncio enviado para revisão')`),'synthetic publication receipt');
+    listingId=await evaluate(`sessionStorage.getItem('fc.lastListingId')`);
+    assert.match(listingId,/^[0-9a-f-]{36}$/i);
+    successfulPublication=true;
+  }else{
+    await until(()=>evaluate(`Boolean(document.querySelector('#publication-issues'))`),'missing-media validation');
+    assert.match(await evaluate(`document.querySelector('#publication-issues').textContent`),/foto/i);
+    assert.equal(await evaluate("document.activeElement === document.getElementById('publication-issues')"),true,'review errors receive focus');
+    await key('Tab','Tab',9);
+    assert.equal(await evaluate("document.activeElement === document.querySelector('#publication-issues a')"),true,'Tab reaches the first actionable correction');
+    assert.equal(await evaluate(`sessionStorage.getItem('fc.lastListingId')`),null);
+  }
   assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('fc.publishDraft')).priceCents`),3790);
   await navigate('/app/search','#app-search-submit');
   await until(()=>evaluate(`Boolean(document.getElementById('app-search-input'))`),'search ready');
@@ -153,5 +170,5 @@ export async function checkPublicationBrowser({call,evaluate,until,key,surfaceOr
   assert.equal(await evaluate(`document.querySelector('#msg').disabled && document.querySelector('#chat-form button[type="submit"]').disabled`),true);
   assert.equal(await evaluate(`document.getElementById('transaction-contact').disabled`),true);
   await evaluate(`sessionStorage.removeItem('fc.publishDraft');sessionStorage.removeItem('fc.publishAttempt');sessionStorage.removeItem('fc.publishMediaKey')`);
-  return {browserAutomation:true,viewportChecks:layouts.length,layouts,keyboardPaths,keyboardPathsChecked:keyboardPaths.length,priceCents:3790,mediaRequired:true,searchNegativeQuery:true,chatUnpaidBlocked:true,humanValidation:false,screenReader:false,physicalDevices:false,successfulPublication:false};
+  return {browserAutomation:true,viewportChecks:layouts.length,layouts,keyboardPaths,keyboardPathsChecked:keyboardPaths.length,priceCents:3790,mediaRequired:true,syntheticMedia:Boolean(syntheticMediaKey),listingId,searchNegativeQuery:true,chatUnpaidBlocked:true,humanValidation:false,screenReader:false,physicalDevices:false,successfulPublication};
 }
