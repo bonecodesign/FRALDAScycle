@@ -21,7 +21,7 @@ async function until(operation, label) {
   while (Date.now() < deadline) { if (await operation()) return; await pause(100); }
   throw new Error(`Browser check timed out: ${label}`);
 }
-export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken }) {
+export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionToken,loginFixture,authFixture,requestAuthCode,browserDonation,browserInstitution,browserReview,browserAddress,browserTransaction,adminOrigin,adminSessionToken,syntheticPublicationMediaKey=null }) {
   const executable = nativeChrome();
   if (!executable || typeof WebSocket === 'undefined') throw new Error('Chrome nativo e WebSocket necessários para validar navegador real.');
   const profile = await mkdtemp(join(tmpdir(), 'fraldacycle-chrome-'));
@@ -106,7 +106,7 @@ export async function runBrowserBetaChecks({ surfaceOrigin, apiOrigin, sessionTo
       await call('Input.dispatchKeyEvent', { type: 'keyDown', key: name, code, windowsVirtualKeyCode: virtual, nativeVirtualKeyCode: virtual, ...(name === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}) });
       await call('Input.dispatchKeyEvent', { type: 'keyUp', key: name, code, windowsVirtualKeyCode: virtual, nativeVirtualKeyCode: virtual });
     };
-    const publication=await checkPublicationBrowser({call,evaluate,until,key,surfaceOrigin});
+    const publication=await checkPublicationBrowser({call,evaluate,until,key,surfaceOrigin,syntheticMediaKey:syntheticPublicationMediaKey});
     await call('Page.navigate',{url:`${surfaceOrigin}/app/notification-settings`});
     await until(()=>evaluate(`Boolean(document.querySelector('#operational-preferences-form fieldset:not([disabled])'))`),'preferences reloaded after publication browser check');
     await evaluate(`document.querySelector('#operational-preferences-form input[name=email]').focus()`);
